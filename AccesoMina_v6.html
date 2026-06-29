@@ -269,6 +269,7 @@ body.private #main { display:block; }
   <div class="nav-item" onclick="nav('alertas')">🔔 Alertas <span class="nav-badge" id="badge-alertas">0</span></div>
   <div class="nav-group-label">Personal</div>
   <div class="nav-item" onclick="nav('trabajadores')">👷 Trabajadores</div>
+  <div class="nav-item" onclick="nav('personal-planta')">🏭 Personal de Planta</div>
   <div class="nav-item" onclick="nav('bloqueados')">🚫 Bloqueados</div>
   <div class="nav-item" onclick="nav('auditoria')">📋 Auditoría</div>
   <div class="nav-group-label">Operaciones</div>
@@ -301,6 +302,9 @@ body.private #main { display:block; }
       <button class="btn btn-secondary btn-sm" onclick="exportTenantBackup()">Respaldo</button>
       <button class="btn btn-secondary btn-sm" onclick="showCloudGuide()">Cloud</button>
       <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">⬇ Exportar</button>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modal-nuevo-contrato')">+ Contrato</button>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modal-nueva-mina')">+ Minera</button>
+      <button class="btn btn-secondary btn-sm" onclick="openProyectoModal()">+ Proyecto</button>
       <button class="btn btn-primary btn-sm" onclick="openModal('modal-nuevo-trab')">+ Trabajador</button>
       <button class="btn btn-ghost btn-sm" onclick="logoutTenant()">Salir</button>
     </div>
@@ -308,6 +312,11 @@ body.private #main { display:block; }
 
   <!-- PAGE: DASHBOARD -->
   <div id="page-dashboard" class="page active">
+    <div class="filters">
+      <select class="filter-select" id="filt-dash-mina" onchange="renderDashboard()"><option value="">Todas las mineras</option></select>
+      <select class="filter-select" id="filt-dash-contrato" onchange="renderDashboard()"><option value="">Todos los contratos</option></select>
+      <select class="filter-select" id="filt-dash-mant" onchange="renderDashboard()"><option value="">Todos los proyectos / mantenciones</option></select>
+    </div>
     <div class="kpi-grid" id="kpi-dash"></div>
     <div class="grid-2" style="margin-bottom:20px;">
       <div>
@@ -341,7 +350,11 @@ body.private #main { display:block; }
   <div id="page-mineras" class="page">
     <div id="mineras-grid-view">
       <div class="section-header">
-        <div><div class="section-title">🏔️ Por Minera</div><div class="section-sub">Vista consolidada por mandante</div></div>
+      <div><div class="section-title">🏔️ Por Minera</div><div class="section-sub">Vista consolidada por mandante</div></div>
+      <div class="section-actions">
+        <button class="btn btn-secondary" onclick="openModal('modal-nuevo-contrato')">+ Asociar contrato</button>
+        <button class="btn btn-primary" onclick="openModal('modal-nueva-mina')">+ Nueva Minera</button>
+      </div>
       </div>
       <div class="grid-3" id="minas-cards" style="gap:20px;"></div>
     </div>
@@ -364,6 +377,16 @@ body.private #main { display:block; }
         <option value="curso">Curso</option>
         <option value="doc">Documento</option>
         <option value="firma">Firma</option>
+        <option value="contrato">Contrato</option>
+        <option value="proyecto">Proyecto</option>
+        <option value="mantencion">Mantención</option>
+        <option value="hotel">Hotel</option>
+      </select>
+      <select class="filter-select" id="filt-alerta-mina" onchange="renderAlertas()">
+        <option value="">Todas las mineras</option>
+      </select>
+      <select class="filter-select" id="filt-alerta-mant" onchange="renderAlertas()">
+        <option value="">Todos los proyectos</option>
       </select>
       <select class="filter-select" id="filt-alerta-urg" onchange="renderAlertas()">
         <option value="">Todas las urgencias</option>
@@ -410,10 +433,30 @@ body.private #main { display:block; }
       <select class="filter-select" id="filt-trab-mina" onchange="renderTrabajadores()">
         <option value="">Minera</option>
       </select>
+      <select class="filter-select" id="filt-trab-mant" onchange="renderTrabajadores()">
+        <option value="">Proyecto / mantención</option>
+      </select>
+      <select class="filter-select" id="filt-trab-contrato" onchange="renderTrabajadores()">
+        <option value="">Contrato</option>
+      </select>
     </div>
     <div class="card">
       <div class="table-wrap"><table id="trab-table"><thead></thead><tbody></tbody></table></div>
     </div>
+  </div>
+
+  <!-- PAGE: PERSONAL DE PLANTA -->
+  <div id="page-personal-planta" class="page">
+    <div class="section-header">
+      <div><div class="section-title">🏭 Personal de Planta</div><div class="section-sub" id="planta-sub">Dotación permanente de la empresa contratista</div></div>
+      <button class="btn btn-primary" onclick="openNewPlantWorker()">+ Personal de Planta</button>
+    </div>
+    <div class="filters">
+      <input class="filter-input" id="filt-planta-txt" placeholder="🔍 Nombre, RUT o cargo..." oninput="renderPersonalPlanta()">
+      <select class="filter-select" id="filt-planta-est" onchange="renderPersonalPlanta()"><option value="">Todos los estados</option><option value="vigente">Documentación vigente</option><option value="alerta">Con alertas</option><option value="vencido">Con vencidos o faltantes</option></select>
+    </div>
+    <div class="kpi-grid" id="planta-kpis"></div>
+    <div class="card"><div class="table-wrap"><table id="planta-table"></table></div></div>
   </div>
 
   <!-- PAGE: BLOQUEADOS (redirect to trabajadores tab) -->
@@ -489,6 +532,19 @@ body.private #main { display:block; }
       <button class="tab-btn active" onclick="switchContTab('marcos',this)">📋 Contratos Marco</button>
       <button class="tab-btn" onclick="switchContTab('firmas',this)">✍️ Firma Digital</button>
     </div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div><div class="card-title">Documentos tipo para contratos y anexos</div><div class="card-subtitle">Carga plantillas y valida campos obligatorios, fechas y datos faltantes antes de enviar a firma.</div></div>
+        <button class="btn btn-primary btn-sm" onclick="saveContractTemplate()">Guardar plantilla</button>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Nombre plantilla</label><input class="form-input" id="tpl-nombre" placeholder="Contrato obra/faena, Anexo faena, ODI..."></div>
+        <div class="form-group"><label class="form-label">Tipo documento</label><select class="form-select" id="tpl-tipo"><option value="Contrato por obra/faena">Contrato por obra/faena</option><option value="Anexo de movilización">Anexo de movilización</option><option value="ODI – Obligación de Informar">ODI</option><option value="Reglamento Interno">Reglamento Interno</option><option value="Otro">Otro</option></select></div>
+        <div class="form-group"><label class="form-label">Vigencia por defecto</label><input class="form-input" type="number" id="tpl-vigencia" placeholder="365"></div>
+        <div class="form-group"><label class="form-label">Archivo tipo</label><input class="form-input" type="file" id="tpl-file"></div>
+      </div>
+      <div id="tpl-list" style="margin-top:12px;"></div>
+    </div>
     <div id="contratos-marcos-view">
       <div class="card"><div class="table-wrap"><table id="contratos-table"></table></div></div>
     </div>
@@ -501,7 +557,10 @@ body.private #main { display:block; }
   <div id="page-hoteleria" class="page">
     <div class="section-header">
       <div><div class="section-title">🛏️ Hotelería</div></div>
-      <button class="btn btn-primary" onclick="openModal('modal-hotel-asignar')">+ Asignar Alojamiento</button>
+      <div class="section-actions">
+        <button class="btn btn-secondary" onclick="openModal('modal-nuevo-hotel')">+ Nuevo Hotel</button>
+        <button class="btn btn-primary" onclick="openModal('modal-hotel-asignar')">+ Asignar Persona</button>
+      </div>
     </div>
     <div class="grid-4" id="hotel-cards" style="margin-bottom:24px;"></div>
     <div class="card">
@@ -514,7 +573,10 @@ body.private #main { display:block; }
   <div id="page-llamados" class="page">
     <div class="section-header">
       <div><div class="section-title">📲 Llamados WhatsApp</div></div>
-      <button class="btn btn-primary" onclick="openModal('modal-callout')">+ Nuevo Llamado</button>
+      <div class="section-actions">
+        <button class="btn btn-secondary" onclick="openModal('modal-wa-grupo')">+ Grupo WA</button>
+        <button class="btn btn-primary" onclick="openModal('modal-callout')">+ Nuevo Llamado</button>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><div class="card-title">Historial de Llamados</div></div>
@@ -595,6 +657,9 @@ body.private #main { display:block; }
       <div class="report-card" onclick="exportContratos()"><div class="report-icon">📝</div><div class="report-title">Estado Contratos y Firmas</div><div class="report-desc">Marco de contratos y estado de firmas digitales</div></div>
       <div class="report-card" onclick="exportHoteles()"><div class="report-icon">🛏</div><div class="report-title">Alojamiento</div><div class="report-desc">Asignaciones de hotelería por mantención</div></div>
       <div class="report-card" onclick="exportAuditoria()"><div class="report-icon">🔍</div><div class="report-title">Auditoría Acreditación</div><div class="report-desc">Porcentaje de acreditación por trabajador</div></div>
+      <div class="report-card" onclick="exportMinerasContratos()"><div class="report-icon">🏔️</div><div class="report-title">Mineras y Contratos</div><div class="report-desc">Mandantes, contratos, proyectos y vínculos</div></div>
+      <div class="report-card" onclick="exportCallouts()"><div class="report-icon">📲</div><div class="report-title">Llamados WA</div><div class="report-desc">Grupos, convocatorias y trazabilidad</div></div>
+      <div class="report-card" onclick="exportDocumentosTrabajadores()"><div class="report-icon">📄</div><div class="report-title">Documentos por Trabajador</div><div class="report-desc">Carga documental, archivos y validación</div></div>
     </div>
   </div>
 
@@ -916,8 +981,44 @@ body.private #main { display:block; }
 
 <!-- Modal: Nueva Minera -->
 <div class="modal-overlay" id="modal-nueva-mina"><div class="modal"><div class="modal-header"><div class="modal-title">+ Nueva Minera / Mandante</div><button class="modal-close" onclick="closeModal('modal-nueva-mina')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre minera/faena</label><input class="form-input" id="min-nombre" placeholder="Minera..."></div><div class="form-group"><label class="form-label">Mandante</label><input class="form-input" id="min-mandante"></div><div class="form-group"><label class="form-label">Región</label><input class="form-input" id="min-region"></div><div class="form-group"><label class="form-label">Altura msnm</label><input class="form-input" type="number" id="min-altura"></div><div class="form-group"><label class="form-label">Sistema acceso</label><input class="form-input" id="min-sistema" placeholder="SIGA / Minpass / Propio"></div><div class="form-group"><label class="form-label">Contacto mandante</label><input class="form-input" id="min-contacto"></div><div class="form-group"><label class="form-label">Color</label><input class="form-input" type="color" id="min-color" value="#f07d36"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nueva-mina')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevaMina()">Guardar</button></div></div></div>
+<!-- Modal: Nuevo Contrato Marco -->
+<div class="modal-overlay" id="modal-nuevo-contrato">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">+ Nuevo Contrato Marco</div><button class="modal-close" onclick="closeModal('modal-nuevo-contrato')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label class="form-label">Nombre contrato</label><input class="form-input" id="nc-nombre" placeholder="Ej: Servicio mantención mecánica 2026"></div>
+        <div class="form-group"><label class="form-label">Número contrato</label><input class="form-input" id="nc-numero" placeholder="CTR-2026-001"></div>
+        <div class="form-group"><label class="form-label">Minera / mandante</label><select class="form-select" id="nc-mina"></select></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="nc-tipo"><option value="permanente">Permanente / planta</option><option value="esporadico">Esporádico / por proyecto</option><option value="mixto">Mixto</option></select></div>
+        <div class="form-group"><label class="form-label">Inicio</label><input class="form-input" type="date" id="nc-inicio"></div>
+        <div class="form-group"><label class="form-label">Término</label><input class="form-input" type="date" id="nc-termino"></div>
+        <div class="form-group"><label class="form-label">Monto UF</label><input class="form-input" type="number" id="nc-monto" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="nc-estado"><option value="activo">Activo</option><option value="proceso">En proceso</option><option value="cerrado">Cerrado</option></select></div>
+        <div class="form-group full"><label class="form-label">Administrador / observaciones</label><input class="form-input" id="nc-notas" placeholder="Administrador, alcance o requisitos especiales"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-contrato')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoContrato()">Guardar contrato</button></div>
+  </div>
+</div>
 <!-- Modal: Nuevo Hotel -->
-<div class="modal-overlay" id="modal-nuevo-hotel"><div class="modal"><div class="modal-header"><div class="modal-title">+ Nuevo Hotel</div><button class="modal-close" onclick="closeModal('modal-nuevo-hotel')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre hotel</label><input class="form-input" id="hot-nombre"></div><div class="form-group"><label class="form-label">Ciudad</label><input class="form-input" id="hot-ciudad"></div><div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="hot-tel"></div><div class="form-group"><label class="form-label">Habitaciones simples</label><input class="form-input" type="number" id="hot-simples" value="0"></div><div class="form-group"><label class="form-label">Habitaciones dobles</label><input class="form-input" type="number" id="hot-dobles" value="0"></div><div class="form-group"><label class="form-label">Tarifa noche</label><input class="form-input" type="number" id="hot-tarifa" value="0"></div><div class="form-group full"><label class="form-label">Minas asociadas</label><div id="hot-minas-checks" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-hotel')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoHotel()">Guardar</button></div></div></div>
+<div class="modal-overlay" id="modal-nuevo-hotel"><div class="modal"><div class="modal-header"><div class="modal-title">+ Nuevo Hotel</div><button class="modal-close" onclick="closeModal('modal-nuevo-hotel')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre hotel</label><input class="form-input" id="hot-nombre"></div><div class="form-group full"><label class="form-label">Dirección</label><input class="form-input" id="hot-direccion" placeholder="Calle, número, ciudad"></div><div class="form-group"><label class="form-label">Ciudad</label><input class="form-input" id="hot-ciudad"></div><div class="form-group"><label class="form-label">Contacto</label><input class="form-input" id="hot-contacto" placeholder="Nombre contacto hotel"></div><div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="hot-tel"></div><div class="form-group"><label class="form-label">Mail</label><input class="form-input" type="email" id="hot-mail" placeholder="reservas@hotel.cl"></div><div class="form-group"><label class="form-label">Cantidad piezas</label><input class="form-input" type="number" id="hot-piezas" value="0"></div><div class="form-group"><label class="form-label">Camas por pieza</label><input class="form-input" type="number" id="hot-camas" value="1"></div><div class="form-group"><label class="form-label">Habitaciones simples</label><input class="form-input" type="number" id="hot-simples" value="0"></div><div class="form-group"><label class="form-label">Habitaciones dobles</label><input class="form-input" type="number" id="hot-dobles" value="0"></div><div class="form-group"><label class="form-label">Tarifa noche</label><input class="form-input" type="number" id="hot-tarifa" value="0"></div><div class="form-group full"><label class="form-label">Minas asociadas</label><div id="hot-minas-checks" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-hotel')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoHotel()">Guardar</button></div></div></div>
+<!-- Modal: Grupo WA -->
+<div class="modal-overlay" id="modal-wa-grupo">
+  <div class="modal modal-wide">
+    <div class="modal-header"><div class="modal-title">+ Grupo WhatsApp</div><button class="modal-close" onclick="closeModal('modal-wa-grupo')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label class="form-label">Nombre del grupo</label><input class="form-input" id="wg-nombre" placeholder="Ej: Parada Pebbles Q3 - Turno Día"></div>
+        <div class="form-group"><label class="form-label">Proyecto / mantención</label><select class="form-select" id="wg-mant"></select></div>
+        <div class="form-group"><label class="form-label">Minera</label><select class="form-select" id="wg-mina"></select></div>
+        <div class="form-group full"><label class="form-label">Personas del grupo</label><div id="wg-personas" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--bg3);"></div></div>
+        <div class="form-group full"><label class="form-label">Mensaje inicial</label><textarea class="form-textarea" id="wg-msg" placeholder="Mensaje para copiar a WhatsApp"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-wa-grupo')">Cancelar</button><button class="btn btn-primary" onclick="saveWaGroup()">Crear grupo / abrir WA</button></div>
+  </div>
+</div>
 <!-- Modal: Cloud -->
 <div class="modal-overlay" id="modal-cloud"><div class="modal modal-wide"><div class="modal-header"><div class="modal-title">Publicar en cloud / URL pública</div><button class="modal-close" onclick="closeModal('modal-cloud')">✕</button></div><div class="modal-body"><div class="cloud-note"><b>Estado actual:</b> esta versión funciona como app HTML local con datos separados por cliente en este computador. Para publicarla en internet de forma segura, Domian debe activar backend PHP o Node, base de datos, login con contraseñas, almacenamiento privado de archivos, SSL y backups.</div><div class="grid-2" style="margin-top:16px;"><div class="card"><div class="card-title">Opción recomendada</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Migrar a Laravel/PHP + MySQL/PostgreSQL. Cada cliente queda con un <b>tenant_id</b> propio, usuarios por empresa, permisos y archivos separados.</div></div><div class="card"><div class="card-title">Respaldo portable</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Usa el botón <b>Respaldo</b> para descargar toda la data del cliente actual en JSON y cargarla luego en un servidor.</div></div></div><div style="margin-top:16px;"><button class="btn btn-primary" onclick="exportTenantBackup()">Descargar respaldo del cliente actual</button></div></div></div></div>
 
@@ -2474,7 +2575,7 @@ function saveNuevaMant() {
   closeModal('modal-nueva-mant');
   persistTenant();
   toast('Mantención creada correctamente');
-  renderMantenciones();
+  renderCurrentPageSoft();
 }
 
 // ===================== ASIGNAR PERSONAL =====================
@@ -2533,6 +2634,7 @@ function saveAsignaciones() {
     S.asignaciones.push({ id:`asig_${mantId}_${tid}`, mantId, trabId:tid, turno, estado:'confirmado' });
   });
   closeModal('modal-asignar');
+  persistTenant();
   toast('Asignaciones guardadas correctamente');
   renderMantenciones();
 }
@@ -2564,6 +2666,7 @@ function generarContrato() {
   S.firmas.push(newFirma);
   previewContrato(trabId, mantId, tipo, rem, turno);
   closeModal('modal-generar-contrato');
+  persistTenant();
   updateBadges();
   toast('Contrato generado y enviado a firma');
 }
@@ -2612,6 +2715,7 @@ function saveNuevaFirma() {
   if(!trabId||!tipo||!mantId) { toast('Trabajador, tipo y mantención son requeridos','err'); return; }
   S.firmas.push({ id:'fi'+(S.firmas.length+1), trabId, tipo, mantId, estado:'enviado', enviado:hoy(), firmado:null, canal });
   closeModal('modal-nueva-firma');
+  persistTenant();
   toast('Documento enviado a firma');
   renderContratos();
   updateBadges();
@@ -2644,6 +2748,7 @@ function saveHotelAsig() {
     comparte: document.getElementById('ha-comparte').value
   });
   closeModal('modal-hotel-asignar');
+  persistTenant();
   toast('Alojamiento asignado correctamente');
   renderHoteleria();
 }
@@ -2695,6 +2800,7 @@ function sendCallout() {
     enviados: elegibles.length, respondieron: 0, asignados: 0
   });
   closeModal('modal-callout');
+  persistTenant();
   toast(`Llamado enviado a ${elegibles.length} trabajadores`);
   if(elegibles.length>0) {
     const tel=(elegibles[0].tel||'').replace(/\D/g,'');
@@ -3031,8 +3137,312 @@ function saveNuevoTrab() {
   closeModal('modal-nuevo-trab'); persistTenant(); toast(`${nombre} agregado al sistema`); renderTrabajadores(); updateBadges();
 }
 
+// ===================== V6 MEJORAS INTEGRADAS =====================
+function ensureV6Collections() {
+  if(!S.waGroups) S.waGroups = [];
+  if(!S.contractTemplates) S.contractTemplates = [];
+  S.hoteles.forEach(h=>{
+    if(h.piezas===undefined) h.piezas = (parseInt(h.simples)||0) + (parseInt(h.dobles)||0);
+    if(h.camasPorPieza===undefined) h.camasPorPieza = h.dobles ? 2 : 1;
+  });
+}
+function infoRow(label,value) { return `<div class="info-row"><span class="info-label">${label}:</span><span class="info-value">${value}</span></div>`; }
+function contratoNombre(id) { return S.contratos.find(c=>c.id===id)?.nombre || id || '—'; }
+function getMantContratoId(mantId) { return S.mantenciones.find(m=>m.id===mantId)?.contratoId || ''; }
+function workerMantIds(t) { return S.asignaciones.filter(a=>a.trabId===t.id).map(a=>a.mantId); }
+function workerContratoIds(t) {
+  const ids = new Set([t.contratoId].filter(Boolean));
+  workerMantIds(t).forEach(mid=>{ const cid=getMantContratoId(mid); if(cid) ids.add(cid); });
+  return [...ids];
+}
+function openProyectoModal() { initSelects(); openModal('modal-nueva-mant'); }
+function openModal(id) {
+  ensureV6Collections();
+  initSelects();
+  if(id==='modal-wa-grupo') renderWaGroupPeople();
+  const el=document.getElementById(id);
+  if(el) el.classList.add('open');
+}
+function snapshotState() {
+  ensureV6Collections();
+  return JSON.parse(JSON.stringify({empresa:S.empresa,minas:S.minas,contratos:S.contratos,mantenciones:S.mantenciones,hoteles:S.hoteles,firmas:S.firmas,callouts:S.callouts,trabajadores:S.trabajadores,asignaciones:S.asignaciones,hotelAsig:S.hotelAsig,ESPECIALIDADES:S.ESPECIALIDADES,waGroups:S.waGroups,contractTemplates:S.contractTemplates}));
+}
+function applyState(data) {
+  if(!data) return;
+  ['empresa','minas','contratos','mantenciones','hoteles','firmas','callouts','trabajadores','asignaciones','hotelAsig','ESPECIALIDADES','waGroups','contractTemplates'].forEach(k=>{ if(data[k]!==undefined) S[k]=data[k]; });
+  ensureV6Collections();
+}
+function emptyTenantData(nombre,rut,email,tel) {
+  return { empresa:{nombre:nombre||'Empresa Contratista',rut:rut||'',representante:'Administrador',email:email||'',tel:tel||''}, minas:[], contratos:[], mantenciones:[], hoteles:[], firmas:[], callouts:[], trabajadores:[], asignaciones:[], hotelAsig:[], waGroups:[], contractTemplates:[], ESPECIALIDADES:[...S.ESPECIALIDADES] };
+}
+function saveNuevoContrato() {
+  const nombre=document.getElementById('nc-nombre').value.trim();
+  const minaId=document.getElementById('nc-mina').value;
+  if(!nombre || !minaId) { toast('Nombre y minera son requeridos','err'); return; }
+  S.contratos.push({
+    id:'c'+Date.now(), nombre, numero:document.getElementById('nc-numero').value.trim()||`CTR-${new Date().getFullYear()}-${S.contratos.length+1}`,
+    minaId, tipo:document.getElementById('nc-tipo').value, inicio:document.getElementById('nc-inicio').value, termino:document.getElementById('nc-termino').value,
+    montoUF:parseInt(document.getElementById('nc-monto').value)||0, estado:document.getElementById('nc-estado').value, notas:document.getElementById('nc-notas').value.trim()
+  });
+  closeModal('modal-nuevo-contrato'); persistTenant(); renderCurrentPageSoft(); toast('Contrato asociado a minera');
+}
+function saveNuevoHotel() {
+  const nombre=document.getElementById('hot-nombre').value.trim();
+  if(!nombre){toast('Nombre requerido','err');return;}
+  const checks=[...document.querySelectorAll('#hot-minas-checks input:checked')].map(c=>c.value);
+  S.hoteles.push({id:'h'+Date.now(),nombre,direccion:document.getElementById('hot-direccion').value,ciudad:document.getElementById('hot-ciudad').value,contacto:document.getElementById('hot-contacto').value,mail:document.getElementById('hot-mail').value,tel:document.getElementById('hot-tel').value,piezas:parseInt(document.getElementById('hot-piezas').value)||0,camasPorPieza:parseInt(document.getElementById('hot-camas').value)||1,simples:parseInt(document.getElementById('hot-simples').value)||0,dobles:parseInt(document.getElementById('hot-dobles').value)||0,tarifa:parseInt(document.getElementById('hot-tarifa').value)||0,minaIds:checks});
+  closeModal('modal-nuevo-hotel'); persistTenant(); renderCurrentPageSoft(); toast('Hotel agregado con capacidad');
+}
+function renderDashboard() {
+  ensureV6Collections();
+  const minaF=document.getElementById('filt-dash-mina')?.value||'';
+  const contratoF=document.getElementById('filt-dash-contrato')?.value||'';
+  const mantF=document.getElementById('filt-dash-mant')?.value||'';
+  let mants=S.mantenciones.filter(m=>(!minaF||m.minaId===minaF)&&(!contratoF||m.contratoId===contratoF)&&(!mantF||m.id===mantF));
+  const mantIds=mants.map(m=>m.id);
+  let workers=S.trabajadores.filter(t=>!t.bloqueado);
+  if(minaF) workers=workers.filter(t=>t.mineras?.includes(minaF));
+  if(contratoF) workers=workers.filter(t=>workerContratoIds(t).includes(contratoF));
+  if(mantF) workers=workers.filter(t=>workerMantIds(t).includes(mantF));
+  const alertas=computeAlertas().filter(a=>workers.some(t=>t.id===a.trabId) || mantIds.includes(a.mantId));
+  const pct100=workers.filter(t=>acreditacion(t)===100).length;
+  const conVenc=workers.filter(t=>alertas.some(a=>a.trabId===t.id)).length;
+  const contPend=S.firmas.filter(f=>(f.estado==='pendiente'||f.estado==='enviado')&&(!mantF||f.mantId===mantF)&&(!contratoF||getMantContratoId(f.mantId)===contratoF)).length;
+  const critCount=alertas.filter(a=>a.urgencia==='vencido'||a.urgencia==='critico'||a.urgencia==='falta').length;
+  document.getElementById('kpi-dash').innerHTML=`
+    <div class="kpi kpi-orange"><div class="kpi-value">${workers.length}</div><div class="kpi-label">Trabajadores filtrados</div><div class="kpi-icon">👷</div></div>
+    <div class="kpi kpi-green"><div class="kpi-value">${pct100}</div><div class="kpi-label">Acreditados 100%</div><div class="kpi-icon">✅</div></div>
+    <div class="kpi kpi-red"><div class="kpi-value">${conVenc}</div><div class="kpi-label">Con vencimientos/faltantes</div><div class="kpi-icon">⚠️</div></div>
+    <div class="kpi kpi-blue"><div class="kpi-value">${mants.filter(m=>m.estado!=='cerrada').length}</div><div class="kpi-label">Proyectos activos</div><div class="kpi-icon">🔧</div></div>
+    <div class="kpi kpi-yellow"><div class="kpi-value">${contPend}</div><div class="kpi-label">Firmas pendientes</div><div class="kpi-icon">📝</div></div>
+    <div class="kpi kpi-red"><div class="kpi-value">${critCount}</div><div class="kpi-label">Alertas críticas</div><div class="kpi-icon">🔔</div></div>`;
+  document.getElementById('dash-mants').innerHTML=mants.filter(m=>m.estado!=='cerrada').slice(0,5).map(mn=>{const asig=S.asignaciones.filter(a=>a.mantId===mn.id).length; const pct=mn.personalReq?Math.round(asig/mn.personalReq*100):0; return `<div style="padding:12px 0;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><div><div style="font-weight:700;font-size:14px;">${mn.nombre}</div><div style="font-size:11px;color:var(--text-muted);">${minaNombre(mn.minaId)} · ${contratoNombre(mn.contratoId)} · ${mn.inicio} → ${mn.termino}</div></div><div>${tipoTag(mn.tipo)}${estadoTag(mn.estado)}</div></div><div style="display:flex;align-items:center;gap:10px;margin-top:8px;"><div class="prog" style="flex:1;"><div class="prog-fill ${progColor(pct)}" style="width:${pct}%;"></div></div><span style="font-size:12px;color:var(--text-muted);">${asig}/${mn.personalReq}</span></div></div>`}).join('')||'<div style="color:var(--text-muted);font-size:13px;">Sin proyectos para el filtro</div>';
+  const espCount={}; workers.forEach(t=>{ espCount[t.especialidad]=(espCount[t.especialidad]||0)+1; });
+  document.getElementById('dash-esp-table').innerHTML='<thead><tr><th>Especialidad</th><th>N°</th></tr></thead><tbody>'+Object.entries(espCount).sort((a,b)=>b[1]-a[1]).map(([e,n])=>`<tr><td>${e}</td><td><b style="color:var(--orange);">${n}</b></td></tr>`).join('')+'</tbody>';
+  document.getElementById('dash-alertas').innerHTML=alertas.slice(0,8).map(a=>{
+    const action = a.trabId ? `openFicha('${a.trabId}')` : "nav('mantenciones')";
+    return `<div class="alert-item alert-${a.urgencia==='falta'?'critico':a.urgencia}" style="cursor:pointer;" onclick="${action}"><div class="alert-dot dot-${a.urgencia==='falta'?'critico':a.urgencia}"></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${a.msg}</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${a.tipo} · ${a.urgencia}</div></div></div>`;
+  }).join('')||'<div style="color:var(--text-muted);font-size:13px;">Sin alertas</div>';
+  document.getElementById('dash-callouts').innerHTML=S.callouts.filter(c=>!mantF||c.mantId===mantF).slice(0,4).map(co=>`<div style="padding:12px 0;border-bottom:1px solid var(--border);"><div style="font-weight:600;font-size:13px;">${mantNombre(co.mantId)}</div><div style="font-size:11px;color:var(--text-muted);">${co.fecha}</div><div style="display:flex;gap:16px;margin-top:6px;font-size:12px;"><span>Env: <b>${co.enviados}</b></span><span>Resp: <b>${co.respondieron}</b></span><span style="color:var(--green);">Asig: <b>${co.asignados}</b></span></div></div>`).join('')||'<div style="color:var(--text-muted);font-size:13px;">Sin llamados</div>';
+  const cals={A:0,B:0,C:0,D:0}; workers.forEach(t=>{ const l=calLetra(t.calificacion); if(cals[l]!==undefined)cals[l]++; });
+  const total=Object.values(cals).reduce((a,b)=>a+b,0);
+  document.getElementById('dash-cal').innerHTML='<div style="display:flex;gap:20px;flex-wrap:wrap;">'+Object.entries(cals).map(([l,n])=>{const pct=total?Math.round(n/total*100):0; const colors={A:'var(--green)',B:'var(--blue)',C:'var(--yellow)',D:'var(--red)'}; return `<div style="flex:1;min-width:150px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-weight:700;color:${colors[l]};font-size:16px;">CAL ${l}</span><span style="font-size:13px;color:var(--text-muted);">${n} (${pct}%)</span></div><div class="prog"><div class="prog-fill" style="width:${pct}%;background:${colors[l]};"></div></div></div>`}).join('')+'</div>';
+}
+function renderTrabajadores() {
+  const txt=document.getElementById('filt-trab-txt')?.value.toLowerCase()||'', esp=document.getElementById('filt-trab-esp')?.value||'', disp=document.getElementById('filt-trab-disp')?.value||'', cal=document.getElementById('filt-trab-cal')?.value||'', mina=document.getElementById('filt-trab-mina')?.value||'', mant=document.getElementById('filt-trab-mant')?.value||'', contrato=document.getElementById('filt-trab-contrato')?.value||'';
+  let workers=S.trabajadores;
+  if(currentTrabTab==='planta') workers=workers.filter(t=>t.tipo==='permanente'&&!t.bloqueado);
+  else if(currentTrabTab==='esporadico') workers=workers.filter(t=>t.tipo==='esporadico'&&!t.bloqueado);
+  else workers=workers.filter(t=>t.bloqueado);
+  if(txt) workers=workers.filter(t=>t.nombre.toLowerCase().includes(txt)||String(t.rut).toLowerCase().includes(txt));
+  if(esp) workers=workers.filter(t=>t.especialidad===esp);
+  if(disp) workers=workers.filter(t=>t.disponibilidad===disp);
+  if(cal){const n=parseInt(cal); workers=workers.filter(t=>n===7?t.calificacion===7:n===5?t.calificacion>=5&&t.calificacion<7:n===3?t.calificacion>=3&&t.calificacion<5:t.calificacion<3);}
+  if(mina) workers=workers.filter(t=>t.mineras?.includes(mina));
+  if(mant) workers=workers.filter(t=>workerMantIds(t).includes(mant));
+  if(contrato) workers=workers.filter(t=>workerContratoIds(t).includes(contrato));
+  document.getElementById('trab-sub').textContent=`${workers.length} trabajadores`;
+  document.querySelector('#trab-table thead').innerHTML='<tr><th>Trabajador</th><th>Especialidad</th><th>Tipo</th><th>Minera(s)</th><th>Proyecto/Mantención</th><th>Contrato</th><th>Disp.</th><th>Acred.</th><th></th></tr>';
+  document.querySelector('#trab-table tbody').innerHTML=workers.map(t=>{const pct=acreditacion(t); const mants=workerMantIds(t).map(mantNombre).join('<br>')||'—'; const conts=workerContratoIds(t).map(contratoNombre).join('<br>')||'—'; return `<tr><td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar" style="background:${avatarColor(t.id)};">${initials(t.nombre)}</div><div><div class="worker-name">${t.nombre}</div><div class="worker-rut">${t.rut}</div></div></div></td><td>${t.especialidad}</td><td><span class="badge ${t.tipo==='permanente'?'badge-blue':'badge-orange'}">${t.tipo==='permanente'?'planta':'esporádico'}</span></td><td style="font-size:12px;">${(t.mineras||[]).map(minaNombre).join('<br>')||'—'}</td><td style="font-size:12px;">${mants}</td><td style="font-size:12px;color:var(--text-muted);">${conts}</td><td>${dispBadge(t.disponibilidad)}</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="width:70px;"><div class="prog-fill ${progColor(pct)}" style="width:${pct}%;"></div></div><span>${pct}%</span></div></td><td><button class="btn btn-ghost btn-sm" onclick="openFicha('${t.id}')">Ficha</button></td></tr>`}).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);">Sin trabajadores</td></tr>';
+}
+function auditWorker(t) {
+  const issues=[];
+  if(t.rut && !isValidRut(t.rut)) issues.push('RUT no válido');
+  if(t.email && !isValidEmail(t.email)) issues.push('Email no válido');
+  if(t.tel && !isValidPhoneCL(t.tel)) issues.push('Teléfono no válido');
+  ensureWorkerItems(t).forEach(it=>{
+    if(!it.fileName) issues.push(`${it.name}: sin archivo respaldo`);
+    if(it.vence && diasHasta(it.vence) < -3650) issues.push(`${it.name}: fecha de vencimiento sospechosa`);
+    if(it.fileName && !/\.(pdf|jpg|jpeg|png|doc|docx)$/i.test(it.fileName)) issues.push(`${it.name}: formato de archivo no habitual`);
+    if(it.name.length < 4) issues.push('Nombre de documento incompleto');
+  });
+  getRequiredItemsForWorker(t).forEach(r=>{ if(!reqStatus(t,r).ok) issues.push(`Falta o vencido: ${r.name}`); });
+  return [...new Set(issues)];
+}
+function renderAuditoria() {
+  const txt=document.getElementById('filt-aud-txt')?.value.toLowerCase()||'', minaF=document.getElementById('filt-aud-mina')?.value||'', estF=document.getElementById('filt-aud-est')?.value||'';
+  let workers=S.trabajadores.filter(t=>!t.bloqueado);
+  if(txt) workers=workers.filter(t=>t.nombre.toLowerCase().includes(txt)||String(t.rut).toLowerCase().includes(txt));
+  if(minaF) workers=workers.filter(t=>t.mineras?.includes(minaF));
+  if(estF) workers=workers.filter(t=>{const pct=acreditacion(t); if(estF==='puede') return pct>=85 && auditWorker(t).length===0; if(estF==='revisar') return pct>=60&&pct<85; return pct<60 || auditWorker(t).length>0;});
+  document.getElementById('aud-table').innerHTML=`<thead><tr><th>Trabajador</th><th>Relación</th><th>Requisitos</th><th>Validación inteligente</th><th>%</th><th>Estado</th><th></th></tr></thead><tbody>${workers.map(t=>{const pct=acreditacion(t); const issues=auditWorker(t); const estado=issues.length?'ALERTA':pct>=85?'PUEDE':pct>=60?'REVISAR':'NO PUEDE'; const cls=issues.length||pct<60?'badge-err':pct>=85?'badge-ok':'badge-warn'; return `<tr><td><b>${t.nombre}</b><div style="font-size:11px;color:var(--text-muted);">${t.rut}</div></td><td style="font-size:12px;">${(t.mineras||[]).map(minaNombre).join('<br>')||'—'}<div style="color:var(--text-dim);">${workerMantIds(t).map(mantNombre).join('<br>')||'Sin proyecto'}</div></td><td>${getRequiredItemsForWorker(t).length}</td><td>${issues.length?issues.slice(0,5).map(i=>`<span class="badge badge-err">${i}</span>`).join(' '):'<span class="badge badge-ok">Documentos coherentes</span>'}</td><td><b style="color:${pct>=85?'var(--green)':pct>=60?'var(--yellow)':'var(--red)'};">${pct}%</b></td><td><span class="badge ${cls}">${estado}</span></td><td><button class="btn btn-ghost btn-sm" onclick="openFicha('${t.id}')">Ficha</button></td></tr>`}).join('')}</tbody>`;
+}
+function computeAlertas() {
+  const alertas=[]; let n=1;
+  S.trabajadores.forEach(t=>{
+    getRequiredItemsForWorker(t).forEach(req=>{const st=reqStatus(t,req); if(!st.ok && st.src==='faltante') alertas.push({id:'al'+n++,tipo:req.type,urgencia:'falta',trabId:t.id,trab:t,msg:`${t.nombre}: falta ${req.name}`});});
+    ensureWorkerItems(t).forEach(item=>{if(!item.vence) return; const d=diasHasta(item.vence); if(d<0||d<=7) alertas.push({id:'al'+n++,tipo:item.type,urgencia:d<0?'vencido':'critico',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} ${d<0?'VENCIDO':d+'d para vencer'}`}); else if(d<=30) alertas.push({id:'al'+n++,tipo:item.type,urgencia:'proximo',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} vence en ${d}d`});});
+    auditWorker(t).filter(i=>!i.startsWith('Falta')).forEach(i=>alertas.push({id:'al'+n++,tipo:'doc',urgencia:'critico',trabId:t.id,trab:t,msg:`${t.nombre}: alerta de mal uso - ${i}`}));
+  });
+  S.firmas.forEach(f=>{if(f.estado==='pendiente'||f.estado==='enviado') alertas.push({id:'al'+n++,tipo:'firma',urgencia:'critico',trabId:f.trabId,trab:S.trabajadores.find(w=>w.id===f.trabId),mantId:f.mantId,msg:`${trabNombre(f.trabId)}: ${f.tipo} pendiente de firma`});});
+  S.contratos.forEach(c=>{const e=estadoFecha(c.termino); if(c.termino&&e!=='vigente') alertas.push({id:'al'+n++,tipo:'contrato',urgencia:e,contratoId:c.id,minaId:c.minaId,msg:`Contrato ${c.numero} ${e}: ${c.nombre}`});});
+  S.mantenciones.forEach(m=>{if(!m.contratoId) alertas.push({id:'al'+n++,tipo:'mantencion',urgencia:'critico',mantId:m.id,minaId:m.minaId,msg:`${m.nombre}: falta contrato asociado`}); if(!m.minaId) alertas.push({id:'al'+n++,tipo:'proyecto',urgencia:'critico',mantId:m.id,msg:`${m.nombre}: falta minera asociada`});});
+  const ord={vencido:0,critico:1,falta:2,proximo:3};
+  return alertas.sort((a,b)=>(ord[a.urgencia]??9)-(ord[b.urgencia]??9));
+}
+function renderAlertas() {
+  const alertas=computeAlertas(); const txt=document.getElementById('filt-alerta-txt')?.value.toLowerCase()||'', tipo=document.getElementById('filt-alerta-tipo')?.value||'', urg=document.getElementById('filt-alerta-urg')?.value||'', mina=document.getElementById('filt-alerta-mina')?.value||'', mant=document.getElementById('filt-alerta-mant')?.value||'';
+  const filtered=alertas.filter(a=>{if(txt&&!a.msg.toLowerCase().includes(txt))return false; if(tipo&&a.tipo!==tipo)return false; if(urg&&a.urgencia!==urg)return false; if(mina){const t=a.trabId?S.trabajadores.find(w=>w.id===a.trabId):null; if(a.minaId!==mina && !t?.mineras?.includes(mina)) return false;} if(mant&&a.mantId!==mant&&!(a.trabId&&workerMantIds(S.trabajadores.find(w=>w.id===a.trabId)||{}).includes(mant))) return false; return true;});
+  document.getElementById('alertas-sub').textContent=`${filtered.length} alertas · ${alertas.filter(a=>a.urgencia==='vencido').length} vencidas, ${alertas.filter(a=>a.urgencia==='critico').length} críticas`;
+  const tipoBadge={examen:'badge-blue',curso:'badge-orange',documento:'badge-warn',doc:'badge-warn',firma:'badge-err',contrato:'badge-blue',proyecto:'badge-orange',mantencion:'badge-orange'};
+  document.getElementById('alertas-list').innerHTML=filtered.map(a=>`<div class="alert-item alert-${a.urgencia==='falta'?'critico':a.urgencia}"><div class="alert-dot dot-${a.urgencia==='falta'?'critico':a.urgencia}"></div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">${a.msg}</div><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;"><span class="badge ${tipoBadge[a.tipo]||'badge-na'}">${a.tipo}</span><span class="badge ${a.urgencia==='vencido'?'badge-err':a.urgencia==='critico'||a.urgencia==='falta'?'badge-crit':'badge-warn'}">${a.urgencia}</span></div></div><div style="display:flex;gap:6px;">${a.trabId?`<button class="btn btn-ghost btn-sm" onclick="openFicha('${a.trabId}')">Ficha</button><button class="btn btn-success btn-sm" onclick="notifWA('${a.trabId}','${a.msg.replace(/['"<>]/g,'')}')">WA</button>`:`<button class="btn btn-ghost btn-sm" onclick="nav('mantenciones')">Ver</button>`}</div></div>`).join('')||'<div style="color:var(--text-muted);padding:20px;text-align:center;">Sin alertas con los filtros seleccionados</div>';
+}
+function renderContratos() {
+  ensureV6Collections();
+  document.getElementById('tpl-list').innerHTML=S.contractTemplates.length?S.contractTemplates.map(t=>`<span class="chip" style="background:var(--bg3);color:var(--text-muted);">${t.nombre} · ${t.tipo} · ${t.vigencia||'sin vigencia'} días</span>`).join(''):'<span style="font-size:12px;color:var(--text-muted);">Sin plantillas cargadas.</span>';
+  document.getElementById('contratos-table').innerHTML=`<thead><tr><th>Contrato</th><th>Número</th><th>Minera</th><th>Tipo</th><th>Proyectos asociados</th><th>Vigencia</th><th>Monto UF</th><th>Estado</th><th></th></tr></thead><tbody>${S.contratos.map(c=>{const proy=S.mantenciones.filter(m=>m.contratoId===c.id); return `<tr><td><div style="font-weight:600;">${c.nombre}</div><div style="font-size:11px;color:var(--text-muted);">${c.notas||''}</div></td><td style="font-size:12px;color:var(--text-muted);">${c.numero}</td><td>${minaNombre(c.minaId)}</td><td><span class="badge ${c.tipo==='permanente'?'badge-blue':'badge-orange'}">${c.tipo}</span></td><td>${proy.length?proy.map(p=>`<span class="chip" style="background:var(--bg3);color:var(--text-muted);">${p.nombre}</span>`).join(''):'—'}</td><td>${c.inicio||'—'} → ${c.termino||'—'} ${c.termino?badgeEstado(c.termino):''}</td><td><b style="color:var(--orange);">${(c.montoUF||0).toLocaleString()} UF</b></td><td>${estadoTag(c.estado)}</td><td><button class="btn btn-danger btn-sm" onclick="deleteContrato('${c.id}')">Eliminar</button></td></tr>`}).join('')}</tbody>`;
+  document.getElementById('firmas-table').innerHTML=`<thead><tr><th>Trabajador</th><th>Documento</th><th>Proyecto</th><th>Validación</th><th>Canal</th><th>Enviado</th><th>Firmado</th><th>Estado</th><th></th></tr></thead><tbody>${S.firmas.map(f=>{const t=S.trabajadores.find(w=>w.id===f.trabId); const mn=S.mantenciones.find(m=>m.id===f.mantId); const falt=[]; if(!t?.rut)falt.push('RUT'); if(!t?.email&&!t?.tel)falt.push('contacto'); if(!mn?.inicio||!mn?.termino)falt.push('fechas'); const estCls={borrador:'badge-na',enviado:'badge-warn',pendiente:'badge-crit',firmado:'badge-ok'}; return `<tr><td><b>${t?.nombre||f.trabId}</b></td><td>${f.tipo}</td><td style="font-size:12px;color:var(--text-muted);">${mn?.nombre||f.mantId}</td><td>${falt.length?falt.map(x=>`<span class="badge badge-err">Falta ${x}</span>`).join(' '):'<span class="badge badge-ok">OK</span>'}</td><td><span class="badge badge-blue">${f.canal}</span></td><td>${f.enviado||'—'}</td><td>${f.firmado||'—'}</td><td><span class="badge ${estCls[f.estado]||'badge-na'}">${f.estado}</span></td><td>${f.estado!=='firmado'?`<button class="btn btn-success btn-sm" onclick="marcarFirmado('${f.id}')">Firmado</button>`:''} <button class="btn btn-blue btn-sm" onclick="previewContrato('${f.trabId}','${f.mantId}','${f.tipo}')">Preview</button></td></tr>`}).join('')}</tbody>`;
+}
+function saveContractTemplate() {
+  ensureV6Collections();
+  const nombre=document.getElementById('tpl-nombre').value.trim();
+  if(!nombre){toast('Nombre de plantilla requerido','err');return;}
+  const file=document.getElementById('tpl-file').files[0];
+  S.contractTemplates.push({id:'tpl'+Date.now(),nombre,tipo:document.getElementById('tpl-tipo').value,vigencia:parseInt(document.getElementById('tpl-vigencia').value)||0,fileName:file?.name||'',created:hoy()});
+  document.getElementById('tpl-nombre').value=''; document.getElementById('tpl-vigencia').value=''; document.getElementById('tpl-file').value='';
+  persistTenant(); renderContratos(); toast('Plantilla cargada');
+}
+function renderHoteleria() {
+  ensureV6Collections();
+  document.getElementById('hotel-cards').innerHTML=S.hoteles.map(h=>{const asigs=S.hotelAsig.filter(a=>a.hotelId===h.id); const cap=(parseInt(h.piezas)||0)*(parseInt(h.camasPorPieza)||1); const pct=cap?Math.round(asigs.length/cap*100):0; return `<div class="hotel-card"><div class="hotel-card-name">${h.nombre}</div><div class="hotel-card-city">${h.direccion||h.ciudad||'—'}<br>${h.contacto||'Contacto no informado'} · ${h.tel||'—'} · ${h.mail||''}</div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Camas ocupadas: ${asigs.length}/${cap}</div><div class="prog"><div class="prog-fill ${progColor(pct)}" style="width:${Math.min(100,pct)}%;"></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><span class="badge badge-blue">${h.piezas||0} piezas</span><span class="badge badge-orange">${h.camasPorPieza||1} camas/pieza</span><span class="badge badge-ok">$${(h.tarifa||0).toLocaleString()}/noche</span></div><div style="margin-top:6px;">${(h.minaIds||[]).map(id=>`<span class="chip" style="background:rgba(240,125,54,.15);color:var(--orange);">${minaNombre(id)}</span>`).join('')}</div><button class="btn btn-danger btn-sm" style="margin-top:8px;" onclick="deleteHotel('${h.id}')">Eliminar hotel</button></div>`}).join('');
+  document.getElementById('hotel-table').innerHTML=`<thead><tr><th>Persona</th><th>Proyecto</th><th>Hotel</th><th>Pieza</th><th>Tipo</th><th>Turno</th><th>Ingreso</th><th>Salida</th><th>Comparte</th></tr></thead><tbody>${S.hotelAsig.map(ha=>`<tr><td><b>${trabNombre(ha.trabId)}</b></td><td>${mantNombre(ha.mantId)}</td><td>${hotelNombre(ha.hotelId)}</td><td>#${ha.pieza}</td><td><span class="badge badge-blue">${ha.tipo}</span></td><td>${ha.turno}</td><td>${ha.checkin}</td><td>${ha.checkout}</td><td>${ha.comparte||'—'}</td></tr>`).join('')}</tbody>`;
+}
+function renderWaGroupPeople() {
+  const box=document.getElementById('wg-personas'); if(!box) return;
+  box.innerHTML=S.trabajadores.filter(t=>!t.bloqueado).map(t=>`<label style="display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--border);"><input type="checkbox" value="${t.id}"><span style="flex:1;"><b>${t.nombre}</b><span style="font-size:11px;color:var(--text-muted);"> · ${t.especialidad} · ${t.tel||'sin teléfono'}</span></span></label>`).join('');
+}
+function saveWaGroup() {
+  ensureV6Collections();
+  const nombre=document.getElementById('wg-nombre').value.trim();
+  const ids=[...document.querySelectorAll('#wg-personas input:checked')].map(c=>c.value);
+  if(!nombre||!ids.length){toast('Nombre y personas del grupo son requeridos','err');return;}
+  const msg=document.getElementById('wg-msg').value.trim()||`Grupo ${nombre}: favor confirmar recepción.`;
+  S.waGroups.push({id:'wg'+Date.now(),nombre,mantId:document.getElementById('wg-mant').value,minaId:document.getElementById('wg-mina').value,trabIds:ids,msg,created:hoy()});
+  closeModal('modal-wa-grupo'); persistTenant(); renderLlamados(); toast('Grupo WA guardado');
+  const first=S.trabajadores.find(t=>t.id===ids[0]); const tel=(first?.tel||'').replace(/\D/g,'');
+  if(tel) window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+function renderLlamados() {
+  ensureV6Collections();
+  const groups=(S.waGroups||[]).map(g=>`<tr><td><b>${g.nombre}</b><div style="font-size:11px;color:var(--text-muted);">Grupo guardado · ${g.created}</div></td><td>${mantNombre(g.mantId)}</td><td>${(g.trabIds||[]).length}</td><td colspan="5">${(g.trabIds||[]).slice(0,5).map(trabNombre).join(', ')}</td><td><button class="btn btn-blue btn-sm" onclick="openSavedWaGroup('${g.id}')">Abrir WA</button></td></tr>`).join('');
+  const calls=S.callouts.map(co=>`<tr><td><b>${mantNombre(co.mantId)}</b><div style="font-size:11px;color:var(--text-muted);">${co.fecha}</div></td><td>${(co.especialidades||[]).join(', ')}</td><td><span class="badge badge-blue">${co.turno}</span></td><td>${co.cupos}</td><td>${co.enviados}</td><td>${co.respondieron}</td><td>${co.asignados}</td><td>${co.fecha}</td><td><button class="btn btn-ghost btn-sm" onclick="toast('Seguimiento disponible en el grupo WA')">Seguimiento</button></td></tr>`).join('');
+  document.getElementById('callout-table').innerHTML=`<thead><tr><th>Grupo / Llamado</th><th>Especialidad o Proyecto</th><th>Turno</th><th>Cupos</th><th>Enviados</th><th>Respondieron</th><th>Asignados</th><th>Fecha</th><th></th></tr></thead><tbody>${groups}${calls}</tbody>`;
+}
+function openSavedWaGroup(id) {
+  const g=S.waGroups.find(x=>x.id===id); if(!g) return;
+  const first=S.trabajadores.find(t=>t.id===g.trabIds?.[0]); const tel=(first?.tel||'').replace(/\D/g,'');
+  if(tel) window.open(`https://wa.me/${tel}?text=${encodeURIComponent(g.msg||g.nombre)}`,'_blank');
+}
+function exportMinerasContratos() {
+  const rows=[['Minera','Mandante','Contrato','Numero','Proyecto/Mantencion','Tipo','Inicio','Termino','Estado']];
+  S.contratos.forEach(c=>{const proy=S.mantenciones.filter(m=>m.contratoId===c.id); if(!proy.length) rows.push([minaNombre(c.minaId),S.minas.find(m=>m.id===c.minaId)?.mandante||'',c.nombre,c.numero,'',c.tipo,c.inicio,c.termino,c.estado]); else proy.forEach(p=>rows.push([minaNombre(c.minaId),S.minas.find(m=>m.id===c.minaId)?.mandante||'',c.nombre,c.numero,p.nombre,p.tipo,p.inicio,p.termino,p.estado]));});
+  exportCSV(rows,`mineras_contratos_${hoy()}.csv`); toast('Mineras y contratos exportados');
+}
+function exportCallouts() {
+  const rows=[['Tipo','Nombre/Mantencion','Personas/Especialidades','Enviados','Respondieron','Fecha']];
+  (S.waGroups||[]).forEach(g=>rows.push(['Grupo WA',g.nombre,(g.trabIds||[]).map(trabNombre).join(' / '),(g.trabIds||[]).length,'',g.created]));
+  S.callouts.forEach(c=>rows.push(['Llamado',mantNombre(c.mantId),(c.especialidades||[]).join(' / '),c.enviados,c.respondieron,c.fecha]));
+  exportCSV(rows,`llamados_wa_${hoy()}.csv`); toast('Llamados WA exportados');
+}
+function exportDocumentosTrabajadores() {
+  const rows=[['Trabajador','RUT','Tipo','Documento','Vence','Estado','Archivo','Validacion']];
+  S.trabajadores.forEach(t=>{ensureWorkerItems(t).forEach(it=>rows.push([t.nombre,t.rut,ITEM_TYPES[it.type]||it.type,it.name,it.vence||'',itemValid(it)?'OK':'Revisar',it.fileName||'',auditWorker(t).join(' | ')]));});
+  exportCSV(rows,`documentos_trabajadores_${hoy()}.csv`); toast('Documentos por trabajador exportados');
+}
+
+// ===================== V6.2: CARGA POR REQUISITO + DOTACION DE PLANTA =====================
+pageLabels['personal-planta']='Personal de Planta';
+pageSubs['personal-planta']='Dotación permanente, documentos, exámenes y vencimientos';
+const renderPageV61=renderPage;
+renderPage=function(page){ if(page==='personal-planta') renderPersonalPlanta(); else renderPageV61(page); };
+
+const REQUIREMENTS_COMMON_V62 = [
+  {type:'documento',name:'Cédula de identidad'}, {type:'contrato',name:'Contrato de trabajo firmado'},
+  {type:'contrato',name:'Anexo de faena / vínculo con contrato minero'}, {type:'documento',name:'Certificado AFP'},
+  {type:'documento',name:'Certificado AFC'}, {type:'documento',name:'Certificado Fonasa/Isapre'},
+  {type:'documento',name:'Currículum actualizado'}, {type:'documento',name:'Título o certificado técnico (si aplica)'},
+  {type:'examen',name:'Examen preocupacional / aptitud ocupacional'}, {type:'curso',name:'ODI / Derecho a Saber'},
+  {type:'curso',name:'Recepción Reglamento Interno'}, {type:'curso',name:'Inducción de faena'},
+  {type:'curso',name:'Uso y cuidado de EPP'}
+];
+const REQUIREMENTS_EXPOSURE_V62 = {
+  altura:[{type:'examen',name:'Evaluación de salud para altura geográfica / hipobaria'}],
+  conductor:[{type:'documento',name:'Licencia de conducir vigente'},{type:'examen',name:'Examen psicosensotécnico'},{type:'curso',name:'Manejo defensivo'}],
+  ruido:[{type:'examen',name:'Audiometría'}],
+  visual:[{type:'examen',name:'Evaluación visual y visión cromática'}],
+  alcohol:[{type:'examen',name:'Alcohol y drogas / consentimiento'}]
+};
+function getRequiredItemsForWorker(t) {
+  const out=[...REQUIREMENTS_COMMON_V62,...(REQUIRED_BY_SPECIALTY[t.especialidad]||[])];
+  const mina=S.minas.find(m=>t.mineras?.includes(m.id));
+  const role=`${t.cargo||''} ${t.rol||''} ${t.especialidad||''}`;
+  if(mina?.altura>=3000) out.push(...REQUIREMENTS_EXPOSURE_V62.altura);
+  if(/operador|conductor|chofer|grúa|manlift/i.test(role)) out.push(...REQUIREMENTS_EXPOSURE_V62.conductor);
+  if(/soldador|mecánic|chancado|mantención/i.test(role)) out.push(...REQUIREMENTS_EXPOSURE_V62.ruido);
+  if(/operador|conductor|eléctric/i.test(role)) out.push(...REQUIREMENTS_EXPOSURE_V62.visual);
+  if(/altura|andamio|manlift/i.test(role)) out.push({type:'curso',name:'Trabajo en altura física y rescate'},{type:'examen',name:'Aptitud para trabajo en altura física'});
+  if(/soldador|oxicorte|calderer|pailero/i.test(role)) out.push({type:'curso',name:'Trabajos en caliente'},{type:'certificacion',name:'Calificación o competencia del soldador'});
+  if(/eléctric|instrument/i.test(role)) out.push({type:'curso',name:'Riesgo eléctrico y Arc Flash'},{type:'curso',name:'LOTO / Bloqueo y Etiquetado'});
+  if(/rigger|izaje|grúa/i.test(role)) out.push({type:'curso',name:'Izaje de cargas'},{type:'certificacion',name:'Certificación de operador o Rigger'});
+  if(/espacio confinado|estanque|ducto/i.test(role)) out.push({type:'curso',name:'Espacios confinados y rescate'},{type:'examen',name:'Aptitud para espacios confinados'});
+  if(/operador|grúa|manlift|caex|equipo/i.test(role)) out.push({type:'certificacion',name:'Certificación de competencias del equipo'},{type:'documento',name:'Licencia interna de operación'});
+  if(/sustancia|químic|hazmat/i.test(role)) out.push({type:'curso',name:'Manejo de sustancias peligrosas'});
+  out.push(...REQUIREMENTS_EXPOSURE_V62.alcohol);
+  return out.filter((r,i,a)=>a.findIndex(x=>x.type===r.type&&x.name===r.name)===i);
+}
+function escapeAttrV62(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
+function triggerRequirementUpload(workerId,type,name){
+  const input=document.getElementById('req-upload-input');
+  input.dataset.workerId=workerId; input.dataset.type=type; input.dataset.name=name; input.click();
+}
+function handleRequirementFile(input){
+  const file=input.files?.[0]; if(!file) return;
+  const t=S.trabajadores.find(w=>w.id===input.dataset.workerId); if(!t) return;
+  const item={id:'wi'+Date.now(),type:input.dataset.type,name:input.dataset.name,vence:'',notes:'Carga directa desde PC o proveedor de archivos del sistema',estado:'cargado',fileName:file.name,fileData:null,created:hoy()};
+  const finish=()=>{ensureWorkerItems(t).push(item);persistTenant();input.value='';toast('Archivo cargado en '+item.name);currentFichaTrab=t;refreshFicha();updateBadges();};
+  if(file.size<=1500000){const reader=new FileReader();reader.onload=()=>{item.fileData=reader.result;finish();};reader.readAsDataURL(file);} else finish();
+}
+function addRequirementCloudLink(workerId,type,name){
+  const url=prompt('Pega el enlace del archivo en OneDrive, Google Drive, Dropbox u otra nube:');
+  if(!url) return; try{new URL(url);}catch(e){toast('El enlace no es válido','err');return;}
+  const t=S.trabajadores.find(w=>w.id===workerId); if(!t) return;
+  ensureWorkerItems(t).push({id:'wi'+Date.now(),type,name,vence:'',notes:'Archivo vinculado desde nube',estado:'cargado',fileName:'Enlace nube',cloudUrl:url,created:hoy()});
+  persistTenant();toast('Enlace de nube guardado');currentFichaTrab=t;refreshFicha();updateBadges();
+}
+function renderRequiredChecklist(t) {
+  return `<input id="req-upload-input" type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onchange="handleRequirementFile(this)"><div class="table-wrap"><table><thead><tr><th>Requisito</th><th>Tipo</th><th>Estado</th><th>Vencimiento</th><th>Cargar respaldo</th></tr></thead><tbody>${getRequiredItemsForWorker(t).map(req=>{const st=reqStatus(t,req);return `<tr><td><b>${req.name}</b></td><td>${ITEM_TYPES[req.type]||req.type}</td><td>${st.ok?'<span class="badge badge-ok">Cumple</span>':'<span class="badge badge-err">Falta / vencido</span>'}</td><td>${st.vence?badgeEstado(st.vence):'—'}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="triggerRequirementUpload('${t.id}','${req.type}','${escapeAttrV62(req.name)}')">📎 PC / Archivos</button><button class="btn btn-blue btn-sm" onclick="addRequirementCloudLink('${t.id}','${req.type}','${escapeAttrV62(req.name)}')">☁ Enlace nube</button></div></td></tr>`;}).join('')}</tbody></table></div>`;
+}
+function openWorkerItemFile(workerId,itemId){const t=S.trabajadores.find(w=>w.id===workerId);const it=ensureWorkerItems(t||{}).find(x=>x.id===itemId);if(!it)return;if(it.cloudUrl)window.open(it.cloudUrl,'_blank','noopener');else if(it.fileData)window.open(it.fileData,'_blank');else toast('El archivo está registrado por nombre; vuelve a cargarlo para abrirlo','err');}
+function renderWorkerItems(t){const rows=ensureWorkerItems(t).map(it=>`<tr><td><span class="badge badge-blue">${ITEM_TYPES[it.type]||it.type}</span></td><td><b>${it.name}</b><div style="font-size:11px;color:var(--text-muted)">${it.notes||''}</div></td><td>${it.vence||'—'}</td><td>${workerItemBadge(it)}</td><td>${it.fileName?`<button class="btn btn-ghost btn-sm" onclick="openWorkerItemFile('${t.id}','${it.id}')">📎 ${it.fileName}</button>`:'—'}</td><td><button class="btn btn-danger btn-sm" onclick="deleteWorkerItem('${t.id}','${it.id}')">Eliminar</button></td></tr>`).join('');return `<div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Sin documentos cargados todavía</td></tr>'}</tbody></table></div>`;}
+
+function renderPersonalPlanta(){
+  const txt=(document.getElementById('filt-planta-txt')?.value||'').toLowerCase(), est=document.getElementById('filt-planta-est')?.value||'';
+  let list=S.trabajadores.filter(t=>t.tipo==='permanente'&&!t.bloqueado);
+  if(txt) list=list.filter(t=>`${t.nombre} ${t.rut} ${t.cargo||''} ${t.especialidad||''}`.toLowerCase().includes(txt));
+  if(est) list=list.filter(t=>{const req=getRequiredItemsForWorker(t),falt=req.filter(r=>!reqStatus(t,r).ok),venc=ensureWorkerItems(t).some(itemExpired);return est==='vigente'?!falt.length&&!venc:est==='alerta'?computeAlertas().some(a=>a.trabId===t.id):falt.length||venc;});
+  const alerts=computeAlertas().filter(a=>list.some(t=>t.id===a.trabId));
+  document.getElementById('planta-sub').textContent=`${list.length} personas permanentes · control laboral, previsional, médico y preventivo`;
+  document.getElementById('planta-kpis').innerHTML=`<div class="kpi kpi-blue"><div class="kpi-value">${list.length}</div><div class="kpi-label">Personal planta</div></div><div class="kpi kpi-green"><div class="kpi-value">${list.filter(t=>acreditacion(t)>=85).length}</div><div class="kpi-label">Habilitados</div></div><div class="kpi kpi-orange"><div class="kpi-value">${alerts.length}</div><div class="kpi-label">Alertas documentales</div></div><div class="kpi kpi-red"><div class="kpi-value">${list.filter(t=>getRequiredItemsForWorker(t).some(r=>!reqStatus(t,r).ok)).length}</div><div class="kpi-label">Con faltantes</div></div>`;
+  document.getElementById('planta-table').innerHTML=`<thead><tr><th>Persona</th><th>Cargo / área</th><th>Contrato</th><th>Requisitos</th><th>Próximo vencimiento</th><th>Acreditación</th><th>Alertas</th><th></th></tr></thead><tbody>${list.map(t=>{const req=getRequiredItemsForWorker(t),falt=req.filter(r=>!reqStatus(t,r).ok),al=computeAlertas().filter(a=>a.trabId===t.id),dates=ensureWorkerItems(t).map(i=>i.vence).filter(Boolean).sort();return `<tr><td><b>${t.nombre}</b><div class="worker-rut">${t.rut}</div></td><td>${t.cargo||t.especialidad||'—'}<div class="worker-rut">${t.rol||'Planta contratista'}</div></td><td>${contratoNombre(t.contratoId)||'—'}</td><td>${req.length-falt.length}/${req.length}<div class="worker-rut">${falt.length} faltantes</div></td><td>${dates[0]?`${dates[0]} ${badgeEstado(dates[0])}`:'Sin fecha registrada'}</td><td><b>${acreditacion(t)}%</b></td><td><span class="badge ${al.length?'badge-err':'badge-ok'}">${al.length}</span></td><td><button class="btn btn-primary btn-sm" onclick="openFicha('${t.id}')">Ficha y archivos</button></td></tr>`;}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-muted)">No hay personal de planta con este filtro</td></tr>'}</tbody>`;
+}
+function openNewPlantWorker(){openModal('modal-nuevo-trab');const type=document.getElementById('nt-tipo');if(type)type.value='permanente';}
+
+const openMantDetalleV61=openMantDetalle;
+openMantDetalle=function(mantId){
+  openMantDetalleV61(mantId);
+  const panel=document.getElementById('mant-tab-personal'), asigs=S.asignaciones.filter(a=>a.mantId===mantId);
+  const assigned=new Set(asigs.map(a=>a.trabId)); const candidates=S.trabajadores.filter(t=>!t.bloqueado&&!assigned.has(t.id));
+  const toolbar=`<div class="card" style="margin-bottom:14px"><div class="card-header"><div><div class="card-title">Administrar dotación</div><div class="card-subtitle">Asigna personal disponible o da de baja a quien ya no participa.</div></div><button class="btn btn-secondary btn-sm" onclick="openAsignarPersonalDirect('${mantId}')">Asignación avanzada</button></div><div style="display:flex;gap:8px;flex-wrap:wrap"><select class="form-select" id="mant-quick-worker" style="max-width:420px"><option value="">Seleccionar trabajador...</option>${candidates.map(t=>`<option value="${t.id}">${t.nombre} · ${t.especialidad} · ${t.disponibilidad}</option>`).join('')}</select><select class="form-select" id="mant-quick-turno" style="max-width:130px"><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select><button class="btn btn-primary" onclick="quickAssignMant('${mantId}')">+ Asignar</button></div></div>`;
+  panel.insertAdjacentHTML('afterbegin',toolbar);
+  panel.querySelectorAll('#mant-pers-tbody tr').forEach((tr,i)=>{const a=asigs[i];if(a){tr.insertAdjacentHTML('beforeend',`<td><button class="btn btn-danger btn-sm" onclick="removeMantWorker('${mantId}','${a.trabId}')">Dar de baja</button></td>`);}});
+  const head=panel.querySelector('thead tr'); if(head) head.insertAdjacentHTML('beforeend','<th>Acción</th>');
+};
+function quickAssignMant(mantId){const workerId=document.getElementById('mant-quick-worker').value,turno=document.getElementById('mant-quick-turno').value;if(!workerId){toast('Selecciona un trabajador','err');return;}if(!S.asignaciones.some(a=>a.mantId===mantId&&a.trabId===workerId))S.asignaciones.push({id:'asig_'+Date.now(),mantId,trabId:workerId,turno,estado:'confirmado'});const t=S.trabajadores.find(w=>w.id===workerId),mn=S.mantenciones.find(m=>m.id===mantId);if(t){t.disponibilidad='asignado';if(mn?.minaId&&!t.mineras?.includes(mn.minaId))t.mineras=[...(t.mineras||[]),mn.minaId];}persistTenant();toast('Trabajador asignado');openMantDetalle(mantId);}
+function removeMantWorker(mantId,workerId){if(!confirm('¿Dar de baja a este trabajador de la mantención?'))return;S.asignaciones=S.asignaciones.filter(a=>!(a.mantId===mantId&&a.trabId===workerId));S.hotelAsig=S.hotelAsig.filter(a=>!(a.mantId===mantId&&a.trabId===workerId));const t=S.trabajadores.find(w=>w.id===workerId);if(t&&!S.asignaciones.some(a=>a.trabId===workerId))t.disponibilidad='disponible';persistTenant();toast('Trabajador dado de baja de la mantención');openMantDetalle(mantId);}
+
 // ===================== INIT SELECTS =====================
 function initSelects() {
+  ensureV6Collections();
   // Especialidad filters
   const espSels = ['filt-trab-esp','nt-esp','nm-esp-sel'];
   espSels.forEach(id=>{
@@ -3042,10 +3452,10 @@ function initSelects() {
     if(id==='nt-esp') el.innerHTML=S.ESPECIALIDADES.map(e=>`<option value="${e}">${e}</option>`).join('');
   });
   // Mina filters
-  ['filt-trab-mina','filt-aud-mina','filt-mant-mina','filt-ex-mina','nm-mina'].forEach(id=>{
+  ['filt-trab-mina','filt-aud-mina','filt-mant-mina','filt-ex-mina','nm-mina','nc-mina','filt-dash-mina','filt-alerta-mina','wg-mina'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;
-    const base = id.startsWith('filt')?'<option value="">Todas las minas</option>':'';
+    const base = (id.startsWith('filt')||id==='wg-mina')?'<option value="">Todas las mineras</option>':'';
     el.innerHTML = base+S.minas.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
   });
   // Worker selects
@@ -3056,15 +3466,20 @@ function initSelects() {
     el.innerHTML='<option value="">Seleccionar...</option>'+S.trabajadores.filter(t=>!t.bloqueado).map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
   });
   // Mant selects
-  const mantSels = ['gc-mant','nf-mant','ha-mant','asig-mant','co-mant','nt-mant'];
+  const mantSels = ['gc-mant','nf-mant','ha-mant','asig-mant','co-mant','nt-mant','filt-dash-mant','filt-trab-mant','filt-alerta-mant','wg-mant'];
   mantSels.forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;
-    el.innerHTML='<option value="">Seleccionar...</option>'+S.mantenciones.map(m=>`<option value="${m.id}">${m.nombre}</option>`).join('');
+    const base = id.startsWith('filt') ? '<option value="">Todos los proyectos / mantenciones</option>' : '<option value="">Seleccionar...</option>';
+    el.innerHTML=base+S.mantenciones.map(m=>`<option value="${m.id}">${m.nombre} · ${minaNombre(m.minaId)}</option>`).join('');
   });
   // Nm contrato
   const nmCont=document.getElementById('nm-contrato');
   if(nmCont) nmCont.innerHTML='<option value="">Seleccionar...</option>'+S.contratos.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  ['filt-dash-contrato','filt-trab-contrato'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML='<option value="">Todos los contratos</option>'+S.contratos.map(c=>`<option value="${c.id}">${c.nombre} · ${minaNombre(c.minaId)}</option>`).join('');
+  });
   // Nt minas checks
   const ntMinas=document.getElementById('nt-minas-checks');
   if(ntMinas) ntMinas.innerHTML=S.minas.map(m=>`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;background:var(--bg3);border-radius:6px;">
