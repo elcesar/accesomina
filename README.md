@@ -2,30 +2,54 @@
 
 Sistema web para gestión de acreditación minera de empresas contratistas.
 
-Incluye:
+## Estado actual
 
-- Registro de clientes
-- Acceso privado por empresa
-- Separación de data por cliente
-- Trabajadores
-- Mineras
-- Proyectos y mantenciones
-- Hotelería
-- Contratos y firmas
-- Auditoría documental
-- Alertas de vencimiento
-- Reportes CSV
+- Aplicación HTML funcional en `AccesoMina_v6.html`.
+- Versión publicable en `public/index.html`.
+- Portada pública Domian.
+- Acceso privado por cliente.
+- Registro de clientes con validación de RUT chileno y email.
+- Datos separados por cliente en `localStorage` para prototipo local.
+- Cuenta administradora Domian: RUT `78.425.213-2`.
 
-## Versión actual
+## Funcionalidades
 
-Prototipo HTML local con almacenamiento en localStorage.
+- Trabajadores.
+- Mineras / mandantes.
+- Proyectos y mantenciones.
+- Hotelería.
+- Contratos y firmas.
+- Auditoría documental automática.
+- Exámenes médicos.
+- Cursos y certificaciones.
+- Alertas de vencimiento.
+- Reportes CSV.
 
-## Próximo paso
+## Base de datos para AWS RDS
 
-Migración a backend cloud en AWS con:
+La estructura PostgreSQL está en:
 
-- Frontend en S3 + CloudFront
-- Backend PHP/Laravel o Node
-- Base de datos RDS
-- Archivos privados en S3
-- Login seguro con Cognito
+```text
+database/postgres/001_schema.sql
+database/postgres/002_seed_domian.sql
+database/postgres/003_rls_template.sql
+```
+
+Ejecutar en RDS PostgreSQL:
+
+```bash
+psql "$DATABASE_URL" -f database/postgres/001_schema.sql
+psql "$DATABASE_URL" -f database/postgres/002_seed_domian.sql
+```
+
+## Importante sobre persistencia
+
+GitHub guarda el proyecto, la estructura de base de datos y los seeds. La data real de clientes debe guardarse en Amazon RDS y los archivos en S3 privado. No se debe usar GitHub como base de datos operacional.
+
+## Despliegue AWS
+
+Ver guía completa:
+
+```text
+docs/AWS_RDS_DEPLOY.md
+```
