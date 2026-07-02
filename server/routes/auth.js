@@ -27,6 +27,8 @@ authRouter.post('/register', limiter, async (req, res) => {
     const user = userResult.rows[0];
     const initialState = { empresa: { nombre: body.companyName, rut: body.rut, representante: body.adminName, email, tel: body.phone }, minas: [], contratos: [], mantenciones: [], hoteles: [], firmas: [], callouts: [], trabajadores: [], asignaciones: [], hotelAsig: [], waGroups: [], contractTemplates: [], tenantUsers: [] };
     await client.query('INSERT INTO tenant_state (tenant_id,state,updated_by) VALUES ($1,$2::jsonb,$3)', [tenant.id, JSON.stringify(initialState), user.id]);
+    await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) e",[tenant.id,JSON.stringify(initialState),user.id]);
+    await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,accent:'#f07d36'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
     res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut });
@@ -53,10 +55,10 @@ authRouter.post('/login', limiter, async (req, res) => {
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'session', action: 'session.login', newValue: { ip: clientIp(req) } });
   });
   setSessionCookie(res, token);
-  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, mustChangePassword:user.must_change_password }, tenant: { id: tenant.id, name: tenant.company_name } });
+  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password }, tenant: { id: tenant.id, name: tenant.company_name } });
 });
 
-authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password FROM app_users WHERE id=$1',[req.auth.userId]));res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, mustChangePassword:result.rows[0]?.must_change_password||false }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
+authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions FROM app_users WHERE id=$1',[req.auth.userId]));res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, permissions:result.rows[0]?.permissions||{modules:{}}, mustChangePassword:result.rows[0]?.must_change_password||false }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
 
 authRouter.post('/change-password', authenticate, requireCsrf, async(req,res)=>{const {currentPassword,newPassword}=req.body||{};if(!validatePassword(newPassword))return res.status(400).json({error:'WEAK_PASSWORD'});const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt FROM app_users WHERE id=$1',[req.auth.userId]));const user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});const credentials=await hashPassword(newPassword);await withTenant(req.auth.tenantId,async client=>{await client.query('UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,updated_at=now() WHERE id=$3',[credentials.hash,credentials.salt,req.auth.userId]);await client.query('UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND id<>$2',[req.auth.userId,req.auth.sessionId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.password_changed'});});res.status(204).end();});
 

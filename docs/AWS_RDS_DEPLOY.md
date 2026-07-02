@@ -44,16 +44,17 @@ s3://accesomina-domian-prod/clientes/{tenant_id}/trabajadores/{worker_id}/...
 8. Configurar variables de entorno en backend:
 
 ```env
-APP_ENV=production
-APP_URL=https://accesomina.domian.cl
+NODE_ENV=production
+APP_ORIGIN=https://accesomina.domian.cl
 DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/accesomina
+TENANT_SECRET_KEY=<secreto-aleatorio-en-Secrets-Manager>
 AWS_REGION=us-east-1
 AWS_S3_BUCKET=accesomina-domian-prod
 COGNITO_USER_POOL_ID=
 COGNITO_CLIENT_ID=
 ```
 
-Agregar también `REGISTRATION_INVITE_CODE`, `ADMIN_INITIAL_PASSWORD`, configuración SMTP, Meta WhatsApp y servicio antivirus desde AWS Secrets Manager. No guardar secretos en imágenes Docker, GitHub o archivos públicos.
+Agregar también `REGISTRATION_INVITE_CODE`, `ADMIN_INITIAL_PASSWORD` y servicio antivirus desde AWS Secrets Manager. SMTP, Meta WhatsApp y firma pueden configurarse por cliente desde el panel privado y quedan cifrados. No guardar secretos en imágenes Docker, GitHub o archivos públicos.
 
 ## Despliegue recomendado
 

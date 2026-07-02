@@ -7,7 +7,7 @@ export const registerSchema = z.object({
   adminName: z.string().trim().min(3).max(160), email: z.string().email().max(254),
   phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
 });
-export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional() });
+export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
 export function sanitizeJson(value, key = '') {
@@ -32,7 +32,9 @@ export function summarizeChanges(before, after, path = '', output = []) {
     output.push({ path: path || '/', before, after }); return output;
   }
   if (Array.isArray(before) || Array.isArray(after)) {
-    if (JSON.stringify(before) !== JSON.stringify(after)) output.push({ path: path || '/', beforeCount: Array.isArray(before) ? before.length : null, afterCount: Array.isArray(after) ? after.length : null });
+    const a=Array.isArray(before)?before:[],b=Array.isArray(after)?after:[],identifiable=[...a,...b].every(x=>x&&typeof x==='object'&&x.id);
+    if(identifiable){const am=new Map(a.map(x=>[String(x.id),x])),bm=new Map(b.map(x=>[String(x.id),x]));for(const id of new Set([...am.keys(),...bm.keys()])){if(output.length>=200)break;if(!am.has(id))output.push({path:`${path}/${id}`,action:'created',after:bm.get(id)});else if(!bm.has(id))output.push({path:`${path}/${id}`,action:'deleted',before:am.get(id)});else summarizeChanges(am.get(id),bm.get(id),`${path}/${id}`,output);}}
+    else if (JSON.stringify(before) !== JSON.stringify(after)) output.push({ path: path || '/', beforeCount: a.length, afterCount: b.length });
     return output;
   }
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) summarizeChanges(before[key], after[key], `${path}/${key}`, output);

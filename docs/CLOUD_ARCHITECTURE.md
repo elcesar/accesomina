@@ -18,7 +18,7 @@ S3 privado
 
 ## Datos
 
-`tenant_state` permite conectar la interfaz V6 sin perder funcionalidad y aplica control de versión. Las tablas normalizadas existentes permiten migrar gradualmente cada módulo. Antes de cada guardado, la API valida:
+`tenant_module_state` separa cada colección funcional y aplica una versión independiente por módulo. Esto permite trabajo simultáneo en contratos, personal, EPP u hotelería sin sobrescribir módulos ajenos. `tenant_state` se conserva únicamente para compatibilidad y migración. Las tablas normalizadas siguen siendo el destino para procesos analíticos y futuras APIs especializadas. Antes de cada guardado, la API valida:
 
 - RUT único por trabajador dentro de la empresa.
 - IDs únicos.
@@ -34,6 +34,8 @@ S3 privado
 - Protección de origen y CSRF.
 - Roles verificados por endpoint.
 - Archivos con hash SHA-256, límite de 25 MB y estado antivirus.
+- RLS forzado incluso para el propietario de las tablas.
+- Secretos de integraciones por empresa cifrados con AES-256-GCM.
 - Historial append-only.
 - Secretos únicamente mediante variables de entorno o un secret manager.
 
@@ -45,6 +47,10 @@ S3 privado
 - `prevencion`: documentación, riesgos y salud ocupacional.
 - `acreditacion`: carga, revisión y envío al mandante.
 - `consulta`: lectura y reportes.
+
+## Parametrización por empresa
+
+`tenant_settings` mantiene identidad visual, módulos habilitados, umbrales de alerta y catálogos sin afectar a otros clientes. `tenant_integrations` guarda configuración pública y secretos cifrados separados para cada empresa.
 
 ## Integraciones
 
@@ -65,6 +71,6 @@ Cada solicitud genera un `integration_event` y un evento de auditoría. Nunca se
 - despliegues con migraciones versionadas;
 - pruebas de aislamiento Empresa A/B/C y concurrencia antes de cada liberación.
 
-## Pendientes de infraestructura, no de código
+## Requisitos de infraestructura
 
-Para operar en producción se deben contratar/configurar las cuentas reales de AWS, SMTP, Meta WhatsApp, firma electrónica, antivirus y cualquier API de ERP o mandante. El repositorio deja los adaptadores listos, pero no incluye credenciales de terceros.
+Para operar en producción se deben contratar/configurar las cuentas reales de AWS, SMTP, Meta WhatsApp, firma electrónica, antivirus y cualquier API de ERP o mandante. `TENANT_SECRET_KEY` debe almacenarse en Secrets Manager y respaldarse: perder esa clave impide descifrar integraciones existentes.

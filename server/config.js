@@ -5,6 +5,7 @@ const required = ['DATABASE_URL'];
 for (const key of required) {
   if (!process.env[key]) throw new Error(`Missing required environment variable: ${key}`);
 }
+if (process.env.NODE_ENV === 'production' && !process.env.TENANT_SECRET_KEY) throw new Error('TENANT_SECRET_KEY is required in production');
 
 export const config = Object.freeze({
   env: process.env.NODE_ENV || 'development',
@@ -13,6 +14,7 @@ export const config = Object.freeze({
   databaseUrl: process.env.DATABASE_URL,
   sessionTtlHours: Math.max(1, Number(process.env.SESSION_TTL_HOURS || 8)),
   registrationInviteCode: process.env.REGISTRATION_INVITE_CODE || '',
+  tenantSecretKey: process.env.TENANT_SECRET_KEY || process.env.REGISTRATION_INVITE_CODE || 'development-only-secret',
   cookieSecure: process.env.COOKIE_SECURE === 'true' || process.env.NODE_ENV === 'production',
   fileStorage: process.env.FILE_STORAGE === 's3' ? 's3' : 'local',
   uploadDir: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),

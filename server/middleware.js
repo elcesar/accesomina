@@ -19,11 +19,11 @@ export async function authenticate(req, res, next) {
       WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`, [sha256(raw)]);
     const session = sessionResult.rows[0];
     if (!session) { clearSessionCookie(res); return res.status(401).json({ error: 'SESSION_INVALID' }); }
-    const identity = await withTenant(session.tenant_id, client => client.query(`SELECT u.id,u.tenant_id,u.email,u.full_name,u.role,u.active,t.company_name,t.rut,t.status
+    const identity = await withTenant(session.tenant_id, client => client.query(`SELECT u.id,u.tenant_id,u.email,u.full_name,u.role,u.active,u.permissions,t.company_name,t.rut,t.status
       FROM app_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.id=$1 AND u.tenant_id=$2`, [session.user_id, session.tenant_id]));
     const user = identity.rows[0];
     if (!user?.active || user.status !== 'active') { clearSessionCookie(res); return res.status(403).json({ error: 'ACCOUNT_DISABLED' }); }
-    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, companyName: user.company_name, rut: user.rut };
+    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, companyName: user.company_name, rut: user.rut };
     query('UPDATE user_sessions SET last_seen_at=now() WHERE id=$1', [session.id]).catch(() => {});
     next();
   } catch (error) { next(error); }

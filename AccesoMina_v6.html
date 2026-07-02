@@ -291,6 +291,7 @@ body.private #main { display:block; }
   <div class="nav-item" onclick="nav('cursos')">📚 Cursos</div>
   <div class="nav-item" onclick="nav('reportes')">📊 Reportes</div>
   <div class="nav-group-label">Administración Empresa</div>
+  <div class="nav-item" onclick="nav('configuracion')">⚙️ Configuración Empresa</div>
   <div class="nav-item" onclick="nav('usuarios')">👥 Usuarios y Permisos</div>
   <div class="nav-item" onclick="nav('bitacora')">🧾 Bitácora de Cambios</div>
   <div class="nav-group-label" id="nav-admin-label" style="display:none;">Administración Domian</div>
@@ -660,6 +661,26 @@ body.private #main { display:block; }
   </div>
 
   <!-- PAGE: USUARIOS Y PERMISOS -->
+  <div id="page-configuracion" class="page">
+    <div class="section-header"><div><div class="section-title">⚙️ Configuración de la Empresa</div><div class="section-sub">Parámetros exclusivos de este sitio privado</div></div><button class="btn btn-primary" onclick="saveTenantSettingsCloud()">Guardar configuración</button></div>
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Identidad y alertas</div><div class="divider"></div><div class="form-grid">
+        <div class="form-group full"><label class="form-label">Nombre visible</label><input class="form-input" id="cfg-display-name"></div>
+        <div class="form-group"><label class="form-label">Color principal</label><input class="form-input" id="cfg-accent" type="color" value="#f07d36"></div>
+        <div class="form-group"><label class="form-label">Logo (URL HTTPS)</label><input class="form-input" id="cfg-logo" placeholder="https://..."></div>
+        <div class="form-group"><label class="form-label">Alerta preventiva (días)</label><input class="form-input" id="cfg-warning" type="number" min="1" value="30"></div>
+        <div class="form-group"><label class="form-label">Alerta crítica (días)</label><input class="form-input" id="cfg-critical" type="number" min="1" value="7"></div>
+        <div class="form-group full"><label class="form-label">Especialidades disponibles</label><textarea class="form-textarea" id="cfg-specialties" placeholder="Una especialidad por línea"></textarea></div>
+      </div></div>
+      <div class="card"><div class="card-title">Módulos habilitados</div><div class="divider"></div><div id="cfg-modules" class="form-grid"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px;"><div class="card-header"><div><div class="card-title">Integraciones privadas</div><div class="card-subtitle">Las claves se cifran y nunca se muestran nuevamente.</div></div></div><div class="form-grid">
+      <div class="form-group"><label class="form-label">Servidor SMTP</label><input class="form-input" id="cfg-smtp-host" placeholder="smtp.empresa.cl"></div><div class="form-group"><label class="form-label">Correo remitente</label><input class="form-input" id="cfg-smtp-from" placeholder="acceso@empresa.cl"></div><div class="form-group"><label class="form-label">Usuario SMTP</label><input class="form-input" id="cfg-smtp-user"></div><div class="form-group"><label class="form-label">Clave SMTP nueva</label><input class="form-input" type="password" id="cfg-smtp-pass"></div>
+      <div class="form-group"><label class="form-label">WhatsApp Phone Number ID</label><input class="form-input" id="cfg-wa-phone"></div><div class="form-group"><label class="form-label">Token WhatsApp nuevo</label><input class="form-input" type="password" id="cfg-wa-token"></div>
+      <div class="form-group"><label class="form-label">URL proveedor firma</label><input class="form-input" id="cfg-sign-url" placeholder="https://..."></div><div class="form-group"><label class="form-label">Token firma nuevo</label><input class="form-input" type="password" id="cfg-sign-token"></div>
+    </div><div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-secondary" onclick="saveTenantIntegrationCloud('smtp')">Guardar correo</button><button class="btn btn-secondary" onclick="saveTenantIntegrationCloud('whatsapp')">Guardar WhatsApp</button><button class="btn btn-secondary" onclick="saveTenantIntegrationCloud('signature')">Guardar firma</button></div><div id="cfg-integration-status" style="margin-top:12px;"></div></div>
+  </div>
+
   <div id="page-usuarios" class="page">
     <div class="section-header">
       <div><div class="section-title">👥 Usuarios y Permisos</div><div class="section-sub" id="usuarios-sub">Accesos exclusivos de esta empresa</div></div>
@@ -1247,7 +1268,7 @@ body.private #main { display:block; }
 </div>
 
 <!-- Modal: Usuario empresa -->
-<div class="modal-overlay" id="modal-usuario-empresa"><div class="modal"><div class="modal-header"><div class="modal-title">Dar acceso a una persona</div><button class="modal-close" onclick="closeModal('modal-usuario-empresa')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre</label><input class="form-input" id="usr-nombre" placeholder="Nombre y apellido"></div><div class="form-group full"><label class="form-label">Correo de acceso</label><input class="form-input" type="email" id="usr-email" placeholder="persona@empresa.cl"></div><div class="form-group full"><label class="form-label">Permiso</label><select class="form-select" id="usr-rol"><option value="editor">Editor · puede cargar y modificar</option><option value="lector">Solo lectura · puede consultar</option><option value="admin">Administrador · controla usuarios y toda la data</option></select></div></div><div class="cloud-note" style="margin-top:14px;">El usuario ingresará con el mismo RUT de la empresa y su propio correo. Solo verá la información de esta empresa.</div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-usuario-empresa')">Cancelar</button><button class="btn btn-primary" onclick="saveTenantUser()">Guardar acceso</button></div></div></div>
+<div class="modal-overlay" id="modal-usuario-empresa"><div class="modal"><div class="modal-header"><div class="modal-title">Dar acceso a una persona</div><button class="modal-close" onclick="closeModal('modal-usuario-empresa')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre</label><input class="form-input" id="usr-nombre" placeholder="Nombre y apellido"></div><div class="form-group full"><label class="form-label">Correo de acceso</label><input class="form-input" type="email" id="usr-email" placeholder="persona@empresa.cl"></div><div class="form-group full"><label class="form-label">Permiso</label><select class="form-select" id="usr-rol"><option value="editor">RR.HH. · personal y operación</option><option value="prevencion">Prevención · seguridad y salud</option><option value="acreditacion">Acreditación · documentos y mandantes</option><option value="lector">Solo lectura · puede consultar</option><option value="admin">Administrador · controla usuarios y toda la data</option></select></div></div><div class="cloud-note" style="margin-top:14px;">El usuario ingresará con el mismo RUT de la empresa y su propio correo. Solo verá la información de esta empresa.</div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-usuario-empresa')">Cancelar</button><button class="btn btn-primary" onclick="saveTenantUser()">Guardar acceso</button></div></div></div>
 
 <!-- Modal: WhatsApp individual -->
 <div class="modal-overlay" id="modal-wa-individual"><div class="modal"><div class="modal-header"><div class="modal-title">Mensaje individual por WhatsApp</div><button class="modal-close" onclick="closeModal('modal-wa-individual')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Persona</label><select class="form-select" id="wi-trab"></select></div><div class="form-group full"><label class="form-label">Mensaje</label><textarea class="form-textarea" id="wi-msg" placeholder="Escribe el mensaje para esta persona"></textarea></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-wa-individual')">Cancelar</button><button class="btn btn-blue" onclick="sendWaIndividual()">Abrir WhatsApp</button></div></div></div>
@@ -1291,7 +1312,7 @@ body.private #main { display:block; }
 <!-- Modal: Protocolo Salud -->
 <div class="modal-overlay" id="modal-nuevo-protocolo"><div class="modal"><div class="modal-header"><div class="modal-title">+ Protocolo Salud Ocupacional</div><button class="modal-close" onclick="closeModal('modal-nuevo-protocolo')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group"><label class="form-label">Protocolo</label><select class="form-select" id="pr-tipo"><option value="hipobaria">Hipobaria</option><option value="ruido">Ruido</option><option value="silice">Sílice</option><option value="uv">Radiación UV</option><option value="psicosocial">Psicosocial</option><option value="sustancias">Sustancias peligrosas</option><option value="altura_fisica">Altura física</option><option value="alcohol_drogas">Alcohol y drogas</option></select></div><div class="form-group"><label class="form-label">Minera</label><select class="form-select" id="pr-mina"></select></div><div class="form-group full"><label class="form-label">Trabajador</label><select class="form-select" id="pr-trab"></select></div><div class="form-group"><label class="form-label">Examen / control</label><input class="form-input" id="pr-examen" placeholder="Ej: audiometría"></div><div class="form-group"><label class="form-label">Curso / control preventivo</label><input class="form-input" id="pr-curso" placeholder="Ej: charla ruido"></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" id="pr-vence"></div><div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="pr-estado"><option value="pendiente">Pendiente</option><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="vencido">Vencido</option></select></div><div class="form-group full"><label class="form-label">Observación</label><input class="form-input" id="pr-observacion"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-protocolo')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoProtocolo()">Guardar protocolo</button></div></div></div>
 <!-- Modal: Cloud -->
-<div class="modal-overlay" id="modal-cloud"><div class="modal modal-wide"><div class="modal-header"><div class="modal-title">Publicar en cloud / URL pública</div><button class="modal-close" onclick="closeModal('modal-cloud')">✕</button></div><div class="modal-body"><div class="cloud-note"><b>Estado actual:</b> esta versión demuestra la separación por empresa, usuarios y permisos en almacenamiento local. Para que 10, 20 o más personas trabajen realmente al mismo tiempo desde distintos equipos, se debe activar backend PHP o Node, base de datos multiempresa, contraseñas seguras, archivos privados, SSL y backups.</div><div class="grid-2" style="margin-top:16px;"><div class="card"><div class="card-title">Arquitectura recomendada</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Laravel/PHP o Node + MySQL/PostgreSQL. Cada empresa conserva un <b>tenant_id</b> propio, usuarios, roles, sesiones y archivos completamente separados.</div></div><div class="card"><div class="card-title">Respaldo portable</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Usa <b>Respaldo</b> para descargar la data de la empresa actual y migrarla posteriormente al servidor privado.</div></div></div><div style="margin-top:16px;"><button class="btn btn-primary" onclick="exportTenantBackup()">Descargar respaldo de esta empresa</button></div></div></div></div>
+<div class="modal-overlay" id="modal-cloud"><div class="modal modal-wide"><div class="modal-header"><div class="modal-title">Estado del sitio privado</div><button class="modal-close" onclick="closeModal('modal-cloud')">✕</button></div><div class="modal-body"><div class="cloud-note"><b>Arquitectura V7.2:</b> cada empresa opera con identidad, módulos, versiones, usuarios, permisos, archivos e integraciones independientes. PostgreSQL aplica aislamiento RLS y el almacenamiento documental utiliza una ruta privada por empresa.</div><div class="grid-2" style="margin-top:16px;"><div class="card"><div class="card-title">Trabajo simultáneo</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Los módulos se guardan con versiones separadas y combinan registros distintos cuando varias personas trabajan a la vez.</div></div><div class="card"><div class="card-title">Respaldo portable</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">El respaldo descarga exclusivamente la información de la empresa autenticada.</div></div></div><div style="margin-top:16px;"><button class="btn btn-primary" onclick="exportTenantBackup()">Descargar respaldo de esta empresa</button></div></div></div></div>
 
 <script src="/cloud-client.js"></script>
 <script>
@@ -1680,8 +1701,8 @@ function estadoFecha(v) {
   if(!v) return 'falta';
   const d = diasHasta(v);
   if(d < 0) return 'vencido';
-  if(d <= 7) return 'critico';
-  if(d <= 30) return 'proximo';
+  if(d <= (window.TENANT_CRITICAL_DAYS||7)) return 'critico';
+  if(d <= (window.TENANT_WARNING_DAYS||30)) return 'proximo';
   return 'vigente';
 }
 function badgeEstado(v) {
@@ -3250,8 +3271,8 @@ function computeAlertas() {
     ensureWorkerItems(t).forEach(item=>{
       if(!item.vence) return;
       const d=diasHasta(item.vence);
-      if(d < 0 || d <= 7) alertas.push({id:'al'+(n++),tipo:item.type,urgencia:d<0?'vencido':'critico',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} ${d<0?'VENCIDO':d+'d para vencer'}`});
-      else if(d <= 30) alertas.push({id:'al'+(n++),tipo:item.type,urgencia:'proximo',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} vence en ${d}d`});
+      if(d < 0 || d <= (window.TENANT_CRITICAL_DAYS||7)) alertas.push({id:'al'+(n++),tipo:item.type,urgencia:d<0?'vencido':'critico',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} ${d<0?'VENCIDO':d+'d para vencer'}`});
+      else if(d <= (window.TENANT_WARNING_DAYS||30)) alertas.push({id:'al'+(n++),tipo:item.type,urgencia:'proximo',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} vence en ${d}d`});
     });
   });
   S.firmas.forEach(f => {
@@ -3545,7 +3566,7 @@ function computeAlertas() {
   const alertas=[]; let n=1;
   S.trabajadores.forEach(t=>{
     getRequiredItemsForWorker(t).forEach(req=>{const st=reqStatus(t,req); if(!st.ok && st.src==='faltante') alertas.push({id:'al'+n++,tipo:req.type,urgencia:'falta',trabId:t.id,trab:t,msg:`${t.nombre}: falta ${req.name}`});});
-    ensureWorkerItems(t).forEach(item=>{if(!item.vence) return; const d=diasHasta(item.vence); if(d<0||d<=7) alertas.push({id:'al'+n++,tipo:item.type,urgencia:d<0?'vencido':'critico',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} ${d<0?'VENCIDO':d+'d para vencer'}`}); else if(d<=30) alertas.push({id:'al'+n++,tipo:item.type,urgencia:'proximo',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} vence en ${d}d`});});
+    ensureWorkerItems(t).forEach(item=>{if(!item.vence) return; const d=diasHasta(item.vence); if(d<0||d<=(window.TENANT_CRITICAL_DAYS||7)) alertas.push({id:'al'+n++,tipo:item.type,urgencia:d<0?'vencido':'critico',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} ${d<0?'VENCIDO':d+'d para vencer'}`}); else if(d<=(window.TENANT_WARNING_DAYS||30)) alertas.push({id:'al'+n++,tipo:item.type,urgencia:'proximo',trabId:t.id,trab:t,msg:`${t.nombre}: ${item.name} vence en ${d}d`});});
     auditWorker(t).filter(i=>!i.startsWith('Falta')).forEach(i=>alertas.push({id:'al'+n++,tipo:'doc',urgencia:'critico',trabId:t.id,trab:t,msg:`${t.nombre}: alerta de mal uso - ${i}`}));
   });
   S.firmas.forEach(f=>{if(f.estado==='pendiente'||f.estado==='enviado') alertas.push({id:'al'+n++,tipo:'firma',urgencia:'critico',trabId:f.trabId,trab:S.trabajadores.find(w=>w.id===f.trabId),mantId:f.mantId,msg:`${trabNombre(f.trabId)}: ${f.tipo} pendiente de firma`});});
@@ -4089,7 +4110,7 @@ initSelects=function(){
 
 // ===================== V6.6: MULTIEMPRESA, USUARIOS Y WHATSAPP =====================
 let currentTenantUser = null;
-const ROLE_LABELS_V66 = {admin:'Administrador',editor:'Editor',lector:'Solo lectura'};
+const ROLE_LABELS_V66 = {admin:'Administrador',editor:'RR.HH.',prevencion:'Prevención',acreditacion:'Acreditación',lector:'Solo lectura'};
 function ensureTenantUsersV66() {
   if(!Array.isArray(S.tenantUsers)) S.tenantUsers=[];
   const ownerEmail=String(S.empresa?.email||'').trim().toLowerCase();
@@ -4103,10 +4124,10 @@ const applyStateV66=applyState;
 applyState=function(data){applyStateV66(data);S.tenantUsers=Array.isArray(data?.tenantUsers)?data.tenantUsers:[];ensureTenantUsersV66();};
 const emptyTenantDataV66=emptyTenantData;
 emptyTenantData=function(nombre,rut,email,tel){const data=emptyTenantDataV66(nombre,rut,email,tel);data.tenantUsers=[{id:'usr_owner',nombre:'Administrador',email:String(email||'').toLowerCase(),rol:'admin',activo:true,creado:hoy()}];return data;};
-function userCanEditV66(){return currentTenantUser?.rol==='admin'||currentTenantUser?.rol==='editor';}
+function userCanEditV66(){return ['admin','editor','prevencion','acreditacion'].includes(currentTenantUser?.rol);}
 function userIsAdminV66(){return currentTenantUser?.rol==='admin';}
 function setCloudIdentityV7(identity){
-  const roleMap={domian_admin:'admin',client_admin:'admin',rrhh:'editor',prevencion:'editor',acreditacion:'editor',consulta:'lector'};
+  const roleMap={domian_admin:'admin',client_admin:'admin',rrhh:'editor',prevencion:'prevencion',acreditacion:'acreditacion',consulta:'lector'};
   currentTenantId=identity?.user?.role==='domian_admin'?ADMIN_TENANT_ID:(identity?.tenant?.id||'');
   currentTenantUser=identity?.user?{id:identity.user.id,nombre:identity.user.name,email:identity.user.email,rol:roleMap[identity.user.role]||'lector'}:null;
   if(identity?.tenant?.name&&S.empresa)S.empresa.nombre=identity.tenant.name;
@@ -4205,7 +4226,7 @@ function eppEsc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':
 function eppRequirements(t){const key=`${t.cargo||''} ${t.rol||''} ${t.especialidad||''}`.toLowerCase();const items=S.eppCatalog.filter(x=>x.base||(x.roles||[]).some(r=>key.includes(r)));return items.length?items:S.eppCatalog.filter(x=>x.base);}
 function eppDeliveriesFor(workerId){return S.eppDeliveries.filter(x=>x.workerId===workerId);}
 function latestEpp(workerId,itemId){return eppDeliveriesFor(workerId).filter(x=>x.itemId===itemId&&!x.returnedAt).sort((a,b)=>String(b.deliveredAt).localeCompare(String(a.deliveredAt)))[0];}
-function eppStatus(t){const req=eppRequirements(t),missing=req.filter(x=>!latestEpp(t.id,x.id));const expired=req.filter(x=>{const d=latestEpp(t.id,x.id);return d?.replaceAt&&d.replaceAt<=hoy();});const soon=req.filter(x=>{const d=latestEpp(t.id,x.id);if(!d?.replaceAt)return false;const days=Math.ceil((new Date(`${d.replaceAt}T12:00:00`)-new Date())/86400000);return days>=0&&days<=30;});return {req,missing,expired,soon};}
+function eppStatus(t){const req=eppRequirements(t),missing=req.filter(x=>!latestEpp(t.id,x.id));const expired=req.filter(x=>{const d=latestEpp(t.id,x.id);return d?.replaceAt&&d.replaceAt<=hoy();});const soon=req.filter(x=>{const d=latestEpp(t.id,x.id);if(!d?.replaceAt)return false;const days=Math.ceil((new Date(`${d.replaceAt}T12:00:00`)-new Date())/86400000);return days>=0&&days<=(window.TENANT_WARNING_DAYS||30);});return {req,missing,expired,soon};}
 function eppMeasurementsComplete(t){const m=S.eppMeasurements[t.id]||{};return Boolean(m.clothing&&m.shoe&&m.glove&&m.helmet);}
 let eppView='personas';
 function setEppView(view,btn){eppView=view;document.querySelectorAll('#page-epp .tab-btn').forEach(x=>x.classList.remove('active'));btn?.classList.add('active');renderEpp();}
@@ -4236,6 +4257,10 @@ const saveNuevaCredencialV72=saveNuevaCredencial;saveNuevaCredencial=function(){
 const saveNuevoHotelV72=saveNuevoHotel;saveNuevoHotel=function(){const nombre=uniqueKeyV72(document.getElementById('hot-nombre').value),ciudad=uniqueKeyV72(document.getElementById('hot-ciudad').value);if(S.hoteles.some(h=>uniqueKeyV72(h.nombre)===nombre&&uniqueKeyV72(h.ciudad)===ciudad)){toast('Este hotel ya está registrado en la ciudad','err');return;}saveNuevoHotelV72();};
 const saveHotelAsigV72=saveHotelAsig;saveHotelAsig=function(){const trabId=document.getElementById('ha-trab').value,mantId=document.getElementById('ha-mant').value,hotelId=document.getElementById('ha-hotel').value,checkin=document.getElementById('ha-checkin').value;if(S.hotelAsig.some(x=>x.trabId===trabId&&x.mantId===mantId&&x.hotelId===hotelId&&x.checkin===checkin)){toast('Este alojamiento ya está asignado al trabajador','err');return;}saveHotelAsigV72();};
 const saveEppDeliveryV72=saveEppDelivery;saveEppDelivery=async function(){const workerId=document.getElementById('epp-trab').value,itemId=document.getElementById('epp-item').value,date=document.getElementById('epp-date').value||hoy(),lot=uniqueKeyV72(document.getElementById('epp-lot').value);if(S.eppDeliveries.some(x=>x.workerId===workerId&&x.itemId===itemId&&x.deliveredAt===date&&uniqueKeyV72(x.lotSerial)===lot)){toast('Esta entrega de EPP ya fue registrada','err');return;}return saveEppDeliveryV72();};
+pageLabels.configuracion='Configuración Empresa';pageSubs.configuracion='Parámetros exclusivos del sitio privado';
+const renderPageV73=renderPage;renderPage=function(page){if(page==='configuracion')window.renderTenantSettingsCloud?.();else renderPageV73(page);};
+window.saveTenantSettingsCloud=window.saveTenantSettingsCloud||(()=>toast('La configuración independiente requiere ejecutar la versión cloud','warn'));
+window.saveTenantIntegrationCloud=window.saveTenantIntegrationCloud||(()=>toast('Las integraciones privadas requieren ejecutar la versión cloud','warn'));
 
 // ===================== INIT SELECTS =====================
 function initSelects() {

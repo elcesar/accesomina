@@ -20,3 +20,6 @@ export function validatePassword(password) {
   return typeof password === 'string' && password.length >= 12 && password.length <= 128 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
 }
 export function clientIp(req) { return String(req.ip || req.socket?.remoteAddress || '').slice(0, 80); }
+const encryptionKey=()=>crypto.createHash('sha256').update(process.env.TENANT_SECRET_KEY||process.env.REGISTRATION_INVITE_CODE||'development-only-secret').digest();
+export function encryptJson(value){const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',encryptionKey(),iv),body=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]),tag=cipher.getAuthTag();return Buffer.concat([iv,tag,body]).toString('base64url');}
+export function decryptJson(value){if(!value)return{};const raw=Buffer.from(value,'base64url'),iv=raw.subarray(0,12),tag=raw.subarray(12,28),body=raw.subarray(28),decipher=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),iv);decipher.setAuthTag(tag);return JSON.parse(Buffer.concat([decipher.update(body),decipher.final()]).toString('utf8'));}
