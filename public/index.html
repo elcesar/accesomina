@@ -213,29 +213,77 @@ body.private #public-site { display:none; }
 body.private #sidebar { display:flex; }
 body.private #main { display:block; }
 .logo-mark { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,var(--orange),var(--blue)); display:flex; align-items:center; justify-content:center; color:white; font-weight:900; letter-spacing:-.04em; box-shadow:0 12px 34px rgba(240,125,54,.22); }
-.public-shell { min-height:100vh; background:radial-gradient(circle at 20% 10%,rgba(240,125,54,.18),transparent 28%), radial-gradient(circle at 80% 15%,rgba(77,184,232,.16),transparent 26%), var(--bg); color:var(--text); }
+.public-shell { min-height:100vh; background:var(--bg); color:var(--text); }
 .public-nav { height:72px; display:flex; align-items:center; justify-content:space-between; padding:0 6vw; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(18,18,20,.7); backdrop-filter:blur(16px); position:sticky; top:0; z-index:50; }
+.public-nav-links { display:flex; align-items:center; gap:22px; margin-left:auto; margin-right:22px; color:var(--text-muted); font-size:12px; font-weight:700; }
 .public-brand { display:flex; align-items:center; gap:12px; font-weight:900; font-size:18px; }
 .public-brand small { display:block; color:var(--text-muted); font-weight:500; font-size:11px; margin-top:1px; }
-.public-hero { min-height:calc(100vh - 72px); display:grid; grid-template-columns:1.15fr .85fr; gap:34px; padding:54px 6vw 42px; align-items:center; }
+.public-hero { min-height:calc(100vh - 72px); display:grid; grid-template-columns:1.1fr .9fr; gap:52px; padding:54px 6vw 42px; align-items:center; max-width:1600px; margin:0 auto; }
 .hero-kicker { color:var(--blue); font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:.16em; margin-bottom:14px; }
 .hero-title { font-size:clamp(36px,5vw,72px); line-height:.96; letter-spacing:0; font-weight:900; max-width:900px; }
 .hero-title span { color:var(--orange); }
 .hero-copy { color:var(--text-muted); font-size:18px; line-height:1.55; max-width:760px; margin-top:22px; }
 .hero-actions { display:flex; gap:12px; flex-wrap:wrap; margin-top:28px; }
 .hero-points { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:34px; max-width:900px; }
-.hero-point { border:1px solid var(--border); background:rgba(42,42,46,.72); border-radius:12px; padding:14px; }
+.hero-point { border-top:2px solid var(--border-light); padding:14px 4px 0; }
 .hero-point b { display:block; color:var(--text); font-size:14px; margin-bottom:4px; }
 .hero-point span { color:var(--text-muted); font-size:12px; line-height:1.35; }
-.access-panel { border:1px solid var(--border-light); background:rgba(42,42,46,.88); border-radius:18px; padding:22px; box-shadow:0 24px 80px rgba(0,0,0,.35); }
+.access-panel { border:1px solid var(--border-light); background:var(--bg2); border-radius:8px; padding:22px; box-shadow:0 24px 80px rgba(0,0,0,.35); }
 .access-tabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; background:var(--bg4); border-radius:10px; padding:4px; margin-bottom:18px; }
 .access-tab { border:0; background:transparent; color:var(--text-muted); border-radius:8px; padding:10px; cursor:pointer; font-weight:800; }
 .access-tab.active { background:var(--orange); color:white; }
 .access-view { display:none; }
 .access-view.active { display:block; }
 .private-client-pill { background:rgba(77,184,232,.12); color:var(--blue); border:1px solid rgba(77,184,232,.25); border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; }
-.cloud-note { border:1px solid rgba(77,184,232,.25); background:rgba(77,184,232,.08); border-radius:12px; padding:14px; color:var(--text-muted); line-height:1.45; }
-@media(max-width:980px){.public-hero{grid-template-columns:1fr;padding-top:34px}.hero-points{grid-template-columns:1fr}.public-nav{padding:0 20px}.access-panel{max-width:560px}}
+.cloud-note { border:1px solid rgba(77,184,232,.25); background:rgba(77,184,232,.08); border-radius:8px; padding:14px; color:var(--text-muted); line-height:1.45; }
+.public-band { padding:72px 6vw; border-top:1px solid var(--border); }
+.public-inner { max-width:1320px; margin:0 auto; }
+.public-eyebrow { color:var(--orange); font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.14em; margin-bottom:12px; }
+.public-heading { font-size:clamp(30px,4vw,52px); line-height:1.05; max-width:850px; }
+.public-lead { color:var(--text-muted); font-size:17px; line-height:1.6; max-width:760px; margin-top:16px; }
+.audience-strip { display:flex; justify-content:center; gap:30px; flex-wrap:wrap; padding:20px 6vw; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--bg4); color:var(--text-muted); font-size:12px; font-weight:700; }
+.solution-layout { display:grid; grid-template-columns:.85fr 1.15fr; gap:64px; align-items:center; }
+.value-list { display:grid; gap:18px; margin-top:28px; }
+.value-item { display:grid; grid-template-columns:34px 1fr; gap:12px; }
+.value-num { color:var(--blue); font-weight:900; }
+.value-item b { display:block; margin-bottom:4px; }
+.value-item span { color:var(--text-muted); font-size:13px; line-height:1.5; }
+.product-view { border:1px solid var(--border-light); border-radius:8px; background:var(--bg4); overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.28); }
+.product-top { height:44px; display:flex; align-items:center; gap:8px; padding:0 14px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:11px; }
+.product-dot { width:8px; height:8px; border-radius:50%; background:var(--border-light); }
+.product-body { display:grid; grid-template-columns:145px 1fr; min-height:360px; }
+.product-menu { padding:18px 12px; border-right:1px solid var(--border); }
+.product-menu span { display:block; padding:8px; color:var(--text-dim); font-size:11px; }
+.product-menu span.active { color:var(--orange); background:rgba(240,125,54,.1); border-left:2px solid var(--orange); }
+.product-content { padding:22px; }
+.product-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0; }
+.product-kpi { border:1px solid var(--border); padding:12px; border-radius:6px; }
+.product-kpi strong { display:block; font-size:22px; }
+.product-kpi small { color:var(--text-muted); }
+.product-row { display:grid; grid-template-columns:1.4fr 1fr .7fr; gap:10px; padding:11px 4px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:11px; }
+.product-status { color:var(--green); font-weight:800; }
+.capability-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:38px; background:var(--border); border:1px solid var(--border); }
+.capability { background:var(--bg); padding:26px; min-height:180px; }
+.capability small { color:var(--blue); font-weight:900; }
+.capability h3 { font-size:17px; margin:14px 0 8px; }
+.capability p { color:var(--text-muted); font-size:13px; line-height:1.55; }
+.steps { display:grid; grid-template-columns:repeat(3,1fr); gap:36px; margin-top:38px; }
+.step { border-top:1px solid var(--border-light); padding-top:18px; }
+.step b { color:var(--orange); font-size:12px; }
+.step h3 { margin:12px 0 8px; }
+.step p { color:var(--text-muted); font-size:13px; line-height:1.55; }
+.privacy-band { background:#202a2f; }
+.privacy-layout { display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+.privacy-points { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.privacy-point { border-left:2px solid var(--blue); padding-left:14px; }
+.privacy-point b { display:block; margin-bottom:5px; }
+.privacy-point span { color:var(--text-muted); font-size:12px; line-height:1.45; }
+.final-cta { text-align:center; padding:86px 6vw; }
+.final-cta .public-heading,.final-cta .public-lead { margin-left:auto; margin-right:auto; }
+.final-actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:26px; }
+.public-footer { display:flex; justify-content:space-between; gap:20px; padding:24px 6vw; border-top:1px solid var(--border); color:var(--text-dim); font-size:11px; }
+@media(max-width:980px){.public-hero,.solution-layout,.privacy-layout{grid-template-columns:1fr}.public-hero{padding-top:34px}.hero-points,.steps{grid-template-columns:1fr}.public-nav{padding:0 20px}.public-nav-links{display:none}.access-panel{max-width:560px}.capability-grid{grid-template-columns:1fr 1fr}.privacy-points{grid-template-columns:1fr}}
+@media(max-width:600px){.public-band{padding:54px 24px}.capability-grid{grid-template-columns:1fr}.product-body{grid-template-columns:1fr}.product-menu{display:none}.product-kpis{grid-template-columns:1fr 1fr}.public-footer{flex-direction:column}.public-nav .btn-ghost{display:none}}
 
 </style>
 </head>
@@ -245,15 +293,16 @@ body.private #main { display:block; }
 <section id="public-site" class="public-shell">
   <nav class="public-nav">
     <div class="public-brand"><div class="logo-mark">D</div><div>Domian <small>Smart Business · Gestión Empresarial</small></div></div>
+    <div class="public-nav-links"><a href="#solucion">La plataforma</a><a href="#capacidades">Qué puedes controlar</a><a href="#privacidad">Privacidad</a></div>
     <div style="display:flex;gap:10px;align-items:center;"><a class="btn btn-ghost btn-sm" href="mailto:contacto@domian.cl">contacto@domian.cl</a><button class="btn btn-primary btn-sm" onclick="scrollToAccess()">Acceso privado</button></div>
   </nav>
   <div class="public-hero">
     <div>
-      <div class="hero-kicker">Domian · Tecnología para una gestión empresarial conectada</div>
-      <h1 class="hero-title">Personas, operaciones y documentos en un solo <span>sitio privado</span>.</h1>
-      <p class="hero-copy">Domian centraliza personal, clientes, contratos, proyectos, servicios, turnos, activos y documentación para que tu empresa trabaje con información actualizada, alertas de vencimiento y trazabilidad en una plataforma fácil de usar.</p>
-      <div class="hero-actions"><button class="btn btn-primary" onclick="showAccessTab('login')">Entrar al sitio privado</button><button class="btn btn-secondary" onclick="showAccessTab('registro')">Registrar empresa nueva</button></div>
-      <div class="hero-points"><div class="hero-point"><b>Gestión centralizada</b><span>Conecta personas, contratos, proyectos, servicios y documentos en un mismo lugar.</span></div><div class="hero-point"><b>Información privada por empresa</b><span>Cada organización trabaja en un espacio independiente, seguro y bajo su propio control.</span></div><div class="hero-point"><b>Trabajo en equipo</b><span>Asigna permisos y permite que distintas áreas colaboren con una visión única y actualizada.</span></div></div>
+      <div class="hero-kicker">Control operativo para empresas de servicios</div>
+      <h1 class="hero-title">Toda tu operación, conectada y <span>bajo control</span>.</h1>
+      <p class="hero-copy">Reúne personas, contratos, proyectos, servicios y documentos en una plataforma privada. Tu equipo sabe qué está vigente, qué falta y qué requiere atención, sin depender de planillas, carpetas o mensajes dispersos.</p>
+      <div class="hero-actions"><a class="btn btn-primary" href="#solucion">Conocer la plataforma</a><a class="btn btn-secondary" href="mailto:contacto@domian.cl?subject=Solicitud%20de%20demostraci%C3%B3n%20Domian">Solicitar demostración</a></div>
+      <div class="hero-points"><div class="hero-point"><b>Menos tareas manuales</b><span>La información operativa queda ordenada y disponible para las áreas autorizadas.</span></div><div class="hero-point"><b>Alertas a tiempo</b><span>Identifica vencimientos, faltantes y observaciones antes de que afecten el servicio.</span></div><div class="hero-point"><b>Decisiones con respaldo</b><span>Consulta estados, documentos e historial desde una única fuente de información.</span></div></div>
     </div>
     <div class="access-panel" id="access-panel">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><div class="logo-mark">D</div><div><div style="font-weight:900;font-size:20px;">Domian Gestión</div><div style="color:var(--text-muted);font-size:12px;">Plataforma privada de gestión empresarial</div></div></div>
@@ -262,6 +311,16 @@ body.private #main { display:block; }
       <div class="access-view" id="access-registro"><div class="form-group" style="margin-bottom:10px;"><label class="form-label">Nombre empresa</label><input class="form-input" id="reg-empresa" placeholder="Ej: Servicios Mineros Norte SpA"></div><div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:10px;"><div class="form-group"><label class="form-label">RUT empresa</label><input class="form-input" id="reg-rut" placeholder="76.123.456-7" onblur="this.value=formatRut(this.value)"></div><div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="reg-tel" placeholder="+56 9..."></div></div><div class="form-group" style="margin-bottom:10px;"><label class="form-label">Nombre administrador</label><input class="form-input" id="reg-admin-name" placeholder="Nombre y apellido"></div><div class="form-group" style="margin-bottom:10px;"><label class="form-label">Correo administrador</label><input class="form-input" id="reg-email" type="email" placeholder="admin@empresa.cl"></div><div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px;"><div class="form-group"><label class="form-label">Contraseña</label><input class="form-input" id="reg-password" type="password" autocomplete="new-password" placeholder="12+ caracteres"></div><div class="form-group"><label class="form-label">Código de invitación</label><input class="form-input" id="reg-invite" type="password" placeholder="Entregado por Domian"></div></div><button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="registerTenant()">Crear sitio privado vacío</button><div style="color:var(--text-dim);font-size:11px;line-height:1.45;margin-top:12px;">El alta requiere invitación de Domian. Cada empresa parte con una base independiente y un administrador propio.</div></div>
     </div>
   </div>
+  <div class="audience-strip"><span>Empresas de servicios</span><span>Contratistas y subcontratistas</span><span>Operaciones en terreno</span><span>Mantención y proyectos</span><span>RR.HH. y prevención</span></div>
+  <section class="public-band" id="solucion"><div class="public-inner solution-layout">
+    <div><div class="public-eyebrow">Una visión completa</div><h2 class="public-heading">Deja de buscar información. Empieza a gestionar.</h2><p class="public-lead">Domian conecta la información que normalmente vive separada entre Excel, correos, carpetas y teléfonos. Cada dato queda asociado a la empresa, contrato, proyecto, servicio y persona que corresponde.</p><div class="value-list"><div class="value-item"><div class="value-num">01</div><div><b>Todo relacionado</b><span>Visualiza responsables, trabajadores asignados, documentos, alojamientos, turnos y recursos desde el contexto correcto.</span></div></div><div class="value-item"><div class="value-num">02</div><div><b>Control diario más simple</b><span>Los paneles y filtros permiten detectar rápidamente pendientes, vencimientos y necesidades de la operación.</span></div></div><div class="value-item"><div class="value-num">03</div><div><b>Historial para responder</b><span>Mantén evidencia organizada para revisiones internas, clientes, auditorías y nuevos trabajos.</span></div></div></div></div>
+    <div class="product-view" aria-label="Vista de la plataforma Domian"><div class="product-top"><span class="product-dot"></span><span class="product-dot"></span><span class="product-dot"></span><span style="margin-left:8px;">Domian · Panel de control</span></div><div class="product-body"><div class="product-menu"><span class="active">Dashboard</span><span>Empresas y clientes</span><span>Contratos</span><span>Proyectos y servicios</span><span>Personas</span><span>Documentos</span><span>Alertas</span><span>Reportes</span></div><div class="product-content"><div style="font-weight:800;">Resumen de la operación</div><div style="color:var(--text-muted);font-size:11px;margin-top:4px;">Información centralizada y actualizada</div><div class="product-kpis"><div class="product-kpi"><strong>12</strong><small>Servicios activos</small></div><div class="product-kpi"><strong>86%</strong><small>Documentación vigente</small></div><div class="product-kpi"><strong style="color:var(--orange);">7</strong><small>Alertas por atender</small></div></div><div class="product-row"><b>Operación</b><b>Responsable</b><b>Estado</b></div><div class="product-row"><span>Servicio en terreno</span><span>Equipo Operaciones</span><span class="product-status">Al día</span></div><div class="product-row"><span>Proyecto de instalación</span><span>Equipo Proyectos</span><span class="product-status">En curso</span></div><div class="product-row"><span>Mantención programada</span><span>Equipo Técnico</span><span style="color:var(--yellow);font-weight:800;">Revisar</span></div></div></div></div>
+  </div></section>
+  <section class="public-band" id="capacidades"><div class="public-inner"><div class="public-eyebrow">Control centralizado</div><h2 class="public-heading">Lo esencial para administrar servicios, personas y cumplimiento.</h2><p class="public-lead">Activa la información que necesita tu empresa y conserva una visión común entre administración, operaciones, RR.HH. y prevención.</p><div class="capability-grid"><div class="capability"><small>01</small><h3>Clientes y contratos</h3><p>Registra empresas, vigencias, alcance, responsables y servicios asociados a cada relación comercial.</p></div><div class="capability"><small>02</small><h3>Proyectos y servicios</h3><p>Organiza trabajos permanentes, operaciones, proyectos y mantenciones con su personal y recursos.</p></div><div class="capability"><small>03</small><h3>Personas y asignaciones</h3><p>Administra personal de planta y equipos temporales, cargos, turnos, datos de contacto y asignaciones.</p></div><div class="capability"><small>04</small><h3>Documentos y vencimientos</h3><p>Centraliza antecedentes, revisa estados y recibe alertas sobre documentos faltantes o próximos a vencer.</p></div><div class="capability"><small>05</small><h3>Seguridad y recursos</h3><p>Controla EPP, exámenes, cursos, permisos, vehículos, equipos, credenciales e incidentes.</p></div><div class="capability"><small>06</small><h3>Comunicación y reportes</h3><p>Segmenta equipos, prepara comunicaciones y genera reportes por cliente, contrato, servicio o persona.</p></div></div></div></section>
+  <section class="public-band" style="background:var(--bg4);"><div class="public-inner"><div class="public-eyebrow">Puesta en marcha simple</div><h2 class="public-heading">Ordena tu operación en tres pasos.</h2><div class="steps"><div class="step"><b>PASO 1</b><h3>Configura tu empresa</h3><p>Crea clientes, contratos, proyectos, servicios y los requisitos que necesitas controlar.</p></div><div class="step"><b>PASO 2</b><h3>Incorpora tu información</h3><p>Registra personas y recursos de forma individual o utiliza la importación masiva para comenzar más rápido.</p></div><div class="step"><b>PASO 3</b><h3>Gestiona desde el panel</h3><p>Asigna responsables, revisa alertas, actualiza documentos y consulta el avance desde una sola vista.</p></div></div></div></section>
+  <section class="public-band privacy-band" id="privacidad"><div class="public-inner privacy-layout"><div><div class="public-eyebrow" style="color:var(--blue);">Tu información es de tu empresa</div><h2 class="public-heading">Un espacio privado para trabajar con confianza.</h2><p class="public-lead">Cada cliente opera en un entorno independiente. La administración define quién puede ingresar y qué puede hacer cada integrante, manteniendo la información separada entre empresas.</p></div><div class="privacy-points"><div class="privacy-point"><b>Acceso individual</b><span>Cada integrante utiliza su propia cuenta autorizada.</span></div><div class="privacy-point"><b>Roles y permisos</b><span>Configura administración, edición o consulta según responsabilidades.</span></div><div class="privacy-point"><b>Datos separados</b><span>La información de una empresa no se mezcla con la de otra.</span></div><div class="privacy-point"><b>Respaldo y trazabilidad</b><span>Conserva registros para revisar cambios, estados y antecedentes.</span></div></div></div></section>
+  <section class="final-cta"><div class="public-eyebrow">Conversemos</div><h2 class="public-heading">Descubre cómo Domian puede ordenar tu operación.</h2><p class="public-lead">Revisamos contigo tus procesos, tipos de personal, contratos y servicios para definir la configuración que realmente necesita tu empresa.</p><div class="final-actions"><a class="btn btn-primary" href="mailto:contacto@domian.cl?subject=Solicitud%20de%20demostraci%C3%B3n%20Domian">Solicitar demostración</a><button class="btn btn-secondary" onclick="scrollToAccess()">Ingresar al sitio privado</button></div></section>
+  <footer class="public-footer"><span>Domian Smart Business · Gestión empresarial y operacional</span><a href="mailto:contacto@domian.cl">contacto@domian.cl</a></footer>
 </section>
 
 <!-- SIDEBAR -->
