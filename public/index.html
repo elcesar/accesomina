@@ -281,7 +281,7 @@ body.private #main { display:block; }
   <div class="nav-item" onclick="nav('auditoria')">📋 Auditoría</div>
   <div class="nav-item" onclick="nav('acreditacion-empresa')">🏢 Acreditación Empresa</div>
   <div class="nav-group-label">Operaciones</div>
-  <div class="nav-item" onclick="nav('mantenciones')">🔧 Mantenciones</div>
+  <div class="nav-item" onclick="nav('mantenciones')">🔧 Servicios</div>
   <div class="nav-item" onclick="nav('contratos')">📝 Contratos y Firmas <span class="nav-badge nav-badge-orange" id="badge-firmas">0</span></div>
   <div class="nav-item" onclick="nav('hoteleria')">🛏️ Hotelería</div>
   <div class="nav-item" onclick="nav('llamados')">📲 Llamados WA</div>
@@ -574,9 +574,9 @@ body.private #main { display:block; }
   <!-- PAGE: MANTENCIONES -->
   <div id="page-mantenciones" class="page">
     <div class="section-header">
-      <div><div class="section-title">🔧 Mantenciones</div><div class="section-sub" id="mant-sub"></div></div>
+      <div><div class="section-title">🔧 Servicios</div><div class="section-sub" id="mant-sub"></div></div>
       <button class="btn btn-secondary" onclick="openModal('modal-nueva-mina')">+ Minera</button>
-        <button class="btn btn-primary" onclick="openModal('modal-nueva-mant')">+ Mantención</button>
+        <button class="btn btn-primary" onclick="openModal('modal-nueva-mant')">+ Servicio</button>
     </div>
     <div class="filters">
       <input class="filter-input" placeholder="🔍 Buscar..." id="filt-mant-txt" oninput="renderMantenciones()" style="width:180px;">
@@ -595,6 +595,7 @@ body.private #main { display:block; }
         <option value="mantencion_mayor">Mant. Mayor</option>
         <option value="shutdown">Shutdown</option>
         <option value="emergencia">Emergencia</option>
+        <option value="operacion">Operación</option>
       </select>
     </div>
     <div id="mant-list"></div>
@@ -975,6 +976,11 @@ body.private #main { display:block; }
         <div class="form-group"><label class="form-label">AFP</label><input class="form-input" id="nt-afp" placeholder="AFP Habitat"></div>
         <div class="form-group"><label class="form-label">Salud</label><input class="form-input" id="nt-salud" placeholder="Fonasa / Isapre"></div>
         <div class="form-group"><label class="form-label">Mutual de Seguridad</label><input class="form-input" id="nt-mutual" placeholder="Mutual / ACHS / IST"></div>
+        <div class="form-group full"><div class="card-title" style="margin-top:8px;">Tallas de EPP</div></div>
+        <div class="form-group"><label class="form-label">Casco</label><input class="form-input" id="nt-epp-helmet" placeholder="Ej: M o 56 cm"></div>
+        <div class="form-group"><label class="form-label">Polera</label><input class="form-input" id="nt-epp-shirt" placeholder="Ej: L"></div>
+        <div class="form-group"><label class="form-label">Pantalón</label><input class="form-input" id="nt-epp-pants" placeholder="Ej: 44"></div>
+        <div class="form-group"><label class="form-label">Zapato de seguridad</label><input class="form-input" id="nt-epp-shoe" placeholder="Ej: 42"></div>
         <div class="form-group full"><label class="form-label">Mineras Habilitadas</label>
           <div id="nt-minas-checks" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"></div>
         </div>
@@ -987,13 +993,13 @@ body.private #main { display:block; }
   </div>
 </div>
 
-<!-- Modal: Nueva Mantención -->
+<!-- Modal: Nuevo Servicio -->
 <div class="modal-overlay" id="modal-nueva-mant">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">+ Nueva Mantención</div><button class="modal-close" onclick="closeModal('modal-nueva-mant')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">+ Nuevo Servicio</div><button class="modal-close" onclick="closeModal('modal-nueva-mant')">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
-        <div class="form-group full"><label class="form-label">Nombre de la Mantención</label><input class="form-input" id="nm-nombre" placeholder="Nombre descriptivo"></div>
+        <div class="form-group full"><label class="form-label">Nombre del Servicio</label><input class="form-input" id="nm-nombre" placeholder="Nombre descriptivo"></div>
         <div class="form-group"><label class="form-label">Minera</label><select class="form-select" id="nm-mina"></select></div>
         <div class="form-group"><label class="form-label">Contrato Marco</label><select class="form-select" id="nm-contrato"></select></div>
         <div class="form-group"><label class="form-label">Tipo</label>
@@ -1002,6 +1008,7 @@ body.private #main { display:block; }
             <option value="mantencion_mayor">Mantención Mayor</option>
             <option value="shutdown">Shutdown</option>
             <option value="emergencia">Emergencia</option>
+            <option value="operacion">Operación</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Origen</label>
@@ -1034,7 +1041,7 @@ body.private #main { display:block; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-nueva-mant')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveNuevaMant()">✅ Guardar Mantención</button>
+      <button class="btn btn-primary" onclick="saveNuevaMant()">✅ Guardar Servicio</button>
     </div>
   </div>
 </div>
@@ -1043,7 +1050,7 @@ body.private #main { display:block; }
 <div class="modal-overlay" id="modal-mant-detalle">
   <div class="modal modal-wide">
     <div class="modal-header">
-      <div class="modal-title" id="mant-det-title">Detalle Mantención</div>
+      <div class="modal-title" id="mant-det-title">Detalle Servicio</div>
       <button class="modal-close" onclick="closeModal('modal-mant-detalle')">✕</button>
     </div>
     <div class="modal-body">
@@ -4272,6 +4279,12 @@ const saveNuevaCredencialV72=saveNuevaCredencial;saveNuevaCredencial=function(){
 const saveNuevoHotelV72=saveNuevoHotel;saveNuevoHotel=function(){const nombre=uniqueKeyV72(document.getElementById('hot-nombre').value),ciudad=uniqueKeyV72(document.getElementById('hot-ciudad').value);if(S.hoteles.some(h=>uniqueKeyV72(h.nombre)===nombre&&uniqueKeyV72(h.ciudad)===ciudad)){toast('Este hotel ya está registrado en la ciudad','err');return;}saveNuevoHotelV72();};
 const saveHotelAsigV72=saveHotelAsig;saveHotelAsig=function(){const trabId=document.getElementById('ha-trab').value,mantId=document.getElementById('ha-mant').value,hotelId=document.getElementById('ha-hotel').value,checkin=document.getElementById('ha-checkin').value;if(S.hotelAsig.some(x=>x.trabId===trabId&&x.mantId===mantId&&x.hotelId===hotelId&&x.checkin===checkin)){toast('Este alojamiento ya está asignado al trabajador','err');return;}saveHotelAsigV72();};
 const saveEppDeliveryV72=saveEppDelivery;saveEppDelivery=async function(){const workerId=document.getElementById('epp-trab').value,itemId=document.getElementById('epp-item').value,date=document.getElementById('epp-date').value||hoy(),lot=uniqueKeyV72(document.getElementById('epp-lot').value);if(S.eppDeliveries.some(x=>x.workerId===workerId&&x.itemId===itemId&&x.deliveredAt===date&&uniqueKeyV72(x.lotSerial)===lot)){toast('Esta entrega de EPP ya fue registrada','err');return;}return saveEppDeliveryV72();};
+const saveNuevoTrabV74=saveNuevoTrab;saveNuevoTrab=function(){const before=new Set(S.trabajadores.map(t=>t.id)),sizes={helmet:document.getElementById('nt-epp-helmet').value.trim(),clothing:document.getElementById('nt-epp-shirt').value.trim(),shirt:document.getElementById('nt-epp-shirt').value.trim(),pants:document.getElementById('nt-epp-pants').value.trim(),shoe:document.getElementById('nt-epp-shoe').value.trim()};saveNuevoTrabV74();const created=S.trabajadores.find(t=>!before.has(t.id));if(!created)return;ensureV6Collections();S.eppMeasurements[created.id]={...sizes,updatedAt:new Date().toISOString()};['nt-epp-helmet','nt-epp-shirt','nt-epp-pants','nt-epp-shoe'].forEach(id=>document.getElementById(id).value='');persistTenant();};
+const renderFichaEppV74=renderFichaEpp;renderFichaEpp=function(workerId){renderFichaEppV74(workerId);const m=S.eppMeasurements[workerId]||{},shirt=document.getElementById('em-clothing');if(!shirt)return;const label=shirt.closest('.form-group')?.querySelector('.form-label');if(label)label.textContent='Polera';const grid=shirt.closest('.form-grid');if(grid&&!document.getElementById('em-pants'))grid.insertAdjacentHTML('beforeend',`<div class="form-group"><label class="form-label">Pantalón</label><input class="form-input" id="em-pants" value="${eppEsc(m.pants||'')}" placeholder="Talla o número"></div>`);};
+saveEppMeasurements=function(workerId){S.eppMeasurements[workerId]={clothing:document.getElementById('em-clothing').value.trim(),shirt:document.getElementById('em-clothing').value.trim(),pants:document.getElementById('em-pants')?.value.trim()||'',shoe:document.getElementById('em-shoe').value.trim(),glove:document.getElementById('em-glove').value.trim(),helmet:document.getElementById('em-helmet').value.trim(),harness:document.getElementById('em-harness').value.trim(),respirator:document.getElementById('em-respirator').value.trim(),updatedAt:new Date().toISOString()};persistTenant();renderFichaEpp(workerId);toast('Tallas y medidas actualizadas');};
+function renderFichaHotelV74(workerId){const el=document.getElementById('ficha-tab-datos');if(!el)return;const rows=S.hotelAsig.filter(x=>x.trabId===workerId).sort((a,b)=>String(b.checkin||'').localeCompare(String(a.checkin||'')));el.insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:16px;"><div class="card-header"><div><div class="card-title">Alojamiento y habitación</div><div class="card-subtitle">Asignaciones hoteleras del trabajador, tanto planta como spot.</div></div></div>${rows.length?`<div class="table-wrap"><table><thead><tr><th>Hotel</th><th>Habitación</th><th>Servicio</th><th>Ingreso</th><th>Salida</th><th>Turno</th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${eppEsc(hotelNombre(x.hotelId))}</b></td><td>#${eppEsc(x.pieza||'—')} · ${eppEsc(x.tipo||'')}</td><td>${eppEsc(mantNombre(x.mantId))}</td><td>${eppEsc(x.checkin||'—')}</td><td>${eppEsc(x.checkout||'—')}</td><td>${eppEsc(x.turno||'—')}</td></tr>`).join('')}</tbody></table></div>`:'<span style="color:var(--text-muted);font-size:12px;">Sin alojamiento asignado.</span>'}</div>`);}
+const openFichaV74=openFicha;openFicha=function(id){openFichaV74(id);renderFichaHotelV74(id);};
+pageLabels.mantenciones='Servicios';pageSubs.mantenciones='Servicios, operaciones, proyectos y mantenciones';
 pageLabels.configuracion='Configuración Empresa';pageSubs.configuracion='Parámetros exclusivos del sitio privado';
 pageLabels.transferencia='Importar / Exportar';pageSubs.transferencia='Respaldo empresarial y carga masiva validada';
 const renderPageV73=renderPage;renderPage=function(page){if(page==='configuracion')window.renderTenantSettingsCloud?.();else if(page==='transferencia')window.renderTenantTransferCloud?.();else renderPageV73(page);};
