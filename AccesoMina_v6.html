@@ -1329,7 +1329,7 @@ body.private #main { display:block; }
 <!-- Modal: Cloud -->
 <div class="modal-overlay" id="modal-cloud"><div class="modal modal-wide"><div class="modal-header"><div class="modal-title">Estado del sitio privado</div><button class="modal-close" onclick="closeModal('modal-cloud')">✕</button></div><div class="modal-body"><div class="cloud-note"><b>Arquitectura V7.2:</b> cada empresa opera con identidad, módulos, versiones, usuarios, permisos, archivos e integraciones independientes. PostgreSQL aplica aislamiento RLS y el almacenamiento documental utiliza una ruta privada por empresa.</div><div class="grid-2" style="margin-top:16px;"><div class="card"><div class="card-title">Trabajo simultáneo</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">Los módulos se guardan con versiones separadas y combinan registros distintos cuando varias personas trabajan a la vez.</div></div><div class="card"><div class="card-title">Respaldo portable</div><div style="color:var(--text-muted);font-size:13px;line-height:1.5;margin-top:8px;">El respaldo descarga exclusivamente la información de la empresa autenticada.</div></div></div><div style="margin-top:16px;"><button class="btn btn-primary" onclick="exportTenantBackup()">Descargar respaldo de esta empresa</button></div></div></div></div>
 
-<script src="/cloud-client.js"></script>
+<script src="/cloud-client.js?v=7.3.1"></script>
 <script>
 // ===================== STATE =====================
 const S = {

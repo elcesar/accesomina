@@ -18,8 +18,8 @@ authRouter.post('/register', limiter, async (req, res) => {
   const client = await (await import('../db.js')).pool.connect();
   try {
     await client.query('BEGIN');
-    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone)
-      VALUES ($1,$2,$3,$4,$5) RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
+    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone,status)
+      VALUES ($1,$2,$3,$4,$5,'pending') RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
     const tenant = tenantResult.rows[0];
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenant.id]);
     const userResult = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt)
@@ -31,7 +31,7 @@ authRouter.post('/register', limiter, async (req, res) => {
     await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,accent:'#f07d36'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
-    res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut });
+    res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Domian.' });
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 });
 

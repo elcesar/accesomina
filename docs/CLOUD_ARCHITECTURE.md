@@ -48,6 +48,10 @@ S3 privado
 - `acreditacion`: carga, revisión y envío al mandante.
 - `consulta`: lectura y reportes.
 
+## Gobierno Domian
+
+La empresa con RUT `78.425.213-2` y el usuario `contacto@domian.cl` mantienen el rol global `domian_admin`. Las cuentas nuevas comienzan en estado `pending`; Domian debe aprobarlas antes del primer acceso. Desde Clientes Domian se pueden suspender, reactivar, eliminar lógicamente y restablecer la contraseña del administrador. Cada restablecimiento revoca sesiones, genera una clave temporal mostrada una sola vez, obliga a cambiarla y registra auditoría. La cuenta global Domian está protegida contra suspensión, eliminación o degradación.
+
 ## Parametrización por empresa
 
 `tenant_settings` mantiene identidad visual, módulos habilitados, umbrales de alerta y catálogos sin afectar a otros clientes. `tenant_integrations` guarda configuración pública y secretos cifrados separados para cada empresa.
