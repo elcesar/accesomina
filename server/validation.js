@@ -68,7 +68,13 @@ export function validateTenantState(input) {
   assertUnique((state.hoteles || []).map(h => `${normalizedText(h.nombre)}|${normalizedText(h.ciudad)}`), 'Duplicate hotel', 'DUPLICATE_HOTEL');
   assertUnique((state.subcontratos || []).map(s => normalizeRut(s.rut)), 'Duplicate subcontractor RUT', 'DUPLICATE_SUBCONTRACTOR_RUT');
   assertUnique((state.vehiculos || []).flatMap(v => [v.patente ? `p:${normalizedText(v.patente).replace(/[^a-z0-9]/g, '')}` : '', v.serie ? `s:${normalizedText(v.serie)}` : '']), 'Duplicate vehicle plate or serial', 'DUPLICATE_VEHICLE');
-  for (const collection of [workers, projects, mines, contracts]) {
+  const allCollections = [
+    workers, projects, mines, contracts, state.hoteles, state.asignaciones, state.hotelAsig,
+    state.turnos, state.credenciales, state.incidentes, state.protocolosSalud,
+    state.vehiculos, state.subcontratos, state.firmas, state.callouts, state.waGroups,
+    state.permisosTrabajo, state.eppDeliveries
+  ].filter(Array.isArray);
+  for (const collection of allCollections) {
     const duplicateId = duplicate(collection.map(x => String(x.id || '')));
     if (duplicateId) throw Object.assign(new Error(`Duplicate entity id: ${duplicateId}`), { status: 409, code: 'DUPLICATE_ID' });
   }
@@ -84,7 +90,17 @@ export function validateTenantState(input) {
   for (const p of projects) {
     if (p.minaId && !mineIds.has(String(p.minaId))) throw Object.assign(new Error(`Project ${p.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
     if (p.contratoId && !contractIds.has(String(p.contratoId))) throw Object.assign(new Error(`Project ${p.id} references an unknown contract`), { status: 409, code: 'INVALID_REFERENCE' });
+    const relatedContract = contracts.find(c => String(c.id) === String(p.contratoId));
+    if (relatedContract?.minaId && p.minaId && String(relatedContract.minaId) !== String(p.minaId)) {
+      throw Object.assign(new Error(`Project ${p.id} and its contract belong to different mines`), { status: 409, code: 'INVALID_REFERENCE' });
+    }
     if (p.inicio && p.termino && p.inicio > p.termino) throw Object.assign(new Error(`Project ${p.id} has invalid dates`), { status: 409, code: 'INVALID_DATES' });
+  }
+  for (const worker of workers) {
+    if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) throw Object.assign(new Error(`Worker ${worker.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
+  }
+  for (const hotel of Array.isArray(state.hoteles) ? state.hoteles : []) {
+    if ((hotel.minaIds || []).some(id => !mineIds.has(String(id)))) throw Object.assign(new Error(`Hotel ${hotel.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const a of Array.isArray(state.asignaciones) ? state.asignaciones : []) {
     if (!workerIds.has(String(a.trabId)) || !projectIds.has(String(a.mantId))) throw Object.assign(new Error('Assignment references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
@@ -92,7 +108,9 @@ export function validateTenantState(input) {
   assertUnique((state.asignaciones || []).map(a => `${a.trabId}|${a.mantId}`), 'Duplicate worker assignment', 'DUPLICATE_ASSIGNMENT');
   for (const row of Array.isArray(state.hotelAsig) ? state.hotelAsig : []) {
     if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId)) || !hotelIds.has(String(row.hotelId))) throw Object.assign(new Error('Hotel assignment references an unknown worker, project or hotel'), { status: 409, code: 'INVALID_REFERENCE' });
+    if (row.checkin && row.checkout && row.checkin > row.checkout) throw Object.assign(new Error('Hotel assignment has invalid dates'), { status: 409, code: 'INVALID_DATES' });
   }
+  assertUnique((state.hotelAsig || []).map(x => `${x.trabId}|${x.mantId}|${x.hotelId}|${x.checkin || ''}`), 'Duplicate hotel assignment', 'DUPLICATE_HOTEL_ASSIGNMENT');
   for (const row of Array.isArray(state.turnos) ? state.turnos : []) {
     if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) throw Object.assign(new Error('Shift references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
   }
@@ -125,6 +143,10 @@ export function validateTenantState(input) {
     if (!delivery.itemId || !delivery.itemName || Number(delivery.qty) < 1 || !delivery.deliveredAt) {
       throw Object.assign(new Error('EPP delivery is incomplete'), { status: 409, code: 'INVALID_EPP_DELIVERY' });
     }
+  }
+  assertUnique((state.eppDeliveries || []).map(x => `${x.workerId}|${x.itemId}|${x.deliveredAt}|${normalizedText(x.lotSerial)}`), 'Duplicate EPP delivery', 'DUPLICATE_EPP_DELIVERY');
+  for (const workerId of Object.keys(state.eppMeasurements || {})) {
+    if (!workerIds.has(String(workerId))) throw Object.assign(new Error('EPP measurements reference an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   return state;
 }
