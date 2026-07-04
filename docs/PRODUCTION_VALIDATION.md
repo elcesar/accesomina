@@ -19,7 +19,8 @@ La aplicacion esta validada a nivel de codigo y flujo de datos. El despliegue co
 - Documentos privados en S3, limite de tamano, tipos permitidos y escaneo antimalware obligatorio en produccion.
 - Sesiones en cookie segura, CSRF, control de origen, limites de intentos y contrasenas con hash y cambio obligatorio inicial.
 - Auditoria inmutable de cambios y control de concurrencia por versiones.
-- 31 pruebas automaticas aprobadas y dependencias sin vulnerabilidades conocidas.
+- 32 pruebas automaticas aprobadas y dependencias sin vulnerabilidades conocidas.
+- Entregas EPP por lote con talla, cantidad, condicion, estado, fecha, certificacion, lote, reposicion, capacitacion y acta comun para todos los elementos entregados.
 - Unicidad por empresa para RUT de trabajadores y subcontratistas, contratos, mineras, proyectos, hoteles, vehiculos, protocolos, incidentes, permisos, turnos, firmas activas, grupos, documentos y entregas EPP.
 - Reutilizacion transaccional de archivos identicos mediante SHA-256, evitando copias duplicadas incluso ante cargas simultaneas.
 - Deteccion de alojamientos superpuestos para una misma persona y rechazo de referencias operacionales inexistentes.

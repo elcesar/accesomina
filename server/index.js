@@ -27,8 +27,8 @@ app.use(cookieParser());
 app.use(requireOrigin);
 app.use('/api', (req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
-app.get('/api/health', async (req, res) => { await query('SELECT 1'); res.json({ status:'ok', version:'7.4.1' }); });
-app.get('/api/ready',async(req,res)=>{await query('SELECT 1');const checks={database:true,storage:config.fileStorage!=='s3'||Boolean(config.aws.bucket),virusScan:config.env!=='production'||Boolean(config.virusScan.url),tenantEncryption:Boolean(config.tenantSecretKey)};const ready=Object.values(checks).every(Boolean);res.status(ready?200:503).json({status:ready?'ready':'not_ready',version:'7.4.1',checks});});
+app.get('/api/health', async (req, res) => { await query('SELECT 1'); res.json({ status:'ok', version:'7.5.0' }); });
+app.get('/api/ready',async(req,res)=>{await query('SELECT 1');const checks={database:true,storage:config.fileStorage!=='s3'||Boolean(config.aws.bucket),virusScan:config.env!=='production'||Boolean(config.virusScan.url),tenantEncryption:Boolean(config.tenantSecretKey)};const ready=Object.values(checks).every(Boolean);res.status(ready?200:503).json({status:ready?'ready':'not_ready',version:'7.5.0',checks});});
 app.use('/api/auth', authRouter);
 app.use('/api', authenticate, requireCsrf);
 app.use('/api/state', stateRouter);

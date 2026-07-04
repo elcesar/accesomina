@@ -150,6 +150,8 @@ export function validateTenantState(input) {
     if (!delivery.itemId || !delivery.itemName || Number(delivery.qty) < 1 || !delivery.deliveredAt) {
       throw Object.assign(new Error('EPP delivery is incomplete'), { status: 409, code: 'INVALID_EPP_DELIVERY' });
     }
+    delivery.size=String(delivery.size||'Sin talla registrada').trim();delivery.condition=delivery.condition||'no_registrada';delivery.deliveryStatus=delivery.deliveryStatus||'entregado';
+    if(!['nuevo','reutilizado-inspeccionado','repuesto','no_registrada'].includes(delivery.condition)||!['entregado','reposicion','prestamo'].includes(delivery.deliveryStatus))throw Object.assign(new Error('EPP delivery has an invalid condition or status'),{status:409,code:'INVALID_EPP_DELIVERY_STATUS'});
   }
   assertUnique((state.eppDeliveries || []).map(x => `${x.workerId}|${x.itemId}|${x.deliveredAt}|${normalizedText(x.lotSerial)}`), 'Duplicate EPP delivery', 'DUPLICATE_EPP_DELIVERY');
   for (const workerId of Object.keys(state.eppMeasurements || {})) {
