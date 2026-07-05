@@ -1,0 +1,234 @@
+{"kind":"deck","id":"pr/1dsii7","name":"Deck"}
+{"kind":"layout","layoutId":"6fa0fad7-e65d-4928-a603-799514305aa0","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"2ad64db8-b077-4cd4-b68d-b3f2818474d7","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/5slj24","slide":1,"title":"Acceso Mina","textShapes":4}
+{"kind":"textbox","id":"sh/9cvixcze","slide":1,"text":"Acceso Mina","textPreview":"Acceso Mina","textChars":11,"textLines":1,"bbox":[64,226,820,72]}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":1,"text":"Control único y centralizado para empresas contratistas de minería","textPreview":"Control único y centralizado para empresas contratistas de minería","textChars":66,"textLines":1,"bbox":[64,302,860,76]}
+{"kind":"shape","id":"sh/nih4byhg","slide":1,"bbox":[64,408,170,5]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":1,"text":"Privacidad · Control · Trazabilidad · Comunicación","textPreview":"Privacidad · Control · Trazabilidad · Comunicación","textChars":50,"textLines":1,"bbox":[64,438,850,36]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":1,"text":"www.domian.cl","textPreview":"www.domian.cl","textChars":13,"textLines":1,"bbox":[64,648,300,24]}
+{"kind":"image","id":"im/7u54zido","slide":1,"name":"","geometry":"roundRect","alt":"domian-logo.jpg","bbox":[64,42,240,120]}
+{"kind":"notes","id":"nt/5slj24","slide":1,"text":""}
+{"kind":"slide","id":"sl/22rrff","slide":2,"title":"PRIVACIDAD Y SEGURIDAD","textShapes":11}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":2,"text":"PRIVACIDAD Y SEGURIDAD","textPreview":"PRIVACIDAD Y SEGURIDAD","textChars":22,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/lwval87e","slide":2,"text":"Su información permanece privada y bajo control","textPreview":"Su información permanece privada y bajo control","textChars":47,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/wb2hwfyx","slide":2,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":2,"bbox":[64,170,350,350]}
+{"kind":"shape","id":"sh/ex0nuxc3","slide":2,"bbox":[64,170,6,350]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":2,"text":"Sitio privado","textPreview":"Sitio privado","textChars":13,"textLines":1,"bbox":[88,190,305,36]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":2,"text":"Cada cliente opera en un entorno exclusivo. La información no queda expuesta a terceros.","textPreview":"Cada cliente opera en un entorno exclusivo. La información no queda expuesta a terceros.","textChars":88,"textLines":1,"bbox":[88,235,305,270]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":2,"bbox":[465,170,350,350]}
+{"kind":"shape","id":"sh/at47y1kr","slide":2,"bbox":[465,170,6,350]}
+{"kind":"textbox","id":"sh/knih4byh","slide":2,"text":"Accesos autorizados","textPreview":"Accesos autorizados","textChars":19,"textLines":1,"bbox":[489,190,305,36]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":2,"text":"Solo los usuarios definidos por la empresa pueden consultar, cargar o administrar datos.","textPreview":"Solo los usuarios definidos por la empresa pueden consultar, cargar o administrar datos.","textChars":88,"textLines":1,"bbox":[489,235,305,270]}
+{"kind":"shape","id":"sh/2lszqtcj","slide":2,"bbox":[866,170,350,350]}
+{"kind":"shape","id":"sh/v6psfil0","slide":2,"bbox":[866,170,6,350]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":2,"text":"Control de la información","textPreview":"Control de la información","textChars":25,"textLines":1,"bbox":[890,190,305,36]}
+{"kind":"textbox","id":"sh/d0z61032","slide":2,"text":"Personas, contratos, documentos y respaldos permanecen centralizados y disponibles.","textPreview":"Personas, contratos, documentos y respaldos permanecen centralizados y disponibles.","textChars":83,"textLines":1,"bbox":[890,235,305,270]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":2,"text":"El cliente mantiene visibilidad y control sobre su propia operación.","textPreview":"El cliente mantiene visibilidad y control sobre su propia operación.","textChars":68,"textLines":1,"bbox":[100,560,1080,42]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":2,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/22rrff","slide":2,"text":""}
+{"kind":"slide","id":"sl/iu5g0k","slide":3,"title":"VISIÓN EJECUTIVA","textShapes":16}
+{"kind":"textbox","id":"sh/nap4r65w","slide":3,"text":"VISIÓN EJECUTIVA","textPreview":"VISIÓN EJECUTIVA","textChars":16,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/cvixczed","slide":3,"text":"Dashboards para decidir antes de que exista un problema","textPreview":"Dashboards para decidir antes de que exista un problema","textChars":55,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":3,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/udg7adsj","slide":3,"bbox":[64,164,354,160]}
+{"kind":"shape","id":"sh/nyd0z610","slide":3,"bbox":[64,164,6,160]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":3,"text":"Dotación","textPreview":"Dotación","textChars":8,"textLines":1,"bbox":[88,184,309,36]}
+{"kind":"textbox","id":"sh/54zidony","slide":3,"text":"Personal planta y spot por servicio.","textPreview":"Personal planta y spot por servicio.","textChars":36,"textLines":1,"bbox":[88,229,309,80]}
+{"kind":"shape","id":"sh/u9knih4b","slide":3,"bbox":[448,164,354,160]}
+{"kind":"shape","id":"sh/judg7ads","slide":3,"bbox":[448,164,6,160]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":3,"text":"Vencimientos","textPreview":"Vencimientos","textChars":12,"textLines":1,"bbox":[472,184,309,36]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":3,"text":"Contratos, documentos, cursos y exámenes.","textPreview":"Contratos, documentos, cursos y exámenes.","textChars":41,"textLines":1,"bbox":[472,229,309,80]}
+{"kind":"shape","id":"sh/54zidony","slide":3,"bbox":[832,164,354,160]}
+{"kind":"shape","id":"sh/cj6tovah","slide":3,"bbox":[832,164,6,160]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":3,"text":"Acreditación","textPreview":"Acreditación","textChars":12,"textLines":1,"bbox":[856,184,309,36]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":3,"text":"Pendiente, observado, rechazado o aprobado.","textPreview":"Pendiente, observado, rechazado o aprobado.","textChars":43,"textLines":1,"bbox":[856,229,309,80]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":3,"bbox":[64,360,354,160]}
+{"kind":"shape","id":"sh/cvixczed","slide":3,"bbox":[64,360,6,160]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":3,"text":"Operación","textPreview":"Operación","textChars":9,"textLines":1,"bbox":[88,380,309,36]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":3,"text":"Proyectos, mantenciones, turnos y permisos.","textPreview":"Proyectos, mantenciones, turnos y permisos.","textChars":43,"textLines":1,"bbox":[88,425,309,80]}
+{"kind":"shape","id":"sh/25kb6xkf","slide":3,"bbox":[448,360,354,160]}
+{"kind":"shape","id":"sh/rqd4vmtw","slide":3,"bbox":[448,360,6,160]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":3,"text":"Recursos","textPreview":"Recursos","textChars":8,"textLines":1,"bbox":[472,380,309,36]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":3,"text":"Vehículos, equipos, hotelería y pases.","textPreview":"Vehículos, equipos, hotelería y pases.","textChars":38,"textLines":1,"bbox":[472,425,309,80]}
+{"kind":"shape","id":"sh/2t83itgf","slide":3,"bbox":[832,360,354,160]}
+{"kind":"shape","id":"sh/re1w7mp0","slide":3,"bbox":[832,360,6,160]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":3,"text":"Alertas","textPreview":"Alertas","textChars":7,"textLines":1,"bbox":[856,380,309,36]}
+{"kind":"textbox","id":"sh/9knih4by","slide":3,"text":"Faltantes y riesgos que requieren acción.","textPreview":"Faltantes y riesgos que requieren acción.","textChars":41,"textLines":1,"bbox":[856,425,309,80]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":3,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/ra5gbq1o","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/iu5g0k","slide":3,"text":""}
+{"kind":"slide","id":"sl/l5hey5","slide":4,"title":"FÁCIL DE TRABAJAR","textShapes":11}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":4,"text":"FÁCIL DE TRABAJAR","textPreview":"FÁCIL DE TRABAJAR","textChars":17,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":4,"text":"Una interfaz simple para una operación compleja","textPreview":"Una interfaz simple para una operación compleja","textChars":47,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/a9w3m94f","slide":4,"bbox":[64,126,1152,2]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":4,"text":"Así se ve Acceso Mina","textPreview":"Así se ve Acceso Mina","textChars":21,"textLines":1,"bbox":[835,166,340,42]}
+{"kind":"shape","id":"sh/z61032ls","slide":4,"bbox":[835,235,8,8]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":4,"text":"Formularios claros","textPreview":"Formularios claros","textChars":18,"textLines":1,"bbox":[859,226,321,30]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":4,"text":"Campos guiados y listas de selección reducen errores.","textPreview":"Campos guiados y listas de selección reducen errores.","textChars":53,"textLines":1,"bbox":[859,260,321,48]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":4,"bbox":[835,351,8,8]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":4,"text":"Datos conectados","textPreview":"Datos conectados","textChars":16,"textLines":1,"bbox":[859,342,321,30]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":4,"text":"Un registro alimenta asignaciones, alertas y reportes.","textPreview":"Un registro alimenta asignaciones, alertas y reportes.","textChars":54,"textLines":1,"bbox":[859,376,321,48]}
+{"kind":"shape","id":"sh/kf6dcbul","slide":4,"bbox":[835,467,8,8]}
+{"kind":"textbox","id":"sh/d0z61032","slide":4,"text":"Uso cotidiano","textPreview":"Uso cotidiano","textChars":13,"textLines":1,"bbox":[859,458,321,30]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":4,"text":"Pensado para trabajar rápido sin conocimientos técnicos.","textPreview":"Pensado para trabajar rápido sin conocimientos técnicos.","textChars":56,"textLines":1,"bbox":[859,492,321,48]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":4,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/knih4byh","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"image","id":"im/8jqh0fep","slide":4,"name":"","geometry":"roundRect","alt":"app-alojamiento.png","bbox":[64,150,720,500]}
+{"kind":"notes","id":"nt/l5hey5","slide":4,"text":""}
+{"kind":"slide","id":"sl/7exmyn","slide":5,"title":"CONTROL DE PERSONAS","textShapes":12}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":5,"text":"CONTROL DE PERSONAS","textPreview":"CONTROL DE PERSONAS","textChars":19,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":5,"text":"Toda la información del trabajador en una ficha","textPreview":"Toda la información del trabajador en una ficha","textChars":47,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":5,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/val87ed8","slide":5,"bbox":[80,173,8,8]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":5,"text":"Identificación y relación laboral","textPreview":"Identificación y relación laboral","textChars":33,"textLines":1,"bbox":[104,164,526,30]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":5,"text":"Datos personales, contacto, cargo, contrato y tipo de dotación.","textPreview":"Datos personales, contacto, cargo, contrato y tipo de dotación.","textChars":63,"textLines":1,"bbox":[104,198,526,48]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":5,"bbox":[80,279,8,8]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":5,"text":"Documentación de ingreso","textPreview":"Documentación de ingreso","textChars":24,"textLines":1,"bbox":[104,270,526,30]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":5,"text":"Contrato, anexos, exámenes, cursos, inducciones, credenciales y pases.","textPreview":"Contrato, anexos, exámenes, cursos, inducciones, credenciales y pases.","textChars":70,"textLines":1,"bbox":[104,304,526,48]}
+{"kind":"shape","id":"sh/szqtcj6t","slide":5,"bbox":[80,385,8,8]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":5,"text":"Asignación operacional","textPreview":"Asignación operacional","textChars":22,"textLines":1,"bbox":[104,376,526,30]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":5,"text":"Minera, proyecto, mantención, turno, alojamiento y responsable.","textPreview":"Minera, proyecto, mantención, turno, alojamiento y responsable.","textChars":63,"textLines":1,"bbox":[104,410,526,48]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":5,"bbox":[80,491,8,8]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":5,"text":"Historial y vigencia","textPreview":"Historial y vigencia","textChars":20,"textLines":1,"bbox":[104,482,526,30]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":5,"text":"Documentos cargados desde PC o nube, estados y alertas de vencimiento.","textPreview":"Documentos cargados desde PC o nube, estados y alertas de vencimiento.","textChars":70,"textLines":1,"bbox":[104,516,526,48]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":5,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"image","id":"im/l0rqd4vm","slide":5,"name":"","geometry":"roundRect","alt":"software-completo.png","bbox":[690,166,500,420]}
+{"kind":"notes","id":"nt/7exmyn","slide":5,"text":""}
+{"kind":"slide","id":"sl/mwgwf2","slide":6,"title":"CONTROL DE SERVICIOS","textShapes":11}
+{"kind":"textbox","id":"sh/cj6tovah","slide":6,"text":"CONTROL DE SERVICIOS","textPreview":"CONTROL DE SERVICIOS","textChars":20,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":6,"text":"Proyectos y mantenciones con dotación controlada","textPreview":"Proyectos y mantenciones con dotación controlada","textChars":48,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/udg7adsj","slide":6,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":6,"bbox":[64,164,350,360]}
+{"kind":"shape","id":"sh/cvixczed","slide":6,"bbox":[64,164,6,360]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":6,"text":"Proyecto","textPreview":"Proyecto","textChars":8,"textLines":1,"bbox":[88,184,305,36]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":6,"text":"Mandante, contrato, alcance, responsables, fechas, estado y personal asignado.","textPreview":"Mandante, contrato, alcance, responsables, fechas, estado y personal asignado.","textChars":78,"textLines":1,"bbox":[88,229,305,280]}
+{"kind":"shape","id":"sh/1orytsvu","slide":6,"bbox":[465,164,350,360]}
+{"kind":"shape","id":"sh/c7u54zid","slide":6,"bbox":[465,164,6,360]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":6,"text":"Mantención","textPreview":"Mantención","textChars":10,"textLines":1,"bbox":[489,184,305,36]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":6,"text":"Solicitud, ubicación, especialidad, turno, permisos, recursos y personal spot.","textPreview":"Solicitud, ubicación, especialidad, turno, permisos, recursos y personal spot.","textChars":78,"textLines":1,"bbox":[489,229,305,280]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":6,"bbox":[866,164,350,360]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":6,"bbox":[866,164,6,360]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":6,"text":"Dotación dinámica","textPreview":"Dotación dinámica","textChars":17,"textLines":1,"bbox":[890,184,305,36]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":6,"text":"Agregar nuevos trabajadores, dar de baja o reasignar sin perder el historial.","textPreview":"Agregar nuevos trabajadores, dar de baja o reasignar sin perder el historial.","textChars":77,"textLines":1,"bbox":[890,229,305,280]}
+{"kind":"textbox","id":"sh/obm58z25","slide":6,"text":"Cada persona queda relacionada con el trabajo exacto que realizará.","textPreview":"Cada persona queda relacionada con el trabajo exacto que realizará.","textChars":67,"textLines":1,"bbox":[100,560,1080,42]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":6,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/mwgwf2","slide":6,"text":""}
+{"kind":"slide","id":"sl/k5psg2","slide":7,"title":"AUDITORÍA Y CUMPLIMIENTO","textShapes":21}
+{"kind":"textbox","id":"sh/6dcbulwv","slide":7,"text":"AUDITORÍA Y CUMPLIMIENTO","textPreview":"AUDITORÍA Y CUMPLIMIENTO","textChars":24,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/d4vmtwra","slide":7,"text":"Cada dato y documento deja trazabilidad","textPreview":"Cada dato y documento deja trazabilidad","textChars":39,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/oj2t83it","slide":7,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/vmtwra5g","slide":7,"bbox":[64,210,200,240]}
+{"kind":"textbox","id":"sh/61032lsz","slide":7,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[84,232,60,36]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":7,"text":"Cargado","textPreview":"Cargado","textChars":7,"textLines":1,"bbox":[84,294,160,34]}
+{"kind":"textbox","id":"sh/o7qpg3ex","slide":7,"text":"Documento incorporado","textPreview":"Documento incorporado","textChars":21,"textLines":1,"bbox":[84,338,160,64]}
+{"kind":"shape","id":"sh/vahoza1g","slide":7,"bbox":[296,210,200,240]}
+{"kind":"textbox","id":"sh/6tovahoz","slide":7,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[316,232,60,36]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":7,"text":"Revisado","textPreview":"Revisado","textChars":8,"textLines":1,"bbox":[316,294,160,34]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":7,"text":"Datos y vigencia validados","textPreview":"Datos y vigencia validados","textChars":26,"textLines":1,"bbox":[316,338,160,64]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":7,"bbox":[528,210,200,240]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":7,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[548,232,60,36]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":7,"text":"Observado","textPreview":"Observado","textChars":9,"textLines":1,"bbox":[548,294,160,34]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":7,"text":"Faltante o inconsistencia","textPreview":"Faltante o inconsistencia","textChars":25,"textLines":1,"bbox":[548,338,160,64]}
+{"kind":"shape","id":"sh/ulwval87","slide":7,"bbox":[760,210,200,240]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":7,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[780,232,60,36]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":7,"text":"Corregido","textPreview":"Corregido","textChars":9,"textLines":1,"bbox":[780,294,160,34]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":7,"text":"Nueva versión registrada","textPreview":"Nueva versión registrada","textChars":24,"textLines":1,"bbox":[780,338,160,64]}
+{"kind":"shape","id":"sh/1032lszq","slide":7,"bbox":[992,210,200,240]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":7,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1012,232,60,36]}
+{"kind":"textbox","id":"sh/judg7ads","slide":7,"text":"Aprobado","textPreview":"Aprobado","textChars":8,"textLines":1,"bbox":[1012,294,160,34]}
+{"kind":"textbox","id":"sh/u9knih4b","slide":7,"text":"Listo para acreditar","textPreview":"Listo para acreditar","textChars":20,"textLines":1,"bbox":[1012,338,160,64]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":7,"text":"Auditoría centralizada: quién cargó, qué cambió, cuándo se revisó y cuál es el estado actual.","textPreview":"Auditoría centralizada: quién cargó, qué cambió, cuándo se revisó y cuál es el estado actual.","textChars":93,"textLines":1,"bbox":[92,505,1096,60]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":7,"text":"Alertas ante documentos faltantes, vencidos, inconsistentes o de uso incorrecto.","textPreview":"Alertas ante documentos faltantes, vencidos, inconsistentes o de uso incorrecto.","textChars":80,"textLines":1,"bbox":[92,570,1096,38]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":7,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/k5psg2","slide":7,"text":""}
+{"kind":"slide","id":"sl/lr1byn","slide":8,"title":"CORREO Y WHATSAPP","textShapes":12}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":8,"text":"CORREO Y WHATSAPP","textPreview":"CORREO Y WHATSAPP","textChars":17,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":8,"text":"Active y comunique al personal desde la misma base","textPreview":"Active y comunique al personal desde la misma base","textChars":50,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/ed8v6psf","slide":8,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/0bi9s36h","slide":8,"bbox":[620,185,8,8]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":8,"text":"Base disponible","textPreview":"Base disponible","textChars":15,"textLines":1,"bbox":[644,176,536,30]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":8,"text":"Seleccione personal ya registrado o incorpore nuevos candidatos.","textPreview":"Seleccione personal ya registrado o incorpore nuevos candidatos.","textChars":64,"textLines":1,"bbox":[644,210,536,48]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":8,"bbox":[620,291,8,8]}
+{"kind":"textbox","id":"sh/0z61032l","slide":8,"text":"Grupos por trabajo","textPreview":"Grupos por trabajo","textChars":18,"textLines":1,"bbox":[644,282,536,30]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":8,"text":"Organice destinatarios por minera, proyecto, mantención o turno.","textPreview":"Organice destinatarios por minera, proyecto, mantención o turno.","textChars":64,"textLines":1,"bbox":[644,316,536,48]}
+{"kind":"shape","id":"sh/fa9w3m94","slide":8,"bbox":[620,397,8,8]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":8,"text":"Mensajes directos","textPreview":"Mensajes directos","textChars":17,"textLines":1,"bbox":[644,388,536,30]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":8,"text":"Envíe correos o notificaciones por WhatsApp para convocar, informar o confirmar.","textPreview":"Envíe correos o notificaciones por WhatsApp para convocar, informar o confirmar.","textChars":80,"textLines":1,"bbox":[644,422,536,48]}
+{"kind":"shape","id":"sh/qd4vmtwr","slide":8,"bbox":[620,503,8,8]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":8,"text":"Seguimiento central","textPreview":"Seguimiento central","textChars":19,"textLines":1,"bbox":[644,494,536,30]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":8,"text":"Mantenga una referencia única de las personas contactadas para cada servicio.","textPreview":"Mantenga una referencia única de las personas contactadas para cada servicio.","textChars":77,"textLines":1,"bbox":[644,528,536,48]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":8,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"image","id":"im/s72x4nap","slide":8,"name":"","geometry":"roundRect","alt":"software-asignacion.png","bbox":[64,174,500,390]}
+{"kind":"notes","id":"nt/lr1byn","slide":8,"text":""}
+{"kind":"slide","id":"sl/cvuccs","slide":9,"title":"BENEFICIOS","textShapes":16}
+{"kind":"textbox","id":"sh/7adsji5s","slide":9,"text":"BENEFICIOS","textPreview":"BENEFICIOS","textChars":10,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/wval87ed","slide":9,"text":"Un solo lugar para trabajar con más control","textPreview":"Un solo lugar para trabajar con más control","textChars":43,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/pg3ex0nu","slide":9,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":9,"bbox":[64,160,540,120]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":9,"bbox":[64,160,6,120]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":9,"text":"Menos riesgo","textPreview":"Menos riesgo","textChars":12,"textLines":1,"bbox":[88,180,495,36]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":9,"text":"Alertas antes de un vencimiento o ingreso incompleto.","textPreview":"Alertas antes de un vencimiento o ingreso incompleto.","textChars":53,"textLines":1,"bbox":[88,225,495,40]}
+{"kind":"shape","id":"sh/ed8bat47","slide":9,"bbox":[640,160,540,120]}
+{"kind":"shape","id":"sh/7u54zido","slide":9,"bbox":[640,160,6,120]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":9,"text":"Menos tiempo","textPreview":"Menos tiempo","textChars":12,"textLines":1,"bbox":[664,180,495,36]}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":9,"text":"Información lista para revisar, acreditar y reportar.","textPreview":"Información lista para revisar, acreditar y reportar.","textChars":53,"textLines":1,"bbox":[664,225,495,40]}
+{"kind":"shape","id":"sh/lwval87e","slide":9,"bbox":[64,305,540,120]}
+{"kind":"shape","id":"sh/wb2hwfyx","slide":9,"bbox":[64,305,6,120]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":9,"text":"Más trazabilidad","textPreview":"Más trazabilidad","textChars":16,"textLines":1,"bbox":[88,325,495,36]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":9,"text":"Historial de documentos, estados, personas y servicios.","textPreview":"Historial de documentos, estados, personas y servicios.","textChars":55,"textLines":1,"bbox":[88,370,495,40]}
+{"kind":"shape","id":"sh/loj2t83i","slide":9,"bbox":[640,305,540,120]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":9,"bbox":[640,305,6,120]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":9,"text":"Más coordinación","textPreview":"Más coordinación","textChars":16,"textLines":1,"bbox":[664,325,495,36]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":9,"text":"Convocatoria y comunicación desde la base del personal.","textPreview":"Convocatoria y comunicación desde la base del personal.","textChars":55,"textLines":1,"bbox":[664,370,495,40]}
+{"kind":"shape","id":"sh/ixczed8v","slide":9,"bbox":[64,450,540,120]}
+{"kind":"shape","id":"sh/bi9s36hc","slide":9,"bbox":[64,450,6,120]}
+{"kind":"textbox","id":"sh/032lszqt","slide":9,"text":"Más claridad","textPreview":"Más claridad","textChars":12,"textLines":1,"bbox":[88,470,495,36]}
+{"kind":"textbox","id":"sh/tovahoza","slide":9,"text":"Dashboards filtrados por minera, contrato o trabajo.","textPreview":"Dashboards filtrados por minera, contrato o trabajo.","textChars":52,"textLines":1,"bbox":[88,515,495,40]}
+{"kind":"shape","id":"sh/i9s36hcr","slide":9,"bbox":[640,450,540,120]}
+{"kind":"shape","id":"sh/bulwval8","slide":9,"bbox":[640,450,6,120]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":9,"text":"Más autonomía","textPreview":"Más autonomía","textChars":13,"textLines":1,"bbox":[664,470,495,36]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":9,"text":"Uso simple y control directo por parte del cliente.","textPreview":"Uso simple y control directo por parte del cliente.","textChars":51,"textLines":1,"bbox":[664,515,495,40]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":9,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/cvuccs","slide":9,"text":""}
+{"kind":"slide","id":"sl/sfseks","slide":10,"title":"INVERSIÓN","textShapes":17}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":10,"text":"INVERSIÓN","textPreview":"INVERSIÓN","textChars":9,"textLines":1,"bbox":[64,28,600,24]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":10,"text":"Propuesta económica editable","textPreview":"Propuesta económica editable","textChars":28,"textLines":1,"bbox":[64,62,1152,58]}
+{"kind":"shape","id":"sh/xczed8v6","slide":10,"bbox":[64,126,1152,2]}
+{"kind":"shape","id":"sh/qd4vmtwr","slide":10,"bbox":[104,160,1072,372]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":10,"text":"Concepto","textPreview":"Concepto","textChars":8,"textLines":1,"bbox":[136,180,720,34]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":10,"text":"Valor neto","textPreview":"Valor neto","textChars":10,"textLines":1,"bbox":[900,180,240,34]}
+{"kind":"shape","id":"sh/x4nap4r6","slide":10,"bbox":[136,224,1004,1]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":10,"text":"Implementación y configuración inicial","textPreview":"Implementación y configuración inicial","textChars":38,"textLines":1,"bbox":[136,240,700,38]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":10,"text":"$0","textPreview":"$0","textChars":2,"textLines":1,"bbox":[900,240,240,38]}
+{"kind":"shape","id":"sh/jqh0fepk","slide":10,"bbox":[136,285,1004,1]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":10,"text":"Migración / carga inicial de datos","textPreview":"Migración / carga inicial de datos","textChars":34,"textLines":1,"bbox":[136,295,700,38]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":10,"text":"$0","textPreview":"$0","textChars":2,"textLines":1,"bbox":[900,295,240,38]}
+{"kind":"shape","id":"sh/8bat47y1","slide":10,"bbox":[136,340,1004,1]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":10,"text":"Licencia mensual de plataforma","textPreview":"Licencia mensual de plataforma","textChars":30,"textLines":1,"bbox":[136,350,700,38]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":10,"text":"$0","textPreview":"$0","textChars":2,"textLines":1,"bbox":[900,350,240,38]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":10,"bbox":[136,395,1004,1]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":10,"text":"Soporte y mantenimiento mensual","textPreview":"Soporte y mantenimiento mensual","textChars":31,"textLines":1,"bbox":[136,405,700,38]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":10,"text":"$0","textPreview":"$0","textChars":2,"textLines":1,"bbox":[900,405,240,38]}
+{"kind":"shape","id":"sh/ulwval87","slide":10,"bbox":[136,450,1004,1]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":10,"text":"Desarrollos o integraciones adicionales","textPreview":"Desarrollos o integraciones adicionales","textChars":39,"textLines":1,"bbox":[136,460,700,38]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":10,"text":"$0","textPreview":"$0","textChars":2,"textLines":1,"bbox":[900,460,240,38]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":10,"text":"Valores por completar según alcance, usuarios y volumen de información.","textPreview":"Valores por completar según alcance, usuarios y volumen de información.","textChars":71,"textLines":1,"bbox":[104,558,1072,34]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":10,"text":"DOMIAN · SMART BUSINESS","textPreview":"DOMIAN · SMART BUSINESS","textChars":23,"textLines":1,"bbox":[64,682,420,18]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1140,682,76,18]}
+{"kind":"notes","id":"nt/sfseks","slide":10,"text":""}
+{"kind":"slide","id":"sl/idxviq","slide":11,"title":"Una operación conectada, privada y trazable","textShapes":4}
+{"kind":"textbox","id":"sh/udg7adsj","slide":11,"text":"Una operación conectada, privada y trazable","textPreview":"Una operación conectada, privada y trazable","textChars":43,"textLines":1,"bbox":[130,282,1020,60]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":11,"text":"Acceso Mina reúne personas, servicios, documentos, auditoría y comunicaciones en una plataforma simple y bajo el control del cliente.","textPreview":"Acceso Mina reúne personas, servicios, documentos, auditoría y comunicaciones en una plataforma simple y bajo el control del cliente.","textChars":133,"textLines":1,"bbox":[190,356,900,82]}
+{"kind":"shape","id":"sh/cvixczed","slide":11,"bbox":[450,486,380,64]}
+{"kind":"textbox","id":"sh/5gbq1ory","slide":11,"text":"contacto@domian.cl","textPreview":"contacto@domian.cl","textChars":18,"textLines":1,"bbox":[450,486,380,64]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":11,"text":"+56 9 7649 0489  ·  www.domian.cl","textPreview":"+56 9 7649 0489  ·  www.domian.cl","textChars":33,"textLines":1,"bbox":[350,580,580,34]}
+{"kind":"image","id":"im/gbq1oryt","slide":11,"name":"","geometry":"roundRect","alt":"domian-logo.jpg","bbox":[470,58,340,170]}
+{"kind":"notes","id":"nt/idxviq","slide":11,"text":""}

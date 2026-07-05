@@ -1,0 +1,263 @@
+{"kind":"deck","id":"pr/g5serg","name":"Deck"}
+{"kind":"layout","layoutId":"da8ce5a9-cb96-4e0c-b9d9-0ffe5857b847","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"35337e64-14ca-45b3-83cd-c7ddb06aee80","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/7t9rim","slide":1,"title":"DOMIAN","textShapes":9}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":1,"text":"DOMIAN","textPreview":"DOMIAN","textChars":6,"textLines":1,"bbox":[42,35,260,32]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":1,"text":"Tecnología para operaciones conectadas","textPreview":"Tecnología para operaciones conectadas","textChars":38,"textLines":1,"bbox":[908,38,330,26]}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":1,"text":"OPERIA","textPreview":"OPERIA","textChars":6,"textLines":1,"bbox":[42,176,790,118]}
+{"kind":"shape","id":"sh/5o7qpg3e","slide":1,"bbox":[42,305,230,12]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":1,"text":"Control operativo, personas y cumplimiento\nen una sola plataforma.","textPreview":"Control operativo, personas y cumplimiento | en una sola plataforma.","textChars":66,"textLines":2,"bbox":[42,348,720,132]}
+{"kind":"textbox","id":"sh/nih4byhg","slide":1,"text":"Una solución privada para empresas que coordinan personal, contratos, servicios y activos en múltiples operaciones.","textPreview":"Una solución privada para empresas que coordinan personal, contratos, servicios y activos en múltiples operaciones.","textChars":115,"textLines":1,"bbox":[42,530,760,82]}
+{"kind":"shape","id":"sh/yxobm58z","slide":1,"bbox":[910,174,328,405]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":1,"text":"Todo conectado","textPreview":"Todo conectado","textChars":14,"textLines":1,"bbox":[948,220,250,44]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":1,"text":"Personas\nContratos\nProyectos\nDocumentos\nComunicaciones","textPreview":"Personas | Contratos | Proyectos | Documentos | Comunicaciones","textChars":54,"textLines":5,"bbox":[948,298,250,220]}
+{"kind":"shape","id":"sh/y1kre1w7","slide":1,"bbox":[948,548,112,8]}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":1,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":1,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/7t9rim","slide":1,"text":""}
+{"kind":"slide","id":"sl/2inrdh","slide":2,"title":"OPERIA BY DOMIAN","textShapes":14}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":2,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":2,"text":"La información dispersa vuelve frágil la operación","textPreview":"La información dispersa vuelve frágil la operación","textChars":50,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":2,"text":"Planillas, carpetas, mensajes y correos separados hacen difícil responder preguntas simples en el momento correcto.","textPreview":"Planillas, carpetas, mensajes y correos separados hacen difícil responder preguntas simples en el momento correcto.","textChars":115,"textLines":1,"bbox":[42,156,810,72]}
+{"kind":"shape","id":"sh/orytsvu9","slide":2,"bbox":[42,275,270,190]}
+{"kind":"shape","id":"sh/hcrmhk3q","slide":2,"bbox":[42,275,8,190]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":2,"text":"Persona","textPreview":"Persona","textChars":7,"textLines":1,"bbox":[69,301,220,70]}
+{"kind":"textbox","id":"sh/z61032ls","slide":2,"text":"Personal habilitado y disponible","textPreview":"Personal habilitado y disponible","textChars":32,"textLines":1,"bbox":[69,387,220,54]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":2,"bbox":[332,275,270,190]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":2,"bbox":[332,275,8,190]}
+{"kind":"textbox","id":"sh/hgn29gr2","slide":2,"text":"Lugar","textPreview":"Lugar","textChars":5,"textLines":1,"bbox":[359,301,220,70]}
+{"kind":"textbox","id":"sh/svu9knih","slide":2,"text":"Proyecto, servicio, turno y alojamiento","textPreview":"Proyecto, servicio, turno y alojamiento","textChars":39,"textLines":1,"bbox":[359,387,220,54]}
+{"kind":"shape","id":"sh/za1gvy90","slide":2,"bbox":[622,275,270,190]}
+{"kind":"shape","id":"sh/ap4r65wj","slide":2,"bbox":[622,275,8,190]}
+{"kind":"textbox","id":"sh/hoza1gvy","slide":2,"text":"Vigencia","textPreview":"Vigencia","textChars":8,"textLines":1,"bbox":[649,301,220,70]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":2,"text":"Documentos, contratos y credenciales","textPreview":"Documentos, contratos y credenciales","textChars":36,"textLines":1,"bbox":[649,387,220,54]}
+{"kind":"shape","id":"sh/zidonyd0","slide":2,"bbox":[912,275,326,190]}
+{"kind":"shape","id":"sh/a1gvy90j","slide":2,"bbox":[912,275,8,190]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":2,"text":"Evidencia","textPreview":"Evidencia","textChars":9,"textLines":1,"bbox":[939,301,276,70]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":2,"text":"Historial, revisión y responsable","textPreview":"Historial, revisión y responsable","textChars":33,"textLines":1,"bbox":[939,387,276,54]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":2,"text":"Operia reúne esas respuestas en un solo lugar y mantiene cada dato relacionado con su contexto operativo.","textPreview":"Operia reúne esas respuestas en un solo lugar y mantiene cada dato relacionado con su contexto operativo.","textChars":105,"textLines":1,"bbox":[42,535,1196,64]}
+{"kind":"shape","id":"sh/1gvy90je","slide":2,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":2,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/2inrdh","slide":2,"text":""}
+{"kind":"slide","id":"sl/vk2lfh","slide":3,"title":"OPERIA BY DOMIAN","textShapes":10}
+{"kind":"textbox","id":"sh/vahoza1g","slide":3,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":3,"text":"Una vista ejecutiva permite decidir antes","textPreview":"Una vista ejecutiva permite decidir antes","textChars":41,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/6hcrmhk3","slide":3,"bbox":[908,151,330,470]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":3,"text":"Dashboard operativo","textPreview":"Dashboard operativo","textChars":19,"textLines":1,"bbox":[938,184,270,38]}
+{"kind":"shape","id":"sh/onyd0z61","slide":3,"bbox":[938,263,10,10]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":3,"text":"Filtra por minera, contrato y servicio","textPreview":"Filtra por minera, contrato y servicio","textChars":38,"textLines":1,"bbox":[965,255,243,36]}
+{"kind":"shape","id":"sh/6dcbulwv","slide":3,"bbox":[938,335,10,10]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":3,"text":"Muestra dotación, alertas y acreditación","textPreview":"Muestra dotación, alertas y acreditación","textChars":40,"textLines":1,"bbox":[965,327,243,36]}
+{"kind":"shape","id":"sh/nuxc3ylc","slide":3,"bbox":[938,407,10,10]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":3,"text":"Anticipa vencimientos y tareas pendientes","textPreview":"Anticipa vencimientos y tareas pendientes","textChars":41,"textLines":1,"bbox":[965,399,243,36]}
+{"kind":"shape","id":"sh/5wjudg7a","slide":3,"bbox":[938,479,10,10]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":3,"text":"Resume proyectos y llamados recientes","textPreview":"Resume proyectos y llamados recientes","textChars":37,"textLines":1,"bbox":[965,471,243,36]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":3,"text":"Captura real del sistema","textPreview":"Captura real del sistema","textChars":24,"textLines":1,"bbox":[938,581,270,20]}
+{"kind":"shape","id":"sh/yhgn29gr","slide":3,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":3,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"image","id":"im/sneloj2t","slide":3,"name":"","alt":"Captura real de Operia","bbox":[42,151,835,470]}
+{"kind":"notes","id":"nt/vk2lfh","slide":3,"text":""}
+{"kind":"slide","id":"sl/k0s2g6","slide":4,"title":"OPERIA BY DOMIAN","textShapes":11}
+{"kind":"textbox","id":"sh/bq1oryts","slide":4,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":4,"text":"Cada trabajador conserva una ficha completa","textPreview":"Cada trabajador conserva una ficha completa","textChars":43,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/twra5gbq","slide":4,"bbox":[42,153,385,473]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":4,"text":"Personal de planta y spot","textPreview":"Personal de planta y spot","textChars":25,"textLines":1,"bbox":[72,187,325,38]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":4,"bbox":[72,261,10,10]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":4,"text":"RUT único y datos laborales","textPreview":"RUT único y datos laborales","textChars":27,"textLines":1,"bbox":[99,253,298,36]}
+{"kind":"shape","id":"sh/t83itgfm","slide":4,"bbox":[72,314,10,10]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":4,"text":"Cargo, especialidad y disponibilidad","textPreview":"Cargo, especialidad y disponibilidad","textChars":36,"textLines":1,"bbox":[99,306,298,36]}
+{"kind":"shape","id":"sh/bat47y1k","slide":4,"bbox":[72,367,10,10]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":4,"text":"Asignación a contratos y servicios","textPreview":"Asignación a contratos y servicios","textChars":34,"textLines":1,"bbox":[99,359,298,36]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":4,"bbox":[72,420,10,10]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":4,"text":"Documentos, exámenes y cursos","textPreview":"Documentos, exámenes y cursos","textChars":29,"textLines":1,"bbox":[99,412,298,36]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":4,"bbox":[72,473,10,10]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":4,"text":"Alojamiento, turnos y credenciales","textPreview":"Alojamiento, turnos y credenciales","textChars":34,"textLines":1,"bbox":[99,465,298,36]}
+{"kind":"shape","id":"sh/ulwval87","slide":4,"bbox":[72,526,10,10]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":4,"text":"Alertas de vigencia y bloqueo","textPreview":"Alertas de vigencia y bloqueo","textChars":29,"textLines":1,"bbox":[99,518,298,36]}
+{"kind":"shape","id":"sh/j2t83itg","slide":4,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":4,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"image","id":"im/ji5snelo","slide":4,"name":"","alt":"Captura real de Operia","bbox":[458,153,780,473]}
+{"kind":"notes","id":"nt/k0s2g6","slide":4,"text":""}
+{"kind":"slide","id":"sl/kth8fk","slide":5,"title":"OPERIA BY DOMIAN","textShapes":18}
+{"kind":"textbox","id":"sh/m58z25kb","slide":5,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":5,"text":"Contratos y servicios comparten una fuente de verdad","textPreview":"Contratos y servicios comparten una fuente de verdad","textChars":52,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":5,"text":"La relación entre mandante, contrato, alcance, fechas, servicio y dotación evita registros aislados y facilita demostrar cumplimiento.","textPreview":"La relación entre mandante, contrato, alcance, fechas, servicio y dotación evita registros aislados y facilita demostrar cumplimiento.","textChars":134,"textLines":1,"bbox":[42,155,1110,66]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":5,"bbox":[42,267,278,294]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":5,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[66,289,70,45]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":5,"text":"Mandante","textPreview":"Mandante","textChars":8,"textLines":1,"bbox":[66,365,230,40]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":5,"text":"Minas, plantas, contactos y requisitos propios.","textPreview":"Minas, plantas, contactos y requisitos propios.","textChars":47,"textLines":1,"bbox":[66,430,230,95]}
+{"kind":"shape","id":"sh/bat47y1k","slide":5,"bbox":[341,267,278,294]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":5,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[365,289,70,45]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":5,"text":"Contrato","textPreview":"Contrato","textChars":8,"textLines":1,"bbox":[365,365,230,40]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":5,"text":"Vigencia, alcance, documentos y responsables.","textPreview":"Vigencia, alcance, documentos y responsables.","textChars":45,"textLines":1,"bbox":[365,430,230,95]}
+{"kind":"shape","id":"sh/m58z25kb","slide":5,"bbox":[640,267,278,294]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":5,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[664,289,70,45]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":5,"text":"Servicio","textPreview":"Servicio","textChars":8,"textLines":1,"bbox":[664,365,230,40]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":5,"text":"Proyecto, mantención u operación con fechas y recursos.","textPreview":"Proyecto, mantención u operación con fechas y recursos.","textChars":55,"textLines":1,"bbox":[664,430,230,95]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":5,"bbox":[939,267,278,294]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":5,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[963,289,70,45]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":5,"text":"Ejecución","textPreview":"Ejecución","textChars":9,"textLines":1,"bbox":[963,365,230,40]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":5,"text":"Personas, turnos, permisos, equipos y alojamiento.","textPreview":"Personas, turnos, permisos, equipos y alojamiento.","textChars":50,"textLines":1,"bbox":[963,430,230,95]}
+{"kind":"textbox","id":"sh/xc3ylc7u","slide":5,"text":"Al cambiar un dato, sus alertas, reportes y fichas relacionadas se actualizan dentro de la misma empresa.","textPreview":"Al cambiar un dato, sus alertas, reportes y fichas relacionadas se actualizan dentro de la misma empresa.","textChars":105,"textLines":1,"bbox":[42,596,1196,34]}
+{"kind":"shape","id":"sh/4r65wjud","slide":5,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/f6dcbulw","slide":5,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/mlkjm1cf","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/kth8fk","slide":5,"text":""}
+{"kind":"slide","id":"sl/1pgt49","slide":6,"title":"OPERIA BY DOMIAN","textShapes":10}
+{"kind":"textbox","id":"sh/donyd0z6","slide":6,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":6,"text":"La entrega de EPP queda asociada a la persona y al trabajo","textPreview":"La entrega de EPP queda asociada a la persona y al trabajo","textChars":58,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":6,"bbox":[875,155,363,464]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":6,"text":"Control demostrable","textPreview":"Control demostrable","textChars":19,"textLines":1,"bbox":[905,190,305,38]}
+{"kind":"shape","id":"sh/6psfil0r","slide":6,"bbox":[905,263,10,10]}
+{"kind":"textbox","id":"sh/val87ed8","slide":6,"text":"Matriz sugerida según cargo y riesgo","textPreview":"Matriz sugerida según cargo y riesgo","textChars":36,"textLines":1,"bbox":[932,255,273,36]}
+{"kind":"shape","id":"sh/knih4byh","slide":6,"bbox":[905,328,10,10]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":6,"text":"Tallas y medidas por trabajador","textPreview":"Tallas y medidas por trabajador","textChars":31,"textLines":1,"bbox":[932,320,273,36]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":6,"bbox":[905,393,10,10]}
+{"kind":"textbox","id":"sh/0z61032l","slide":6,"text":"Estado, cantidad y fecha de entrega","textPreview":"Estado, cantidad y fecha de entrega","textChars":35,"textLines":1,"bbox":[932,385,273,36]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":6,"bbox":[905,458,10,10]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":6,"text":"Lote, serie y próxima reposición","textPreview":"Lote, serie y próxima reposición","textChars":32,"textLines":1,"bbox":[932,450,273,36]}
+{"kind":"shape","id":"sh/p8nqxs72","slide":6,"bbox":[905,523,10,10]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":6,"text":"Historial para planta y personal spot","textPreview":"Historial para planta y personal spot","textChars":37,"textLines":1,"bbox":[932,515,273,36]}
+{"kind":"shape","id":"sh/72x4nap4","slide":6,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":6,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"image","id":"im/u18jqh0f","slide":6,"name":"","alt":"Captura real de Operia","bbox":[42,155,800,464]}
+{"kind":"notes","id":"nt/1pgt49","slide":6,"text":""}
+{"kind":"slide","id":"sl/3pyz04","slide":7,"title":"OPERIA BY DOMIAN","textShapes":6}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":7,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":7,"text":"La revisión documental se convierte en un flujo trazable","textPreview":"La revisión documental se convierte en un flujo trazable","textChars":56,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/c7u54zid","slide":7,"bbox":[42,151,380,470]}
+{"kind":"textbox","id":"sh/judg7ads","slide":7,"text":"Cargado\nEnviado\nEn revisión\nObservado\nCorregido\nAprobado","textPreview":"Cargado | Enviado | En revisión | Observado | Corregido | Aprobado","textChars":56,"textLines":6,"bbox":[75,188,300,350]}
+{"kind":"shape","id":"sh/u9knih4b","slide":7,"bbox":[75,570,155,8]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":7,"text":"OCR, firma, QR, fotografía, integridad y emisor pueden registrarse como controles; la aprobación final queda atribuida a un responsable.","textPreview":"OCR, firma, QR, fotografía, integridad y emisor pueden registrarse como controles; la aprobación final queda atribuida a un responsable.","textChars":136,"textLines":1,"bbox":[470,571,735,44]}
+{"kind":"shape","id":"sh/nyd0z610","slide":7,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":7,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/czed8v6p","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"image","id":"im/crmhk3q5","slide":7,"name":"","alt":"Captura real de Operia","bbox":[452,151,786,470]}
+{"kind":"notes","id":"nt/3pyz04","slide":7,"text":""}
+{"kind":"slide","id":"sl/j9vik2","slide":8,"title":"OPERIA BY DOMIAN","textShapes":13}
+{"kind":"textbox","id":"sh/t83itgfm","slide":8,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":8,"text":"La comunicación parte desde la misma base operacional","textPreview":"La comunicación parte desde la misma base operacional","textChars":53,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":8,"text":"Selecciona personas ya registradas y comunica una necesidad sin reconstruir listas cada vez.","textPreview":"Selecciona personas ya registradas y comunica una necesidad sin reconstruir listas cada vez.","textChars":92,"textLines":1,"bbox":[42,151,820,62]}
+{"kind":"shape","id":"sh/4byhgn29","slide":8,"bbox":[42,264,564,140]}
+{"kind":"shape","id":"sh/twra5gbq","slide":8,"bbox":[42,264,9,140]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":8,"text":"WhatsApp","textPreview":"WhatsApp","textChars":8,"textLines":1,"bbox":[77,290,180,34]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":8,"text":"Mensajes individuales o llamados por grupo y servicio.","textPreview":"Mensajes individuales o llamados por grupo y servicio.","textChars":54,"textLines":1,"bbox":[77,338,485,46]}
+{"kind":"shape","id":"sh/47y1kre1","slide":8,"bbox":[640,264,564,140]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":8,"bbox":[640,264,9,140]}
+{"kind":"textbox","id":"sh/90je9cvi","slide":8,"text":"Correo","textPreview":"Correo","textChars":6,"textLines":1,"bbox":[675,290,180,34]}
+{"kind":"textbox","id":"sh/gfmlkjm1","slide":8,"text":"Avisos, documentación y comunicaciones formales.","textPreview":"Avisos, documentación y comunicaciones formales.","textChars":48,"textLines":1,"bbox":[675,338,485,46]}
+{"kind":"shape","id":"sh/rytsvu9k","slide":8,"bbox":[42,434,564,140]}
+{"kind":"shape","id":"sh/yd0z6103","slide":8,"bbox":[42,434,9,140]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":8,"text":"Firma","textPreview":"Firma","textChars":5,"textLines":1,"bbox":[77,460,180,34]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":8,"text":"Solicitudes asociadas al trabajador y al proyecto.","textPreview":"Solicitudes asociadas al trabajador y al proyecto.","textChars":50,"textLines":1,"bbox":[77,508,485,46]}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":8,"bbox":[640,434,564,140]}
+{"kind":"shape","id":"sh/y1kre1w7","slide":8,"bbox":[640,434,9,140]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":8,"text":"Reportes","textPreview":"Reportes","textChars":8,"textLines":1,"bbox":[675,460,180,34]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":8,"text":"Envíos programados y separados por tema.","textPreview":"Envíos programados y separados por tema.","textChars":40,"textLines":1,"bbox":[675,508,485,46]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":8,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/1032lszq","slide":8,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/u9knih4b","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/j9vik2","slide":8,"text":""}
+{"kind":"slide","id":"sl/t7u5pq","slide":9,"title":"OPERIA BY DOMIAN","textShapes":14}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":9,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":9,"text":"Cada empresa trabaja en un espacio privado e independiente","textPreview":"Cada empresa trabaja en un espacio privado e independiente","textChars":58,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":9,"text":"Una plataforma, múltiples clientes, sin mezclar información ni configuraciones.","textPreview":"Una plataforma, múltiples clientes, sin mezclar información ni configuraciones.","textChars":79,"textLines":1,"bbox":[42,151,900,60]}
+{"kind":"shape","id":"sh/bm58z25k","slide":9,"bbox":[42,258,278,190]}
+{"kind":"shape","id":"sh/m1cfa9w3","slide":9,"bbox":[42,258,8,190]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":9,"text":"A","textPreview":"A","textChars":1,"textLines":1,"bbox":[69,284,228,70]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":9,"text":"Marca, usuarios y datos propios","textPreview":"Marca, usuarios y datos propios","textChars":31,"textLines":1,"bbox":[69,370,228,54]}
+{"kind":"shape","id":"sh/bq1oryts","slide":9,"bbox":[340,258,278,190]}
+{"kind":"shape","id":"sh/m58z25kb","slide":9,"bbox":[340,258,8,190]}
+{"kind":"textbox","id":"sh/o7qpg3ex","slide":9,"text":"B","textPreview":"B","textChars":1,"textLines":1,"bbox":[367,284,228,70]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":9,"text":"Permisos y módulos independientes","textPreview":"Permisos y módulos independientes","textChars":33,"textLines":1,"bbox":[367,370,228,54]}
+{"kind":"shape","id":"sh/61032lsz","slide":9,"bbox":[638,258,278,190]}
+{"kind":"shape","id":"sh/vmtwra5g","slide":9,"bbox":[638,258,8,190]}
+{"kind":"textbox","id":"sh/oj2t83it","slide":9,"text":"N","textPreview":"N","textChars":1,"textLines":1,"bbox":[665,284,228,70]}
+{"kind":"textbox","id":"sh/d4vmtwra","slide":9,"text":"Crecimiento sin compartir registros","textPreview":"Crecimiento sin compartir registros","textChars":35,"textLines":1,"bbox":[665,370,228,54]}
+{"kind":"shape","id":"sh/6dcbulwv","slide":9,"bbox":[936,258,302,190]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":9,"text":"Roles","textPreview":"Roles","textChars":5,"textLines":1,"bbox":[963,284,240,34]}
+{"kind":"textbox","id":"sh/onyd0z61","slide":9,"text":"Administración\nRR.HH.\nPrevención\nAcreditación\nConsulta","textPreview":"Administración | RR.HH. | Prevención | Acreditación | Consulta","textChars":54,"textLines":5,"bbox":[963,334,240,100]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":9,"text":"Bitácora, respaldo, políticas de conservación y gestión de accesos permiten mantener control sobre quién consulta y modifica la información.","textPreview":"Bitácora, respaldo, políticas de conservación y gestión de accesos permiten mantener control sobre quién consulta y modifica la información.","textChars":140,"textLines":1,"bbox":[42,523,1196,72]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":9,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":9,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/t7u5pq","slide":9,"text":""}
+{"kind":"slide","id":"sl/873ful","slide":10,"title":"OPERIA BY DOMIAN","textShapes":16}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":10,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":10,"text":"Operia cubre el ciclo completo de una empresa de servicios","textPreview":"Operia cubre el ciclo completo de una empresa de servicios","textChars":58,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/jqh0fepk","slide":10,"bbox":[42,156,374,216]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":10,"text":"Personas","textPreview":"Personas","textChars":8,"textLines":1,"bbox":[67,181,320,34]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":10,"text":"Trabajadores\nPlanta y spot\nEPP\nExámenes y cursos\nTurnos y asistencia","textPreview":"Trabajadores | Planta y spot | EPP | Exámenes y cursos | Turnos y asistencia","textChars":68,"textLines":5,"bbox":[67,233,320,118]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":10,"bbox":[441,156,374,216]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":10,"text":"Operación","textPreview":"Operación","textChars":9,"textLines":1,"bbox":[466,181,320,34]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":10,"text":"Mandantes\nContratos\nProyectos y servicios\nPermisos de trabajo\nHotelería","textPreview":"Mandantes | Contratos | Proyectos y servicios | Permisos de trabajo | Hotelería","textChars":71,"textLines":5,"bbox":[466,233,320,118]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":10,"bbox":[840,156,374,216]}
+{"kind":"textbox","id":"sh/1gvy90je","slide":10,"text":"Activos","textPreview":"Activos","textChars":7,"textLines":1,"bbox":[865,181,320,34]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":10,"text":"Vehículos y equipos\nCredenciales\nOperadores\nMantenciones\nVencimientos","textPreview":"Vehículos y equipos | Credenciales | Operadores | Mantenciones | Vencimientos","textChars":69,"textLines":5,"bbox":[865,233,320,118]}
+{"kind":"shape","id":"sh/je9cvixc","slide":10,"bbox":[42,400,374,216]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":10,"text":"Cumplimiento","textPreview":"Cumplimiento","textChars":12,"textLines":1,"bbox":[67,425,320,34]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":10,"text":"Auditoría documental\nAcreditación\nSubcontratos\nIncidentes y NC\nProtocolos de salud","textPreview":"Auditoría documental | Acreditación | Subcontratos | Incidentes y NC | Protocolos de salud","textChars":82,"textLines":5,"bbox":[67,477,320,118]}
+{"kind":"shape","id":"sh/87ed8bat","slide":10,"bbox":[441,400,374,216]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":10,"text":"Gestión","textPreview":"Gestión","textChars":7,"textLines":1,"bbox":[466,425,320,34]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":10,"text":"Dashboard\nAlertas\nReportes\nImportación masiva\nBitácora","textPreview":"Dashboard | Alertas | Reportes | Importación masiva | Bitácora","textChars":54,"textLines":5,"bbox":[466,477,320,118]}
+{"kind":"shape","id":"sh/x4nap4r6","slide":10,"bbox":[840,400,374,216]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":10,"text":"Conexión","textPreview":"Conexión","textChars":8,"textLines":1,"bbox":[865,425,320,34]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":10,"text":"WhatsApp\nCorreo\nFirma electrónica\nPortal mandante\nIntegraciones","textPreview":"WhatsApp | Correo | Firma electrónica | Portal mandante | Integraciones","textChars":63,"textLines":5,"bbox":[865,477,320,118]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":10,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":10,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/873ful","slide":10,"text":""}
+{"kind":"slide","id":"sl/ryhsuz","slide":11,"title":"OPERIA BY DOMIAN","textShapes":16}
+{"kind":"textbox","id":"sh/bm58z25k","slide":11,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,31,440,25]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":11,"text":"Los beneficios aparecen en la coordinación diaria","textPreview":"Los beneficios aparecen en la coordinación diaria","textChars":49,"textLines":1,"bbox":[42,67,1155,72]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":11,"bbox":[42,155,374,202]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":11,"bbox":[42,155,374,7]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":11,"text":"Menos reproceso","textPreview":"Menos reproceso","textChars":15,"textLines":1,"bbox":[66,185,326,36]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":11,"text":"La información se registra una vez y se reutiliza en cada proceso.","textPreview":"La información se registra una vez y se reutiliza en cada proceso.","textChars":66,"textLines":1,"bbox":[66,242,326,80]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":11,"bbox":[441,155,374,202]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":11,"bbox":[441,155,374,7]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":11,"text":"Más anticipación","textPreview":"Más anticipación","textChars":16,"textLines":1,"bbox":[465,185,326,36]}
+{"kind":"textbox","id":"sh/f6dcbulw","slide":11,"text":"Las alertas muestran faltantes y vencimientos antes de movilizar personal.","textPreview":"Las alertas muestran faltantes y vencimientos antes de movilizar personal.","textChars":74,"textLines":1,"bbox":[465,242,326,80]}
+{"kind":"shape","id":"sh/mlkjm1cf","slide":11,"bbox":[840,155,374,202]}
+{"kind":"shape","id":"sh/xc3ylc7u","slide":11,"bbox":[840,155,374,7]}
+{"kind":"textbox","id":"sh/4r65wjud","slide":11,"text":"Mejor respuesta","textPreview":"Mejor respuesta","textChars":15,"textLines":1,"bbox":[864,185,326,36]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":11,"text":"La empresa encuentra rápidamente personas, documentos y responsables.","textPreview":"La empresa encuentra rápidamente personas, documentos y responsables.","textChars":69,"textLines":1,"bbox":[864,242,326,80]}
+{"kind":"shape","id":"sh/mtwra5gb","slide":11,"bbox":[42,385,374,202]}
+{"kind":"shape","id":"sh/xkf6dcbu","slide":11,"bbox":[42,385,374,7]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":11,"text":"Mayor trazabilidad","textPreview":"Mayor trazabilidad","textChars":18,"textLines":1,"bbox":[66,415,326,36]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":11,"text":"Cada revisión y cambio conserva fecha, estado y contexto.","textPreview":"Cada revisión y cambio conserva fecha, estado y contexto.","textChars":57,"textLines":1,"bbox":[66,472,326,80]}
+{"kind":"shape","id":"sh/qxs72x4n","slide":11,"bbox":[441,385,374,202]}
+{"kind":"shape","id":"sh/u9knih4b","slide":11,"bbox":[441,385,374,7]}
+{"kind":"textbox","id":"sh/judg7ads","slide":11,"text":"Experiencia simple","textPreview":"Experiencia simple","textChars":18,"textLines":1,"bbox":[465,415,326,36]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":11,"text":"Filtros, fichas y formularios organizan tareas complejas.","textPreview":"Filtros, fichas y formularios organizan tareas complejas.","textChars":57,"textLines":1,"bbox":[465,472,326,80]}
+{"kind":"shape","id":"sh/1032lszq","slide":11,"bbox":[840,385,374,202]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":11,"bbox":[840,385,374,7]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":11,"text":"Escala comercial","textPreview":"Escala comercial","textChars":16,"textLines":1,"bbox":[864,415,326,36]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":11,"text":"Cada cliente mantiene su propia marca, permisos y configuración.","textPreview":"Cada cliente mantiene su propia marca, permisos y configuración.","textChars":64,"textLines":1,"bbox":[864,472,326,80]}
+{"kind":"shape","id":"sh/1orytsvu","slide":11,"bbox":[42,669,1196,1]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":11,"text":"DOMIAN · Operia","textPreview":"DOMIAN · Operia","textChars":15,"textLines":1,"bbox":[42,680,260,18]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1180,678,58,18]}
+{"kind":"notes","id":"nt/ryhsuz","slide":11,"text":""}
+{"kind":"slide","id":"sl/6zr4w7","slide":12,"title":"OPERIA BY DOMIAN","textShapes":12}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":12,"text":"OPERIA BY DOMIAN","textPreview":"OPERIA BY DOMIAN","textChars":16,"textLines":1,"bbox":[42,42,360,26]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":12,"text":"Una operación conectada\nse controla mejor.","textPreview":"Una operación conectada | se controla mejor.","textChars":42,"textLines":2,"bbox":[42,143,710,132]}
+{"kind":"textbox","id":"sh/0z61032l","slide":12,"text":"Implementación adaptable por empresa, módulos y permisos.","textPreview":"Implementación adaptable por empresa, módulos y permisos.","textChars":57,"textLines":1,"bbox":[42,315,650,52]}
+{"kind":"shape","id":"sh/72x4nap4","slide":12,"bbox":[42,430,320,130]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":12,"text":"Implementación","textPreview":"Implementación","textChars":14,"textLines":1,"bbox":[65,452,270,26]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":12,"text":"$ 0","textPreview":"$ 0","textChars":3,"textLines":1,"bbox":[65,492,250,55]}
+{"kind":"shape","id":"sh/0nuxc3yl","slide":12,"bbox":[382,430,320,130]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":12,"text":"Licencia mensual","textPreview":"Licencia mensual","textChars":16,"textLines":1,"bbox":[405,452,270,26]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":12,"text":"$ 0","textPreview":"$ 0","textChars":3,"textLines":1,"bbox":[405,492,250,55]}
+{"kind":"shape","id":"sh/8v6psfil","slide":12,"bbox":[722,430,320,130]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":12,"text":"Configuración","textPreview":"Configuración","textChars":13,"textLines":1,"bbox":[745,452,270,26]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":12,"text":"$ 0","textPreview":"$ 0","textChars":3,"textLines":1,"bbox":[745,492,250,55]}
+{"kind":"shape","id":"sh/fa9w3m94","slide":12,"bbox":[1070,143,168,417]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":12,"text":"Próximo\npaso","textPreview":"Próximo | paso","textChars":12,"textLines":2,"bbox":[1092,178,125,70]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":12,"text":"Revisar módulos\n\nConfigurar empresa\n\nCargar datos\n\nIniciar piloto","textPreview":"Revisar módulos |  | Configurar empresa |  | Cargar datos |  | Iniciar piloto","textChars":65,"textLines":7,"bbox":[1092,294,125,200]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":12,"text":"contacto@domian.cl  ·  +56 9 7649 0489  ·  www.domian.cl","textPreview":"contacto@domian.cl  ·  +56 9 7649 0489  ·  www.domian.cl","textChars":56,"textLines":1,"bbox":[42,650,800,24]}
+{"kind":"notes","id":"nt/6zr4w7","slide":12,"text":""}
