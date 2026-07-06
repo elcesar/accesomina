@@ -15,7 +15,7 @@ test('CSV templates declare required business columns',async()=>{
   const {definitions}=await import('../routes/data-transfer.js');
   assert.deepEqual(definitions.trabajadores.required,['nombre','rut']);
   assert.ok(definitions.contratos.required.includes('minera'));
-  for(const type of ['vehiculos','hoteles','turnos','credenciales','subcontratos','epp','documentos']){
+  for(const type of ['vehiculos','hoteles','turnos','credenciales','subcontratos','epp','documentos','oportunidades']){
     assert.ok(definitions[type],`missing ${type} import`);
     assert.ok(definitions[type].headers.length>=8,`${type} template is incomplete`);
     assert.ok(definitions[type].required.length>=2,`${type} has no required fields`);

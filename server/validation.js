@@ -79,7 +79,7 @@ export function validateTenantState(input) {
     workers, projects, mines, contracts, state.hoteles, state.asignaciones, state.hotelAsig,
     state.turnos, state.credenciales, state.incidentes, state.protocolosSalud,
     state.vehiculos, state.subcontratos, state.firmas, state.callouts, state.waGroups,
-    state.permisosTrabajo, state.eppDeliveries
+    state.permisosTrabajo, state.eppDeliveries, state.opportunities
   ].filter(Array.isArray);
   for (const collection of allCollections) {
     const duplicateId = duplicate(collection.map(x => String(x.id || '')));
@@ -108,6 +108,9 @@ export function validateTenantState(input) {
   }
   for (const hotel of Array.isArray(state.hoteles) ? state.hoteles : []) {
     if ((hotel.minaIds || []).some(id => !mineIds.has(String(id)))) throw Object.assign(new Error(`Hotel ${hotel.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
+    const rooms=Array.isArray(hotel.rooms)?hotel.rooms:[];
+    assertUnique(rooms.map(room=>normalizedText(room.number)),`Duplicate room number for hotel ${hotel.id}`,'DUPLICATE_HOTEL_ROOM');
+    for(const room of rooms)if(Number(room.beds)<1||Number(room.rate)<0)throw Object.assign(new Error(`Hotel room ${room.id} has invalid capacity or rate`),{status:409,code:'INVALID_HOTEL_ROOM'});
   }
   for (const a of Array.isArray(state.asignaciones) ? state.asignaciones : []) {
     if (!workerIds.has(String(a.trabId)) || !projectIds.has(String(a.mantId))) throw Object.assign(new Error('Assignment references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
@@ -118,8 +121,9 @@ export function validateTenantState(input) {
     if (row.checkin && row.checkout && row.checkin > row.checkout) throw Object.assign(new Error('Hotel assignment has invalid dates'), { status: 409, code: 'INVALID_DATES' });
   }
   assertUnique((state.hotelAsig || []).map(x => `${x.trabId}|${x.mantId}|${x.hotelId}|${x.checkin || ''}`), 'Duplicate hotel assignment', 'DUPLICATE_HOTEL_ASSIGNMENT');
-  const lodgings=Array.isArray(state.hotelAsig)?state.hotelAsig:[];
-  for(let i=0;i<lodgings.length;i++)for(let j=i+1;j<lodgings.length;j++){const a=lodgings[i],b=lodgings[j],aStart=a.checkin||'0001-01-01',aEnd=a.checkout||'9999-12-31',bStart=b.checkin||'0001-01-01',bEnd=b.checkout||'9999-12-31';if(String(a.trabId)===String(b.trabId)&&aStart<=bEnd&&bStart<=aEnd)throw Object.assign(new Error('Worker has overlapping hotel assignments'),{status:409,code:'OVERLAPPING_HOTEL_ASSIGNMENT'});}
+  const lodgings=(Array.isArray(state.hotelAsig)?state.hotelAsig:[]).filter(x=>!['cancelada','reasignada'].includes(normalizedText(x.status)));
+  for(let i=0;i<lodgings.length;i++)for(let j=i+1;j<lodgings.length;j++){const a=lodgings[i],b=lodgings[j],aStart=a.checkin||'0001-01-01',aEnd=a.checkout||'9999-12-31',bStart=b.checkin||'0001-01-01',bEnd=b.checkout||'9999-12-31';if(String(a.trabId)===String(b.trabId)&&aStart<bEnd&&bStart<aEnd)throw Object.assign(new Error('Worker has overlapping hotel assignments'),{status:409,code:'OVERLAPPING_HOTEL_ASSIGNMENT'});}
+  for(const hotel of Array.isArray(state.hoteles)?state.hoteles:[])for(const room of Array.isArray(hotel.rooms)?hotel.rooms:[]){const events=lodgings.filter(x=>String(x.hotelId)===String(hotel.id)&&String(x.pieza)===String(room.number)).flatMap(x=>[{date:x.checkin||'0001-01-01',delta:1},{date:x.checkout||'9999-12-31',delta:-1}]).sort((a,b)=>a.date.localeCompare(b.date)||a.delta-b.delta);let occupied=0;for(const event of events){occupied+=event.delta;if(occupied>Number(room.beds))throw Object.assign(new Error(`Hotel room ${room.number} exceeds bed capacity`),{status:409,code:'HOTEL_ROOM_OVER_CAPACITY'});}}
   for (const row of Array.isArray(state.turnos) ? state.turnos : []) {
     if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) throw Object.assign(new Error('Shift references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
   }
@@ -148,6 +152,9 @@ export function validateTenantState(input) {
     if ((row.trabIds || []).some(id => !workerIds.has(String(id)))) throw Object.assign(new Error('WhatsApp group references an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.permisosTrabajo) ? state.permisosTrabajo : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Work permit references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
+  const opportunities=Array.isArray(state.opportunities)?state.opportunities:[];
+  assertUnique(opportunities.filter(x=>x.rut&&!['ganada','perdida'].includes(normalizedText(x.stage))).map(x=>`${normalizedText(x.type)}|${normalizeRut(x.rut)}`),'Duplicate active opportunity','DUPLICATE_OPPORTUNITY');
+  for(const row of opportunities){if(row.clientId&&!mineIds.has(String(row.clientId)))throw Object.assign(new Error('Opportunity references an unknown client'),{status:409,code:'INVALID_REFERENCE'});if(row.contractId&&!contractIds.has(String(row.contractId)))throw Object.assign(new Error('Opportunity references an unknown contract'),{status:409,code:'INVALID_REFERENCE'});if(Number(row.amount)<0||Number(row.probability)<0||Number(row.probability)>100)throw Object.assign(new Error('Opportunity has invalid amount or probability'),{status:409,code:'INVALID_OPPORTUNITY'});}
   for (const delivery of Array.isArray(state.eppDeliveries) ? state.eppDeliveries : []) {
     if (!workerIds.has(String(delivery.workerId)) || (delivery.mantId && !projectIds.has(String(delivery.mantId)))) {
       throw Object.assign(new Error('EPP delivery references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
