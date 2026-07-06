@@ -15,7 +15,7 @@ export async function authenticate(req, res, next) {
   try {
     const raw = req.cookies?.[cookieName()];
     if (!raw) return res.status(401).json({ error: 'AUTH_REQUIRED' });
-    const sessionResult = await query(`SELECT id,tenant_id,user_id,csrf_token,expires_at,revoked_at FROM user_sessions
+    const sessionResult = await query(`SELECT id,tenant_id,user_id,csrf_token,expires_at,revoked_at,mfa_verified FROM user_sessions
       WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`, [sha256(raw)]);
     const session = sessionResult.rows[0];
     if (!session) { clearSessionCookie(res); return res.status(401).json({ error: 'SESSION_INVALID' }); }
@@ -23,11 +23,13 @@ export async function authenticate(req, res, next) {
       FROM app_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.id=$1 AND u.tenant_id=$2`, [session.user_id, session.tenant_id]));
     const user = identity.rows[0];
     if (!user?.active || user.status !== 'active') { clearSessionCookie(res); return res.status(403).json({ error: 'ACCOUNT_DISABLED' }); }
-    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, companyName: user.company_name, rut: user.rut };
+    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, mfaVerified:session.mfa_verified===true, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, companyName: user.company_name, rut: user.rut };
     query('UPDATE user_sessions SET last_seen_at=now() WHERE id=$1', [session.id]).catch(() => {});
     next();
   } catch (error) { next(error); }
 }
+
+export function requireMfa(req,res,next){if(config.mfaRequired&&!req.auth?.mfaVerified)return res.status(403).json({error:'MFA_ENROLLMENT_REQUIRED',message:'Debe configurar la doble autenticación antes de continuar.'});next();}
 
 export function requireCsrf(req, res, next) {
   if (['GET','HEAD','OPTIONS'].includes(req.method)) return next();

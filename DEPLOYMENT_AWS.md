@@ -131,6 +131,8 @@ Flujo:
 Las variables exactas deben tomarse desde `.env.example` y configurarse en AWS. Como regla general, produccion debe incluir:
 
 - `NODE_ENV=production`
+- `REGISTRATION_ENABLED=false`
+- `MFA_REQUIRED=true`
 - Puerto de aplicacion.
 - Conexion PostgreSQL/RDS.
 - Configuracion S3.

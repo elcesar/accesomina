@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { query, withTenant, closeDatabase } from './db.js';
-import { authenticate, errorHandler, requireCsrf, requireOrigin } from './middleware.js';
+import { authenticate, errorHandler, requireCsrf, requireMfa, requireOrigin } from './middleware.js';
 import { authRouter } from './routes/auth.js';
 import { stateRouter } from './routes/state.js';
 import { usersRouter } from './routes/users.js';
@@ -33,7 +33,7 @@ app.get('/api/health', async (req, res) => { await query('SELECT 1'); res.json({
 app.get('/api/ready',async(req,res)=>{await query('SELECT 1');const checks={database:true,storage:config.fileStorage!=='s3'||Boolean(config.aws.bucket),virusScan:config.env!=='production'||Boolean(config.virusScan.url),tenantEncryption:Boolean(config.tenantSecretKey)};const ready=Object.values(checks).every(Boolean);res.status(ready?200:503).json({status:ready?'ready':'not_ready',version:'7.6.0',checks});});
 app.get('/api/metrics',async(req,res)=>{if(!config.metricsToken||req.get('authorization')!==`Bearer ${config.metricsToken}`)return res.status(401).end();const [tenants,sessions]=await Promise.all([query("SELECT id FROM tenants WHERE status='active'"),query('SELECT count(*)::int total FROM user_sessions WHERE revoked_at IS NULL AND expires_at>now()')]);let failedJobs=0,errors=0;for(const tenant of tenants.rows){const counts=await withTenant(tenant.id,client=>Promise.all([client.query("SELECT count(*)::int total FROM notification_jobs WHERE tenant_id=$1 AND status='failed'",[tenant.id]),client.query("SELECT count(*)::int total FROM operational_events WHERE tenant_id=$1 AND severity IN ('error','critical') AND resolved_at IS NULL",[tenant.id])]));failedJobs+=counts[0].rows[0].total;errors+=counts[1].rows[0].total;}res.type('text/plain').send(`accesomina_up 1\naccesomina_active_tenants ${tenants.rows.length}\naccesomina_active_sessions ${sessions.rows[0].total}\naccesomina_failed_jobs ${failedJobs}\naccesomina_unresolved_errors ${errors}\n`);});
 app.use('/api/auth', authRouter);
-app.use('/api', authenticate, requireCsrf);
+app.use('/api', authenticate, requireCsrf, requireMfa);
 app.use('/api/state', stateRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/files', filesRouter);

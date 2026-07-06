@@ -20,6 +20,14 @@ export async function verifyPassword(password, salt, expected) {
 export function validatePassword(password) {
   return typeof password === 'string' && password.length >= 12 && password.length <= 128 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
 }
+const BASE32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+export function base32Encode(buffer){let bits=0,value=0,out='';for(const byte of buffer){value=(value<<8)|byte;bits+=8;while(bits>=5){out+=BASE32[(value>>>(bits-5))&31];bits-=5;}}if(bits>0)out+=BASE32[(value<<(5-bits))&31];return out;}
+export function base32Decode(input){const clean=String(input||'').toUpperCase().replace(/[^A-Z2-7]/g,'');let bits=0,value=0,bytes=[];for(const char of clean){const index=BASE32.indexOf(char);if(index<0)continue;value=(value<<5)|index;bits+=5;if(bits>=8){bytes.push((value>>>(bits-8))&255);bits-=8;}}return Buffer.from(bytes);}
+export function generateTotpSecret(){return base32Encode(crypto.randomBytes(20));}
+export function generateTotp(secret,time=Date.now(),step=30,digits=6){const counter=BigInt(Math.floor(time/1000/step)),buffer=Buffer.alloc(8);buffer.writeBigUInt64BE(counter);const digest=crypto.createHmac('sha1',base32Decode(secret)).update(buffer).digest(),offset=digest[digest.length-1]&15,code=((digest[offset]&127)<<24)|((digest[offset+1]&255)<<16)|((digest[offset+2]&255)<<8)|(digest[offset+3]&255);return String(code%(10**digits)).padStart(digits,'0');}
+export function verifyTotp(secret,code,time=Date.now(),window=1){const value=String(code||'').replace(/\D/g,'');if(!/^\d{6}$/.test(value))return false;for(let offset=-window;offset<=window;offset++)if(timingSafeEqualString(generateTotp(secret,time+offset*30_000),value))return true;return false;}
+export function generateRecoveryCodes(count=10){return Array.from({length:count},()=>`${crypto.randomBytes(4).toString('hex').slice(0,4)}-${crypto.randomBytes(4).toString('hex').slice(0,4)}`.toUpperCase());}
+export function hashRecoveryCode(code){return sha256(String(code||'').toUpperCase().replace(/[^A-Z0-9]/g,''));}
 export function clientIp(req) { return String(req.ip || req.socket?.remoteAddress || '').slice(0, 80); }
 const encryptionKey=()=>crypto.createHash('sha256').update(process.env.TENANT_SECRET_KEY||process.env.REGISTRATION_INVITE_CODE||'development-only-secret').digest();
 export function encryptJson(value){const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',encryptionKey(),iv),body=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]),tag=cipher.getAuthTag();return Buffer.concat([iv,tag,body]).toString('base64url');}

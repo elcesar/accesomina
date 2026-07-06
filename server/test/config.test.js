@@ -8,6 +8,8 @@ const productionEnv = {
   APP_ORIGIN: 'https://app.example.com',
   TENANT_SECRET_KEY: '5b54c8c0dca93623111c1db64622f6da',
   REGISTRATION_INVITE_CODE: 'invite-5d6d87e633e30f067979',
+  REGISTRATION_ENABLED: 'false',
+  MFA_REQUIRED: 'true',
   FILE_STORAGE: 's3',
   AWS_S3_BUCKET: 'private-accesomina-files',
   VIRUS_SCAN_API_URL: 'https://scanner.example.com/scan'
@@ -19,11 +21,13 @@ test('production configuration accepts complete secure infrastructure', () => {
 });
 
 test('production configuration refuses insecure or incomplete infrastructure', () => {
-  const invalid = { ...productionEnv, APP_ORIGIN: 'http://localhost:8088', TENANT_SECRET_KEY: 'short', REGISTRATION_INVITE_CODE: 'change-this', FILE_STORAGE: 'local', AWS_S3_BUCKET: '', VIRUS_SCAN_API_URL: '' };
+  const invalid = { ...productionEnv, APP_ORIGIN: 'http://localhost:8088', TENANT_SECRET_KEY: 'short', REGISTRATION_ENABLED:'true',MFA_REQUIRED:'false',REGISTRATION_INVITE_CODE: 'change-this', FILE_STORAGE: 'local', AWS_S3_BUCKET: '', VIRUS_SCAN_API_URL: '' };
   assert.throws(() => validateRuntimeEnvironment(invalid), error => {
     assert.match(error.message, /APP_ORIGIN/);
     assert.match(error.message, /TENANT_SECRET_KEY/);
     assert.match(error.message, /REGISTRATION_INVITE_CODE/);
+    assert.match(error.message, /REGISTRATION_ENABLED/);
+    assert.match(error.message, /MFA_REQUIRED/);
     assert.match(error.message, /FILE_STORAGE/);
     assert.match(error.message, /AWS_S3_BUCKET/);
     assert.match(error.message, /VIRUS_SCAN_API_URL/);

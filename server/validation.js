@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { isValidRut, normalizeRut } from './security.js';
 
-export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128) });
+export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128), mfaCode:z.string().trim().min(6).max(20).optional() });
 export const registerSchema = z.object({
   companyName: z.string().trim().min(3).max(160), rut: z.string().min(8).max(20),
   adminName: z.string().trim().min(3).max(160), email: z.string().email().max(254),
