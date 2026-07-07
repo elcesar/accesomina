@@ -4344,6 +4344,14 @@ let currentTenantUser = null;
 const ROLE_LABELS_V66 = {admin:'Administrador',editor:'RR.HH.',prevencion:'Prevención',acreditacion:'Acreditación',lector:'Solo lectura'};
 function ensureTenantUsersV66() {
   if(!Array.isArray(S.tenantUsers)) S.tenantUsers=[];
+  const isDomianAdminTenant=normalizeTenantId(S.empresa?.rut||'')===ADMIN_TENANT_ID||currentTenantId===ADMIN_TENANT_ID;
+  if(isDomianAdminTenant){
+    S.empresa={...(S.empresa||{}),...domianEmpresa()};
+    const adminEmail='contacto@domian.cl';
+    let admin=S.tenantUsers.find(u=>String(u.email||'').trim().toLowerCase()===adminEmail);
+    if(!admin){admin={id:'usr_domian_admin',nombre:'Administrador Domian',email:adminEmail,rol:'admin',activo:true,creado:hoy()};S.tenantUsers.unshift(admin);}
+    Object.assign(admin,{nombre:admin.nombre||'Administrador Domian',email:adminEmail,rol:'admin',activo:true});
+  }
   const ownerEmail=String(S.empresa?.email||'').trim().toLowerCase();
   if(ownerEmail && !S.tenantUsers.some(u=>u.email===ownerEmail)) S.tenantUsers.unshift({id:'usr_owner',nombre:S.empresa?.representante||'Administrador',email:ownerEmail,rol:'admin',activo:true,creado:hoy()});
   S.tenantUsers.forEach(u=>{u.email=String(u.email||'').trim().toLowerCase();u.rol=u.rol||'editor';u.activo=u.activo!==false;});
