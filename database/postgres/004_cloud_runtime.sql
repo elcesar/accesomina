@@ -135,7 +135,7 @@ INSERT INTO tenant_state (tenant_id, state)
 SELECT id, jsonb_build_object(
   'empresa', jsonb_build_object('nombre', company_name, 'rut', rut, 'email', admin_email, 'tel', phone),
   'minas','[]'::jsonb,'contratos','[]'::jsonb,'mantenciones','[]'::jsonb,'hoteles','[]'::jsonb,
-  'firmas','[]'::jsonb,'callouts','[]'::jsonb,'trabajadores','[]'::jsonb,'asignaciones','[]'::jsonb,
+  'firmas','[]'::jsonb,'libroObras','[]'::jsonb,'callouts','[]'::jsonb,'trabajadores','[]'::jsonb,'asignaciones','[]'::jsonb,
   'hotelAsig','[]'::jsonb,'waGroups','[]'::jsonb,'contractTemplates','[]'::jsonb,'tenantUsers','[]'::jsonb
 )
 FROM tenants ON CONFLICT (tenant_id) DO NOTHING;

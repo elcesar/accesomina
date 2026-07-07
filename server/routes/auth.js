@@ -29,7 +29,7 @@ authRouter.post('/register', limiter, async (req, res) => {
     const userResult = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt)
       VALUES ($1,$2,$3,'client_admin',$4,$5) RETURNING id,email,full_name,role`, [tenant.id, email, body.adminName, credentials.hash, credentials.salt]);
     const user = userResult.rows[0];
-    const initialState = { empresa: { nombre: body.companyName, rut: body.rut, representante: body.adminName, email, tel: body.phone }, minas: [], contratos: [], mantenciones: [], hoteles: [], firmas: [], callouts: [], trabajadores: [], asignaciones: [], hotelAsig: [], waGroups: [], contractTemplates: [], tenantUsers: [] };
+    const initialState = { empresa: { nombre: body.companyName, rut: body.rut, representante: body.adminName, email, tel: body.phone }, minas: [], contratos: [], mantenciones: [], hoteles: [], firmas: [], libroObras: [], callouts: [], trabajadores: [], asignaciones: [], hotelAsig: [], waGroups: [], contractTemplates: [], tenantUsers: [] };
     await client.query('INSERT INTO tenant_state (tenant_id,state,updated_by) VALUES ($1,$2::jsonb,$3)', [tenant.id, JSON.stringify(initialState), user.id]);
     await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) e",[tenant.id,JSON.stringify(initialState),user.id]);
     await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,accent:'#f07d36'}),user.id]);

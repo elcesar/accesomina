@@ -43,8 +43,8 @@ export function summarizeChanges(before, after, path = '', output = []) {
 
 const roleScopes={
   rrhh:new Set(['trabajadores','asignaciones','firmas','callouts','turnos','credenciales','hotelAsig','waGroups','contractTemplates','eppDeliveries','eppMeasurements']),
-  prevencion:new Set(['trabajadores','incidentes','protocolosSalud','permisosTrabajo','vehiculos','turnos','eppCatalog','eppDeliveries','eppMeasurements']),
-  acreditacion:new Set(['trabajadores','empresaDocs','acreditacionesMandante','permisosTrabajo','credenciales','firmas','eppDeliveries','eppMeasurements'])
+  prevencion:new Set(['trabajadores','incidentes','libroObras','protocolosSalud','permisosTrabajo','vehiculos','turnos','eppCatalog','eppDeliveries','eppMeasurements']),
+  acreditacion:new Set(['trabajadores','empresaDocs','acreditacionesMandante','permisosTrabajo','credenciales','firmas','libroObras','eppDeliveries','eppMeasurements'])
 };
 export function enforceStateScope(role,before,after){const allowed=roleScopes[role];if(!allowed)return;const changed=new Set([...Object.keys(before||{}),...Object.keys(after||{})].filter(k=>JSON.stringify(before?.[k])!==JSON.stringify(after?.[k])));const forbidden=[...changed].filter(k=>!allowed.has(k));if(forbidden.length)throw Object.assign(new Error(`Role ${role} cannot modify: ${forbidden.join(', ')}`),{status:403,code:'FIELD_PERMISSION_DENIED'});}
 
@@ -72,13 +72,14 @@ export function validateTenantState(input) {
   assertUnique((state.vehiculos || []).flatMap(v => [v.patente ? `p:${normalizedText(v.patente).replace(/[^a-z0-9]/g, '')}` : '', v.serie ? `s:${normalizedText(v.serie)}` : '']), 'Duplicate vehicle plate or serial', 'DUPLICATE_VEHICLE');
   assertUnique((state.protocolosSalud || []).map(x => `${x.trabId}|${x.minaId}|${normalizedText(x.tipo)}|${x.vence || ''}`), 'Duplicate health protocol', 'DUPLICATE_HEALTH_PROTOCOL');
   assertUnique((state.incidentes || []).map(x => `${x.mantId}|${x.fecha || ''}|${normalizedText(x.tipo)}|${normalizedText(x.descripcion)}`), 'Duplicate incident', 'DUPLICATE_INCIDENT');
+  assertUnique((state.libroObras || []).map(x => `${x.mantId}|${normalizedText(x.book)}|${normalizedText(x.folio)}`), 'Duplicate digital work log folio', 'DUPLICATE_LOD_FOLIO');
   assertUnique((state.permisosTrabajo || []).map(x => `${x.mantId}|${normalizedText(x.nombre)}`), 'Duplicate work permit', 'DUPLICATE_WORK_PERMIT');
   assertUnique((state.waGroups || []).map(x => `${x.minaId || ''}|${x.mantId || ''}|${normalizedText(x.nombre)}`), 'Duplicate WhatsApp group', 'DUPLICATE_WHATSAPP_GROUP');
   assertUnique((state.firmas || []).filter(x => !['firmado','rechazado','vencido'].includes(normalizedText(x.estado))).map(x => `${x.trabId}|${x.mantId}|${normalizedText(x.tipo)}`), 'Duplicate active signature request', 'DUPLICATE_SIGNATURE_REQUEST');
   const allCollections = [
     workers, projects, mines, contracts, state.hoteles, state.asignaciones, state.hotelAsig,
     state.turnos, state.credenciales, state.incidentes, state.protocolosSalud,
-    state.vehiculos, state.subcontratos, state.firmas, state.callouts, state.waGroups,
+    state.vehiculos, state.subcontratos, state.firmas, state.callouts, state.waGroups, state.libroObras,
     state.permisosTrabajo, state.eppDeliveries, state.opportunities
   ].filter(Array.isArray);
   for (const collection of allCollections) {
@@ -136,6 +137,12 @@ export function validateTenantState(input) {
     if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Health protocol references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.incidentes) ? state.incidentes : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Incident references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
+  const incidentIds = new Set((Array.isArray(state.incidentes) ? state.incidentes : []).map(x => String(x.id)));
+  for (const row of Array.isArray(state.libroObras) ? state.libroObras : []) {
+    if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Digital work log folio references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
+    if (row.incidentId && !incidentIds.has(String(row.incidentId))) throw Object.assign(new Error('Digital work log folio references an unknown incident'), { status: 409, code: 'INVALID_REFERENCE' });
+    if (!String(row.folio || '').trim() || !String(row.book || '').trim()) throw Object.assign(new Error('Digital work log folio requires book and folio'), { status: 409, code: 'INCOMPLETE_LOD_FOLIO' });
+  }
   for (const row of Array.isArray(state.subcontratos) ? state.subcontratos : []) if (row.contratoId && !contractIds.has(String(row.contratoId))) throw Object.assign(new Error('Subcontractor references an unknown contract'), { status: 409, code: 'INVALID_REFERENCE' });
   for (const row of Array.isArray(state.vehiculos) ? state.vehiculos : []) {
     if (row.operadorId && !workerIds.has(String(row.operadorId))) throw Object.assign(new Error('Vehicle references an unknown operator'), { status: 409, code: 'INVALID_REFERENCE' });
