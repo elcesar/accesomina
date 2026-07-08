@@ -4929,6 +4929,7 @@ function selectedRecruitmentMantV84(){const id=document.getElementById('rec-mant
 function recruitmentAssignmentV84(workerId,mantId){return S.asignaciones.find(a=>a.trabId===workerId&&a.mantId===mantId);}
 function workerActiveAssignmentsV84(workerId){return S.asignaciones.filter(a=>a.trabId===workerId&&!['baja','cancelado','cerrado'].includes(a.estado));}
 function workerIsFreeForMantV84(workerId,mantId){return !workerActiveAssignmentsV84(workerId).some(a=>a.mantId!==mantId);}
+function workerOtherServiceV86(workerId,mantId){const other=workerActiveAssignmentsV84(workerId).find(a=>a.mantId!==mantId);return other?S.mantenciones.find(m=>m.id===other.mantId):null;}
 function mantRequiredRowsV84(mant){
   if(!mant)return [];
   const req=(mant.especialidadesReq||[]).map(x=>({name:x.name||x.especialidad,count:Number(x.count||x.cantidad)||1})).filter(x=>x.name);
@@ -4974,7 +4975,7 @@ function filteredRecruitmentWorkersV84(mant){
     if(mode==='asignados'&&!assigned)return false;
     if(mode==='califican'&&(!matches.matchRequired||!free&&!assigned))return false;
     if(worker.tipo==='permanente'&&!assigned&&mode!=='todos')return false;
-    return assigned||free||mode==='todos';
+    return assigned||free;
   }).sort((a,b)=>{
     const aa=recruitmentAssignmentV84(a.id,mant.id),bb=recruitmentAssignmentV84(b.id,mant.id);
     if(!!aa!==!!bb)return aa?-1:1;
@@ -5042,18 +5043,20 @@ function renderReclutamientoV84(){
   renderRecruitmentSummaryV84(mant);
   renderRecruitmentFlowV84(stats);
   document.getElementById('rec-workers-table').innerHTML=`<thead><tr><th>Persona</th><th>Cargo / especialidad</th><th>Califica</th><th>Estado contratación</th><th>Acreditación</th><th>Faltantes</th><th>Acciones</th></tr></thead><tbody>${workers.map(worker=>{
-    const asig=recruitmentAssignmentV84(worker.id,mant.id),validation=workerValidationV84(worker),matches=workerMatchesReqV84(worker,mant,document.getElementById('rec-esp')?.value||''),stage=asig?.recruitmentStage||'';
+    const asig=recruitmentAssignmentV84(worker.id,mant.id),validation=workerValidationV84(worker),matches=workerMatchesReqV84(worker,mant,document.getElementById('rec-esp')?.value||''),stage=asig?.recruitmentStage||'',other=workerOtherServiceV86(worker.id,mant.id);
     const missing=[validation.examIssues?`${validation.examIssues} exámenes`:null,validation.courseIssues?`${validation.courseIssues} cursos`:null,validation.docIssues?`${validation.docIssues} documentos/firma`:null].filter(Boolean).join(', ')||'Sin alertas críticas';
-    return `<tr><td><b>${eppEsc(worker.nombre)}</b><div class="worker-rut">${eppEsc(worker.rut||'')} · ${worker.tipo==='permanente'?'Planta':'Spot'}</div></td><td>${eppEsc(worker.cargo||'—')}<div class="worker-rut">${eppEsc(worker.especialidad||'Sin especialidad')}</div></td><td><span class="badge ${matches.matchRequired?'badge-ok':'badge-warn'}">${matches.matchRequired?'Califica':'Revisar perfil'}</span><div class="worker-rut">Nota ${calLetra(worker.calificacion||0)}</div></td><td>${asig?`<select class="form-select" onchange="updateRecruitmentStageV84('${worker.id}','${mant.id}',this.value)">${RECRUITMENT_STAGES_V84.map(s=>`<option value="${s.id}" ${stage===s.id?'selected':''}>${s.label}</option>`).join('')}</select>`:'<span class="badge badge-na">Libre / sin asignar</span>'}</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="min-width:90px;"><div class="prog-fill ${progColor(validation.pct)}" style="width:${validation.pct}%;"></div></div><b>${validation.pct}%</b></div></td><td>${eppEsc(missing)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap;">${asig?'<span class="badge badge-blue">Asignado</span>':`<button class="btn btn-primary btn-sm" onclick="assignRecruitmentWorkerV84('${worker.id}','${mant.id}')">Reclutar</button>`}<button class="btn btn-secondary btn-sm" onclick="callRecruitmentWorkerV84('${worker.id}','${mant.id}')">WA</button><button class="btn btn-ghost btn-sm" onclick="generateRecruitmentContractV84('${worker.id}','${mant.id}')">Contrato</button><button class="btn btn-ghost btn-sm" onclick="openFicha('${worker.id}')">Ficha</button></div></td></tr>`;
+    return `<tr><td><b>${eppEsc(worker.nombre)}</b><div class="worker-rut">${eppEsc(worker.rut||'')} · ${worker.tipo==='permanente'?'Planta':'Spot'}</div></td><td>${eppEsc(worker.cargo||'—')}<div class="worker-rut">${eppEsc(worker.especialidad||'Sin especialidad')}</div></td><td><span class="badge ${matches.matchRequired?'badge-ok':'badge-warn'}">${matches.matchRequired?'Califica':'Revisar perfil'}</span><div class="worker-rut">Nota ${calLetra(worker.calificacion||0)}</div></td><td>${asig?`<select class="form-select" onchange="updateRecruitmentStageV84('${worker.id}','${mant.id}',this.value)">${RECRUITMENT_STAGES_V84.map(s=>`<option value="${s.id}" ${stage===s.id?'selected':''}>${s.label}</option>`).join('')}</select>`:other?`<span class="badge badge-warn">Ocupado</span><div class="worker-rut">${eppEsc(other.nombre||'otro servicio')}</div>`:'<span class="badge badge-na">Libre / sin asignar</span>'}</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="min-width:90px;"><div class="prog-fill ${progColor(validation.pct)}" style="width:${validation.pct}%;"></div></div><b>${validation.pct}%</b></div></td><td>${eppEsc(missing)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap;">${asig?'<span class="badge badge-blue">Asignado</span>':other?'<span class="badge badge-warn">No disponible</span>':`<button class="btn btn-primary btn-sm" onclick="assignRecruitmentWorkerV84('${worker.id}','${mant.id}')">Reclutar</button>`}<button class="btn btn-secondary btn-sm" onclick="callRecruitmentWorkerV84('${worker.id}','${mant.id}')">WA</button><button class="btn btn-ghost btn-sm" onclick="generateRecruitmentContractV84('${worker.id}','${mant.id}')">Contrato</button><button class="btn btn-ghost btn-sm" onclick="openFicha('${worker.id}')">Ficha</button></div></td></tr>`;
   }).join('')||'<tr><td colspan="7">No hay candidatos para los filtros seleccionados</td></tr>'}</tbody>`;
 }
 function assignRecruitmentWorkerV84(workerId,mantId){
   const worker=S.trabajadores.find(t=>t.id===workerId),mant=S.mantenciones.find(m=>m.id===mantId);
   if(!worker||!mant)return;
+  const other=workerOtherServiceV86(workerId,mantId);
+  if(other){toast(`Persona ocupada en ${other.nombre}. Retírala o muévela antes de reclutarla aquí.`,'warn');return false;}
   if(!recruitmentAssignmentV84(workerId,mantId))S.asignaciones.push({id:typeof assignmentIdV78==='function'?assignmentIdV78(workerId,mantId):`asig_${Date.now()}`,trabId:workerId,mantId,turno:'día',estado:'preasignado',recruitmentStage:'reclutamiento',recruitmentUpdatedAt:new Date().toISOString()});
   worker.disponibilidad='asignado';
   if(mant.minaId&&!worker.mineras?.includes(mant.minaId))worker.mineras=[...(worker.mineras||[]),mant.minaId];
-  persistTenant();renderReclutamientoV84();toast('Persona agregada al flujo de reclutamiento');
+  persistTenant();renderReclutamientoV84();toast('Persona agregada al flujo de reclutamiento');return true;
 }
 function updateRecruitmentStageV84(workerId,mantId,stage){
   const asig=recruitmentAssignmentV84(workerId,mantId);
@@ -5067,14 +5070,14 @@ function callRecruitmentWorkerV84(workerId,mantId){
   if(!worker)return;
   const tel=String(worker.tel||'').replace(/\D/g,'');
   if(!tel)return toast('La persona no tiene teléfono registrado','err');
-  if(!recruitmentAssignmentV84(workerId,mantId))assignRecruitmentWorkerV84(workerId,mantId);
+  if(!recruitmentAssignmentV84(workerId,mantId)&&assignRecruitmentWorkerV84(workerId,mantId)===false)return;
   const msg=`Hola ${String(worker.nombre||'').split(' ')[0]}, te contactamos por disponibilidad para ${mant?.nombre||'un servicio'} desde ${mant?.inicio||'fecha por confirmar'} hasta ${mant?.termino||'fecha por confirmar'}. Favor confirmar disponibilidad.`;
   window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 function generateRecruitmentContractV84(workerId,mantId){
   const worker=S.trabajadores.find(t=>t.id===workerId),mant=S.mantenciones.find(m=>m.id===mantId);
   if(!worker||!mant)return;
-  if(!recruitmentAssignmentV84(workerId,mantId))assignRecruitmentWorkerV84(workerId,mantId);
+  if(!recruitmentAssignmentV84(workerId,mantId)&&assignRecruitmentWorkerV84(workerId,mantId)===false)return;
   if(!S.firmas.some(f=>f.trabId===workerId&&f.mantId===mantId&&f.tipo==='Contrato por obra/faena'))S.firmas.push({id:'f'+Date.now(),trabId:workerId,mantId,tipo:'Contrato por obra/faena',estado:'enviado',canal:'whatsapp',fecha:hoy(),vence:mant.inicio||hoy(),observacion:`Generado desde Reclutamiento Spot para ${mant.nombre}`});
   updateRecruitmentStageV84(workerId,mantId,'contrato_generado');
 }
