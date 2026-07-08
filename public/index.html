@@ -395,6 +395,7 @@ body.private #main { display:block; }
   <div class="nav-item" onclick="nav('mantenciones')">🔧 Servicios</div>
   <div class="nav-item" onclick="nav('contratos')">📝 Contratos y Firmas <span class="nav-badge nav-badge-orange" id="badge-firmas">0</span></div>
   <div class="nav-item" onclick="nav('hoteleria')">🛏️ Hotelería</div>
+  <div class="nav-item" onclick="nav('reclutamiento')">📋 Reclutamiento Spot</div>
   <div class="nav-item" onclick="nav('llamados')">📲 Llamados WA</div>
   <div class="nav-item" onclick="nav('vehiculos')">🚙 Vehículos y Equipos</div>
   <div class="nav-item" onclick="nav('acreditacion-mandante')">✅ Acreditación Mandante</div>
@@ -768,6 +769,39 @@ body.private #main { display:block; }
     <div class="card">
       <div class="card-header"><div class="card-title">Asignaciones de Alojamiento</div></div>
       <div class="table-wrap"><table id="hotel-table"></table></div>
+    </div>
+  </div>
+
+  <!-- PAGE: RECLUTAMIENTO SPOT -->
+  <div id="page-reclutamiento" class="page">
+    <div class="section-header">
+      <div><div class="section-title">📋 Reclutamiento Spot por Mantención</div><div class="section-sub" id="rec-sub">Busca personas que califican, inicia llamado y controla contratación hasta acreditación del cliente</div></div>
+      <div class="section-actions">
+        <button class="btn btn-secondary" onclick="exportRecruitmentV84()">⬇ Exportar vista</button>
+        <button class="btn btn-primary" onclick="openModal('modal-callout')">+ Llamado WA</button>
+      </div>
+    </div>
+    <div class="filters">
+      <select class="filter-select" id="rec-mant" onchange="renderReclutamientoV84()"><option value="">Seleccionar mantención / proyecto</option></select>
+      <input class="filter-input" id="rec-search" placeholder="Buscar persona, RUT, cargo o especialidad" oninput="renderReclutamientoV84()" style="min-width:240px;">
+      <select class="filter-select" id="rec-esp" onchange="renderReclutamientoV84()"><option value="">Todas las especialidades</option></select>
+      <select class="filter-select" id="rec-stage" onchange="renderReclutamientoV84()"><option value="">Todas las etapas</option></select>
+      <select class="filter-select" id="rec-only" onchange="renderReclutamientoV84()"><option value="todos">Asignados y libres</option><option value="califican">Solo califican</option><option value="libres">Solo libres</option><option value="asignados">Solo asignados</option></select>
+    </div>
+    <div class="kpi-grid" id="rec-kpis"></div>
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Resumen por especialidad</div><div class="card-subtitle">Requeridos, reclutados, contratos y acreditación</div></div></div>
+        <div class="table-wrap"><table id="rec-summary-table"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Flujo de contratación</div><div class="card-subtitle">Avance agrupado de la mantención seleccionada</div></div></div>
+        <div id="rec-flow"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div><div class="card-title">Base de candidatos spot y personas disponibles</div><div class="card-subtitle">Permite asignar, llamar, validar, generar contrato y avanzar acreditación</div></div></div>
+      <div class="table-wrap"><table id="rec-workers-table"></table></div>
     </div>
   </div>
 
@@ -4875,6 +4909,182 @@ saveSubcontractV82=function(id){const s=S.subcontratos.find(x=>x.id===id);if(!s)
 const renderContratosV83Base=renderContratos;renderContratos=function(){renderContratosV83Base();const th=[...document.querySelectorAll('#contratos-table thead th')].find(x=>x.textContent.includes('Monto'));if(th)th.textContent='Monto CLP';document.querySelectorAll('#contratos-table tbody tr').forEach((tr,i)=>{const c=S.contratos[i],cell=tr.children[6];if(c&&cell)cell.innerHTML=`<b style="color:var(--orange);">${clpV83(c.montoCLP??c.montoPesos??0)}</b>`;});};
 const convertOpportunityV83Base=convertOpportunityV82;convertOpportunityV82=function(id){convertOpportunityV83Base(id);const o=S.opportunities.find(x=>x.id===id);if(!o?.convertedId)return;const c=S.contratos.find(x=>x.id===o.convertedId);if(c){c.montoCLP=o.currency==='CLP'?o.amount:0;c.montoUF=0;persistTenant();}};
 const initSelectsV83Base=initSelects;initSelects=function(){initSelectsV83Base();bindPhonesV83();};
+
+// ===================== V8.4: RECLUTAMIENTO SPOT POR SERVICIO =====================
+const RECRUITMENT_STAGES_V84=[
+  {id:'reclutamiento',label:'Reclutamiento'},
+  {id:'disponible_confirmado',label:'Confirma disponibilidad'},
+  {id:'validar_examenes_induccion',label:'Validar exámenes e inducción'},
+  {id:'confirma_trabajo',label:'Confirma trabajo'},
+  {id:'contrato_generado',label:'Contrato enviado'},
+  {id:'contrato_firmado',label:'Contrato firmado'},
+  {id:'acreditacion_cliente',label:'Acreditación cliente'}
+];
+pageLabels.reclutamiento='Reclutamiento Spot';
+pageSubs.reclutamiento='Búsqueda, llamado, contrato y acreditación de personal por servicio';
+function recruitmentStageLabelV84(stage){return RECRUITMENT_STAGES_V84.find(s=>s.id===stage)?.label||'Libre';}
+function recruitmentStageIndexV84(stage){const index=RECRUITMENT_STAGES_V84.findIndex(s=>s.id===stage);return index<0?-1:index;}
+function selectedRecruitmentMantV84(){const id=document.getElementById('rec-mant')?.value||'';return S.mantenciones.find(m=>m.id===id)||S.mantenciones.find(m=>m.estado!=='cerrada')||S.mantenciones[0]||null;}
+function recruitmentAssignmentV84(workerId,mantId){return S.asignaciones.find(a=>a.trabId===workerId&&a.mantId===mantId);}
+function workerActiveAssignmentsV84(workerId){return S.asignaciones.filter(a=>a.trabId===workerId&&!['baja','cancelado','cerrado'].includes(a.estado));}
+function workerIsFreeForMantV84(workerId,mantId){return !workerActiveAssignmentsV84(workerId).some(a=>a.mantId!==mantId);}
+function mantRequiredRowsV84(mant){
+  if(!mant)return [];
+  const req=(mant.especialidadesReq||[]).map(x=>({name:x.name||x.especialidad,count:Number(x.count||x.cantidad)||1})).filter(x=>x.name);
+  if(req.length)return req;
+  const names=(mant.especialidades||[]).filter(Boolean);
+  if(names.length)return names.map(name=>({name,count:Math.max(1,Math.ceil((Number(mant.personalReq)||names.length)/names.length))}));
+  return [{name:'Sin especialidad definida',count:Number(mant.personalReq)||0}];
+}
+function workerMatchesReqV84(worker,mant,espFilter=''){
+  const text=`${worker.nombre||''} ${worker.rut||''} ${worker.cargo||''} ${worker.especialidad||''}`.toLowerCase();
+  const reqNames=mantRequiredRowsV84(mant).map(r=>r.name).filter(n=>n!=='Sin especialidad definida');
+  const workerEsp=String(worker.especialidad||worker.cargo||'').toLowerCase();
+  const selected=String(espFilter||'').toLowerCase();
+  const matchSelected=!selected||workerEsp.includes(selected)||String(worker.cargo||'').toLowerCase().includes(selected);
+  const matchRequired=!reqNames.length||reqNames.some(name=>workerEsp.includes(String(name).toLowerCase())||String(worker.cargo||'').toLowerCase().includes(String(name).toLowerCase()));
+  return {text,matchSelected,matchRequired};
+}
+function workerValidationV84(worker){
+  const alerts=computeAlertas().filter(a=>a.trabId===worker.id);
+  const pct=acreditacion(worker);
+  const examIssues=alerts.filter(a=>a.tipo==='examen').length;
+  const courseIssues=alerts.filter(a=>a.tipo==='curso').length;
+  const docIssues=alerts.filter(a=>['doc','documento','contrato','firma'].includes(a.tipo)).length;
+  const ok=pct>=70&&!examIssues&&!courseIssues;
+  return {pct,examIssues,courseIssues,docIssues,ok,totalIssues:alerts.length};
+}
+function filteredRecruitmentWorkersV84(mant){
+  if(!mant)return [];
+  const search=(document.getElementById('rec-search')?.value||'').toLowerCase();
+  const esp=document.getElementById('rec-esp')?.value||'';
+  const stage=document.getElementById('rec-stage')?.value||'';
+  const mode=document.getElementById('rec-only')?.value||'todos';
+  return S.trabajadores.filter(worker=>{
+    if(worker.bloqueado)return false;
+    const asig=recruitmentAssignmentV84(worker.id,mant.id);
+    const assigned=!!asig;
+    const free=workerIsFreeForMantV84(worker.id,mant.id);
+    const matches=workerMatchesReqV84(worker,mant,esp);
+    if(search&&!matches.text.includes(search))return false;
+    if(esp&&!matches.matchSelected)return false;
+    if(stage&&(asig?.recruitmentStage||'')!==stage)return false;
+    if(mode==='libres'&&(!free||assigned))return false;
+    if(mode==='asignados'&&!assigned)return false;
+    if(mode==='califican'&&(!matches.matchRequired||!free&&!assigned))return false;
+    if(worker.tipo==='permanente'&&!assigned&&mode!=='todos')return false;
+    return assigned||free||mode==='todos';
+  }).sort((a,b)=>{
+    const aa=recruitmentAssignmentV84(a.id,mant.id),bb=recruitmentAssignmentV84(b.id,mant.id);
+    if(!!aa!==!!bb)return aa?-1:1;
+    return (b.calificacion||0)-(a.calificacion||0)||String(a.nombre).localeCompare(String(b.nombre),'es');
+  });
+}
+function recruitmentStatsV84(mant){
+  const asigs=S.asignaciones.filter(a=>a.mantId===mant?.id);
+  const required=mantRequiredRowsV84(mant).reduce((n,r)=>n+(Number(r.count)||0),0)||Number(mant?.personalReq)||0;
+  const byStage=Object.fromEntries(RECRUITMENT_STAGES_V84.map(s=>[s.id,0]));
+  asigs.forEach(a=>{const stage=a.recruitmentStage||'reclutamiento';byStage[stage]=(byStage[stage]||0)+1;});
+  return {asigs,required,byStage,confirmed:asigs.filter(a=>recruitmentStageIndexV84(a.recruitmentStage)>=1).length,signed:asigs.filter(a=>recruitmentStageIndexV84(a.recruitmentStage)>=5).length,accredited:asigs.filter(a=>a.recruitmentStage==='acreditacion_cliente').length};
+}
+function renderRecruitmentSelectsV84(){
+  const mantSel=document.getElementById('rec-mant');
+  if(mantSel){
+    const current=mantSel.value;
+    mantSel.innerHTML='<option value="">Seleccionar servicio / proyecto</option>'+S.mantenciones.map(m=>`<option value="${m.id}">${eppEsc(m.nombre)} · ${eppEsc(minaNombre(m.minaId))}</option>`).join('');
+    if(current)mantSel.value=current;
+    if(!mantSel.value&&S.mantenciones.length)mantSel.value=selectedRecruitmentMantV84()?.id||'';
+  }
+  const mant=selectedRecruitmentMantV84();
+  const espSel=document.getElementById('rec-esp');
+  if(espSel){
+    const current=espSel.value;
+    const reqNames=[...new Set([...mantRequiredRowsV84(mant).map(r=>r.name),...S.ESPECIALIDADES].filter(Boolean))];
+    espSel.innerHTML='<option value="">Todas las especialidades</option>'+reqNames.map(e=>`<option value="${e}">${eppEsc(e)}</option>`).join('');
+    if(current)espSel.value=current;
+  }
+  const stageSel=document.getElementById('rec-stage');
+  if(stageSel){
+    const current=stageSel.value;
+    stageSel.innerHTML='<option value="">Todas las etapas</option>'+RECRUITMENT_STAGES_V84.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+    if(current)stageSel.value=current;
+  }
+}
+function renderRecruitmentSummaryV84(mant){
+  const req=mantRequiredRowsV84(mant);
+  const asigs=S.asignaciones.filter(a=>a.mantId===mant.id);
+  document.getElementById('rec-summary-table').innerHTML=`<thead><tr><th>Especialidad</th><th>Req.</th><th>Reclut.</th><th>Confirm.</th><th>Contrato enviado</th><th>Firmado</th><th>Acred.</th><th>Brecha</th></tr></thead><tbody>${req.map(r=>{
+    const rows=asigs.filter(a=>{const w=S.trabajadores.find(t=>t.id===a.trabId);return !r.name||r.name==='Sin especialidad definida'||String(w?.especialidad||w?.cargo||'').toLowerCase().includes(String(r.name).toLowerCase());});
+    const count=id=>rows.filter(a=>recruitmentStageIndexV84(a.recruitmentStage)>=recruitmentStageIndexV84(id)).length;
+    const gap=Math.max(0,(Number(r.count)||0)-rows.length);
+    return `<tr><td><b>${eppEsc(r.name)}</b></td><td>${r.count}</td><td>${rows.length}</td><td>${count('disponible_confirmado')}</td><td>${count('contrato_generado')}</td><td>${count('contrato_firmado')}</td><td>${count('acreditacion_cliente')}</td><td><span class="badge ${gap?'badge-warn':'badge-ok'}">${gap}</span></td></tr>`;
+  }).join('')||'<tr><td colspan="8">Sin especialidades requeridas</td></tr>'}</tbody>`;
+}
+function renderRecruitmentFlowV84(stats){
+  document.getElementById('rec-flow').innerHTML=RECRUITMENT_STAGES_V84.map((stage,index)=>{
+    const count=stats.byStage[stage.id]||0;
+    const pct=stats.asigs.length?Math.round(count/stats.asigs.length*100):0;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:10px;"><b>${index+1}. ${stage.label}</b><span>${count} persona${count===1?'':'s'}</span></div><div class="prog" style="margin-top:7px;"><div class="prog-fill ${progColor(pct)}" style="width:${pct}%;"></div></div></div>`;
+  }).join('');
+}
+function renderReclutamientoV84(){
+  renderRecruitmentSelectsV84();
+  const mant=selectedRecruitmentMantV84();
+  if(!mant){
+    ['rec-kpis','rec-flow'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<div class="empty">Primero crea un proyecto o servicio.</div>';});
+    const table=document.getElementById('rec-workers-table');if(table)table.innerHTML='<tbody><tr><td>Sin servicios creados</td></tr></tbody>';
+    return;
+  }
+  const stats=recruitmentStatsV84(mant),workers=filteredRecruitmentWorkersV84(mant);
+  document.getElementById('rec-sub').textContent=`${minaNombre(mant.minaId)} · ${contratoNombre(mant.contratoId)} · ${mant.inicio||'sin inicio'} a ${mant.termino||'sin término'}`;
+  document.getElementById('rec-kpis').innerHTML=`<div class="kpi kpi-blue"><div class="kpi-value">${stats.required}</div><div class="kpi-label">Personas requeridas</div></div><div class="kpi kpi-orange"><div class="kpi-value">${stats.asigs.length}</div><div class="kpi-label">En reclutamiento/asignadas</div></div><div class="kpi kpi-green"><div class="kpi-value">${stats.confirmed}</div><div class="kpi-label">Confirmaron disponibilidad</div></div><div class="kpi kpi-yellow"><div class="kpi-value">${stats.signed}</div><div class="kpi-label">Contrato firmado</div></div><div class="kpi kpi-red"><div class="kpi-value">${Math.max(0,stats.required-stats.asigs.length)}</div><div class="kpi-label">Brecha por cubrir</div></div>`;
+  renderRecruitmentSummaryV84(mant);
+  renderRecruitmentFlowV84(stats);
+  document.getElementById('rec-workers-table').innerHTML=`<thead><tr><th>Persona</th><th>Cargo / especialidad</th><th>Califica</th><th>Estado contratación</th><th>Acreditación</th><th>Faltantes</th><th>Acciones</th></tr></thead><tbody>${workers.map(worker=>{
+    const asig=recruitmentAssignmentV84(worker.id,mant.id),validation=workerValidationV84(worker),matches=workerMatchesReqV84(worker,mant,document.getElementById('rec-esp')?.value||''),stage=asig?.recruitmentStage||'';
+    const missing=[validation.examIssues?`${validation.examIssues} exámenes`:null,validation.courseIssues?`${validation.courseIssues} cursos`:null,validation.docIssues?`${validation.docIssues} documentos/firma`:null].filter(Boolean).join(', ')||'Sin alertas críticas';
+    return `<tr><td><b>${eppEsc(worker.nombre)}</b><div class="worker-rut">${eppEsc(worker.rut||'')} · ${worker.tipo==='permanente'?'Planta':'Spot'}</div></td><td>${eppEsc(worker.cargo||'—')}<div class="worker-rut">${eppEsc(worker.especialidad||'Sin especialidad')}</div></td><td><span class="badge ${matches.matchRequired?'badge-ok':'badge-warn'}">${matches.matchRequired?'Califica':'Revisar perfil'}</span><div class="worker-rut">Nota ${calLetra(worker.calificacion||0)}</div></td><td>${asig?`<select class="form-select" onchange="updateRecruitmentStageV84('${worker.id}','${mant.id}',this.value)">${RECRUITMENT_STAGES_V84.map(s=>`<option value="${s.id}" ${stage===s.id?'selected':''}>${s.label}</option>`).join('')}</select>`:'<span class="badge badge-na">Libre / sin asignar</span>'}</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="min-width:90px;"><div class="prog-fill ${progColor(validation.pct)}" style="width:${validation.pct}%;"></div></div><b>${validation.pct}%</b></div></td><td>${eppEsc(missing)}</td><td><div style="display:flex;gap:6px;flex-wrap:wrap;">${asig?'<span class="badge badge-blue">Asignado</span>':`<button class="btn btn-primary btn-sm" onclick="assignRecruitmentWorkerV84('${worker.id}','${mant.id}')">Reclutar</button>`}<button class="btn btn-secondary btn-sm" onclick="callRecruitmentWorkerV84('${worker.id}','${mant.id}')">WA</button><button class="btn btn-ghost btn-sm" onclick="generateRecruitmentContractV84('${worker.id}','${mant.id}')">Contrato</button><button class="btn btn-ghost btn-sm" onclick="openFicha('${worker.id}')">Ficha</button></div></td></tr>`;
+  }).join('')||'<tr><td colspan="7">No hay candidatos para los filtros seleccionados</td></tr>'}</tbody>`;
+}
+function assignRecruitmentWorkerV84(workerId,mantId){
+  const worker=S.trabajadores.find(t=>t.id===workerId),mant=S.mantenciones.find(m=>m.id===mantId);
+  if(!worker||!mant)return;
+  if(!recruitmentAssignmentV84(workerId,mantId))S.asignaciones.push({id:typeof assignmentIdV78==='function'?assignmentIdV78(workerId,mantId):`asig_${Date.now()}`,trabId:workerId,mantId,turno:'día',estado:'preasignado',recruitmentStage:'reclutamiento',recruitmentUpdatedAt:new Date().toISOString()});
+  worker.disponibilidad='asignado';
+  if(mant.minaId&&!worker.mineras?.includes(mant.minaId))worker.mineras=[...(worker.mineras||[]),mant.minaId];
+  persistTenant();renderReclutamientoV84();toast('Persona agregada al flujo de reclutamiento');
+}
+function updateRecruitmentStageV84(workerId,mantId,stage){
+  const asig=recruitmentAssignmentV84(workerId,mantId);
+  if(!asig)return;
+  asig.recruitmentStage=stage;asig.recruitmentUpdatedAt=new Date().toISOString();
+  if(stage==='contrato_firmado')asig.estado='confirmado';
+  persistTenant();renderReclutamientoV84();toast(`Etapa actualizada: ${recruitmentStageLabelV84(stage)}`);
+}
+function callRecruitmentWorkerV84(workerId,mantId){
+  const worker=S.trabajadores.find(t=>t.id===workerId),mant=S.mantenciones.find(m=>m.id===mantId);
+  if(!worker)return;
+  const tel=String(worker.tel||'').replace(/\D/g,'');
+  if(!tel)return toast('La persona no tiene teléfono registrado','err');
+  if(!recruitmentAssignmentV84(workerId,mantId))assignRecruitmentWorkerV84(workerId,mantId);
+  const msg=`Hola ${String(worker.nombre||'').split(' ')[0]}, te contactamos por disponibilidad para ${mant?.nombre||'un servicio'} desde ${mant?.inicio||'fecha por confirmar'} hasta ${mant?.termino||'fecha por confirmar'}. Favor confirmar disponibilidad.`;
+  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+function generateRecruitmentContractV84(workerId,mantId){
+  const worker=S.trabajadores.find(t=>t.id===workerId),mant=S.mantenciones.find(m=>m.id===mantId);
+  if(!worker||!mant)return;
+  if(!recruitmentAssignmentV84(workerId,mantId))assignRecruitmentWorkerV84(workerId,mantId);
+  if(!S.firmas.some(f=>f.trabId===workerId&&f.mantId===mantId&&f.tipo==='Contrato por obra/faena'))S.firmas.push({id:'f'+Date.now(),trabId:workerId,mantId,tipo:'Contrato por obra/faena',estado:'enviado',canal:'whatsapp',fecha:hoy(),vence:mant.inicio||hoy(),observacion:`Generado desde Reclutamiento Spot para ${mant.nombre}`});
+  updateRecruitmentStageV84(workerId,mantId,'contrato_generado');
+}
+function exportRecruitmentV84(){
+  const mant=selectedRecruitmentMantV84();if(!mant)return toast('Selecciona un servicio','err');
+  const rows=[['Servicio','Cliente','Trabajador','RUT','Cargo','Especialidad','Etapa','Acreditación','Faltantes']];
+  filteredRecruitmentWorkersV84(mant).forEach(worker=>{const asig=recruitmentAssignmentV84(worker.id,mant.id),v=workerValidationV84(worker);rows.push([mant.nombre,minaNombre(mant.minaId),worker.nombre,worker.rut,worker.cargo,worker.especialidad,recruitmentStageLabelV84(asig?.recruitmentStage),`${v.pct}%`,v.totalIssues]);});
+  exportCSV(rows,`reclutamiento_${(mant.nombre||'servicio').replace(/\s+/g,'_')}.csv`);
+}
+const renderPageV84Base=renderPage;renderPage=function(page){if(page==='reclutamiento')renderReclutamientoV84();else renderPageV84Base(page);};
+const initSelectsV84Base=initSelects;initSelects=function(){initSelectsV84Base();renderRecruitmentSelectsV84();};
 function enhanceAccessibility() {
   document.querySelectorAll('.form-label').forEach((label,index)=>{
     if(label.htmlFor||label.querySelector('input,select,textarea'))return;
