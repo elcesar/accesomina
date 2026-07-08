@@ -382,6 +382,7 @@ body.private #main { display:block; }
   </div>
   <div class="nav-group-label">Vista General</div>
   <div class="nav-item active" onclick="nav('dashboard')">🏠 Dashboard</div>
+  <div class="nav-item" onclick="nav('reclutamiento')">📋 Centro Reclutamiento</div>
   <div class="nav-item" onclick="nav('mineras')">🏔️ Por Minera</div>
   <div class="nav-item" onclick="nav('alertas')">🔔 Alertas <span class="nav-badge" id="badge-alertas">0</span></div>
   <div class="nav-group-label">Personal</div>
@@ -395,7 +396,6 @@ body.private #main { display:block; }
   <div class="nav-item" onclick="nav('mantenciones')">🔧 Servicios</div>
   <div class="nav-item" onclick="nav('contratos')">📝 Contratos y Firmas <span class="nav-badge nav-badge-orange" id="badge-firmas">0</span></div>
   <div class="nav-item" onclick="nav('hoteleria')">🛏️ Hotelería</div>
-  <div class="nav-item" onclick="nav('reclutamiento')">📋 Reclutamiento Spot</div>
   <div class="nav-item" onclick="nav('llamados')">📲 Llamados WA</div>
   <div class="nav-item" onclick="nav('vehiculos')">🚙 Vehículos y Equipos</div>
   <div class="nav-item" onclick="nav('acreditacion-mandante')">✅ Acreditación Mandante</div>
@@ -455,6 +455,7 @@ body.private #main { display:block; }
       <select class="filter-select" id="filt-dash-mant" onchange="renderDashboard()"><option value="">Todos los proyectos / mantenciones</option></select>
     </div>
     <div class="kpi-grid" id="kpi-dash"></div>
+    <div class="card" id="dash-recruitment-center" style="margin-bottom:20px;"></div>
     <div class="grid-2" style="margin-bottom:20px;">
       <div>
         <div class="card" style="margin-bottom:16px;">
@@ -775,7 +776,7 @@ body.private #main { display:block; }
   <!-- PAGE: RECLUTAMIENTO SPOT -->
   <div id="page-reclutamiento" class="page">
     <div class="section-header">
-      <div><div class="section-title">📋 Reclutamiento Spot por Mantención</div><div class="section-sub" id="rec-sub">Busca personas que califican, inicia llamado y controla contratación hasta acreditación del cliente</div></div>
+      <div><div class="section-title">📋 Centro de Reclutamiento Spot</div><div class="section-sub" id="rec-sub">Vista central tipo planilla para coordinar cupos, llamados, contratos y acreditación</div></div>
       <div class="section-actions">
         <button class="btn btn-secondary" onclick="exportRecruitmentV84()">⬇ Exportar vista</button>
         <button class="btn btn-primary" onclick="openModal('modal-callout')">+ Llamado WA</button>
@@ -5085,6 +5086,38 @@ function exportRecruitmentV84(){
 }
 const renderPageV84Base=renderPage;renderPage=function(page){if(page==='reclutamiento')renderReclutamientoV84();else renderPageV84Base(page);};
 const initSelectsV84Base=initSelects;initSelects=function(){initSelectsV84Base();renderRecruitmentSelectsV84();};
+
+// ===================== V8.5: ACCESO CENTRALIZADO A RECLUTAMIENTO =====================
+pageLabels.reclutamiento='Centro Reclutamiento';
+pageSubs.reclutamiento='Planilla operativa para contratar, llamar, firmar y acreditar personal spot';
+function openRecruitmentForMantV85(mantId){
+  nav('reclutamiento');
+  setTimeout(()=>{const sel=document.getElementById('rec-mant');if(sel){sel.value=mantId;renderReclutamientoV84();}},0);
+}
+function renderRecruitmentDashboardV85(){
+  const host=document.getElementById('dash-recruitment-center');
+  if(!host)return;
+  const active=S.mantenciones.filter(m=>m.estado!=='cerrada').slice(0,8);
+  const rows=active.map(mant=>{
+    const stats=recruitmentStatsV84(mant);
+    const gap=Math.max(0,stats.required-stats.asigs.length);
+    const progress=stats.required?Math.min(100,Math.round(stats.asigs.length/stats.required*100)):0;
+    return {mant,stats,gap,progress};
+  });
+  const totalReq=rows.reduce((n,r)=>n+r.stats.required,0);
+  const totalAsig=rows.reduce((n,r)=>n+r.stats.asigs.length,0);
+  const totalSigned=rows.reduce((n,r)=>n+r.stats.signed,0);
+  const totalGap=rows.reduce((n,r)=>n+r.gap,0);
+  host.innerHTML=`<div class="card-header"><div><div class="card-title">📋 Centro de Reclutamiento Spot</div><div class="card-subtitle">Vista central tipo planilla: requeridos, llamados, confirmados, contratos y acreditación por servicio.</div></div><button class="btn btn-primary btn-sm" onclick="nav('reclutamiento')">Abrir centro completo</button></div>
+    <div class="kpi-grid" style="margin:10px 0 14px;">
+      <div class="kpi kpi-blue"><div class="kpi-value">${totalReq}</div><div class="kpi-label">Cupos requeridos</div></div>
+      <div class="kpi kpi-orange"><div class="kpi-value">${totalAsig}</div><div class="kpi-label">En reclutamiento</div></div>
+      <div class="kpi kpi-green"><div class="kpi-value">${totalSigned}</div><div class="kpi-label">Contratos firmados</div></div>
+      <div class="kpi kpi-red"><div class="kpi-value">${totalGap}</div><div class="kpi-label">Brecha por cubrir</div></div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Servicio / mantención</th><th>Cliente</th><th>Requeridos</th><th>Reclutados</th><th>Confirmados</th><th>Contrato firmado</th><th>Acreditación</th><th>Brecha</th><th></th></tr></thead><tbody>${rows.map(row=>`<tr><td><b>${eppEsc(row.mant.nombre)}</b><div class="worker-rut">${row.mant.inicio||'sin inicio'} → ${row.mant.termino||'sin término'}</div></td><td>${eppEsc(minaNombre(row.mant.minaId))}</td><td>${row.stats.required}</td><td><div style="display:flex;align-items:center;gap:8px;"><div class="prog" style="min-width:95px;"><div class="prog-fill ${progColor(row.progress)}" style="width:${row.progress}%;"></div></div><b>${row.stats.asigs.length}</b></div></td><td>${row.stats.confirmed}</td><td>${row.stats.signed}</td><td>${row.stats.accredited}</td><td><span class="badge ${row.gap?'badge-warn':'badge-ok'}">${row.gap}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openRecruitmentForMantV85('${row.mant.id}')">Coordinar</button></td></tr>`).join('')||'<tr><td colspan="9">No hay servicios activos. Crea un servicio para iniciar reclutamiento.</td></tr>'}</tbody></table></div>`;
+}
+const renderDashboardV85Base=renderDashboard;renderDashboard=function(){renderDashboardV85Base();renderRecruitmentDashboardV85();};
 function enhanceAccessibility() {
   document.querySelectorAll('.form-label').forEach((label,index)=>{
     if(label.htmlFor||label.querySelector('input,select,textarea'))return;
