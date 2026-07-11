@@ -12,9 +12,14 @@ export function validateRuntimeEnvironment(env) {
     if (!env.METRICS_TOKEN || env.METRICS_TOKEN.length < 32) errors.push('METRICS_TOKEN must contain at least 32 characters');
     if (env.FILE_STORAGE !== 's3') errors.push('FILE_STORAGE must be s3 in production');
     if (!env.AWS_S3_BUCKET) errors.push('AWS_S3_BUCKET is required in production');
-    try {
-      if (new URL(env.VIRUS_SCAN_API_URL).protocol !== 'https:') errors.push('VIRUS_SCAN_API_URL must use HTTPS in production');
-    } catch { errors.push('VIRUS_SCAN_API_URL is required in production'); }
+    if (env.VIRUS_SCAN_ENABLED !== 'false') {
+      try {
+        if (new URL(env.VIRUS_SCAN_API_URL).protocol !== 'https:') 
+          errors.push('VIRUS_SCAN_API_URL must use HTTPS in production');
+          } catch { 
+          errors.push('VIRUS_SCAN_API_URL is required in production'); 
+      }
+  }
     if(env.DOCUMENT_AI_API_URL){try{if(new URL(env.DOCUMENT_AI_API_URL).protocol!=='https:')errors.push('DOCUMENT_AI_API_URL must use HTTPS in production');}catch{errors.push('DOCUMENT_AI_API_URL must be a valid HTTPS URL');}}
   }
   if (errors.length) throw new Error(`Invalid runtime configuration: ${errors.join('; ')}`);
