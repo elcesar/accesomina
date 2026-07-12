@@ -49,6 +49,10 @@ authRouter.post('/login', limiter, async (req, res) => {
   const userResult = await withTenant(tenant.id, client => client.query('SELECT * FROM app_users WHERE tenant_id=$1 AND lower(email)=$2', [tenant.id, email]));
   const user = userResult.rows[0];
   console.log('USER_FOUND:', user?.id, 'active:', user?.active, 'has_hash:', !!user?.password_hash);
+  const verify = await verifyPassword(body.password, user.password_salt, user.password_hash);
+  console.log('VERIFY_RESULT:', verify);
+  console.log('DB_SALT:', user.password_salt);
+  console.log('DB_HASH_PREFIX:', user.password_hash?.slice(0,20));
   if (!user?.active || (user.locked_until && new Date(user.locked_until) > new Date()) || !user.password_hash || !await verifyPassword(body.password, user.password_salt, user.password_hash)) {
     console.log('AUTH_FAILED active:', user?.active, 'has_hash:', !!user?.password_hash);
     if (user) await withTenant(tenant.id, client => client.query(`UPDATE app_users SET failed_login_count=failed_login_count+1,
