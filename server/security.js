@@ -15,6 +15,9 @@ export async function hashPassword(password, salt = crypto.randomBytes(16).toStr
 }
 export async function verifyPassword(password, salt, expected) {
   const { hash } = await hashPassword(password, salt);
+  console.log('VERIFY_HASH_GENERATED:', hash.slice(0,20));
+  console.log('VERIFY_HASH_EXPECTED:', expected.slice(0,20));
+  console.log('VERIFY_LENGTHS:', hash.length, expected.length);
   return timingSafeEqualString(hash, expected);
 }
 export function validatePassword(password) {
