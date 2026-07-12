@@ -41,12 +41,16 @@ authRouter.post('/register', limiter, async (req, res) => {
 
 authRouter.post('/login', limiter, async (req, res) => {
   const body = loginSchema.parse(req.body), rutKey = normalizeRut(body.rut), email = normalizeEmail(body.email);
+  console.log('LOGIN_ATTEMPT rutKey:', rutKey, 'email:', email);
   const tenantResult = await query(`SELECT id,company_name,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1`, [rutKey]);
   const tenant = tenantResult.rows[0];
+  console.log('TENANT_FOUND:', tenant?.id, 'status:', tenant?.status);
   if (!tenant || tenant.status !== 'active') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
   const userResult = await withTenant(tenant.id, client => client.query('SELECT * FROM app_users WHERE tenant_id=$1 AND lower(email)=$2', [tenant.id, email]));
   const user = userResult.rows[0];
+  console.log('USER_FOUND:', user?.id, 'active:', user?.active, 'has_hash:', !!user?.password_hash);
   if (!user?.active || (user.locked_until && new Date(user.locked_until) > new Date()) || !user.password_hash || !await verifyPassword(body.password, user.password_salt, user.password_hash)) {
+    console.log('AUTH_FAILED active:', user?.active, 'has_hash:', !!user?.password_hash);
     if (user) await withTenant(tenant.id, client => client.query(`UPDATE app_users SET failed_login_count=failed_login_count+1,
       locked_until=CASE WHEN failed_login_count>=4 THEN now()+interval '15 minutes' ELSE locked_until END WHERE id=$1`, [user.id]));
     return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
