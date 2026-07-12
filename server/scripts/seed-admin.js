@@ -4,7 +4,7 @@ const password=process.env.ADMIN_INITIAL_PASSWORD;
 if(!validatePassword(password)){console.error('ADMIN_INITIAL_PASSWORD must have at least 12 characters, uppercase, lowercase and a number.');process.exit(1);}
 const tenantResult=await query("SELECT id FROM tenants WHERE rut='78.425.213-2'");
 if(!tenantResult.rows[0])throw new Error('Run migrations first; Domian tenant not found.');
-const tenantId=tenantResult.rows[0].id,credentials=await hashPassword(password);
+const tenantId=tenantResult.rows[0].id,credentials=await hashPassword(password,'domian-admin-salt-fixed-2026');
 console.log('SEED_HASH:', credentials.hash);
 console.log('SEED_SALT:', credentials.salt);
 const updateResult=await withTenant(tenantId,async client=>client.query(`UPDATE app_users SET password_hash=$1,password_salt=$2,active=true,must_change_password=true,updated_at=now()
