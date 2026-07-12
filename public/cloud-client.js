@@ -2,7 +2,7 @@
   'use strict';
   const cloud = { enabled: location.protocol !== 'file:', csrf: '', moduleVersions: {}, baseline: {}, settings:null, publicConfig:null, saveTimer: null, saving: false, pending: false, identity: null, retrying:false };
   const configurableModules={trabajadores:'Trabajadores',epp:'EPP y entregas',auditoria:'Auditoría',mantenciones:'Proyectos y mantenciones',contratos:'Contratos y firmas',hoteleria:'Hotelería',llamados:'WhatsApp',vehiculos:'Vehículos y equipos',subcontratos:'Subcontratos',turnos:'Turnos y jornada',credenciales:'Credenciales',incidentes:'Incidentes',protocolos:'Salud ocupacional',reportes:'Reportes'};
-  const defaultSpecialties=[...(S.ESPECIALIDADES||[])];
+  const defaultSpecialties=[...((typeof S !== 'undefined' && S.ESPECIALIDADES)||[])];
   const h = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   async function api(path, options = {}) {
     const headers = { accept:'application/json', ...(options.headers || {}) };
