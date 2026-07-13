@@ -1,7 +1,6 @@
 import { query, withTenant, closeDatabase } from '../db.js';
 import { hashPassword, validatePassword, verifyPassword } from '../security.js';
-const raw=process.env.ADMIN_INITIAL_PASSWORD;
-const password=(() => { try { return JSON.parse(raw).ADMIN_INITIAL_PASSWORD||raw; } catch { return raw; } })();
+const password=process.env.ADMIN_INITIAL_PASSWORD;
 if(!validatePassword(password)){console.error('ADMIN_INITIAL_PASSWORD must have at least 12 characters, uppercase, lowercase and a number.');process.exit(1);}
 const tenantResult=await query("SELECT id FROM tenants WHERE rut='78.425.213-2'");
 if(!tenantResult.rows[0])throw new Error('Run migrations first; Domian tenant not found.');
