@@ -7,4 +7,4 @@ COPY --chown=node:node . .
 ENV NODE_ENV=production
 USER node
 EXPOSE 8088
-CMD ["sh", "-c", "pnpm run migrate && pnpm run seed:admin && pnpm start"]
+CMD ["sh", "-c", "pnpm run migrate && pnpm start"]
