@@ -2,7 +2,6 @@
 
 Frontend moderno en React + Vite + Tailwind para Nexo by Domian.
 
-
 ## Stack
 
 - **React 18** — UI por componentes
