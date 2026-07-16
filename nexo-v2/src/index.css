@@ -33,49 +33,49 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium
-           hover:bg-brand-600 active:bg-brand-700 transition-colors
+    @apply bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium
+           hover:bg-orange-600 active:bg-orange-700 transition-colors
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply bg-surface-secondary text-gray-200 px-4 py-2 rounded-lg text-sm font-medium
-           hover:bg-surface-tertiary transition-colors border border-white/10;
+    @apply bg-zinc-800 text-gray-200 px-4 py-2 rounded-lg text-sm font-medium
+           hover:bg-zinc-700 transition-colors border border-zinc-700;
   }
 
   .btn-ghost {
     @apply text-gray-400 px-3 py-2 rounded-lg text-sm font-medium
-           hover:bg-white/5 hover:text-gray-200 transition-colors;
+           hover:bg-zinc-800 hover:text-gray-200 transition-colors;
   }
 
   .card {
-    @apply bg-surface-secondary rounded-xl border border-white/8 p-4;
+    @apply bg-zinc-800 rounded-xl border border-zinc-700 p-4;
   }
 
   .input {
-    @apply bg-surface-tertiary border border-white/10 rounded-lg px-3 py-2
+    @apply bg-zinc-700 border border-zinc-600 rounded-lg px-3 py-2
            text-sm text-gray-100 placeholder-gray-500
-           focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+           focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500
            transition-colors w-full;
   }
 
   .badge-green {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-green-500/15 text-green-400;
+           bg-green-900 text-green-400;
   }
 
   .badge-yellow {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-yellow-500/15 text-yellow-400;
+           bg-yellow-900 text-yellow-400;
   }
 
   .badge-red {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-red-500/15 text-red-400;
+           bg-red-900 text-red-400;
   }
 
   .badge-gray {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-           bg-white/8 text-gray-400;
+           bg-zinc-700 text-gray-400;
   }
 }
