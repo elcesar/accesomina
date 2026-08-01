@@ -40,12 +40,8 @@ jobs:
           aws s3 cp nexo-v2/dist/index.html s3://nexoklar-app/index.html \
             --cache-control "no-cache,no-store,must-revalidate"
 
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CF_NEXOKLAR_DIST_ID }} \
-            --paths "/*"
-
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CF_DIST_ID }} \
-            --paths "/nexo/v2/*"
+            --distribution-id ${{ secrets.CF_NEXOKLAR_DIST_ID }} \
+            --paths "/*"
