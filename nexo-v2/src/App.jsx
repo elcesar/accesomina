@@ -30,7 +30,7 @@ function PublicRoute({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter basename="/v2">
+    <BrowserRouter>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={
