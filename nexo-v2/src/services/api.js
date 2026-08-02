@@ -1,4 +1,4 @@
-const BASE = 'https://api.nexoklar.com/api'
+const BASE = '/api'
 let csrfToken = null
 
 export function setCsrf(token) {
