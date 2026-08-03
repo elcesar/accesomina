@@ -2,18 +2,21 @@ import { query, withTenant } from './db.js';
 import { config } from './config.js';
 import { sha256 } from './security.js';
 
-export const SESSION_COOKIE = '__Host-accesomina_session';
-export const DEV_SESSION_COOKIE = 'accesomina_session';
+export const SESSION_COOKIE = '__Host-nexo_klar_session';
+export const DEV_SESSION_COOKIE = 'nexo_klar_session';
+export const LEGACY_SESSION_COOKIE = '__Host-accesomina_session';
+export const LEGACY_DEV_SESSION_COOKIE = 'accesomina_session';
 export function cookieName() { return config.cookieSecure ? SESSION_COOKIE : DEV_SESSION_COOKIE; }
+export function legacyCookieName() { return config.cookieSecure ? LEGACY_SESSION_COOKIE : LEGACY_DEV_SESSION_COOKIE; }
 
 export function setSessionCookie(res, token) {
   res.cookie(cookieName(), token, { httpOnly: true, secure: config.cookieSecure, sameSite: 'strict', path: '/', maxAge: config.sessionTtlHours * 3600_000 });
 }
-export function clearSessionCookie(res) { res.clearCookie(cookieName(), { httpOnly: true, secure: config.cookieSecure, sameSite: 'strict', path: '/' }); }
+export function clearSessionCookie(res) { const options={ httpOnly:true,secure:config.cookieSecure,sameSite:'strict',path:'/' };res.clearCookie(cookieName(),options);res.clearCookie(legacyCookieName(),options); }
 
 export async function authenticate(req, res, next) {
   try {
-    const raw = req.cookies?.[cookieName()];
+    const raw = req.cookies?.[cookieName()] || req.cookies?.[legacyCookieName()];
     if (!raw) return res.status(401).json({ error: 'AUTH_REQUIRED' });
     const sessionResult = await query(`SELECT id,tenant_id,user_id,csrf_token,expires_at,revoked_at,mfa_verified FROM user_sessions
       WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`, [sha256(raw)]);
@@ -51,8 +54,8 @@ export function allowRoles(...roles) {
 
 export function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
-  console.error(error);
   const status = Number(error.status || (error.name === 'ZodError' ? 400 : error.code === '23505' ? 409 : 500));
+  console.error(JSON.stringify({at:new Date().toISOString(),service:config.serviceName,event:'http.error',requestId:req.requestId||null,method:req.method,path:req.path,status,message:String(error.message||error).slice(0,1000),code:error.code||null,tenantId:req.auth?.tenantId||null,userId:req.auth?.userId||null}));
   if(status>=500&&req.auth?.tenantId)withTenant(req.auth.tenantId,client=>client.query(`INSERT INTO operational_events(tenant_id,source,severity,event_type,message,context) VALUES($1,'api','error',$2,$3,$4::jsonb)`,[req.auth.tenantId,'request.failed',String(error.message||'Unexpected server error').slice(0,1000),JSON.stringify({method:req.method,path:req.path,code:error.code||null,userId:req.auth.userId})])).catch(()=>{});
   res.status(status).json({ error: error.code || 'SERVER_ERROR', message: status < 500 ? error.message : 'Unexpected server error' });
 }

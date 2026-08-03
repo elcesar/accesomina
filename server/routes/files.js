@@ -16,10 +16,7 @@ const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA
 
 async function scanFile(file) {
   if (!config.virusScan.url) {
-  if(config.env==='production' && process.env.VIRUS_SCAN_ENABLED !== 'false')
-    throw Object.assign(new Error('Virus scanning must be configured before accepting files'),{status:503,code:'VIRUS_SCAN_REQUIRED'});
-  return 'clean';
-}
+  if(config.env==='production' && process.env.VIRUS_SCAN_ENABLED !== 'false')throw Object.assign(new Error('Virus scanning must be configured before accepting files'),{status:503,code:'VIRUS_SCAN_REQUIRED'});return 'clean';}
   const body = new FormData(); body.append('file', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
   const response = await fetch(config.virusScan.url, { method:'POST', headers: config.virusScan.token ? { authorization:`Bearer ${config.virusScan.token}` } : {}, body });
   if (!response.ok) throw Object.assign(new Error('Virus scanning service unavailable'),{status:503,code:'VIRUS_SCAN_UNAVAILABLE'}); const result = await response.json(); return result.clean === true ? 'clean' : 'blocked';

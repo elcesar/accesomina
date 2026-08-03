@@ -10,16 +10,11 @@ export function timingSafeEqualString(a, b) {
   return aa.length === bb.length && crypto.timingSafeEqual(aa, bb);
 }
 export async function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
-  console.log('SCRYPT_PARAMS password_length:', password.length, 'salt:', salt.slice(0,10));
   const hash = await new Promise((resolve, reject) => crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (e, key) => e ? reject(e) : resolve(key.toString('hex'))));
-  console.log('SCRYPT_RESULT:', hash.slice(0,20));
   return { hash, salt };
 }
 export async function verifyPassword(password, salt, expected) {
   const { hash } = await hashPassword(password, salt);
-  console.log('VERIFY_HASH_GENERATED:', hash.slice(0,20));
-  console.log('VERIFY_HASH_EXPECTED:', expected.slice(0,20));
-  console.log('VERIFY_LENGTHS:', hash.length, expected.length);
   return timingSafeEqualString(hash, expected);
 }
 export function validatePassword(password) {

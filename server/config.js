@@ -6,6 +6,8 @@ validateRuntimeEnvironment(process.env);
 
 export const config = Object.freeze({
   env: process.env.NODE_ENV || 'development',
+  serviceName: 'nexo-klar',
+  version: '7.7.0',
   port: Number(process.env.PORT || 8088),
   origin: (process.env.APP_ORIGIN || 'http://localhost:8088').replace(/\/$/, ''),
   databaseUrl: process.env.DATABASE_URL,
@@ -20,12 +22,12 @@ export const config = Object.freeze({
   fileStorage: process.env.FILE_STORAGE === 's3' ? 's3' : 'local',
   uploadDir: path.resolve(process.env.LOCAL_UPLOAD_DIR || './uploads'),
   aws: { region: process.env.AWS_REGION || 'us-east-1', bucket: process.env.AWS_S3_BUCKET || '' },
-  virusScan: { url: process.env.VIRUS_SCAN_API_URL || '', token: process.env.VIRUS_SCAN_API_TOKEN || '' },
+  virusScan: { url: process.env.VIRUS_SCAN_API_URL || '', healthUrl: process.env.VIRUS_SCAN_HEALTH_URL || '', token: process.env.VIRUS_SCAN_API_TOKEN || '' },
   documentAi: { url: process.env.DOCUMENT_AI_API_URL || '', token: process.env.DOCUMENT_AI_API_TOKEN || '' },
   smtp: {
     host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === 'true', user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '', from: process.env.EMAIL_FROM || 'Acceso Mina <no-reply@example.com>'
+    pass: process.env.SMTP_PASS || '', from: process.env.EMAIL_FROM || 'Nexo Klar <no-reply@nexoklar.com>'
   },
   whatsapp: {
     version: process.env.WHATSAPP_GRAPH_VERSION || 'v23.0',

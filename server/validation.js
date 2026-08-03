@@ -170,5 +170,15 @@ export function validateTenantState(input) {
     if (!workerIds.has(String(workerId))) throw Object.assign(new Error('EPP measurements reference an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for(const worker of workers){const items=Array.isArray(worker.workerItems)?worker.workerItems:[];assertUnique(items.map(x=>String(x.id||'')),`Duplicate worker document id for ${worker.id}`,'DUPLICATE_WORKER_DOCUMENT_ID');assertUnique(items.map(x=>`${normalizedText(x.type)}|${normalizedText(x.name)}|${x.vence||''}`),`Duplicate worker document for ${worker.id}`,'DUPLICATE_WORKER_DOCUMENT');for(const item of items)if(item.emision&&item.vence&&item.emision>item.vence)throw Object.assign(new Error(`Worker document ${item.id} has invalid dates`),{status:409,code:'INVALID_DATES'});}
+  const workBookEntries=Array.isArray(state.workBookEntries)?state.workBookEntries:[];
+  assertUnique(workBookEntries.map(row=>`${normalizedText(row.folio)}|${Number(row.entryNumber)||1}`),'Duplicate work book entry','DUPLICATE_WORK_BOOK_ENTRY');
+  for(const row of workBookEntries){
+    if(!mineIds.has(String(row.mineRef))||!projectIds.has(String(row.projectRef))||(row.contractRef&&!contractIds.has(String(row.contractRef))))throw Object.assign(new Error('Work book entry references an unknown client, contract or project'),{status:409,code:'INVALID_WORK_BOOK_REFERENCE'});
+    const project=(state.mantenciones||[]).find(item=>String(item.id)===String(row.projectRef));
+    const contract=row.contractRef?(state.contratos||[]).find(item=>String(item.id)===String(row.contractRef)):null;
+    if(String(project?.minaId||'')!==String(row.mineRef)||(contract&&String(contract.minaId||'')!==String(row.mineRef)))throw Object.assign(new Error('Work book scope mismatch'),{status:409,code:'WORK_BOOK_SCOPE_MISMATCH'});
+    if(!['borrador','pendiente_firma','observado','firmado','cerrado'].includes(row.status))throw Object.assign(new Error('Work book entry has invalid status'),{status:409,code:'INVALID_WORK_BOOK_STATUS'});
+    if(!String(row.subject||'').trim()||!String(row.body||'').trim())throw Object.assign(new Error('Work book entry is incomplete'),{status:409,code:'INVALID_WORK_BOOK_ENTRY'});
+  }
   return state;
 }
