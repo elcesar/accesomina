@@ -48,6 +48,7 @@ export default function App() {
           }>
             <Route index element={<DashboardPage />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
+            <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
             <Route path="contratos" element={<ContratosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
