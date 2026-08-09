@@ -4,7 +4,6 @@ import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
-import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
@@ -47,8 +46,6 @@ export default function App() {
             <ProtectedRoute><AppLayout /></ProtectedRoute>
           }>
             <Route index element={<DashboardPage />} />
-            <Route path="trabajadores" element={<TrabajadoresPage />} />
-            <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
             <Route path="contratos" element={<ContratosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
