@@ -5,7 +5,7 @@ import {
   IconFilter, IconUsers, IconUserOff, IconUserCheck,
   IconChevronUp, IconChevronDown,
 } from '@tabler/icons-react'
-import api from '../services/api.js'
+import { api } from '../services/api.js'
 
 // ─── tokens ────────────────────────────────────────────────
 const T = {
