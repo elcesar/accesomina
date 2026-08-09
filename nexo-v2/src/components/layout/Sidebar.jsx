@@ -2,9 +2,9 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/auth.jsx'
 import {
   IconLayoutDashboard, IconBell, IconBook, IconServer,
+  IconUsers, IconClipboardList, IconClock, IconShield, IconSchool,
+  IconMicroscope, IconStethoscope, IconBan,
   IconBuilding, IconFileText, IconTool, IconBriefcase, IconSitemap,
-  IconUsers, IconClock, IconShield, IconSchool, IconMicroscope,
-  IconStethoscope, IconBan, IconClipboardList,
   IconCar, IconBed, IconId, IconBrandWhatsapp,
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
@@ -15,61 +15,61 @@ const NAV = [
   {
     label: 'Inicio',
     items: [
-      { to: '/app', label: 'Panel General',     icon: IconLayoutDashboard, exact: true },
-      { to: '/app/alertas', label: 'Alertas',   icon: IconBell,            badge: true },
-      { to: '/app/libro-obra', label: 'Libro de Obra', icon: IconBook,     badge: true },
-      { to: '/app/operaciones', label: 'Centro Operativo', icon: IconServer },
-    ],
-  },
-  {
-    label: 'Relación comercial',
-    items: [
-      { to: '/app/clientes',    label: 'Clientes',          icon: IconBuilding },
-      { to: '/app/contratos',   label: 'Contratos y Firmas', icon: IconFileText, badge: true },
-      { to: '/app/servicios',   label: 'Órdenes de Servicio', icon: IconTool },
-      { to: '/app/oportunidades', label: 'Prospectos',      icon: IconBriefcase },
-      { to: '/app/subcontratos', label: 'Subcontratos',     icon: IconSitemap },
+      { to: '/app',            label: 'Panel General',    icon: IconLayoutDashboard, exact: true },
+      { to: '/app/alertas',    label: 'Alertas',          icon: IconBell,            badge: true },
+      { to: '/app/libro-obra', label: 'Libro de Obra',    icon: IconBook,            badge: true },
+      { to: '/app/operaciones',label: 'Centro Operativo', icon: IconServer },
     ],
   },
   {
     label: 'Personas',
     items: [
-      { to: '/app/trabajadores',  label: 'Trabajadores',        icon: IconUsers },
-      { to: '/app/reclutamiento', label: 'Personal temporal',   icon: IconClipboardList },
-      { to: '/app/turnos',        label: 'Turnos y Jornada',    icon: IconClock },
-      { to: '/app/epp',           label: 'EPP y Entregas',      icon: IconShield, badge: true },
-      { to: '/app/cursos',        label: 'Cursos',              icon: IconSchool },
-      { to: '/app/examenes',      label: 'Exámenes',            icon: IconMicroscope },
-      { to: '/app/salud',         label: 'Salud Ocupacional',   icon: IconStethoscope },
-      { to: '/app/bloqueados',    label: 'No habilitados',      icon: IconBan },
+      { to: '/app/trabajadores',  label: 'Trabajadores',       icon: IconUsers },
+      { to: '/app/reclutamiento', label: 'Personal temporal',  icon: IconClipboardList },
+      { to: '/app/turnos',        label: 'Turnos y Jornada',   icon: IconClock },
+      { to: '/app/epp',           label: 'EPP y Entregas',     icon: IconShield,       badge: true },
+      { to: '/app/cursos',        label: 'Cursos',             icon: IconSchool },
+      { to: '/app/examenes',      label: 'Exámenes',           icon: IconMicroscope },
+      { to: '/app/salud',         label: 'Salud Ocupacional',  icon: IconStethoscope },
+      { to: '/app/bloqueados',    label: 'No habilitados',     icon: IconBan },
+    ],
+  },
+  {
+    label: 'Relación comercial',
+    items: [
+      { to: '/app/clientes',      label: 'Clientes',           icon: IconBuilding },
+      { to: '/app/contratos',     label: 'Contratos y Firmas', icon: IconFileText,     badge: true },
+      { to: '/app/servicios',     label: 'Órdenes de Servicio',icon: IconTool },
+      { to: '/app/oportunidades', label: 'Prospectos',         icon: IconBriefcase },
+      { to: '/app/subcontratos',  label: 'Subcontratos',       icon: IconSitemap },
     ],
   },
   {
     label: 'Operación',
     items: [
-      { to: '/app/vehiculos',    label: 'Vehículos y Equipos',  icon: IconCar },
-      { to: '/app/hoteleria',    label: 'Alojamientos',         icon: IconBed },
-      { to: '/app/credenciales', label: 'Credenciales',         icon: IconId },
-      { to: '/app/llamados',     label: 'Llamados WA',          icon: IconBrandWhatsapp },
+      { to: '/app/vehiculos',    label: 'Vehículos y Equipos', icon: IconCar },
+      { to: '/app/hoteleria',    label: 'Alojamientos',        icon: IconBed },
+      { to: '/app/credenciales', label: 'Credenciales',        icon: IconId },
+      { to: '/app/llamados',     label: 'Llamados WA',         icon: IconBrandWhatsapp },
     ],
   },
   {
     label: 'Cumplimiento',
     items: [
-      { to: '/app/acreditacion-empresa',  label: 'Doc. Empresa',         icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación Cliente',  icon: IconCircleCheck },
-      { to: '/app/incidentes',            label: 'Incidentes y NC',       icon: IconAlertTriangle },
-      { to: '/app/auditoria',             label: 'Auditoría',             icon: IconClipboard },
+      { to: '/app/acreditacion-empresa',  label: 'Doc. Empresa',        icon: IconBuildingCommunity },
+      { to: '/app/acreditacion-mandante', label: 'Habilitación Cliente', icon: IconCircleCheck },
+      { to: '/app/incidentes',            label: 'Incidentes y NC',      icon: IconAlertTriangle },
+      { to: '/app/auditoria',             label: 'Auditoría',            icon: IconClipboard },
     ],
   },
   {
     label: 'Gestión',
     items: [
-      { to: '/app/reportes',     label: 'Reportes',           icon: IconChartBar },
+      { to: '/app/reportes',      label: 'Reportes',            icon: IconChartBar },
       { to: '/app/transferencia', label: 'Importar / Exportar', icon: IconArrowsUpDown },
-      { to: '/app/usuarios',     label: 'Usuarios y Permisos', icon: IconUsersGroup },
-      { to: '/app/bitacora',     label: 'Bitácora de Cambios', icon: IconHistory },
-      { to: '/app/privacidad',   label: 'Privacidad y Datos',  icon: IconShieldLock },
+      { to: '/app/usuarios',      label: 'Usuarios y Permisos', icon: IconUsersGroup },
+      { to: '/app/bitacora',      label: 'Bitácora de Cambios', icon: IconHistory },
+      { to: '/app/privacidad',    label: 'Privacidad y Datos',  icon: IconShieldLock },
     ],
   },
 ]
@@ -107,12 +107,11 @@ export default function Sidebar() {
     navigate('/login')
   }
 
-  // Badges desde el estado global (por ahora cero)
   const badges = {
-    '/app/alertas': session?.state?.alertCount || 0,
-    '/app/libro-obra': session?.state?.workBookCount || 0,
-    '/app/contratos': session?.state?.pendingSignatures || 0,
-    '/app/epp': session?.state?.eppPending || 0,
+    '/app/alertas':    session?.state?.alertCount       || 0,
+    '/app/libro-obra': session?.state?.workBookCount    || 0,
+    '/app/contratos':  session?.state?.pendingSignatures|| 0,
+    '/app/epp':        session?.state?.eppPending       || 0,
   }
 
   return (
@@ -133,7 +132,9 @@ export default function Sidebar() {
             <p className="text-sm font-bold leading-none" style={{ color: '#141A20', fontFamily: 'Manrope, sans-serif' }}>
               Nexo <span style={{ color: '#00706A' }}>Klar</span>
             </p>
-            <p className="text-xs leading-none mt-0.5" style={{ color: '#8A96A1' }}>by Domian</p>
+            <p className="text-xs leading-none mt-0.5" style={{ color: '#8A96A1' }}>
+              Gestión operativa
+            </p>
           </div>
         </div>
       </div>
@@ -153,7 +154,7 @@ export default function Sidebar() {
           <div key={group.label}>
             <p
               className="px-3 mb-1 text-xs font-bold uppercase tracking-wider"
-              style={{ color: '#8A96A1', letterSpacing: '.1em' }}
+              style={{ color: '#8A96A1' }}
             >
               {group.label}
             </p>
