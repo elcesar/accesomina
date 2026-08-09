@@ -341,13 +341,19 @@ export default function NuevoTrabajadorPage() {
         },
       }
 
-      const state = await api.get('/state')
-      const trabajadores = state?.state?.trabajadores || []
+      const stateRes = await api.get('/state')
+      const trabajadores = stateRes?.state?.trabajadores || []
+      const version = stateRes?.moduleVersions?.trabajadores ?? 0
       const nuevo = { ...payload, id: `t_${Date.now()}`, creado: new Date().toISOString().split('T')[0], bloqueado: false, mineras: [] }
 
       await api.put('/state/modules', {
         reason: `Alta de trabajador ${data.nombre}`,
-        trabajadores: [...trabajadores, nuevo],
+        changes: {
+          trabajadores: {
+            version,
+            data: [...trabajadores, nuevo],
+          },
+        },
       })
 
       navigate('/app/trabajadores')
