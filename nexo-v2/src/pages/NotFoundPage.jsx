@@ -73,7 +73,7 @@ export default function NotFoundPage() {
 
         {/* Footer */}
         <p className="mt-10 text-xs" style={{ color: '#8A96A1' }}>
-          Nexo Klar · by Domian
+          Nexo Klar
         </p>
       </div>
     </div>

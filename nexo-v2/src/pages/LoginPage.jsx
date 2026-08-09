@@ -119,7 +119,7 @@ export default function LoginPage() {
             <p style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16, lineHeight: 1, fontFamily: 'Manrope, sans-serif' }}>
               Nexo <span style={{ color: '#00CFC1' }}>Klar</span>
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 3 }}>by Domian</p>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 3 }}>Plataforma de gestión operativa</p>
           </div>
         </div>
 
@@ -157,7 +157,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>
-          © {new Date().getFullYear()} Domian · domian.cl · Santiago, Chile
+          © {new Date().getFullYear()} Nexo Klar · nexoklar.com
         </p>
       </div>
 
