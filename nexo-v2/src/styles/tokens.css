@@ -1,0 +1,36 @@
+/* Nexo Klar · Sistema de color v1.0 — Mezcla F aprobada */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap');
+
+:root {
+  --bg:        #F4EFE3;
+  --surf:      #FFFFFF;
+  --surf-2:    #FBF9F5;
+  --line:      #E3DED2;
+  --ink:       #141A20;
+  --mut:       #5D6B7A;
+  --subtle:    #8A96A1;
+  --pri:       #2A2A8C;
+  --pri-deep:  #1A1A5E;
+  --graphite:  #26313A;
+  --acc:       #00CFC1;
+  --acc-txt:   #00706A;
+  --acc-dark:  #08302F;
+  --ok:        #1B7F4B;
+  --warn:      #C77700;
+  --err:       #B3261E;
+  --coral:     #FF5A3C;
+  --coral-txt: #B03510;
+  --metal:     #C7D0D6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
