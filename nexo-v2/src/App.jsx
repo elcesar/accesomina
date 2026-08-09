@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage.jsx'
 import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
+import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -50,6 +51,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="contratos" element={<ContratosPage />} />
+            <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
