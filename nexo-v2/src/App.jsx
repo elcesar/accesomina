@@ -8,6 +8,7 @@ import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
+import FichaTrabajadorPage from './pages/FichaTrabajadorPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="contratos" element={<ContratosPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
+            <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
