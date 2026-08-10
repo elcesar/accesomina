@@ -167,11 +167,18 @@ export default function TrabajadoresPage() {
   const [sortCol, setSortCol] = useState('nombre')
   const [sortAsc, setSortAsc] = useState(true)
 
-  useEffect(() => {
+  const loadState = () => {
+    setLoading(true)
     api.get('/state').then(r => {
       setState(r.data?.state || r.data)
       setLoading(false)
     }).catch(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadState()
+    window.addEventListener('focus', loadState)
+    return () => window.removeEventListener('focus', loadState)
   }, [])
 
   const trabajadores = state?.trabajadores || []
