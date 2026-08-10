@@ -342,7 +342,7 @@ export default function NuevoTrabajadorPage() {
       }
 
       const stateRes = await api.get('/state')
-      const trabajadores = stateRes?.state?.trabajadores || []
+      const trabajadores = stateRes?.state?.trabajadores ?? stateRes?.trabajadores ?? []
       const version = stateRes?.moduleVersions?.trabajadores ?? 0
       const nuevo = { ...payload, id: `t_${Date.now()}`, creado: new Date().toISOString().split('T')[0], bloqueado: false, mineras: [] }
 

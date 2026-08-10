@@ -170,7 +170,7 @@ export default function TrabajadoresPage() {
   const loadState = () => {
     setLoading(true)
     api.get('/state').then(r => {
-      setState(r.data?.state || r.data)
+      setState(r?.state || r)
       setLoading(false)
     }).catch(() => setLoading(false))
   }
