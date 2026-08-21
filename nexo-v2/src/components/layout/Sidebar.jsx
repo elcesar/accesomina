@@ -8,98 +8,120 @@ import {
   IconCar, IconBed, IconId, IconBrandWhatsapp,
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
-  IconSettings, IconLogout,
+  IconSettings, IconLogout, IconPackage, IconTruck, IconWrench,
+  IconBox, IconFlask, IconWarehouse, IconRefresh, IconChevronDown,
+  IconBuildingFactory2,
 } from '@tabler/icons-react'
+import { useState } from 'react'
 
+// ─── GRUPOS (estructura 1:1 con Ricardo v6 AccesoMina_v6.html) ──────────────
+// Grupos: Centro de Control · Capital Humano · Gestión Operacional ·
+//         Contratistas · Relación Comercial · Cumplimiento y Calidad ·
+//         Gestión de Proyectos y Negocios · Activos Equipos e Inventario ·
+//         Gestión y Administración
 const NAV = [
   {
-    label: 'Inicio',
+    key: 'centro-control',
+    label: 'Centro de Control',
     items: [
-      { to: '/app',            label: 'Panel General',    icon: IconLayoutDashboard, exact: true },
-      { to: '/app/alertas',    label: 'Alertas',          icon: IconBell,            badge: true },
-      { to: '/app/libro-obra', label: 'Libro de Obra',    icon: IconBook,            badge: true },
-      { to: '/app/operaciones',label: 'Centro Operativo', icon: IconServer },
+      { to: '/app',              label: 'Panel General',                   icon: IconLayoutDashboard, exact: true },
+      { to: '/app/alertas',      label: 'Alertas',                         icon: IconBell,            badge: true },
+      { to: '/app/reclutamiento',label: 'Gestión de trabajadores por proyecto', icon: IconClipboardList },
+      { to: '/app/operaciones',  label: 'Centro Operativo',                icon: IconServer },
     ],
   },
   {
-    label: 'Personas',
+    key: 'capital-humano',
+    label: 'Capital Humano',
     items: [
-      { to: '/app/trabajadores',  label: 'Trabajadores',       icon: IconUsers },
-      { to: '/app/reclutamiento', label: 'Personal temporal',  icon: IconClipboardList },
-      { to: '/app/turnos',        label: 'Turnos y Jornada',   icon: IconClock },
-      { to: '/app/epp',           label: 'EPP y Entregas',     icon: IconShield,       badge: true },
-      { to: '/app/cursos',        label: 'Cursos',             icon: IconSchool },
-      { to: '/app/examenes',      label: 'Exámenes',           icon: IconMicroscope },
-      { to: '/app/salud',         label: 'Salud Ocupacional',  icon: IconStethoscope },
-      { to: '/app/bloqueados',    label: 'No habilitados',     icon: IconBan },
+      { to: '/app/trabajadores', label: 'Personas',                        icon: IconUsers },
+      { to: '/app/turnos',       label: 'Turnos y asistencia',             icon: IconClock },
+      { to: '/app/epp',          label: 'Protección personal / EPP',       icon: IconShield,          badge: true },
+      { to: '/app/cursos',       label: 'Formación y certificaciones',     icon: IconSchool },
+      { to: '/app/examenes',     label: 'Exámenes y aptitudes',            icon: IconMicroscope },
+      { to: '/app/salud',        label: 'Salud Ocupacional',               icon: IconStethoscope },
+      { to: '/app/bloqueados',   label: 'Restringidos',                    icon: IconBan },
     ],
   },
   {
-    label: 'Relación comercial',
+    key: 'gestion-operacional',
+    label: 'Gestión Operacional',
     items: [
-      { to: '/app/clientes',      label: 'Clientes',           icon: IconBuilding },
-      { to: '/app/contratos',     label: 'Contratos y Firmas', icon: IconFileText,     badge: true },
-      { to: '/app/servicios',     label: 'Órdenes de Servicio',icon: IconTool },
-      { to: '/app/oportunidades', label: 'Prospectos',         icon: IconBriefcase },
-      { to: '/app/subcontratos',  label: 'Subcontratos',       icon: IconSitemap },
+      { to: '/app/llamados',     label: 'Comunicaciones y convocatorias',  icon: IconBrandWhatsapp },
+      { to: '/app/vehiculos',    label: 'Vehículos, activos y equipos',    icon: IconCar },
+      { to: '/app/hoteleria',    label: 'Alojamientos y estadías',         icon: IconBed },
+      { to: '/app/credenciales', label: 'Credenciales',                    icon: IconId },
     ],
   },
   {
-    label: 'Operación',
-    items: [
-      { to: '/app/vehiculos',    label: 'Vehículos y Equipos', icon: IconCar },
-      { to: '/app/hoteleria',    label: 'Alojamientos',        icon: IconBed },
-      { to: '/app/credenciales', label: 'Credenciales',        icon: IconId },
-      { to: '/app/llamados',     label: 'Llamados WA',         icon: IconBrandWhatsapp },
-    ],
-  },
-  {
-    label: 'Cumplimiento',
-    items: [
-      { to: '/app/acreditacion-empresa',  label: 'Doc. Empresa',        icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación Cliente', icon: IconCircleCheck },
-      { to: '/app/incidentes',            label: 'Incidentes y NC',      icon: IconAlertTriangle },
-      { to: '/app/auditoria',             label: 'Auditoría',            icon: IconClipboard },
-    ],
-  },
-  {
-    label: 'Gestión',
-    items: [
-      { to: '/app/reportes',      label: 'Reportes',            icon: IconChartBar },
-      { to: '/app/transferencia', label: 'Importar / Exportar', icon: IconArrowsUpDown },
-      { to: '/app/usuarios',      label: 'Usuarios y Permisos', icon: IconUsersGroup },
-      { to: '/app/bitacora',      label: 'Bitácora de Cambios', icon: IconHistory },
-      { to: '/app/privacidad',    label: 'Privacidad y Datos',  icon: IconShieldLock },
-    ],
-  },
-  {
+    key: 'contratistas',
     label: 'Contratistas',
     items: [
-      { to: '/app/modulos/terceros-subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
-      { to: '/app/modulos/contratos-convenios', label: 'Contratos y convenios', icon: IconFileText },
-      { to: '/app/modulos/personal-empresa-servicios', label: 'Personal de la empresa de servicios', icon: IconUsers },
-      { to: '/app/modulos/habilitaciones-cumplimiento', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
-      { to: '/app/modulos/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
+      { to: '/app/subcontratos',                              label: 'Terceros y subcontratos',       icon: IconSitemap },
+      { to: '/app/modulos/contratos-convenios',               label: 'Contratos y convenios',         icon: IconFileText },
+      { to: '/app/modulos/personal-empresa-servicios',        label: 'Personal del contratista',      icon: IconUsers },
+      { to: '/app/modulos/habilitaciones-cumplimiento',       label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
+      { to: '/app/modulos/evaluacion-desempeno',              label: 'Evaluación de desempeño',       icon: IconChartBar },
     ],
   },
   {
-    label: 'Activos, equipos e inventario',
+    key: 'relacion-comercial',
+    label: 'Relación Comercial',
     items: [
-      { to: '/app/modulos/activos-inventario', label: 'Activos, equipos e inventario', icon: IconClipboard },
-      { to: '/app/modulos/maquinaria', label: 'Maquinaria', icon: IconTool },
-      { to: '/app/modulos/equipos-instrumentos', label: 'Equipos e instrumentos', icon: IconSitemap },
-      { to: '/app/modulos/herramientas', label: 'Herramientas', icon: IconTool },
-      { to: '/app/modulos/epp-inventario', label: 'EPP y protección personal', icon: IconShield },
-      { to: '/app/modulos/materiales', label: 'Materiales y ferretería', icon: IconClipboard },
-      { to: '/app/modulos/insumos', label: 'Insumos y consumibles', icon: IconMicroscope },
-      { to: '/app/modulos/bodegas', label: 'Bodegas y almacenes', icon: IconBuildingCommunity },
-      { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconArrowsUpDown },
-      { to: '/app/modulos/mantenimiento', label: 'Mantenimiento', icon: IconTool },
+      { to: '/app/clientes',      label: 'Clientes',                       icon: IconBuilding },
+      { to: '/app/contratos',     label: 'Contratos y firmas',             icon: IconFileText,        badge: true },
+      { to: '/app/servicios',     label: 'Órdenes de servicio',            icon: IconTool },
+    ],
+  },
+  {
+    key: 'cumplimiento-calidad',
+    label: 'Cumplimiento y Calidad',
+    items: [
+      { to: '/app/acreditacion-empresa',  label: 'Documentación de la Empresa',  icon: IconBuildingCommunity },
+      { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente',      icon: IconCircleCheck },
+      { to: '/app/incidentes',            label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
+      { to: '/app/auditoria',             label: 'Auditoría',                     icon: IconClipboard },
+    ],
+  },
+  {
+    key: 'proyectos-negocios',
+    label: 'Gestión de Proyectos y Negocios',
+    items: [
+      { to: '/app/libro-obra',    label: 'Libro de obra',                  icon: IconBook,            badge: true },
+      { to: '/app/oportunidades', label: 'Prospectos y oportunidades',     icon: IconBriefcase },
+    ],
+  },
+  {
+    key: 'activos-inventario',
+    label: 'Activos, Equipos e Inventario',
+    items: [
+      { to: '/app/modulos/activos-inventario',  label: 'Inventario y existencias',    icon: IconPackage },
+      { to: '/app/modulos/maquinaria',          label: 'Maquinaria',                  icon: IconTruck },
+      { to: '/app/modulos/equipos-instrumentos',label: 'Equipos e instrumentos',      icon: IconTool },
+      { to: '/app/modulos/herramientas',        label: 'Herramientas',                icon: IconWrench },
+      { to: '/app/modulos/epp-inventario',      label: 'EPP y protección personal',   icon: IconShield },
+      { to: '/app/modulos/materiales',          label: 'Materiales y ferretería',     icon: IconBox },
+      { to: '/app/modulos/insumos',             label: 'Insumos y consumibles',       icon: IconFlask },
+      { to: '/app/modulos/bodegas',             label: 'Bodegas y almacenes',         icon: IconWarehouse },
+      { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconRefresh },
+      { to: '/app/modulos/mantenimiento',       label: 'Mantenimiento',               icon: IconWrench },
       { to: '/app/modulos/asignaciones-prestamos', label: 'Asignaciones y préstamos', icon: IconClipboardList },
+    ],
+  },
+  {
+    key: 'gestion-administracion',
+    label: 'Gestión y Administración',
+    items: [
+      { to: '/app/reportes',      label: 'Reportes y analítica',           icon: IconChartBar },
+      { to: '/app/transferencia', label: 'Importar y exportar',            icon: IconArrowsUpDown },
+      { to: '/app/usuarios',      label: 'Usuarios y permisos',            icon: IconUsersGroup },
+      { to: '/app/bitacora',      label: 'Bitácora de cambios',            icon: IconHistory },
+      { to: '/app/privacidad',    label: 'Privacidad y datos',             icon: IconShieldLock },
     ],
   },
 ]
 
+// ─── NAV ITEM ───────────────────────────────────────────────────────────────
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
   return (
     <NavLink
@@ -113,8 +135,8 @@ function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
         }`
       }
     >
-      <Icon size={16} strokeWidth={1.7} className="flex-shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
+      <Icon size={15} strokeWidth={1.7} className="flex-shrink-0" />
+      <span className="flex-1 truncate text-xs">{label}</span>
       {badge && badgeCount > 0 && (
         <span className="bg-[#FBE8E6] text-[#B3261E] text-xs px-1.5 py-0.5 rounded-full font-bold tabular-nums">
           {badgeCount}
@@ -124,6 +146,46 @@ function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
   )
 }
 
+// ─── NAV GROUP ──────────────────────────────────────────────────────────────
+function NavGroup({ group, badges, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors"
+        style={{ color: '#8A96A1', background: 'transparent', border: 'none', cursor: 'pointer' }}
+        onMouseEnter={e => e.currentTarget.style.background = '#FBF9F5'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <span>{group.label}</span>
+        <IconChevronDown
+          size={12}
+          strokeWidth={2}
+          style={{
+            transition: 'transform 0.2s',
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+            color: '#8A96A1',
+          }}
+        />
+      </button>
+      {open && (
+        <div className="space-y-0.5 mt-0.5">
+          {group.items.map(item => (
+            <NavItem
+              key={item.to}
+              {...item}
+              badgeCount={badges[item.to] || 0}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── SIDEBAR ────────────────────────────────────────────────────────────────
 export default function Sidebar() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
@@ -134,10 +196,10 @@ export default function Sidebar() {
   }
 
   const badges = {
-    '/app/alertas':    session?.state?.alertCount       || 0,
-    '/app/libro-obra': session?.state?.workBookCount    || 0,
-    '/app/contratos':  session?.state?.pendingSignatures|| 0,
-    '/app/epp':        session?.state?.eppPending       || 0,
+    '/app/alertas':    session?.state?.alertCount        || 0,
+    '/app/libro-obra': session?.state?.workBookCount     || 0,
+    '/app/contratos':  session?.state?.pendingSignatures || 0,
+    '/app/epp':        session?.state?.eppPending        || 0,
   }
 
   return (
@@ -159,7 +221,7 @@ export default function Sidebar() {
               Nexo <span style={{ color: '#00706A' }}>Klar</span>
             </p>
             <p className="text-xs leading-none mt-0.5" style={{ color: '#8A96A1' }}>
-              Gestión operativa
+              Datos claros · Operación conectada
             </p>
           </div>
         </div>
@@ -175,25 +237,14 @@ export default function Sidebar() {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
         {NAV.map(group => (
-          <div key={group.label}>
-            <p
-              className="px-3 mb-1 text-xs font-bold uppercase tracking-wider"
-              style={{ color: '#8A96A1' }}
-            >
-              {group.label}
-            </p>
-            <div className="space-y-0.5">
-              {group.items.map(item => (
-                <NavItem
-                  key={item.to}
-                  {...item}
-                  badgeCount={badges[item.to] || 0}
-                />
-              ))}
-            </div>
-          </div>
+          <NavGroup
+            key={group.key}
+            group={group}
+            badges={badges}
+            defaultOpen={['centro-control', 'capital-humano', 'relacion-comercial'].includes(group.key)}
+          />
         ))}
       </nav>
 
@@ -209,8 +260,8 @@ export default function Sidebar() {
             }`
           }
         >
-          <IconSettings size={16} strokeWidth={1.7} />
-          <span>Configuración</span>
+          <IconSettings size={15} strokeWidth={1.7} />
+          <span className="text-xs">Configuración</span>
         </NavLink>
         <button
           onClick={handleLogout}
@@ -219,8 +270,8 @@ export default function Sidebar() {
           onMouseEnter={e => { e.currentTarget.style.color = '#B3261E'; e.currentTarget.style.background = '#FBE8E6' }}
           onMouseLeave={e => { e.currentTarget.style.color = '#5D6B7A'; e.currentTarget.style.background = 'transparent' }}
         >
-          <IconLogout size={16} strokeWidth={1.7} />
-          <span>Cerrar sesión</span>
+          <IconLogout size={15} strokeWidth={1.7} />
+          <span className="text-xs">Cerrar sesión</span>
         </button>
       </div>
 
