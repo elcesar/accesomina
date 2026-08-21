@@ -8,9 +8,8 @@ import {
   IconCar, IconBed, IconId, IconBrandWhatsapp,
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
-  IconSettings, IconLogout, IconPackage, IconTruck, IconWrench,
-  IconBox, IconFlask, IconWarehouse, IconRefresh, IconChevronDown,
-  IconBuildingFactory2,
+  IconSettings, IconLogout, IconPackage, IconTruckDelivery, IconTools,
+  IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
 } from '@tabler/icons-react'
 import { useState } from 'react'
 
@@ -96,15 +95,15 @@ const NAV = [
     label: 'Activos, Equipos e Inventario',
     items: [
       { to: '/app/modulos/activos-inventario',  label: 'Inventario y existencias',    icon: IconPackage },
-      { to: '/app/modulos/maquinaria',          label: 'Maquinaria',                  icon: IconTruck },
+      { to: '/app/modulos/maquinaria',          label: 'Maquinaria',                  icon: IconTruckDelivery },
       { to: '/app/modulos/equipos-instrumentos',label: 'Equipos e instrumentos',      icon: IconTool },
-      { to: '/app/modulos/herramientas',        label: 'Herramientas',                icon: IconWrench },
+      { to: '/app/modulos/herramientas',        label: 'Herramientas',                icon: IconTools },
       { to: '/app/modulos/epp-inventario',      label: 'EPP y protección personal',   icon: IconShield },
       { to: '/app/modulos/materiales',          label: 'Materiales y ferretería',     icon: IconBox },
-      { to: '/app/modulos/insumos',             label: 'Insumos y consumibles',       icon: IconFlask },
-      { to: '/app/modulos/bodegas',             label: 'Bodegas y almacenes',         icon: IconWarehouse },
-      { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconRefresh },
-      { to: '/app/modulos/mantenimiento',       label: 'Mantenimiento',               icon: IconWrench },
+      { to: '/app/modulos/insumos',             label: 'Insumos y consumibles',       icon: IconTestPipe },
+      { to: '/app/modulos/bodegas',             label: 'Bodegas y almacenes',         icon: IconBuildingWarehouse },
+      { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconArrowsExchange },
+      { to: '/app/modulos/mantenimiento',       label: 'Mantenimiento',               icon: IconTools },
       { to: '/app/modulos/asignaciones-prestamos', label: 'Asignaciones y préstamos', icon: IconClipboardList },
     ],
   },
