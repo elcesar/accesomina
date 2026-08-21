@@ -72,6 +72,32 @@ const NAV = [
       { to: '/app/privacidad',    label: 'Privacidad y Datos',  icon: IconShieldLock },
     ],
   },
+  {
+    label: 'Contratistas',
+    items: [
+      { to: '/app/modulos/terceros-subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
+      { to: '/app/modulos/contratos-convenios', label: 'Contratos y convenios', icon: IconFileText },
+      { to: '/app/modulos/personal-empresa-servicios', label: 'Personal de la empresa de servicios', icon: IconUsers },
+      { to: '/app/modulos/habilitaciones-cumplimiento', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
+      { to: '/app/modulos/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
+    ],
+  },
+  {
+    label: 'Activos, equipos e inventario',
+    items: [
+      { to: '/app/modulos/activos-inventario', label: 'Activos, equipos e inventario', icon: IconClipboard },
+      { to: '/app/modulos/maquinaria', label: 'Maquinaria', icon: IconTool },
+      { to: '/app/modulos/equipos-instrumentos', label: 'Equipos e instrumentos', icon: IconSitemap },
+      { to: '/app/modulos/herramientas', label: 'Herramientas', icon: IconTool },
+      { to: '/app/modulos/epp-inventario', label: 'EPP y protección personal', icon: IconShield },
+      { to: '/app/modulos/materiales', label: 'Materiales y ferretería', icon: IconClipboard },
+      { to: '/app/modulos/insumos', label: 'Insumos y consumibles', icon: IconMicroscope },
+      { to: '/app/modulos/bodegas', label: 'Bodegas y almacenes', icon: IconBuildingCommunity },
+      { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconArrowsUpDown },
+      { to: '/app/modulos/mantenimiento', label: 'Mantenimiento', icon: IconTool },
+      { to: '/app/modulos/asignaciones-prestamos', label: 'Asignaciones y préstamos', icon: IconClipboardList },
+    ],
+  },
 ]
 
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
