@@ -5,7 +5,6 @@ import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
-import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
 import FichaTrabajadorPage from './pages/FichaTrabajadorPage.jsx'
@@ -53,7 +52,6 @@ export default function App() {
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
-            <Route path="contratos" element={<ContratosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
