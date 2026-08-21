@@ -57,6 +57,7 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
+          
           {/* Catch all */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
