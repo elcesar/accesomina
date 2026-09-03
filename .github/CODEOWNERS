@@ -1,0 +1,26 @@
+# CODEOWNERS — Nexo Klar
+# Define quién debe aprobar cambios según la ruta del archivo
+# Documentación: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ─── REGLA BASE ───────────────────────────────────────────────────────────────
+# Todo lo que no esté explícitamente listado requiere aprobación de César
+*                           @elcesar
+
+# ─── BACKEND / INFRAESTRUCTURA ────────────────────────────────────────────────
+# Solo César puede aprobar cambios en servidor, BD y configuración AWS
+/server/                    @elcesar
+/migrations/                @elcesar
+/.github/                   @elcesar
+*.tf                        @elcesar
+docker-compose*.yml         @elcesar
+Dockerfile                  @elcesar
+
+# ─── FRONTEND ─────────────────────────────────────────────────────────────────
+# Ricardo puede proponer cambios — César sigue siendo aprobador final
+/src/pages/                 @elcesar @ricardohornigsube
+/src/components/            @elcesar @ricardohornigsube
+
+# ─── ARCHIVOS QUE NUNCA TOCA NADIE SIN CÉSAR ──────────────────────────────────
+package.json                @elcesar
+package-lock.json           @elcesar
+vite.config.*               @elcesar
