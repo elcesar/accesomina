@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import {
   IconUsers, IconFileText, IconShieldCheck, IconBell,
-  IconBuildingFactory2, IconTruck, IconHardHat, IconChartBar,
+  IconBuildingFactory2, IconTruck, IconHelmet, IconChartBar,
   IconArrowRight, IconCheck, IconLock, IconMenu2, IconX,
 } from '@tabler/icons-react'
 import { useState } from 'react'
@@ -75,7 +75,7 @@ const MODULOS = [
 // Industrias (industry-grid de Ricardo)
 const INDUSTRIAS = [
   { icon: IconBuildingFactory2, label: 'Minería',              desc: 'Gestión de dotación, acreditación y cumplimiento ante mandantes mineros.' },
-  { icon: IconHardHat,          label: 'Construcción',         desc: 'Control de personal, subcontratos y documentación en múltiples faenas.' },
+  { icon: IconHelmet,           label: 'Construcción',         desc: 'Control de personal, subcontratos y documentación en múltiples faenas.' },
   { icon: IconTruck,            label: 'Servicios industriales',desc: 'Contratistas de mantenimiento, montaje y operaciones con personal rotante.' },
   { icon: IconShieldCheck,      label: 'Prevención y RRHH',    desc: 'Centraliza exámenes, protocolos, EPP y cumplimiento de la normativa vigente.' },
 ]
