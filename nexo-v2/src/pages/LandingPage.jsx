@@ -116,21 +116,14 @@ function Navbar({ menuOpen, setMenuOpen }) {
       borderBottom: `1px solid ${T.line}`,
       boxShadow: '0 4px 16px rgba(20,26,32,0.05)',
     }}>
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, background: T.pri,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <span style={{ color: T.acc, fontWeight: 800, fontSize: 17, fontFamily: 'Manrope, sans-serif' }}>N</span>
-        </div>
-        <div>
-          <p style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 16, color: T.ink, margin: 0, lineHeight: 1 }}>
-            Nexo <span style={{ color: T.accT }}>Klar</span>
-          </p>
-          <p style={{ fontSize: 10, color: T.sub, margin: '2px 0 0', lineHeight: 1 }}>Operación conectada</p>
-        </div>
-      </div>
+      {/* Logo — SVG oficial brandbook */}
+      <a href="#inicio" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <img
+          src="/brand/NK-color-horizontal.svg"
+          alt="Nexo Klar"
+          style={{ height: 32, width: 'auto' }}
+        />
+      </a>
 
       {/* Nav links desktop */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }} className="hidden lg:flex">
@@ -689,6 +682,11 @@ export default function LandingPage() {
       {/* ── FINAL CTA ──────────────────────────────────────── */}
       <div style={{ background:T.bg, padding:'80px 6vw', textAlign:'center' }}>
         <div style={{ maxWidth:560, margin:'0 auto' }}>
+          <img
+            src="/brand/NK-color-horizontal-claim.svg"
+            alt="Nexo Klar · Información que conecta"
+            style={{ height: 48, width: 'auto', margin: '0 auto 32px', display: 'block' }}
+          />
           <Eyebrow>¿Lista tu empresa?</Eyebrow>
           <h2 style={{ fontFamily:'Manrope, sans-serif', fontWeight:800, fontSize:'clamp(26px,3.5vw,40px)', color:T.ink, lineHeight:1.2, margin:'0 0 16px' }}>
             Empieza a operar con información confiable.
@@ -724,15 +722,11 @@ export default function LandingPage() {
       {/* ── FOOTER ─────────────────────────────────────────── */}
       <footer style={{ background:T.graph, padding:'32px 6vw' }}>
         <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <div style={{ width:28, height:28, borderRadius:7, background:T.pri, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ color:T.acc, fontWeight:800, fontSize:14 }}>N</span>
-            </div>
-            <div>
-              <p style={{ color:'#fff', fontWeight:700, fontSize:13, margin:0, fontFamily:'Manrope, sans-serif' }}>Nexo Klar</p>
-              <p style={{ color:'rgba(255,255,255,0.4)', fontSize:10, margin:0 }}>nexoklar.com</p>
-            </div>
-          </div>
+          <img
+            src="/brand/NK-blanco-horizontal.svg"
+            alt="Nexo Klar"
+            style={{ height: 28, width: 'auto' }}
+          />
           <div style={{ display:'flex', gap:20 }}>
             {['#solucion','#producto','#industrias','#implementacion','#proposito'].map((href, i) => (
               <a key={href} href={href} style={{ fontSize:12, color:'rgba(255,255,255,0.55)', textDecoration:'none' }}
