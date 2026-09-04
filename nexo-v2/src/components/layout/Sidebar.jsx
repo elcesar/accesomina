@@ -206,24 +206,13 @@ export default function Sidebar() {
       className="w-56 h-screen flex flex-col flex-shrink-0"
       style={{ background: '#FFFFFF', borderRight: '1px solid #E3DED2' }}
     >
-      {/* Logo */}
+      {/* Logo — SVG oficial brandbook */}
       <div className="px-4 py-4" style={{ borderBottom: '1px solid #E3DED2' }}>
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0"
-            style={{ background: '#2A2A8C' }}
-          >
-            <span className="text-white text-xs font-bold">N</span>
-          </div>
-          <div>
-            <p className="text-sm font-bold leading-none" style={{ color: '#141A20', fontFamily: 'Manrope, sans-serif' }}>
-              Nexo <span style={{ color: '#00706A' }}>Klar</span>
-            </p>
-            <p className="text-xs leading-none mt-0.5" style={{ color: '#8A96A1' }}>
-              Datos claros · Operación conectada
-            </p>
-          </div>
-        </div>
+        <img
+          src="/brand/NK-color-horizontal.svg"
+          alt="Nexo Klar"
+          style={{ height: 28, width: 'auto', maxWidth: '100%' }}
+        />
       </div>
 
       {/* Tenant */}
