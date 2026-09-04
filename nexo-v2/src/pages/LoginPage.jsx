@@ -103,25 +103,11 @@ export default function LoginPage() {
           flexShrink: 0,
         }}
       >
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: '#00CFC1',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ color: '#08302F', fontWeight: 800, fontSize: 18, fontFamily: 'Manrope, sans-serif' }}>N</span>
-          </div>
-          <div>
-            <p style={{ color: '#FFFFFF', fontWeight: 800, fontSize: 16, lineHeight: 1, fontFamily: 'Manrope, sans-serif' }}>
-              Nexo <span style={{ color: '#00CFC1' }}>Klar</span>
-            </p>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 3 }}>Plataforma de gestión operativa</p>
-          </div>
-        </div>
+        <img
+          src="/brand/NK-blanco-horizontal.svg"
+          alt="Nexo Klar"
+          style={{ height: 36, width: 'auto' }}
+        />
 
         {/* Tagline */}
         <div>
@@ -165,14 +151,12 @@ export default function LoginPage() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <div style={{ width: '100%', maxWidth: 360 }}>
 
-          {/* Logo móvil */}
-          <div className="flex lg:hidden" style={{ alignItems: 'center', gap: 10, marginBottom: 32 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#2A2A8C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#00CFC1', fontWeight: 800, fontSize: 16 }}>N</span>
-            </div>
-            <span style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, color: '#141A20', fontSize: 15 }}>
-              Nexo <span style={{ color: '#00706A' }}>Klar</span>
-            </span>
+          <div className="flex lg:hidden" style={{ marginBottom: 32 }}>
+            <img
+              src="/brand/NK-color-horizontal.svg"
+              alt="Nexo Klar"
+              style={{ height: 28, width: 'auto' }}
+            />
           </div>
 
           {/* Encabezado */}
