@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './styles/tokens.css'
 import './index.css'
 import './styles/nexo-klar-ui.css'
+import './styles/public-layout-fixes.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

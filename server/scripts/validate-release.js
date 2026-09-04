@@ -12,12 +12,17 @@ const publicUi=`${publicHtml}\n${read('public/assets/nexo-klar-enterprise.js')}`
 if(hash(local)!==hash(publicHtml))errors.push('AccesoMina_v6.html and public/index.html are not synchronized');
 if(hash(read('assets/nexo-klar-enterprise.js'))!==hash(read('public/assets/nexo-klar-enterprise.js')))errors.push('Enterprise UI assets are not synchronized');
 const requiredCapabilities=[
-  'Panel General','Alertas','Centro Operativo','Libro de Obra',
-  'Prospectos y oportunidades','Clientes','Contratos y Firmas','Órdenes de Servicio','Terceros y subcontratos',
-  'Personas','Turnos y asistencia','Protección personal / EPP','Formación y certificaciones','Exámenes y aptitudes','Restringidos',
-  'Comunicaciones y convocatorias','Vehículos, activos y equipos','Alojamientos y Estadías','Credenciales',
-  'Documentación de la Empresa','Habilitación del Cliente','Incidentes y no conformidades','Auditoría',
-  'Reportes y analítica','Configuración Empresa','Importar / Exportar','Usuarios y Permisos','Bitácora de Cambios','Privacidad y Datos',
+  // Nomenclatura oficial del menú privado. Debe estar presente tanto en el
+  // archivo de referencia local como en el frontend HTML de respaldo.
+  'Panel de control','Alertas','Gestión de personal por proyecto','Centro Operativo',
+  'Personas','Turnos y asistencia','Protección personal / EPP','Formación y certificaciones','Exámenes y aptitudes','Salud ocupacional','Restringidos',
+  'Comunicaciones y convocatorias','Flota y equipos móviles','Alojamientos y estadías','Credenciales de acceso',
+  'Terceros y subcontratos','Convenios y contratos de terceros','Personas de empresas colaboradoras','Habilitaciones y cumplimiento','Evaluación de desempeño',
+  'Clientes','Contratos y firmas','Órdenes de servicio',
+  'Cumplimiento corporativo','Habilitación del cliente','Incidentes y no conformidades','Auditoría',
+  'Bitácora operativa','Prospectos y oportunidades',
+  'Inventario y existencias','Maquinaria','Equipos e instrumentos','Herramientas','Inventario de EPP','Materiales y ferretería','Insumos y consumibles','Bodegas','Movimientos de inventario','Mantenimiento','Asignaciones y préstamos',
+  'Reportes y analítica','Configuración de la empresa','Importar y exportar','Usuarios y permisos','Bitácora de cambios','Privacidad y datos','Administración de clientes',
   'Precalificación y seguimiento','Descontar EPP de la bodega','Reserva para orden de servicio','Solicitar reposición',
   'saveAssetReturnV150','saveEppDelivery=async function','saveAssetReservationV152','saveReplenishmentV152',
   'Órdenes y desempeño operativo','Asignar a orden','F30-1 sin período acreditado',
