@@ -1,0 +1,16 @@
+{
+  "service": "nexo-klar-prod",
+  "notification": {
+    "channel": "SNS topic managed by operations",
+    "recipients": ["technical-owner", "operations-owner"]
+  },
+  "alarms": [
+    { "name": "nexo-klar-alb-unhealthy-targets", "metric": "UnHealthyHostCount", "namespace": "AWS/ApplicationELB", "threshold": 1, "periodSeconds": 60, "evaluationPeriods": 2, "severity": "critical" },
+    { "name": "nexo-klar-api-5xx", "metric": "HTTPCode_Target_5XX_Count", "namespace": "AWS/ApplicationELB", "threshold": 5, "periodSeconds": 300, "evaluationPeriods": 1, "severity": "critical" },
+    { "name": "nexo-klar-api-latency", "metric": "TargetResponseTime", "namespace": "AWS/ApplicationELB", "threshold": 2, "periodSeconds": 300, "evaluationPeriods": 3, "severity": "warning" },
+    { "name": "nexo-klar-ecs-running-tasks", "metric": "RunningTaskCount", "namespace": "ECS/ContainerInsights", "threshold": 2, "comparison": "LessThanThreshold", "periodSeconds": 60, "evaluationPeriods": 2, "severity": "critical" },
+    { "name": "nexo-klar-rds-cpu", "metric": "CPUUtilization", "namespace": "AWS/RDS", "threshold": 80, "periodSeconds": 300, "evaluationPeriods": 3, "severity": "warning" },
+    { "name": "nexo-klar-rds-storage", "metric": "FreeStorageSpace", "namespace": "AWS/RDS", "thresholdBytes": 21474836480, "comparison": "LessThanThreshold", "periodSeconds": 300, "evaluationPeriods": 2, "severity": "critical" },
+    { "name": "nexo-klar-jobs-failed", "metric": "failed_jobs", "namespace": "NexoKlar/Application", "threshold": 1, "periodSeconds": 300, "evaluationPeriods": 1, "severity": "warning" }
+  ]
+}

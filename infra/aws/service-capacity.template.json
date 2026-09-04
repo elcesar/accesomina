@@ -1,0 +1,23 @@
+{
+  "service": "nexo-klar-api",
+  "desiredCount": 2,
+  "deploymentConfiguration": {
+    "minimumHealthyPercent": 100,
+    "maximumPercent": 200,
+    "deploymentCircuitBreaker": { "enable": true, "rollback": true }
+  },
+  "autoscaling": {
+    "minCapacity": 2,
+    "maxCapacity": 8,
+    "targetTracking": [
+      { "metric": "ECSServiceAverageCPUUtilization", "targetValue": 60 },
+      { "metric": "ECSServiceAverageMemoryUtilization", "targetValue": 70 },
+      { "metric": "ALBRequestCountPerTarget", "targetValue": 800 }
+    ]
+  },
+  "loadBalancer": {
+    "protocol": "HTTPS",
+    "healthCheckPath": "/api/ready",
+    "deregistrationDelaySeconds": 30
+  }
+}

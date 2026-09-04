@@ -4,11 +4,11 @@ import {
   IconArrowLeft, IconUser, IconFileText, IconBook,
   IconHistory, IconShield, IconDeviceFloppy, IconLoader2,
   IconBrandWhatsapp, IconAlertTriangle, IconCheck, IconX,
-  IconPaperclip, IconBed, IconPlus, IconTrash,
+  IconPaperclip,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 
-// ─── TOKENS ─────────────────────────────────────────────────
+// ─── tokens ────────────────────────────────────────────────
 const T = {
   bg:'#F4EFE3', surf:'#FFFFFF', surf2:'#FBF9F5', line:'#E3DED2',
   ink:'#141A20', mut:'#5D6B7A', sub:'#8A96A1',
@@ -19,7 +19,7 @@ const T = {
   err:'#B3261E', errBg:'#FBE8E6',
 }
 
-// ─── CONSTANTES ──────────────────────────────────────────────
+// ─── constantes (igual que Ricardo) ─────────────────────────
 const ITEM_TYPES = {
   documento:    'Documento trabajador',
   examen:       'Examen médico',
@@ -58,7 +58,7 @@ const ESPECIALIDADES = [
   'Operadora','Enfermero/a','Paramédico','Conductor','Administrativo','Otro',
 ]
 
-// ─── HELPERS ────────────────────────────────────────────────
+// ─── helpers ────────────────────────────────────────────────
 const AVATAR_COLORS = ['#2A2A8C','#1B7F4B','#C77700','#B3261E','#00706A','#26313A']
 function avatarColor(id) {
   let h = 0
@@ -101,7 +101,7 @@ function acreditacionPct(t) {
   return Math.round(reqs.filter(r => reqStatus(t, r).ok).length / reqs.length * 100)
 }
 
-// ─── SUB-COMPONENTES ─────────────────────────────────────────
+// ─── sub-componentes ─────────────────────────────────────────
 function Badge({ label, bg, color }) {
   return <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:99, background:bg, color }}>{label}</span>
 }
@@ -110,7 +110,7 @@ function BadgeDisp({ disp }) {
     disponible: { label:'Disponible', bg:T.okBg,   color:T.ok },
     asignado:   { label:'Asignado',   bg:'#E3E3F0', color:T.pri },
     vacaciones: { label:'Vacaciones', bg:T.warnBg,  color:T.warn },
-    bloqueado:  { label:'Bloqueado',  bg:T.errBg,   color:T.err },
+    bloqueado:  { label:'Restringido', bg:T.errBg,  color:T.err },
   }
   const s = map[disp] || { label:disp||'—', bg:T.surf2, color:T.sub }
   return <Badge {...s} />
@@ -153,114 +153,22 @@ function CardSection({ title, subtitle, action, children }) {
   )
 }
 
-const BTN_SAVE = ({ saving, onClick }) => (
-  <button onClick={onClick} disabled={saving} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', border:'none', borderRadius:8, background:T.pri, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
-    {saving ? <IconLoader2 size={13} className="animate-spin" /> : <IconDeviceFloppy size={13} strokeWidth={2} />}
-    Guardar
-  </button>
-)
-
-// ─── TAB: Datos personales ───────────────────────────────────
-function TabDatos({ t, clientes, proyectos, contratos, asignaciones, saving, onChange, onSave, onAsignar, onRetirar }) {
-  const [filtContrato, setFiltContrato] = useState('')
-  const [filtProyecto, setFiltProyecto] = useState('')
-
-  const proyectosFiltrados = filtContrato
-    ? proyectos.filter(p => p.contratoId === filtContrato)
-    : proyectos
-
-  const asigs = asignaciones.filter(a => a.trabId === t.id)
-
-  function clienteDeProyecto(mantId) {
-    const p = proyectos.find(m => m.id === mantId)
-    return clientes.find(c => c.id === p?.minaId)?.nombre || '—'
-  }
-  function contratoDeProyecto(mantId) {
-    const p = proyectos.find(m => m.id === mantId)
-    return contratos.find(c => c.id === p?.contratoId)?.nombre || '—'
-  }
-  function proyectoNombre(mantId) {
-    return proyectos.find(m => m.id === mantId)?.nombre || mantId
-  }
+// ─── TAB: Datos personales ────────────────────────────────────
+function TabDatos({ t, clientes, proyectos, saving, onChange, onSave }) {
+  const asigs = (t._asignaciones || [])
 
   return (
     <div>
-      {/* 1 — Asignación a contrato/proyecto (igual que Ricardo v6) */}
-      <CardSection
-        title="Asignación a contrato y proyecto"
-        subtitle="Agrega o mueve personal de planta y spot sin perder sus documentos"
-      >
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr auto', gap:12, alignItems:'end', marginBottom:16 }}>
-          <Field label="Contrato">
-            <select value={filtContrato} onChange={e => setFiltContrato(e.target.value)} style={{ ...INPUT_BASE, cursor:'pointer' }}>
-              <option value="">Seleccionar contrato…</option>
-              {contratos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </Field>
-          <Field label="Proyecto / servicio">
-            <select value={filtProyecto} onChange={e => setFiltProyecto(e.target.value)} style={{ ...INPUT_BASE, cursor:'pointer' }}>
-              <option value="">Primero selecciona contrato</option>
-              {proyectosFiltrados.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-            </select>
-          </Field>
-          <Field label="Turno">
-            <select id="asig-turno-nuevo" style={{ ...INPUT_BASE, cursor:'pointer' }}>
-              <option value="día">Día</option>
-              <option value="noche">Noche</option>
-              <option value="ambos">Ambos</option>
-            </select>
-          </Field>
-          <button
-            onClick={() => {
-              const turno = document.getElementById('asig-turno-nuevo')?.value || 'día'
-              if (filtProyecto) onAsignar(filtProyecto, turno)
-            }}
-            style={{ padding:'8px 14px', border:'none', borderRadius:8, background:T.pri, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}
-          >
-            <IconPlus size={13} strokeWidth={2} style={{ marginRight:4, verticalAlign:'middle' }} />
-            Asignar
-          </button>
-        </div>
-
-        {/* tabla asignaciones activas */}
-        {asigs.length === 0 ? (
-          <p style={{ fontSize:13, color:T.sub, margin:0 }}>Sin asignaciones activas</p>
-        ) : (
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <thead>
-              <tr style={{ background:T.graph }}>
-                {['Cliente','Contrato','Proyecto','Turno',''].map(h => (
-                  <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'#fff', fontWeight:600, fontSize:11 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {asigs.map((a, i) => (
-                <tr key={a.id||i} style={{ background: i%2===0 ? T.surf : T.surf2 }}>
-                  <td style={{ padding:'8px 12px', color:T.ink }}>{clienteDeProyecto(a.mantId)}</td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{contratoDeProyecto(a.mantId)}</td>
-                  <td style={{ padding:'8px 12px', fontWeight:600, color:T.ink }}>{proyectoNombre(a.mantId)}</td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{a.turno||'—'}</td>
-                  <td style={{ padding:'8px 12px', textAlign:'right' }}>
-                    <button
-                      onClick={() => onRetirar(a.mantId)}
-                      style={{ padding:'3px 8px', border:`1px solid ${T.line}`, borderRadius:6, background:T.surf, color:T.err, fontSize:11, cursor:'pointer' }}
-                    >
-                      Retirar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </CardSection>
-
-      {/* 2 — Datos personales */}
+      {/* 1 — Datos personales (editables, arriba) */}
       <CardSection
         title="Datos personales"
         subtitle="Información de contacto y previsión"
-        action={<BTN_SAVE saving={saving} onClick={onSave} />}
+        action={
+          <button onClick={onSave} disabled={saving} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', border:'none', borderRadius:8, background:T.pri, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+            {saving ? <IconLoader2 size={13} className="animate-spin" /> : <IconDeviceFloppy size={13} strokeWidth={2} />}
+            Guardar
+          </button>
+        }
       >
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
           <Field label="Teléfono">
@@ -289,18 +197,23 @@ function TabDatos({ t, clientes, proyectos, contratos, asignaciones, saving, onC
         </div>
       </CardSection>
 
-      {/* 3 — Datos operacionales */}
+      {/* 2 — Datos operacionales */}
       <CardSection
         title="Datos operacionales"
-        subtitle="Cargo, especialidad, disponibilidad y clientes habilitados"
-        action={<BTN_SAVE saving={saving} onClick={onSave} />}
+        subtitle="Cargo, especialidad, disponibilidad y asignación a proyectos"
+        action={
+          <button onClick={onSave} disabled={saving} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', border:'none', borderRadius:8, background:T.pri, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+            {saving ? <IconLoader2 size={13} className="animate-spin" /> : <IconDeviceFloppy size={13} strokeWidth={2} />}
+            Guardar
+          </button>
+        }
       >
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
           <Field label="Cargo">
             <input value={t.cargo||''} onChange={e=>onChange('cargo',e.target.value)} style={INPUT_BASE} placeholder="Cargo contractual" />
           </Field>
           <Field label="Rol operacional">
-            <input value={t.rol||''} onChange={e=>onChange('rol',e.target.value)} style={INPUT_BASE} placeholder="Rol en faena" />
+            <input value={t.rol||''} onChange={e=>onChange('rol',e.target.value)} style={INPUT_BASE} placeholder="Rol en el servicio" />
           </Field>
           <Field label="Especialidad">
             <select value={t.especialidad||''} onChange={e=>onChange('especialidad',e.target.value)} style={{ ...INPUT_BASE, cursor:'pointer' }}>
@@ -313,22 +226,22 @@ function TabDatos({ t, clientes, proyectos, contratos, asignaciones, saving, onC
               <option value="disponible">Disponible</option>
               <option value="asignado">Asignado</option>
               <option value="vacaciones">Vacaciones</option>
-              <option value="bloqueado">Bloqueado</option>
+              <option value="bloqueado">Restringido</option>
             </select>
           </Field>
-          <Field label="Tipo de personal">
+          <Field label="Tipo de vinculación">
             <select value={t.tipo||'permanente'} onChange={e=>onChange('tipo',e.target.value)} style={{ ...INPUT_BASE, cursor:'pointer' }}>
-              <option value="permanente">Planta / permanente</option>
-              <option value="esporadico">Esporádico por proyecto</option>
+              <option value="permanente">Trabajador fijo</option>
+              <option value="esporadico">Trabajador por proyecto</option>
             </select>
           </Field>
-          <Field label="Turno / Jornada habitual">
+          <Field label="Turno / Jornada">
             <select value={t.regimen||'5x2'} onChange={e=>onChange('regimen',e.target.value)} style={{ ...INPUT_BASE, cursor:'pointer' }}>
               {['5x2','4x3','7x7','6x1','turno_especial'].map(r=><option key={r} value={r}>{r}</option>)}
             </select>
           </Field>
           <div style={{ gridColumn:'1/-1' }}>
-            <Field label="Clientes / Minas habilitadas">
+            <Field label="Clientes autorizados">
               <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:4 }}>
                 {clientes.length === 0
                   ? <span style={{ fontSize:12, color:T.sub }}>Sin clientes configurados</span>
@@ -351,50 +264,30 @@ function TabDatos({ t, clientes, proyectos, contratos, asignaciones, saving, onC
         </div>
       </CardSection>
 
-      {/* 4 — Alojamiento asignado (nuevo, igual que Ricardo v6 renderFichaHotelV74) */}
-      <CardSection
-        title="Alojamiento asignado"
-        subtitle="Estadías activas vinculadas a proyectos"
-        action={
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-            <IconBed size={14} strokeWidth={1.7} style={{ color:T.sub }} />
-          </div>
-        }
-      >
-        {(t._hotelAsig||[]).length === 0 ? (
-          <p style={{ fontSize:13, color:T.sub, margin:0 }}>Sin alojamiento asignado actualmente</p>
-        ) : (
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <thead>
-              <tr style={{ background:T.graph }}>
-                {['Hotel','Proyecto','Pieza','Tipo','Turno','Check-in','Check-out'].map(h => (
-                  <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'#fff', fontWeight:600, fontSize:11 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(t._hotelAsig||[]).map((ha, i) => (
-                <tr key={ha.id||i} style={{ background: i%2===0 ? T.surf : T.surf2 }}>
-                  <td style={{ padding:'8px 12px', fontWeight:600, color:T.ink }}>{ha.hotelNombre||ha.hotelId||'—'}</td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{ha.mantNombre||ha.mantId||'—'}</td>
-                  <td style={{ padding:'8px 12px', color:T.ink }}>#{ha.pieza||'—'}</td>
-                  <td style={{ padding:'8px 12px' }}>
-                    <Badge label={ha.tipo||'—'} bg='#E3E3F0' color={T.pri} />
-                  </td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{ha.turno||'—'}</td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{ha.checkin||'—'}</td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{ha.checkout||'—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </CardSection>
+      {/* 3 — Asignaciones activas */}
+      <div style={{ background:T.surf, border:`1px solid ${T.line}`, borderRadius:12, overflow:'hidden' }}>
+        <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.line}` }}>
+          <p style={{ fontSize:13, fontWeight:700, color:T.ink, margin:0 }}>Asignaciones activas</p>
+        </div>
+        <div style={{ padding:16 }}>
+          {asigs.length === 0
+            ? <p style={{ fontSize:13, color:T.sub, margin:0 }}>Sin proyectos asignados</p>
+            : asigs.map((a,i) => (
+              <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'9px 0', borderBottom:`1px solid ${T.line}` }}>
+                <div>
+                  <p style={{ fontSize:13, fontWeight:600, color:T.ink, margin:0 }}>{a.mantId}</p>
+                  <p style={{ fontSize:11, color:T.sub, margin:'2px 0 0' }}>Turno: {a.turno||'—'} · {a.estado||'—'}</p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
     </div>
   )
 }
 
-// ─── TAB: Documentos / Cursos ────────────────────────────────
+// ─── TAB: Documentos / Cursos (compartido) ───────────────────
 const TIPOS_POR_TAB = {
   docs: [
     { value:'documento',     label:'Documento trabajador' },
@@ -417,6 +310,7 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
   const docs = (t.workerItems||[]).filter(d =>
     tabKey === 'cursos' ? ['curso','certificacion'].includes(d.type) : !['curso'].includes(d.type)
   )
+
   const reqs = getRequiredItems(t)
   const reqsFiltrados = tabKey === 'cursos'
     ? reqs.filter(r => ['curso','certificacion'].includes(r.type))
@@ -426,6 +320,7 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
     const f = e.target.files?.[0]
     if (f) setForm(prev => ({ ...prev, fileName: f.name }))
   }
+
   function handleGuardar() {
     if (!form.name.trim()) return
     onAddDoc({ ...form, id:`d_${Date.now()}`, cargado: new Date().toISOString().split('T')[0] })
@@ -435,6 +330,7 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
 
   return (
     <div>
+      {/* cargar */}
       <CardSection
         title={tabKey === 'cursos' ? 'Registrar curso o certificación' : 'Cargar documento o examen'}
         subtitle="La alerta crítica se activa cuando falten 7 días o esté vencido"
@@ -466,7 +362,9 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
             <input type="date" value={form.vence} onChange={e=>setForm(f=>({...f,vence:e.target.value}))} style={INPUT_BASE} />
           </Field>
           <Field label="Archivo">
-            <input ref={fileRef} type="file" onChange={handleFile} style={{ ...INPUT_BASE, padding:'6px 11px', cursor:'pointer' }} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+            <div style={{ position:'relative' }}>
+              <input ref={fileRef} type="file" onChange={handleFile} style={{ ...INPUT_BASE, padding:'6px 11px', cursor:'pointer' }} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+            </div>
             {form.fileName && <span style={{ fontSize:11, color:T.accT, marginTop:4, display:'flex', alignItems:'center', gap:4 }}><IconPaperclip size={12}/>{form.fileName}</span>}
           </Field>
           <div style={{ gridColumn:'1/-1' }}>
@@ -477,11 +375,11 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
         </div>
       </CardSection>
 
-      {/* checklist */}
+      {/* checklist inteligente */}
       <div style={{ background:T.surf, border:`1px solid ${T.line}`, borderRadius:12, overflow:'hidden', marginBottom:16 }}>
         <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.line}` }}>
           <p style={{ fontSize:13, fontWeight:700, color:T.ink, margin:0 }}>Checklist de ingreso</p>
-          <p style={{ fontSize:11, color:T.sub, margin:'2px 0 0' }}>Requisitos según especialidad y mina asignada</p>
+          <p style={{ fontSize:11, color:T.sub, margin:'2px 0 0' }}>Requisitos según especialidad, cliente y servicio asignado</p>
         </div>
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
           <thead>
@@ -572,175 +470,97 @@ function TabDocs({ t, tabKey, onAddDoc, onDelDoc }) {
   )
 }
 
-// ─── TAB: EPP y Tallas ───────────────────────────────────────
-// Tallas extendidas según Ricardo v6 (ropa, calzado, guante, casco, arnés, respirador, pantalón)
-function TabEPP({ t, saving, onChange, onSave, eppDeliveries }) {
+// ─── TAB: EPP ────────────────────────────────────────────────
+function TabEPP({ t, saving, onChange, onSave }) {
   const epp = t.epp || {}
   const fields = [
-    ['ropa',        'Ropa / Polera',         'XS a 5XL'],
-    ['pantalon',    'Pantalón',              'Talla o número'],
-    ['calzado',     'Calzado',               'Número'],
-    ['guante',      'Guante / contorno mano','Talla o cm'],
-    ['casco',       'Casco / contorno cabeza','Talla o cm'],
-    ['arnes',       'Arnés / estatura / peso','Talla, cm y kg'],
-    ['respirador',  'Respirador / fit test', 'Talla y fecha fit test'],
+    ['casco',    'Casco',              'M / 56 cm'],
+    ['polera',   'Polera / Camisa',    'L / XL'],
+    ['pantalon', 'Pantalón',           '44 / 46'],
+    ['zapato',   'Zapato de seguridad','42 / 43'],
+    ['guantes',  'Guantes',            'M / L'],
+    ['chaqueta', 'Chaqueta / Parka',   'L / XL'],
   ]
-
-  const entregas = eppDeliveries.filter(d => d.workerId === t.id)
-    .sort((a,b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
-
   return (
-    <div>
-      {/* Tallas */}
-      <CardSection
-        title="Tallas y medidas personales"
-        subtitle="Confirmar físicamente antes de entregar. No asumir talla solo por cargo."
-        action={<BTN_SAVE saving={saving} onClick={onSave} />}
-      >
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-          {fields.map(([key, label, ph]) => (
-            <Field key={key} label={label}>
-              <input
-                value={epp[key]||''}
-                onChange={e => onChange('epp', { ...epp, [key]: e.target.value })}
-                style={INPUT_BASE}
-                placeholder={ph}
-              />
-            </Field>
-          ))}
-        </div>
-      </CardSection>
-
-      {/* Historial de entregas individuales — nuevo vs versión anterior */}
-      <div style={{ background:T.surf, border:`1px solid ${T.line}`, borderRadius:12, overflow:'hidden' }}>
-        <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.line}` }}>
-          <p style={{ fontSize:13, fontWeight:700, color:T.ink, margin:0 }}>Historial de entregas EPP</p>
-          <p style={{ fontSize:11, color:T.sub, margin:'2px 0 0' }}>Registro de cada entrega con marca, certificación y fecha de reposición</p>
-        </div>
-        {entregas.length === 0 ? (
-          <div style={{ padding:32, textAlign:'center', color:T.sub, fontSize:13 }}>
-            <IconShield size={28} strokeWidth={1.3} style={{ display:'block', margin:'0 auto 8px', color:T.line }} />
-            Sin entregas registradas
-          </div>
-        ) : (
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-            <thead>
-              <tr style={{ background:T.graph }}>
-                {['Fecha','EPP','Talla','Marca / Certificación','Reposición'].map(h => (
-                  <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'#fff', fontWeight:600, fontSize:11 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {entregas.map((d, i) => (
-                <tr key={d.id||i} style={{ background: i%2===0 ? T.surf : T.surf2 }}>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{d.deliveredAt||'—'}</td>
-                  <td style={{ padding:'8px 12px', fontWeight:600, color:T.ink }}>{d.itemName||'—'}</td>
-                  <td style={{ padding:'8px 12px', color:T.ink }}>{d.size||'—'}</td>
-                  <td style={{ padding:'8px 12px' }}>
-                    <p style={{ margin:0, color:T.ink }}>{d.brandModel||'—'}</p>
-                    <p style={{ margin:'2px 0 0', fontSize:11, color:T.sub }}>{d.certification||'Sin certificado registrado'}</p>
-                  </td>
-                  <td style={{ padding:'8px 12px', color:T.mut }}>{d.replaceAt||'Según inspección'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+    <CardSection
+      title="Tallas de EPP"
+      subtitle="Para la gestión de entrega de equipos de protección personal"
+      action={
+        <button onClick={onSave} disabled={saving} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', border:'none', borderRadius:8, background:T.pri, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+          {saving ? <IconLoader2 size={13} className="animate-spin" /> : <IconDeviceFloppy size={13} strokeWidth={2} />}
+          Guardar
+        </button>
+      }
+    >
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        {fields.map(([key,label,ph])=>(
+          <Field key={key} label={label}>
+            <input
+              value={epp[key]||''}
+              onChange={e => onChange('epp', { ...epp, [key]: e.target.value })}
+              style={INPUT_BASE}
+              placeholder={ph}
+            />
+          </Field>
+        ))}
       </div>
-    </div>
+    </CardSection>
   )
 }
 
 // ─── TAB: Historial ──────────────────────────────────────────
-function TabHistorial({ t, proyectos, clientes, asignacionesHistorial }) {
+function TabHistorial({ t }) {
   const asigs = t._asignaciones || []
-
-  function proyectoNombre(mantId) {
-    return proyectos.find(m => m.id === mantId)?.nombre || mantId
-  }
-  function clienteDeProyecto(mantId) {
-    const p = proyectos.find(m => m.id === mantId)
-    return clientes.find(c => c.id === p?.minaId)?.nombre || '—'
-  }
-
   return (
     <div style={{ background:T.surf, border:`1px solid ${T.line}`, borderRadius:12, overflow:'hidden' }}>
       <div style={{ padding:'12px 16px', borderBottom:`1px solid ${T.line}` }}>
         <p style={{ fontSize:13, fontWeight:700, color:T.ink, margin:0 }}>Historial operativo</p>
-        <p style={{ fontSize:11, color:T.sub, margin:'2px 0 0' }}>Proyectos y servicios en los que ha participado</p>
       </div>
       {asigs.length === 0 ? (
         <div style={{ padding:32, textAlign:'center', color:T.sub, fontSize:13 }}>
           <IconHistory size={28} strokeWidth={1.3} style={{ display:'block', margin:'0 auto 8px', color:T.line }} />
           Sin proyectos en el historial
         </div>
-      ) : (
-        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
-          <thead>
-            <tr style={{ background:T.graph }}>
-              {['Proyecto / Servicio','Cliente','Turno','Estado'].map(h => (
-                <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'#fff', fontWeight:600, fontSize:11 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {asigs.map((a, i) => (
-              <tr key={a.id||i} style={{ background: i%2===0 ? T.surf : T.surf2 }}>
-                <td style={{ padding:'8px 12px', fontWeight:600, color:T.ink }}>{proyectoNombre(a.mantId)}</td>
-                <td style={{ padding:'8px 12px', color:T.mut }}>{clienteDeProyecto(a.mantId)}</td>
-                <td style={{ padding:'8px 12px', color:T.mut }}>{a.turno||'—'}</td>
-                <td style={{ padding:'8px 12px' }}>
-                  <Badge
-                    label={a.estado||'activo'}
-                    bg={a.estado==='confirmado'?T.okBg:a.estado==='preasignado'?T.warnBg:'#E3E3F0'}
-                    color={a.estado==='confirmado'?T.ok:a.estado==='preasignado'?T.warn:T.pri}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      ) : asigs.map((a,i)=>(
+        <div key={i} style={{ padding:'12px 16px', borderBottom:`1px solid ${T.line}` }}>
+          <p style={{ fontSize:13, fontWeight:600, color:T.ink, margin:'0 0 3px' }}>{a.mantId}</p>
+          <p style={{ fontSize:11, color:T.sub, margin:0 }}>
+            {a.inicio||'?'} → {a.termino||'?'} · Turno: {a.turno||'—'} · Estado: {a.estado||'—'}
+          </p>
+        </div>
+      ))}
     </div>
   )
 }
 
-// ─── TABS CONFIG ─────────────────────────────────────────────
+// ─── Tabs config ─────────────────────────────────────────────
 const TABS = [
   { key:'datos',    label:'Datos personales',  icon:IconUser },
   { key:'docs',     label:'Documentos',        icon:IconFileText },
   { key:'cursos',   label:'Cursos y exámenes', icon:IconBook },
-  { key:'epp',      label:'EPP y Tallas',      icon:IconShield },
+  { key:'epp',      label:'EPP',               icon:IconShield },
   { key:'historial',label:'Historial',         icon:IconHistory },
 ]
 
-// ─── PÁGINA PRINCIPAL ─────────────────────────────────────────
+// ─── página principal ─────────────────────────────────────────
 export default function FichaTrabajadorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [stateData,   setStateData]   = useState(null)
-  const [trabajador,  setTrabajador]  = useState(null)
-  const [asignaciones, setAsignaciones] = useState([])
-  const [tab,         setTab]         = useState('datos')
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState(null)
-  const [ok,          setOk]          = useState(null)
+  const [stateData, setStateData]   = useState(null)
+  const [trabajador, setTrabajador] = useState(null)
+  const [tab, setTab]               = useState('datos')
+  const [saving, setSaving]         = useState(false)
+  const [error, setError]           = useState(null)
+  const [ok, setOk]                 = useState(null)
 
   useEffect(() => {
     api.get('/state').then(r => {
       const s = r?.state || r
       setStateData(s)
-      const t = (s?.trabajadores||[]).find(w => w.id === id)
+      const t = (s?.trabajadores||[]).find(w=>w.id===id)
       if (t) {
-        const asigs    = (s?.asignaciones||[]).filter(a => a.trabId === id)
-        const hotelAsig = (s?.hotelAsig||[]).filter(h => h.trabId === id).map(h => {
-          const hotel = (s?.hoteles||[]).find(ho => ho.id === h.hotelId)
-          const mant  = (s?.mantenciones||[]).find(m => m.id === h.mantId)
-          return { ...h, hotelNombre: hotel?.nombre, mantNombre: mant?.nombre }
-        })
-        setTrabajador({ ...t, _asignaciones: asigs, _hotelAsig: hotelAsig })
-        setAsignaciones(s?.asignaciones || [])
+        const asigs = (s?.asignaciones||[]).filter(a=>a.trabId===id)
+        setTrabajador({ ...t, _asignaciones: asigs })
       }
     })
   }, [id])
@@ -748,50 +568,13 @@ export default function FichaTrabajadorPage() {
   function onChange(field, value) {
     setTrabajador(t => ({ ...t, [field]: value }))
   }
+
   function handleAddDoc(doc) {
     setTrabajador(t => ({ ...t, workerItems: [...(t.workerItems||[]), doc] }))
   }
+
   function handleDelDoc(idx) {
-    setTrabajador(t => ({ ...t, workerItems: (t.workerItems||[]).filter((_,i) => i !== idx) }))
-  }
-
-  // Asignar trabajador a proyecto
-  function handleAsignar(mantId, turno) {
-    if (!mantId) return
-    const ya = asignaciones.some(a => a.trabId === id && a.mantId === mantId)
-    if (ya) { setError('Ya está asignado a ese proyecto'); return }
-    const nueva = { id:`asig_${Date.now()}`, mantId, trabId: id, turno, estado:'confirmado' }
-    const nuevasAsigs = [...asignaciones, nueva]
-    setAsignaciones(nuevasAsigs)
-    setTrabajador(t => ({ ...t, _asignaciones: nuevasAsigs.filter(a => a.trabId === id), disponibilidad:'asignado' }))
-    guardarAsignaciones(nuevasAsigs)
-  }
-
-  // Retirar trabajador de proyecto
-  function handleRetirar(mantId) {
-    const nuevasAsigs = asignaciones.filter(a => !(a.trabId === id && a.mantId === mantId))
-    const sigueAsignado = nuevasAsigs.some(a => a.trabId === id)
-    setAsignaciones(nuevasAsigs)
-    setTrabajador(t => ({
-      ...t,
-      _asignaciones: nuevasAsigs.filter(a => a.trabId === id),
-      disponibilidad: sigueAsignado ? 'asignado' : 'disponible',
-    }))
-    guardarAsignaciones(nuevasAsigs)
-  }
-
-  async function guardarAsignaciones(nuevasAsigs) {
-    try {
-      const r = await api.get('/state')
-      const s = r?.state || r
-      const version = r?.moduleVersions?.asignaciones ?? 0
-      await api.put('/state/modules', {
-        reason: `Asignaciones actualizadas para ${trabajador?.nombre}`,
-        changes: { asignaciones: { version, data: nuevasAsigs } },
-      })
-    } catch(e) {
-      setError('Error al guardar asignación')
-    }
+    setTrabajador(t => ({ ...t, workerItems: (t.workerItems||[]).filter((_,i)=>i!==idx) }))
   }
 
   async function handleSave() {
@@ -800,14 +583,14 @@ export default function FichaTrabajadorPage() {
       const r = await api.get('/state')
       const s = r?.state || r
       const version = r?.moduleVersions?.trabajadores ?? 0
-      const { _asignaciones, _hotelAsig, ...tClean } = trabajador
+      const { _asignaciones, ...tClean } = trabajador
       const lista = (s?.trabajadores||[]).map(t => t.id===id ? tClean : t)
       await api.put('/state/modules', {
         reason: `Actualización ficha ${trabajador.nombre}`,
         changes: { trabajadores: { version, data: lista } },
       })
       setOk('Cambios guardados correctamente')
-      setTimeout(() => setOk(null), 2500)
+      setTimeout(()=>setOk(null), 2500)
     } catch(e) {
       setError(e.message||'Error al guardar')
     } finally {
@@ -817,11 +600,7 @@ export default function FichaTrabajadorPage() {
 
   if (!stateData) return (
     <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:T.bg }}>
-      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10 }}>
-        <div style={{ width:28, height:28, border:`2.5px solid ${T.pri}`, borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <p style={{ color:T.sub, fontSize:13 }}>Cargando ficha…</p>
-      </div>
+      <p style={{ color:T.sub, fontSize:13 }}>Cargando…</p>
     </div>
   )
   if (!trabajador) return (
@@ -830,16 +609,14 @@ export default function FichaTrabajadorPage() {
     </div>
   )
 
-  const pct       = acreditacionPct(trabajador)
-  const clientes  = stateData?.minas         || []
-  const proyectos = stateData?.mantenciones  || []
-  const contratos = stateData?.contratos     || []
-  const eppDeliveries = stateData?.eppDeliveries || []
+  const pct      = acreditacionPct(trabajador)
+  const clientes = stateData?.minas || []
+  const proyectos= stateData?.mantenciones || []
 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', background:T.bg, overflow:'hidden' }}>
 
-      {/* ── HEADER ── */}
+      {/* ── header ── */}
       <div style={{ background:T.surf, borderBottom:`1px solid ${T.line}`, padding:'14px 20px 0' }}>
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
 
@@ -862,18 +639,15 @@ export default function FichaTrabajadorPage() {
           </div>
 
           {/* badges + WhatsApp */}
-          <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <BadgeDisp disp={trabajador.disponibilidad} />
             <span style={{ fontSize:11, fontWeight:700, padding:'3px 10px', borderRadius:99, background:pct>=85?T.okBg:pct>=60?T.warnBg:T.errBg, color:pct>=85?T.ok:pct>=60?T.warn:T.err }}>
               {pct}% acreditado
             </span>
-            {/* WhatsApp directo — agregado según Ricardo v6 ficha-wa-btn */}
             {trabajador.tel && (
-              <a
-                href={`https://wa.me/${(trabajador.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${trabajador.nombre.split(' ')[0]}, le contacta el equipo de operaciones.`)}`}
+              <a href={`https://wa.me/${(trabajador.tel||'').replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${trabajador.nombre.split(' ')[0]}, le contacta Nexo Klar.`)}`}
                 target="_blank" rel="noopener noreferrer"
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, background:'#25D366', color:'#fff', fontSize:12, fontWeight:700, textDecoration:'none' }}
-              >
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:8, background:'#25D366', color:'#fff', fontSize:12, fontWeight:700, textDecoration:'none' }}>
                 <IconBrandWhatsapp size={14} strokeWidth={2} />
                 WhatsApp
               </a>
@@ -887,11 +661,11 @@ export default function FichaTrabajadorPage() {
         </div>
 
         {/* tabs */}
-        <div style={{ display:'flex', overflowX:'auto' }}>
+        <div style={{ display:'flex' }}>
           {TABS.map(({ key, label, icon:Icon }) => (
             <button key={key} onClick={()=>setTab(key)} style={{
               display:'flex', alignItems:'center', gap:6, padding:'8px 14px',
-              border:'none', background:'transparent', fontSize:12, whiteSpace:'nowrap',
+              border:'none', background:'transparent', fontSize:12,
               fontWeight:tab===key?700:500, color:tab===key?T.pri:T.mut,
               borderBottom:tab===key?`2px solid ${T.pri}`:'2px solid transparent',
               marginBottom:-1, cursor:'pointer',
@@ -908,32 +682,16 @@ export default function FichaTrabajadorPage() {
         <div style={{ padding:'10px 20px', background:error?T.errBg:T.okBg, borderBottom:`1px solid ${error?'#F5C4C2':T.line}`, display:'flex', alignItems:'center', gap:8 }}>
           {error ? <IconAlertTriangle size={14} style={{ color:T.err }} /> : <IconCheck size={14} style={{ color:T.ok }} />}
           <p style={{ fontSize:13, color:error?T.err:T.ok, margin:0 }}>{error||ok}</p>
-          <button onClick={()=>{setError(null);setOk(null)}} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:error?T.err:T.ok }}>
-            <IconX size={14} />
-          </button>
         </div>
       )}
 
       {/* contenido tab */}
       <div style={{ flex:1, overflow:'auto', padding:20 }}>
-        {tab==='datos'     && (
-          <TabDatos
-            t={trabajador}
-            clientes={clientes}
-            proyectos={proyectos}
-            contratos={contratos}
-            asignaciones={asignaciones}
-            saving={saving}
-            onChange={onChange}
-            onSave={handleSave}
-            onAsignar={handleAsignar}
-            onRetirar={handleRetirar}
-          />
-        )}
-        {tab==='docs'      && <TabDocs t={trabajador} tabKey="docs"   onAddDoc={handleAddDoc} onDelDoc={handleDelDoc} />}
-        {tab==='cursos'    && <TabDocs t={trabajador} tabKey="cursos" onAddDoc={handleAddDoc} onDelDoc={handleDelDoc} />}
-        {tab==='epp'       && <TabEPP  t={trabajador} saving={saving} onChange={onChange} onSave={handleSave} eppDeliveries={eppDeliveries} />}
-        {tab==='historial' && <TabHistorial t={trabajador} proyectos={proyectos} clientes={clientes} />}
+        {tab==='datos'    && <TabDatos      t={trabajador} clientes={clientes} proyectos={proyectos} saving={saving} onChange={onChange} onSave={handleSave} />}
+        {tab==='docs'     && <TabDocs       t={trabajador} tabKey="docs"   onAddDoc={handleAddDoc} onDelDoc={handleDelDoc} />}
+        {tab==='cursos'   && <TabDocs       t={trabajador} tabKey="cursos" onAddDoc={handleAddDoc} onDelDoc={handleDelDoc} />}
+        {tab==='epp'      && <TabEPP        t={trabajador} saving={saving} onChange={onChange} onSave={handleSave} />}
+        {tab==='historial'&& <TabHistorial  t={trabajador} />}
       </div>
     </div>
   )

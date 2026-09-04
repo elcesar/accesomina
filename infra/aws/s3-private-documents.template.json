@@ -1,0 +1,28 @@
+{
+  "bucket": "nexo-klar-prod-private-documents",
+  "publicAccessBlock": {
+    "blockPublicAcls": true,
+    "ignorePublicAcls": true,
+    "blockPublicPolicy": true,
+    "restrictPublicBuckets": true
+  },
+  "encryption": {
+    "algorithm": "aws:kms",
+    "kmsKeyAlias": "alias/nexo-klar-documents"
+  },
+  "versioning": "Enabled",
+  "lifecycle": [
+    {
+      "id": "archive-previous-document-versions",
+      "status": "Enabled",
+      "noncurrentVersionTransitions": [{ "days": 90, "storageClass": "GLACIER_IR" }],
+      "noncurrentVersionExpirationDays": 2555
+    },
+    {
+      "id": "abort-incomplete-uploads",
+      "status": "Enabled",
+      "abortIncompleteMultipartUploadDays": 7
+    }
+  ],
+  "access": "Only the ECS application role and approved recovery role. No public ACL, public policy or anonymous download is allowed."
+}

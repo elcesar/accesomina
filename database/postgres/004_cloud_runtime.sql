@@ -1,4 +1,4 @@
--- AccesoMina V7 cloud runtime: authentication, versioned state, files and integrations.
+-- Nexo Klar V7 cloud runtime: authentication, versioned state, files and integrations.
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS password_salt TEXT;
 ALTER TABLE app_users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER NOT NULL DEFAULT 0;

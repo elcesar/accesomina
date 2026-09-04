@@ -6,15 +6,50 @@ const errors=[],warnings=[];
 const read=file=>fs.readFileSync(file,'utf8');
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 const local=read('AccesoMina_v6.html'),publicHtml=read('public/index.html');
+const localUi=`${local}\n${read('assets/nexo-klar-enterprise.js')}`;
+const publicUi=`${publicHtml}\n${read('public/assets/nexo-klar-enterprise.js')}`;
 
 if(hash(local)!==hash(publicHtml))errors.push('AccesoMina_v6.html and public/index.html are not synchronized');
+if(hash(read('assets/nexo-klar-enterprise.js'))!==hash(read('public/assets/nexo-klar-enterprise.js')))errors.push('Enterprise UI assets are not synchronized');
+const requiredCapabilities=[
+  'Panel General','Alertas','Centro Operativo','Libro de Obra',
+  'Prospectos y oportunidades','Clientes','Contratos y Firmas','Órdenes de Servicio','Terceros y subcontratos',
+  'Personas','Turnos y asistencia','Protección personal / EPP','Formación y certificaciones','Exámenes y aptitudes','Restringidos',
+  'Comunicaciones y convocatorias','Vehículos, activos y equipos','Alojamientos y Estadías','Credenciales',
+  'Documentación de la Empresa','Habilitación del Cliente','Incidentes y no conformidades','Auditoría',
+  'Reportes y analítica','Configuración Empresa','Importar / Exportar','Usuarios y Permisos','Bitácora de Cambios','Privacidad y Datos',
+  'Precalificación y seguimiento','Descontar EPP de la bodega','Reserva para orden de servicio','Solicitar reposición',
+  'saveAssetReturnV150','saveEppDelivery=async function','saveAssetReservationV152','saveReplenishmentV152',
+  'Órdenes y desempeño operativo','Asignar a orden','F30-1 sin período acreditado',
+  'saveContractorOrderV153','installF301PeriodV153',
+  'Control de existencias','Conteo físico','Recibir reposición','Buscar código',
+  'saveInventoryCountV154','saveInventoryReceiptV154','findInventoryCodeV154',
+  'ASSET_AREA_LABELS_V155','syncAssetNavigationV155','Estás en',
+  'openInventoryLocationV156','saveInventoryLocationV156','Ubicaciones internas',
+  'v156-item-lot','v156-item-expiry',
+  "openAssetsWorkspaceV146('epp')",'EPP y protección personal','openInventoryItemModalV157Base',
+  'injectEppInventoryHubV158','injectEppOperationGuideV158','Control de EPP por bodega','openEppMovementV158','saveEppMovementV158','hideOperationalEppEntryV158',
+  'injectAssignmentsWorkspaceV159','openAssetAssignmentV159','saveAssetAssignmentV159','Asignaciones y préstamos',
+  'Personas con antecedentes por gestionar','Cada persona aparece una sola vez','Regularizar documento'
+];
+for(const capability of requiredCapabilities){
+  if(!localUi.includes(capability))errors.push(`Local frontend is missing required capability: ${capability}`);
+  if(!publicUi.includes(capability))errors.push(`Production frontend is missing required capability: ${capability}`);
+}
 for(const [file,html] of [['AccesoMina_v6.html',local],['public/index.html',publicHtml]]){
   const scripts=[...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)].map(match=>match[1]);
   scripts.forEach((source,index)=>{try{new Function(source);}catch(error){errors.push(`${file} inline script ${index}: ${error.message}`);}});
 }
 const pkg=JSON.parse(read('package.json'));
 if(pkg.name!=='nexo-klar-cloud')errors.push('package name is not normalized to nexo-klar-cloud');
-const task=JSON.parse(read('infra/aws/ecs-task-definition.json'));
+const taskDefinitionPath=process.env.ECS_TASK_DEFINITION_PATH||'infra/aws/ecs-task-definition.json';
+let task={};
+if(!fs.existsSync(taskDefinitionPath)){
+  errors.push(`ECS task definition does not exist: ${taskDefinitionPath}`);
+}else{
+  try{task=JSON.parse(read(taskDefinitionPath));}
+  catch(error){errors.push(`ECS task definition is not valid JSON: ${error.message}`);}
+}
 const taskText=JSON.stringify(task);
 const placeholders=[...taskText.matchAll(/<[^>]+>/g)].map(match=>match[0]);
 if(placeholders.length)(strict?errors:warnings).push(`AWS task definition has unresolved placeholders: ${[...new Set(placeholders)].join(', ')}`);

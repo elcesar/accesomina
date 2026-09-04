@@ -10,7 +10,7 @@ test('all PostgreSQL migrations apply in order', async () => {
   for(const file of files) {const sql=(await fs.readFile(path.join(dir,file),'utf8')).replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/g,'');await db.exec(sql);}
   const tables=await db.query("SELECT tablename FROM pg_tables WHERE schemaname='public'");
   const names=new Set(tables.rows.map(r=>r.tablename));
-  for(const required of ['tenants','app_users','tenant_state','tenant_module_state','tenant_settings','tenant_integrations','user_sessions','file_objects','integration_events','audit_log','privacy_processing_activities','privacy_rights_requests','privacy_consents','privacy_incidents'])assert.equal(names.has(required),true,`missing ${required}`);
+  for(const required of ['tenants','app_users','tenant_state','tenant_module_state','tenant_settings','tenant_integrations','user_sessions','file_objects','integration_events','audit_log','privacy_processing_activities','privacy_rights_requests','privacy_consents','privacy_incidents','work_books','work_book_entries','work_book_entry_history','work_book_entry_approvals','tenant_commercial_profiles','tenant_support_tickets'])assert.equal(names.has(required),true,`missing ${required}`);
   const trigger=await db.query("SELECT tgname FROM pg_trigger WHERE tgname='trg_audit_immutable'");assert.equal(trigger.rows.length,1);
   const tenant=await db.query('SELECT id FROM tenants LIMIT 1');
   await db.exec('BEGIN');await db.query("SELECT set_config('app.current_tenant_id',$1,true)",[tenant.rows[0].id]);

@@ -1,4 +1,4 @@
-# Despliegue AWS propuesto para AccesoMina Domian
+# Despliegue AWS propuesto para Nexo Klar
 
 ## Arquitectura recomendada
 

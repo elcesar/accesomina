@@ -28,7 +28,7 @@ TENANT_SECRET_KEY=<secreto aleatorio de al menos 32 caracteres>
 
 1. El usuario ingresa RUT de empresa, correo y contrasena.
 2. Si todavia no tiene MFA, el sistema entrega una clave manual de enrolamiento.
-3. El usuario agrega Domian Nexo en su aplicacion autenticadora.
+3. El usuario agrega Nexo Klar en su aplicacion autenticadora.
 4. Confirma el codigo de seis digitos.
 5. Guarda los codigos de recuperacion en un lugar seguro.
 6. La sesion queda habilitada para acceder a los modulos privados.

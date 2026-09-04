@@ -1,0 +1,63 @@
+{
+  "family": "nexo-klar-prod",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::123456789012:role/nexo-klar-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/nexo-klar-app-role",
+  "containerDefinitions": [
+    {
+      "name": "nexo-klar-api",
+      "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/nexo-klar:preflight",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8088,
+          "hostPort": 8088,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "8088" },
+        { "name": "APP_ORIGIN", "value": "https://app.nexoklar.cl" },
+        { "name": "REGISTRATION_ENABLED", "value": "false" },
+        { "name": "MFA_REQUIRED", "value": "true" },
+        { "name": "COOKIE_SECURE", "value": "true" },
+        { "name": "FILE_STORAGE", "value": "s3" },
+        { "name": "AWS_REGION", "value": "us-east-1" },
+        { "name": "AWS_S3_BUCKET", "value": "nexo-klar-prod-private-documents" },
+        { "name": "RUN_MIGRATIONS_ON_START", "value": "false" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/database-url" },
+        { "name": "TENANT_SECRET_KEY", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/tenant-secret-key" },
+        { "name": "METRICS_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/metrics-token" },
+        { "name": "REGISTRATION_INVITE_CODE", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/registration-invite-code" },
+        { "name": "VIRUS_SCAN_API_URL", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/virus-scan-url" },
+        { "name": "VIRUS_SCAN_API_TOKEN", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/virus-scan-token" },
+        { "name": "VIRUS_SCAN_HEALTH_URL", "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:nexo-klar/prod/virus-scan-health-url" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/nexo-klar-prod",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "api"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:8088/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 30
+      }
+    }
+  ]
+}
+

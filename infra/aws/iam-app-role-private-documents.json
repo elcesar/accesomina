@@ -1,0 +1,32 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PrivateDocumentsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::nexo-klar-prod-private-documents",
+        "arn:aws:s3:::nexo-klar-prod-private-documents/*"
+      ]
+    },
+    {
+      "Sid": "ReadProductionSecrets",
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue"],
+      "Resource": "arn:aws:secretsmanager:us-east-1:<account-id>:secret:nexo-klar/prod/*"
+    },
+    {
+      "Sid": "WriteApplicationLogs",
+      "Effect": "Allow",
+      "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:us-east-1:<account-id>:log-group:/ecs/nexo-klar-prod:*"
+    }
+  ]
+}

@@ -27,7 +27,7 @@ export const config = Object.freeze({
   smtp: {
     host: process.env.SMTP_HOST || '', port: Number(process.env.SMTP_PORT || 587),
     secure: process.env.SMTP_SECURE === 'true', user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || '', from: process.env.EMAIL_FROM || 'Nexo Klar <no-reply@nexoklar.com>'
+    pass: process.env.SMTP_PASS || '', from: process.env.EMAIL_FROM || 'Nexo Klar <no-reply@nexoklar.cl>'
   },
   whatsapp: {
     version: process.env.WHATSAPP_GRAPH_VERSION || 'v23.0',
@@ -35,7 +35,7 @@ export const config = Object.freeze({
     token: process.env.WHATSAPP_ACCESS_TOKEN || ''
   },
   integrations: {
-    signature: { url: process.env.SIGNATURE_API_URL || '', token: process.env.SIGNATURE_API_TOKEN || '' },
+    signature: { url: process.env.SIGNATURE_API_URL || '', token: process.env.SIGNATURE_API_TOKEN || '', webhookSecret: process.env.SIGNATURE_WEBHOOK_SECRET || '' },
     erp: { url: process.env.ERP_WEBHOOK_URL || '', token: process.env.ERP_WEBHOOK_TOKEN || '' },
     accreditation: { url: process.env.ACCREDITATION_WEBHOOK_URL || '', token: process.env.ACCREDITATION_WEBHOOK_TOKEN || '' }
   }

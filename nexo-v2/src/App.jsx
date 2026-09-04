@@ -3,11 +3,13 @@ import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
 import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
+import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
 import FichaTrabajadorPage from './pages/FichaTrabajadorPage.jsx'
-import TurnosPage from './pages/TurnosPage.jsx'
+import ModuleWorkspacePage from './pages/ModuleWorkspacePage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -48,14 +50,16 @@ export default function App() {
           <Route path="/app" element={
             <ProtectedRoute><AppLayout /></ProtectedRoute>
           }>
+            <Route index element={<DashboardPage />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
+            <Route path="contratos" element={<ContratosPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
-            <Route path="turnos" element={<TurnosPage />} />
+            <Route path="modulos/:modulePath" element={<ModuleWorkspacePage />} />
+            <Route path=":modulePath" element={<ModuleWorkspacePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
-          
           {/* Catch all */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

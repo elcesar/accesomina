@@ -1,0 +1,140 @@
+/* Nexo Klar Design System v1.0
+   Applies the approved Indigo + Electric Teal visual identity to both surfaces. */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --nk-base:#f4efe3;
+  --nk-surface:#ffffff;
+  --nk-surface-alt:#fbf9f5;
+  --nk-line:#e3ded2;
+  --nk-ink:#141a20;
+  --nk-ink-muted:#5d6b7a;
+  --nk-ink-subtle:#8a96a1;
+  --nk-primary:#2a2a8c;
+  --nk-primary-deep:#1a1a5e;
+  --nk-support:#26313a;
+  --nk-accent:#00cfc1;
+  --nk-accent-ink:#00706a;
+  --nk-neutral:#c7d0d6;
+  --nk-ok:#1b7f4b;
+  --nk-warn:#c77700;
+  --nk-danger:#b3261e;
+  --nk-alert:#ff5a3c;
+}
+
+html, body, button, input, select, textarea { font-family:var(--font-sans); }
+body { background:var(--bg); color:var(--text); font-weight:500; }
+h1, h2, h3, h4, h5, h6, .section-title, .card-title, .modal-title, .topbar-title { font-weight:800; letter-spacing:0; }
+.form-label, th, .badge, .chip, .tag, .nav-group-label { font-weight:700; }
+
+/* Shared private workspace semantics. */
+body.private .btn-primary { background:var(--nk-primary); color:#fff; }
+body.private .btn-primary:hover { background:var(--nk-primary-deep); }
+body.private .btn-primary:focus-visible { outline:3px solid var(--nk-accent); outline-offset:2px; }
+body.private .btn-blue { background:rgba(0,207,193,.14); border-color:rgba(0,112,106,.35); color:var(--nk-accent-ink); }
+body.private .btn-success { background:#e6f2eb; border-color:rgba(27,127,75,.32); color:var(--nk-ok); }
+body.private .btn-danger { background:#fbe8e6; border-color:rgba(179,38,30,.28); color:var(--nk-danger); }
+body.private .btn-secondary { background:var(--nk-surface-alt); border-color:var(--nk-line); }
+body.private .btn-ghost { border-color:var(--nk-line); }
+body.private .nav-item.active { background:rgba(42,42,140,.09); border-left-color:var(--nk-primary); color:var(--nk-primary); }
+body.private .nav-item:hover { background:var(--nk-surface-alt); }
+body.private .nav-badge { background:var(--nk-danger); }
+body.private .nav-badge-orange { background:var(--nk-primary); }
+body.private .badge-blue { background:rgba(0,207,193,.14); color:var(--nk-accent-ink); }
+body.private .badge-orange { background:rgba(42,42,140,.10); color:var(--nk-primary); }
+body.private .badge-ok { background:#e6f2eb; color:var(--nk-ok); }
+body.private .badge-warn { background:#fbf1df; color:var(--nk-warn); }
+body.private .badge-err { background:#fbe8e6; color:var(--nk-danger); }
+body.private .kpi-orange::before { background:var(--nk-primary); }
+body.private .kpi-blue::before { background:var(--nk-accent-ink); }
+body.private .kpi-green::before { background:var(--nk-ok); }
+body.private .kpi-red::before { background:var(--nk-danger); }
+body.private .kpi-yellow::before { background:var(--nk-warn); }
+body.private .tab-btn.active { color:var(--nk-primary); border-bottom-color:var(--nk-accent); }
+body.private .form-input:focus,
+body.private .form-select:focus,
+body.private .form-textarea:focus,
+body.private .filter-input:focus,
+body.private .filter-select:focus { border-color:var(--nk-accent-ink); box-shadow:0 0 0 3px rgba(0,207,193,.28); }
+body.private .section-title,
+body.private .card-title { letter-spacing:0; }
+body.private .table-wrap { border-color:var(--nk-line); }
+body.private .table-wrap table thead th { background:var(--nk-support); color:#fff; }
+body.private table tbody tr:hover td { background:var(--nk-surface-alt); }
+body.private .modal { border:1px solid var(--nk-line); }
+body.private .modal-header { background:var(--nk-surface-alt); border-bottom-color:var(--nk-line); }
+body.private .modal-footer { border-top-color:var(--nk-line); background:var(--nk-surface-alt); }
+body.private .toast.success { border-left-color:var(--nk-ok); }
+body.private .toast.warn { border-left-color:var(--nk-warn); }
+body.private .toast.error { border-left-color:var(--nk-danger); }
+
+/* Public site uses the same typography, surfaces and interaction colors. */
+.public-shell { background:var(--nk-base); color:var(--nk-ink); }
+.public-shell .public-band,
+.public-shell .public-hero,
+.public-shell .audience-strip { background:var(--nk-base); }
+.public-shell .public-heading,
+.public-shell .hero-title,
+.public-shell h1,
+.public-shell h2,
+.public-shell h3 { color:var(--nk-ink); font-weight:800; letter-spacing:0; }
+.public-shell .public-lead,
+.public-shell .hero-copy,
+.public-shell p { color:var(--nk-ink-muted); font-weight:500; }
+.public-shell .public-eyebrow,
+.public-shell .hero-kicker { color:var(--nk-accent-ink); }
+.public-shell .btn-primary,
+.public-shell .public-access-button { background:var(--nk-primary); color:#fff; }
+.public-shell .btn-primary:hover,
+.public-shell .public-access-button:hover { background:var(--nk-primary-deep); }
+.public-shell .btn-secondary,
+.public-shell .btn-ghost { border-color:var(--nk-line); color:var(--nk-primary); background:var(--nk-surface); }
+.public-shell .public-progress-nav { background:rgba(255,255,255,.96); border-color:var(--nk-line); }
+.public-shell .public-progress-nav a { color:var(--nk-ink-muted); }
+.public-shell .public-progress-nav a.active,
+.public-shell .public-progress-nav a:hover { background:var(--nk-primary); color:#fff; }
+.public-shell .capability,
+.public-shell .industry-card,
+.public-shell .outcome-card,
+.public-shell .step,
+.public-shell .purpose-statement,
+.public-shell .purpose-value,
+.public-shell .access-panel { background:var(--nk-surface); border-color:var(--nk-line); }
+.public-shell .industry-card small,
+.public-shell .purpose-statement small { color:var(--nk-accent-ink); }
+.public-shell .purpose-value { border-left-color:var(--nk-accent); }
+.public-shell .capability-icon { background:rgba(0,207,193,.14)!important; border-color:rgba(0,112,106,.25)!important; color:var(--nk-accent-ink)!important; }
+.public-shell .logo-mark { background:var(--nk-primary); box-shadow:0 12px 34px rgba(0,207,193,.20); }
+.public-shell .product-menu span.active { background:rgba(42,42,140,.08); color:var(--nk-primary); border-left-color:var(--nk-accent); }
+.public-shell .product-view,
+.public-shell .real-product-shot { border-color:var(--nk-line); }
+
+/* Dark mode follows the approved indigo-night version. */
+body.dark { color-scheme:dark; }
+body.dark .public-shell,
+body.dark .public-shell .public-band,
+body.dark .public-shell .public-hero,
+body.dark .public-shell .audience-strip { background:#12123a; }
+body.dark .public-shell .public-heading,
+body.dark .public-shell .hero-title,
+body.dark .public-shell h1,
+body.dark .public-shell h2,
+body.dark .public-shell h3 { color:#ededfa; }
+body.dark .public-shell .public-lead,
+body.dark .public-shell .hero-copy,
+body.dark .public-shell p { color:#c7d0d6; }
+body.dark .public-shell .capability,
+body.dark .public-shell .industry-card,
+body.dark .public-shell .outcome-card,
+body.dark .public-shell .step,
+body.dark .public-shell .purpose-statement,
+body.dark .public-shell .purpose-value,
+body.dark .public-shell .access-panel { background:#1a1a4d; border-color:#2c2c6b; }
+body.dark .public-shell .public-progress-nav { background:rgba(26,26,77,.96); border-color:#2c2c6b; }
+body.dark .public-shell .btn-secondary,
+body.dark .public-shell .btn-ghost { background:#1a1a4d; border-color:#43438a; color:#00cfc1; }
+
+@media (max-width:760px) {
+  body.private .page { padding:20px 16px; }
+  body.private #topbar { padding:10px 16px; }
+}

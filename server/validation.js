@@ -89,6 +89,7 @@ export function validateTenantState(input) {
   const projectIds = new Set(projects.map(x => String(x.id)));
   const mineIds = new Set(mines.map(x => String(x.id)));
   const contractIds = new Set(contracts.map(x => String(x.id)));
+  const subcontractorIds = new Set((state.subcontratos || []).map(x => String(x.id)));
   const hotelIds = new Set((state.hoteles || []).map(x => String(x.id)));
   for (const c of contracts) {
     if (c.minaId && !mineIds.has(String(c.minaId))) throw Object.assign(new Error(`Contract ${c.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
@@ -102,6 +103,16 @@ export function validateTenantState(input) {
       throw Object.assign(new Error(`Project ${p.id} and its contract belong to different mines`), { status: 409, code: 'INVALID_REFERENCE' });
     }
     if (p.inicio && p.termino && p.inicio > p.termino) throw Object.assign(new Error(`Project ${p.id} has invalid dates`), { status: 409, code: 'INVALID_DATES' });
+    const linkedContractors = [...new Set([...(p.subcontratoIds || []), ...(p.subcontractorIds || []), p.subcontratoId, p.subcontractorId].filter(Boolean).map(String))];
+    for (const contractorId of linkedContractors) {
+      if (!subcontractorIds.has(contractorId)) throw Object.assign(new Error('Service references an unknown subcontractor'), { status: 409, code: 'INVALID_REFERENCE' });
+      const contractor = (state.subcontratos || []).find(item => String(item.id) === contractorId);
+      if (p.contratoId && contractor?.contratoId && String(p.contratoId) !== String(contractor.contratoId)) throw Object.assign(new Error('Service and subcontractor belong to different contracts'), { status: 409, code: 'INVALID_REFERENCE' });
+    }
+    for (const assignment of Array.isArray(p.contractorAssignments) ? p.contractorAssignments : []) {
+      if (!assignment.subcontractorId || !subcontractorIds.has(String(assignment.subcontractorId))) throw Object.assign(new Error('Contractor assignment references an unknown subcontractor'), { status: 409, code: 'INVALID_REFERENCE' });
+      if (assignment.startDate && assignment.endDate && assignment.startDate > assignment.endDate) throw Object.assign(new Error('Contractor assignment has invalid dates'), { status: 409, code: 'INVALID_DATES' });
+    }
   }
   for (const worker of workers) {
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) throw Object.assign(new Error(`Worker ${worker.id} references an unknown mine`), { status: 409, code: 'INVALID_REFERENCE' });
