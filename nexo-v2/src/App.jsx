@@ -9,7 +9,7 @@ import ContratosPage from './pages/ContratosPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
 import FichaTrabajadorPage from './pages/FichaTrabajadorPage.jsx'
-import ModuleWorkspacePage from './pages/ModuleWorkspacePage.jsx'
+import PrivateModuleRouter from './pages/PrivateModuleRouter.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -55,8 +55,8 @@ export default function App() {
             <Route path="contratos" element={<ContratosPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
-            <Route path="modulos/:modulePath" element={<ModuleWorkspacePage />} />
-            <Route path=":modulePath" element={<ModuleWorkspacePage />} />
+            <Route path="modulos/:modulePath" element={<PrivateModuleRouter />} />
+            <Route path=":modulePath" element={<PrivateModuleRouter />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 

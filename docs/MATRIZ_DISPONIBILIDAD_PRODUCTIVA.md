@@ -32,7 +32,7 @@ La relación operativa principal se conserva en toda la aplicación:
 | Activos, equipos e inventario | Activos, Maquinaria, Equipos e instrumentos, Herramientas, Inventario de EPP, Materiales y ferretería, Insumos y consumibles, Bodegas, Movimientos, Mantenimiento y Asignaciones y préstamos. |
 | Gobierno y administración | Reportes y analítica, Configuración de la empresa, Importar y exportar, Usuarios y permisos, Bitácora de cambios, Privacidad y datos y Administración de clientes. |
 
-La versión React posee un catálogo y rutas para los **46 módulos privados**, con permisos por área, lectura de estado y acción de creación o gestión asociada. Las pantallas especializadas de personas conservan flujo propio; el resto se entrega mediante el espacio de trabajo común mientras se completa la migración visual detallada de la referencia HTML.
+La versión React posee un catálogo, una ruta y un archivo JSX asignado para cada uno de los **46 módulos privados**, con permisos por área, lectura de estado y acción de creación o gestión asociada. Las pantallas especializadas de personas conservan flujo propio; el resto se entrega mediante el espacio de trabajo común mientras se completa la migración visual detallada de la referencia HTML.
 
 ## 3. Cobertura validada
 
