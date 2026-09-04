@@ -1,7 +1,8 @@
 # Matriz de disponibilidad productiva - Nexo Klar
 
-**Corte de validación:** 4 de septiembre de 2026  
-**Referencia funcional vigente:** `AccesoMina_v6.html`  
+**Corte de validación:** 4 de septiembre de 2026
+
+**Referencia funcional vigente:** `AccesoMina_v6.html`
 **Aplicación objetivo de producción:** `nexo-v2` (React) + `server` (API) + PostgreSQL + almacenamiento privado de archivos.
 
 ## 1. Propósito y estructura
