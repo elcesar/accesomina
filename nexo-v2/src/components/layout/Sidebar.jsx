@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
+import { canUseModule, moduleFor } from '../private/moduleCatalog.js'
 import { IconLayoutDashboard, IconBell, IconSatellite, IconBook, IconUsers, IconClock, IconShield, IconSchool, IconMicroscope, IconStethoscope, IconBan, IconBuilding, IconFileText, IconTool, IconBriefcase, IconSitemap, IconCar, IconBed, IconId, IconBrandWhatsapp, IconCircleCheck, IconAlertTriangle, IconClipboardCheck, IconChartBar, IconArrowsExchange, IconSettings, IconHistory, IconShieldLock, IconBox, IconBuildingWarehouse, IconTools, IconLogout, IconChevronDown } from '@tabler/icons-react'
 
 const groups = [
@@ -16,11 +17,11 @@ const groups = [
 ]
 
 const route = id => id === '/' ? '/app' : `/app/${id}`
-function Group({ name, items }) { const [open, setOpen] = useState(true); return <section className="nk-side-group"><button className="nk-side-group-title" onClick={() => setOpen(!open)} aria-expanded={open}>{name}<IconChevronDown size={15} className={open ? '' : 'closed'} /></button>{open && items.map(([id,label,Icon]) => <NavLink end={id === '/'} className={({isActive}) => `nk-side-link ${isActive ? 'active':''}`} to={route(id)} key={id}><Icon size={17}/><span>{label}</span></NavLink>)}</section> }
+function Group({ name, items, session }) { const [open, setOpen] = useState(true); const visible=items.filter(([id])=>id==='/'||canUseModule(moduleFor(id),session)); if(!visible.length)return null; return <section className="nk-side-group"><button className="nk-side-group-title" onClick={() => setOpen(!open)} aria-expanded={open}>{name}<IconChevronDown size={15} className={open ? '' : 'closed'} /></button>{open && visible.map(([id,label,Icon]) => <NavLink end={id === '/'} className={({isActive}) => `nk-side-link ${isActive ? 'active':''}`} to={route(id)} key={id}><Icon size={17}/><span>{label}</span></NavLink>)}</section> }
 
 export default function Sidebar() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const handleLogout = async () => { await logout(); navigate('/login') }
-  return <aside className="nk-sidebar"><div className="nk-sidebar-brand"><img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" /></div>{session?.tenant && <div className="nk-tenant-name">{session.tenant.name}</div>}<nav>{groups.map(([name,items]) => <Group key={name} name={name} items={items} />)}</nav><div className="nk-sidebar-bottom"><button onClick={handleLogout}><IconLogout size={17}/>Cerrar sesión</button></div></aside>
+  return <aside className="nk-sidebar"><div className="nk-sidebar-brand"><img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" /></div>{session?.tenant && <div className="nk-tenant-name">{session.tenant.name}</div>}<nav>{groups.map(([name,items]) => <Group key={name} name={name} items={items} session={session} />)}</nav><div className="nk-sidebar-bottom"><button onClick={handleLogout}><IconLogout size={17}/>Cerrar sesión</button></div></aside>
 }

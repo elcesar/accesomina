@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "node --watch server/index.js",
+    "build:frontend": "pnpm --dir nexo-v2 build",
+    "dev:frontend": "pnpm --dir nexo-v2 dev",
     "start": "node server/index.js",
     "migrate": "node server/scripts/migrate.js",
     "seed:admin": "node server/scripts/seed-admin.js",
