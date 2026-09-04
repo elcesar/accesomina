@@ -24,11 +24,11 @@ La relación operativa principal se conserva en toda la aplicación:
 | --- | --- |
 | Centro de control | Panel General, Alertas, Gestión de personal por proyecto y Centro Operativo. Permiten priorizar brechas y revisar la preparación de cada orden. |
 | Capital humano | Personas, Turnos y asistencia, Protección personal (EPP), Formación y certificaciones, Exámenes y aptitudes, Salud ocupacional y Restringidos. Centralizan ficha, relación laboral, vigencias, controles y restricciones. |
-| Gestión operacional | Comunicaciones y convocatorias, Flota y equipos móviles, Alojamientos y estadías, Credenciales de acceso e Incidentes y no conformidades. |
-| Empresas colaboradoras | Terceros y subcontratos, Contratos de empresas colaboradoras, Personas de empresas colaboradoras, Requisitos y cumplimiento de terceros y Evaluación de desempeño. |
-| Relación comercial | Prospectos y oportunidades, Clientes, Contratos y firmas y Órdenes de servicio. |
-| Cumplimiento y calidad | Cumplimiento corporativo, Requisitos del cliente y Auditoría. |
-| Proyectos y negocios | Bitácora operativa (Libro de Obra), con anotaciones correlativas, evidencia, compromisos y firma. |
+| Gestión operacional | Comunicaciones y convocatorias, Flota y equipos móviles, Alojamientos y estadías y Credenciales de acceso. |
+| Empresas colaboradoras | Terceros y subcontratos, Convenios y contratos de terceros, Personas de empresas colaboradoras, Habilitaciones y cumplimiento y Evaluación de desempeño. |
+| Relación comercial | Clientes, Contratos y firmas y Órdenes de servicio. |
+| Cumplimiento y calidad | Cumplimiento corporativo, Habilitación del cliente, Incidentes y no conformidades y Auditoría. |
+| Proyectos y negocios | Bitácora operativa (Libro de Obra) y Prospectos y oportunidades, con anotaciones correlativas, evidencia, compromisos y firma. |
 | Activos, equipos e inventario | Activos, Maquinaria, Equipos e instrumentos, Herramientas, Inventario de EPP, Materiales y ferretería, Insumos y consumibles, Bodegas, Movimientos, Mantenimiento y Asignaciones y préstamos. |
 | Gobierno y administración | Reportes y analítica, Configuración de la empresa, Importar y exportar, Usuarios y permisos, Bitácora de cambios, Privacidad y datos y Administración de clientes. |
 
