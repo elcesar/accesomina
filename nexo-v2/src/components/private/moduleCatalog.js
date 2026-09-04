@@ -83,7 +83,7 @@ export const privateModules = Object.fromEntries(Object.entries(moduleDefinition
   ...definition,
   id,
   writeKey: writeKeys[id] || definition.data[0] || id,
-  roles: rolesByArea[areaFor(id)],
+  roles: id === 'administracion-clientes' ? ['domian_admin'] : rolesByArea[areaFor(id)],
 }]))
 
 export const moduleFor = id => privateModules[id] || { id, title: 'Módulo', description: 'Espacio de trabajo de Nexo Klar.', data: [], writeKey: id, roles: [] }

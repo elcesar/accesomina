@@ -30,7 +30,8 @@ La relación operativa principal se conserva en toda la aplicación:
 | Cumplimiento y calidad | Cumplimiento corporativo, Habilitación del cliente, Incidentes y no conformidades y Auditoría. |
 | Proyectos y negocios | Bitácora operativa (Libro de Obra) y Prospectos y oportunidades, con anotaciones correlativas, evidencia, compromisos y firma. |
 | Activos, equipos e inventario | Activos, Maquinaria, Equipos e instrumentos, Herramientas, Inventario de EPP, Materiales y ferretería, Insumos y consumibles, Bodegas, Movimientos, Mantenimiento y Asignaciones y préstamos. |
-| Gobierno y administración | Reportes y analítica, Configuración de la empresa, Importar y exportar, Usuarios y permisos, Bitácora de cambios, Privacidad y datos y Administración de clientes. |
+| Gestión y gobierno | Reportes y analítica, Configuración de la empresa, Importar y exportar, Usuarios y permisos, Bitácora de cambios y Privacidad y datos. |
+| Administración Nexo Klar | Administración de clientes: controla empresas usuarias, planes y módulos habilitados. Visible solo para el administrador global de Nexo Klar. |
 
 La versión React posee un catálogo, una ruta y un archivo JSX asignado para cada uno de los **46 módulos privados**, con permisos por área, lectura de estado y acción de creación o gestión asociada. Las pantallas especializadas de personas conservan flujo propio; el resto se entrega mediante el espacio de trabajo común mientras se completa la migración visual detallada de la referencia HTML.
 
