@@ -1,4 +1,4 @@
--- AccesoMina Domian - initial seed for AWS RDS PostgreSQL
+-- Nexo Klar - initial seed for AWS RDS PostgreSQL
 -- This seed creates the Domian admin tenant. Demo operational data should be loaded separately.
 
 INSERT INTO tenants (tenant_code, company_name, rut, admin_email, phone, is_domian_admin)

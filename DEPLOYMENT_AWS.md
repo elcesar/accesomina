@@ -42,8 +42,10 @@ Usuario / Empresa
 
 Los archivos y carpetas relevantes para produccion son:
 
-- `public/index.html`: interfaz web que se sirve en produccion.
-- `public/cloud-client.js`: conexion de la interfaz con el backend cloud.
+- `nexo-v2/`: interfaz productiva React, organizada por secciones públicas, módulos privados y servicios de API.
+- `nexo-v2/dist/`: resultado de compilación generado durante la construcción del contenedor; no se versiona.
+- `public/index.html`: interfaz HTML histórica que se conserva como respaldo validado, seleccionable solo con `FRONTEND_MODE=html`.
+- `public/cloud-client.js`: conexión de la interfaz HTML de respaldo con el backend cloud.
 - `server/`: backend/API productiva.
 - `database/`: estructura y migraciones de base de datos.
 - `Dockerfile`: construccion del contenedor para AWS.
@@ -52,7 +54,7 @@ Los archivos y carpetas relevantes para produccion son:
 - `package.json`: dependencias y comandos del proyecto.
 - `pnpm-lock.yaml`: versiones exactas de dependencias.
 
-`AccesoMina_v6.html` puede mantenerse como copia local o respaldo funcional, pero en produccion se debe usar la version servida por el backend y conectada a base de datos.
+`AccesoMina_v6.html` puede mantenerse como copia local o respaldo funcional. En producción, `FRONTEND_MODE=react` entrega el build de `nexo-v2` y mantiene la misma API, permisos, datos aislados y controles de seguridad.
 
 ## 4. Servicios AWS necesarios
 

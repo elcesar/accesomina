@@ -1,0 +1,35 @@
+name: Nexo Klar CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Functional, security and database tests
+        run: pnpm run check
+        env:
+          NODE_ENV: development
+          DATABASE_URL: postgres://test:test@localhost:5432/test
+      - name: Validate release structure
+        run: pnpm run validate:release
+      - name: Build production container
+        run: docker build -t nexo-klar-ci:${{ github.sha }} .

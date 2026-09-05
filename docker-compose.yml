@@ -17,6 +17,8 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://accesomina:accesomina@postgres:5432/accesomina
+      FRONTEND_MODE: react
+      FRONTEND_DIST_DIR: /app/frontend-dist
     ports: ["8088:8088"]
     volumes: ["uploads_data:/app/uploads"]
     depends_on:

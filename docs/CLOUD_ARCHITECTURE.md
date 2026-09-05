@@ -1,4 +1,4 @@
-# Arquitectura cloud de AccesoMina
+# Arquitectura cloud de Nexo Klar
 
 ## Límites de confianza
 
@@ -50,7 +50,7 @@ S3 privado
 
 ## Gobierno Domian
 
-La empresa con RUT `78.425.213-2` y el usuario `contacto@domian.cl` mantienen el rol global `domian_admin`. Las cuentas nuevas comienzan en estado `pending`; Domian debe aprobarlas antes del primer acceso. Desde Clientes Domian se pueden suspender, reactivar, eliminar lógicamente y restablecer la contraseña del administrador. Cada restablecimiento revoca sesiones, genera una clave temporal mostrada una sola vez, obliga a cambiarla y registra auditoría. La cuenta global Domian está protegida contra suspensión, eliminación o degradación.
+La empresa con RUT `78.425.213-2` y el usuario `contacto@nexoklar.cl` mantienen el rol global `domian_admin`. Las cuentas nuevas comienzan en estado `pending`; Domian debe aprobarlas antes del primer acceso. Desde Clientes Domian se pueden suspender, reactivar, eliminar lógicamente y restablecer la contraseña del administrador. Cada restablecimiento revoca sesiones, genera una clave temporal mostrada una sola vez, obliga a cambiarla y registra auditoría. La cuenta global Domian está protegida contra suspensión, eliminación o degradación.
 
 ## Parametrización por empresa
 

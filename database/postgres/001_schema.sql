@@ -1,4 +1,4 @@
--- AccesoMina Domian - PostgreSQL schema for AWS RDS
+-- Nexo Klar - PostgreSQL schema for AWS RDS
 -- Target: PostgreSQL 15+ on Amazon RDS
 -- Goal: multi-tenant data model. Every customer's operational data is separated by tenant_id.
 

@@ -103,7 +103,6 @@ export default function LoginPage() {
           flexShrink: 0,
         }}
       >
-        {/* Logo — SVG oficial brandbook (versión blanca sobre fondo índigo) */}
         <img
           src="/brand/NK-blanco-horizontal.svg"
           alt="Nexo Klar"
@@ -152,7 +151,6 @@ export default function LoginPage() {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <div style={{ width: '100%', maxWidth: 360 }}>
 
-          {/* Logo móvil — SVG oficial brandbook */}
           <div className="flex lg:hidden" style={{ marginBottom: 32 }}>
             <img
               src="/brand/NK-color-horizontal.svg"

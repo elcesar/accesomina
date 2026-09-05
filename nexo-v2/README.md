@@ -1,6 +1,6 @@
-# Nexo by Domian — Frontend v2
+# Nexo Klar — Frontend React
 
-Frontend moderno en React + Vite + Tailwind para Nexo by Domian.
+Frontend productivo en React + Vite para Nexo Klar. La interfaz pública se organiza por secciones y la aplicación privada por módulos, perfiles y permisos.
 
 ## Stack
 
@@ -18,7 +18,7 @@ npm install
 npm run dev
 ```
 
-El dev server corre en `http://localhost:5173/v2/` y hace proxy de `/api` al backend en `:8088`.
+El servidor de desarrollo corre en `http://localhost:5173` y redirige `/api` al backend en `:8088`.
 
 ## Build para producción
 
@@ -26,13 +26,11 @@ El dev server corre en `http://localhost:5173/v2/` y hace proxy de `/api` al bac
 npm run build
 ```
 
-Genera los estáticos en `../public/v2/` (carpeta servida por el backend Express).
+Genera los estáticos en `nexo-v2/dist/`. En producción, el contenedor configura `FRONTEND_MODE=react` y Express entrega este build para las rutas públicas y privadas.
 
 ## Despliegue
 
-El workflow `.github/workflows/deploy-v2.yml` se activa automáticamente al hacer push a `main` con cambios en `nexo-v2/**`.
-
-Sube el build a `s3://domian.cl/nexo/v2/` y lo publica en `https://nexo.domian.cl/v2`.
+El `Dockerfile` hace el build de React en una etapa separada antes de crear el contenedor de API. No se versionan `node_modules` ni `dist`.
 
 ## Estructura
 
@@ -40,14 +38,15 @@ Sube el build a `s3://domian.cl/nexo/v2/` y lo publica en `https://nexo.domian.c
 src/
   components/
     layout/     ← Sidebar, Header, AppLayout
-    ui/         ← componentes reutilizables (Button, Badge, Table...)
+    private/    ← catálogo, formularios y relación de módulos privados
+    public/     ← navegación y secciones del sitio público
   pages/        ← una por módulo (Dashboard, Trabajadores, Contratos...)
   services/
     api.js      ← todas las llamadas al backend
     auth.jsx    ← contexto de sesión
-  hooks/        ← hooks personalizados
+  config/       ← alias y navegación de módulos
 ```
 
 ## Lineamiento UX aplicado
 
-Ver `docs/UX_GUIDELINES.md` en la raíz del repositorio.
+Ver `docs/UI_UX_STYLE_GUIDE_NEXO_KLAR.md` en la raíz del repositorio.

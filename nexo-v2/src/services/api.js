@@ -34,4 +34,18 @@ export const api = {
   put: (path, body) => request(path, { method: 'PUT', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
   delete: (path) => request(path, { method: 'DELETE' }),
+  upload: async (file, { entityType = 'general', entityId = 'general' } = {}) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('entityType', entityType)
+    form.append('entityId', entityId)
+    const headers = {}
+    if (csrfToken) headers['x-csrf-token'] = csrfToken
+    const res = await fetch(`${BASE}/files`, { method: 'POST', credentials: 'same-origin', headers, body: form })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw Object.assign(new Error(err.message || 'No fue posible cargar el archivo.'), { status: res.status, code: err.error })
+    }
+    return res.json()
+  },
 }

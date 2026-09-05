@@ -1,313 +1,36 @@
-/* ============================================================
-   NEXO KLAR · Design Tokens v2.0
-   Basado en Brandbook oficial 2026
-   https://nexo-klar-brandbook.gmo-uribe-v.chatgpt.site/
-   ============================================================ */
-
-/* ── IMPORTAR FUENTES ─────────────────────────────────────────
-   Inter     → interfaz, tablas, formularios, navegación
-   Manrope   → titulares de marca, bajadas, comunicación
-   ----------------------------------------------------------- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
+/* Nexo Klar · Sistema de color v1.0 — Mezcla F aprobada */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap');
 
 :root {
-
-  /* ── TIPOGRAFÍA ─────────────────────────────────────────────
-     Arial Rounded → solo logotipo (archivos SVG originales)
-     Manrope       → bajadas, claims, titulares de marca
-     Inter         → toda la interfaz del producto digital
-  ------------------------------------------------------------ */
-  --font-ui:      'Inter',    system-ui, -apple-system, sans-serif;
-  --font-brand:   'Manrope',  system-ui, sans-serif;
-  /* Arial Rounded nunca se referencia en CSS — solo como SVG original */
-
-  /* Escalas tipográficas */
-  --text-xs:      11px;
-  --text-sm:      12px;
-  --text-base:    13px;
-  --text-md:      14px;
-  --text-lg:      16px;
-  --text-xl:      18px;
-  --text-2xl:     22px;
-  --text-3xl:     28px;
-  --text-4xl:     36px;
-
-  /* Pesos */
-  --weight-regular:   400;
-  --weight-medium:    500;
-  --weight-semibold:  600;
-  --weight-bold:      700;
-  --weight-extrabold: 800;
-
-  /* ── COLORES DE MARCA (Brandbook 2026) ──────────────────────
-     6 colores oficiales — intocables
-  ------------------------------------------------------------ */
-
-  /* Índigo — estructura, botón primario, navegación activa */
-  --color-indigo:       #2A2A8C;
-  --color-indigo-deep:  #1A1A5E;   /* hover / presionado */
-  --color-indigo-light: #E3E3F0;   /* fondos activos, chips */
-
-  /* Cobalto — acción Nexo, CTAs secundarios, links */
-  --color-cobalt:       #1E3AE0;
-  --color-cobalt-deep:  #1229A8;   /* hover */
-  --color-cobalt-light: #E0E6FF;   /* fondos suaves */
-
-  /* Grafito — Klar, encabezados de tabla, textos de apoyo */
-  --color-graphite:     #26313A;
-  --color-graphite-mid: #3D4E5A;   /* variante media */
-
-  /* Magenta — acento cálido, alertas críticas, destacados */
-  --color-magenta:      #E4006E;
-  --color-magenta-ink:  #A3004F;   /* texto sobre fondo claro */
-  --color-magenta-light:#FFE0EF;   /* fondos suaves */
-
-  /* Turquesa — acento de dato, badges de éxito, iconos */
-  --color-teal:         #00CFC1;
-  --color-teal-ink:     #00706A;   /* texto sobre fondo claro */
-  --color-teal-light:   #E0F7F5;   /* fondos suaves */
-
-  /* Ámbar — remate, atención, por vencer */
-  --color-amber:        #E9A319;
-  --color-amber-ink:    #8A5A00;   /* texto sobre fondo claro */
-  --color-amber-light:  #FEF3DC;   /* fondos suaves */
-
-  /* ── NEUTROS (Sistema de plataforma v2.0) ───────────────────
-     Confirmados en Brandbook — no cambian
-  ------------------------------------------------------------ */
-  --color-ivory:        #F4EFE3;   /* fondo de página */
-  --color-white:        #FFFFFF;   /* superficies, tarjetas */
-  --color-bone:         #FBF9F5;   /* superficie secundaria, zebra */
-  --color-warm-line:    #E3DED2;   /* bordes y separadores */
-  --color-ink:          #141A20;   /* texto principal */
-  --color-ink-mid:      #5D6B7A;   /* texto secundario */
-  --color-ink-sub:      #8A96A1;   /* texto terciario, placeholders */
-  --color-metal:        #C7D0D6;   /* deshabilitados */
-
-  /* ── ESTADOS SEMÁNTICOS (Brandbook 2026) ────────────────────
-     Terminología oficial: Vigente · Por vencer · No habilitado · Sin información
-     ATENCIÓN: colores actualizados respecto a v1.0
-  ------------------------------------------------------------ */
-
-  /* Vigente — documento al día, habilitado */
-  --state-ok:           #146B3E;   /* era #1B7F4B en v1.0 */
-  --state-ok-bg:        #E6F2EB;
-  --state-ok-label:     'Vigente';
-
-  /* Por vencer — alertas 30, 15 y 7 días */
-  --state-warn:         #E9A319;   /* ámbar — era #C77700 en v1.0 */
-  --state-warn-ink:     #8A5A00;   /* texto sobre fondo claro */
-  --state-warn-bg:      #FEF3DC;
-  --state-warn-label:   'Por vencer';
-
-  /* No habilitado — vencido, bloqueado, rechazado */
-  --state-err:          #9B2226;   /* era #B3261E en v1.0 */
-  --state-err-bg:       #FBE8E6;
-  --state-err-label:    'No habilitado';
-
-  /* Sin información — pendiente, no cargado */
-  --state-none:         #5D6B7A;   /* gris tinta */
-  --state-none-bg:      #F2F4F5;
-  --state-none-label:   'Sin información';
-
-  /* ── ALIASES SEMÁNTICOS (uso en componentes) ────────────────
-     Mapean los tokens de marca a roles de interfaz
-  ------------------------------------------------------------ */
-
-  /* Fondo y superficies */
-  --bg:         var(--color-ivory);
-  --surf:       var(--color-white);
-  --surf-2:     var(--color-bone);
-  --line:       var(--color-warm-line);
-
-  /* Texto */
-  --ink:        var(--color-ink);
-  --mut:        var(--color-ink-mid);
-  --sub:        var(--color-ink-sub);
-  --disabled:   var(--color-metal);
-
-  /* Primario (botones, navegación activa, foco) */
-  --pri:        var(--color-indigo);
-  --pri-deep:   var(--color-indigo-deep);
-  --pri-light:  var(--color-indigo-light);
-
-  /* Acción (links, CTAs secundarios) */
-  --action:     var(--color-cobalt);
-  --action-deep:var(--color-cobalt-deep);
-
-  /* Acento de dato (iconos activos, turquesa) */
-  --acc:        var(--color-teal);
-  --acc-ink:    var(--color-teal-ink);
-  --acc-light:  var(--color-teal-light);
-
-  /* Acento cálido (magenta — solo para destacados puntuales) */
-  --hot:        var(--color-magenta);
-  --hot-ink:    var(--color-magenta-ink);
-  --hot-light:  var(--color-magenta-light);
-
-  /* Estructura / apoyo (grafito — encabezados tabla, sidebar) */
-  --graph:      var(--color-graphite);
-
-  /* Estados */
-  --ok:         var(--state-ok);
-  --ok-bg:      var(--state-ok-bg);
-  --warn:       var(--state-warn);
-  --warn-ink:   var(--state-warn-ink);
-  --warn-bg:    var(--state-warn-bg);
-  --err:        var(--state-err);
-  --err-bg:     var(--state-err-bg);
-  --none:       var(--state-none);
-  --none-bg:    var(--state-none-bg);
-
-  /* ── RADIOS ─────────────────────────────────────────────────*/
-  --radius-sm:  6px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
-  --radius-xl:  16px;
-  --radius-pill:99px;
-
-  /* ── SOMBRAS ────────────────────────────────────────────────*/
-  --shadow-sm:  0 2px 8px  rgba(20, 26, 32, 0.06);
-  --shadow-md:  0 4px 16px rgba(20, 26, 32, 0.10);
-  --shadow-lg:  0 8px 32px rgba(20, 26, 32, 0.14);
-  --shadow-xl:  0 16px 48px rgba(20, 26, 32, 0.18);
-
-  /* ── ESPACIADO ──────────────────────────────────────────────*/
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-
-  /* ── TRANSICIONES ───────────────────────────────────────────*/
-  --transition-fast:   0.12s ease;
-  --transition-base:   0.18s ease;
-  --transition-slow:   0.28s ease;
-
-  /* ── LAYOUT ─────────────────────────────────────────────────*/
-  --sidebar-width:     224px;    /* w-56 */
-  --header-height:     56px;
-  --content-max-width: 1200px;
-  --page-padding:      clamp(16px, 4vw, 24px);
+  --bg:        #F4EFE3;
+  --surf:      #FFFFFF;
+  --surf-2:    #FBF9F5;
+  --line:      #E3DED2;
+  --ink:       #141A20;
+  --mut:       #5D6B7A;
+  --subtle:    #8A96A1;
+  --pri:       #2A2A8C;
+  --pri-deep:  #1A1A5E;
+  --graphite:  #26313A;
+  --acc:       #00CFC1;
+  --acc-txt:   #00706A;
+  --acc-dark:  #08302F;
+  --ok:        #1B7F4B;
+  --warn:      #C77700;
+  --err:       #B3261E;
+  --coral:     #FF5A3C;
+  --coral-txt: #B03510;
+  --metal:     #C7D0D6;
 }
 
-/* ── RESET BASE ─────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+* { box-sizing: border-box; }
 
 body {
-  font-family: var(--font-ui);
+  margin: 0;
   background: var(--bg);
   color: var(--ink);
-  line-height: 1.5;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
-
-/* ── CLASES UTILITARIAS DE MARCA ────────────────────────────── */
-
-/* Tipografía */
-.font-ui     { font-family: var(--font-ui); }
-.font-brand  { font-family: var(--font-brand); }
-
-/* Títulos de marca (Manrope) */
-.heading-xl  { font-family: var(--font-brand); font-weight: var(--weight-extrabold); font-size: var(--text-4xl); line-height: 1.15; }
-.heading-lg  { font-family: var(--font-brand); font-weight: var(--weight-extrabold); font-size: var(--text-3xl); line-height: 1.18; }
-.heading-md  { font-family: var(--font-brand); font-weight: var(--weight-bold);      font-size: var(--text-2xl); line-height: 1.22; }
-.heading-sm  { font-family: var(--font-brand); font-weight: var(--weight-bold);      font-size: var(--text-xl);  line-height: 1.28; }
-
-/* Claim institucional */
-.claim {
-  font-family: var(--font-ui);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sub);
-}
-
-/* Estados semánticos — badges */
-.badge-ok   { background: var(--ok-bg);   color: var(--ok);   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
-.badge-warn { background: var(--warn-bg); color: var(--warn-ink); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
-.badge-err  { background: var(--err-bg);  color: var(--err);  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
-.badge-none { background: var(--none-bg); color: var(--none); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
-
-/* Botones base */
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; border: none; border-radius: var(--radius-md);
-  background: var(--pri); color: #fff;
-  font-family: var(--font-ui); font-size: var(--text-md); font-weight: var(--weight-bold);
-  cursor: pointer; transition: background var(--transition-fast);
-}
-.btn-primary:hover  { background: var(--pri-deep); }
-.btn-primary:disabled { background: var(--disabled); cursor: not-allowed; }
-
-.btn-secondary {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px; border: 1.5px solid var(--line); border-radius: var(--radius-md);
-  background: var(--surf); color: var(--ink);
-  font-family: var(--font-ui); font-size: var(--text-md); font-weight: var(--weight-semibold);
-  cursor: pointer; transition: all var(--transition-fast);
-}
-.btn-secondary:hover { border-color: var(--pri); color: var(--pri); background: var(--pri-light); }
-
-/* Card base */
-.card {
-  background: var(--surf);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Input base */
-.input {
-  width: 100%; padding: 8px 12px;
-  border: 1.5px solid var(--line); border-radius: var(--radius-md);
-  background: var(--surf); color: var(--ink);
-  font-family: var(--font-ui); font-size: var(--text-base);
-  outline: none; transition: border-color var(--transition-fast);
-}
-.input:focus { border-color: var(--pri); }
-.input::placeholder { color: var(--sub); }
-
-/* Tabla — encabezado estándar */
-.table-header th {
-  background: var(--graph); color: #fff;
-  font-family: var(--font-ui); font-size: 11px; font-weight: var(--weight-semibold);
-  padding: 10px 14px; text-align: left; white-space: nowrap;
-  letter-spacing: 0.04em;
-}
-
-/* Zebra rows */
-.table-body tr:nth-child(even) td { background: var(--surf-2); }
-.table-body tr:hover td { background: var(--pri-light); }
-.table-body td {
-  padding: 10px 14px; font-size: var(--text-base);
-  color: var(--ink); border-bottom: 1px solid var(--line);
-}
-
-/* ── NOTA SOBRE EL LOGO ──────────────────────────────────────
-   El logotipo NUNCA se construye con CSS o texto.
-   Usar siempre los SVG oficiales del brandbook:
-
-   Horizontal:       /brand/svg/NK-color-horizontal.svg
-   Horizontal+claim: /brand/svg/NK-color-horizontal-claim.svg
-   Vertical:         /brand/svg/NK-color-vertical.svg
-   Isotipo/favicon:  /brand/svg/NK-favico.svg
-   Negativo blanco:  /brand/svg/NK-blanco-horizontal.svg
-
-   CDN brandbook: https://nexo-klar-brandbook.gmo-uribe-v.chatgpt.site/brand/svg/
-   ---------------------------------------------------------- */

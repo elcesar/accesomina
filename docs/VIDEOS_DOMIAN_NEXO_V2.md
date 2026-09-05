@@ -1,4 +1,4 @@
-# Videos Domian Nexo V2
+# Videos Nexo Klar V2
 
 ## Tutorial de uso
 
@@ -11,7 +11,7 @@ Caracteristicas:
 - Duracion: 4 minutos y 50 segundos.
 - Ritmo aproximado 1,5 veces mas rapido.
 - Voz femenina neuronal chilena.
-- Marca Domian Nexo durante todo el recorrido.
+- Marca Nexo Klar durante todo el recorrido.
 - Panel principal ampliado en las escenas donde no se utilizan ventanas modales.
 - Demostracion de clientes, contratos, servicios, trabajadores, documentos, EPP, vehiculos, hoteleria, comunicaciones, reportes y permisos.
 
@@ -33,4 +33,4 @@ Caracteristicas:
 
 ## Mensaje comercial central
 
-Domian Nexo conecta personas, operaciones y cumplimiento para reducir reprocesos, anticipar vencimientos y entregar trazabilidad a empresas de servicios, mantenimiento, construccion, logistica, energia, industria y mineria.
+Nexo Klar conecta personas, operaciones y cumplimiento para reducir reprocesos, anticipar vencimientos y entregar trazabilidad a empresas de servicios, mantenimiento, construccion, logistica, energia, industria y mineria.

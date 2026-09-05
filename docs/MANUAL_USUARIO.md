@@ -1,8 +1,8 @@
-# Manual de Usuario AccesoMina Domian
+# Manual de Usuario Nexo Klar
 
 ## 1. Presentacion general
 
-AccesoMina Domian es una plataforma privada para administrar empresas, clientes, contratos, proyectos, servicios, trabajadores, documentos, vencimientos, EPP, vehiculos, hoteleria, credenciales, incidentes, protocolos de salud, auditoria y reportes.
+Nexo Klar es una plataforma privada para administrar empresas, clientes, contratos, proyectos, servicios, trabajadores, documentos, vencimientos, EPP, vehiculos, hoteleria, credenciales, incidentes, protocolos de salud, auditoria y reportes.
 
 El objetivo es que una empresa pueda controlar su informacion operacional y documental en un solo lugar, con datos separados por empresa y con trazabilidad de las acciones realizadas.
 
@@ -417,6 +417,6 @@ El administrador Domian puede apoyar en:
 
 ## 25. Cierre
 
-AccesoMina Domian esta pensado para entregar control centralizado, trazabilidad y orden documental a empresas que gestionan personal, contratos, proyectos y servicios en entornos operativos exigentes.
+Nexo Klar esta pensado para entregar control centralizado, trazabilidad y orden documental a empresas que gestionan personal, contratos, proyectos y servicios en entornos operativos exigentes.
 
 El mayor valor del sistema esta en mantener la informacion actualizada, separar correctamente los datos por empresa y utilizar alertas para anticipar vencimientos o incumplimientos.
