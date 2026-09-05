@@ -152,6 +152,7 @@ function EmptyState({ tab }) {
 const TABS = [
   { key: 'planta',     label: 'Trabajador fijo',        icon: IconUserCheck },
   { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
+  { key: 'disponible', label: 'Trabajador disponible',  icon: IconUserCheck },
   { key: 'bloqueados', label: 'Restringidos',            icon: IconUserOff },
 ]
 
@@ -195,6 +196,7 @@ export default function TrabajadoresPage() {
 
     if (tab === 'planta')     list = list.filter(t => t.tipo === 'permanente' && !t.bloqueado)
     if (tab === 'esporadico') list = list.filter(t => t.tipo === 'esporadico' && !t.bloqueado)
+    if (tab === 'disponible') list = list.filter(t => t.disponibilidad === 'disponible' && !t.bloqueado)
     if (tab === 'bloqueados') list = list.filter(t => t.bloqueado)
 
     if (search)     list = list.filter(t =>
@@ -253,7 +255,7 @@ export default function TrabajadoresPage() {
               Trabajadores
             </h1>
             <p style={{ fontSize: 12, color: T.mut, margin: '3px 0 0' }}>
-              {filtered.length} {tab === 'planta' ? 'de planta' : tab === 'esporadico' ? 'esporádicos' : 'no habilitados'}
+              {filtered.length} {tab === 'planta' ? 'trabajadores fijos' : tab === 'esporadico' ? 'trabajadores por proyecto' : tab === 'disponible' ? 'trabajadores disponibles' : 'trabajadores restringidos'}
               {filtrosActivos > 0 && ` · ${filtrosActivos} filtro${filtrosActivos > 1 ? 's' : ''} activo${filtrosActivos > 1 ? 's' : ''}`}
             </p>
           </div>
@@ -283,6 +285,8 @@ export default function TrabajadoresPage() {
               ? trabajadores.filter(t => t.tipo === 'permanente' && !t.bloqueado).length
               : key === 'esporadico'
               ? trabajadores.filter(t => t.tipo === 'esporadico' && !t.bloqueado).length
+              : key === 'disponible'
+              ? trabajadores.filter(t => t.disponibilidad === 'disponible' && !t.bloqueado).length
               : trabajadores.filter(t => t.bloqueado).length
             const active = tab === key
             return (
