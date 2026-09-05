@@ -23,7 +23,7 @@ Conectar personas, documentos, contratos, procesos y operaciones en un solo sist
 
 ## Arquitectura V7
 
-- Frontend: `public/index.html` y `public/cloud-client.js`.
+- Frontend: React + Vite en `nexo-v2/src/`; el contenedor entrega el build de `nexo-v2/dist/`.
 - API: Node.js 20+ con Express.
 - Base de datos: PostgreSQL 15+ con `tenant_id` y Row-Level Security.
 - Sesiones: token aleatorio almacenado como hash y cookie `HttpOnly`, `Secure`, `SameSite=Strict`.
@@ -32,7 +32,7 @@ Conectar personas, documentos, contratos, procesos y operaciones en un solo sist
 - Auditoría: `audit_log` append-only con usuario, fecha, entidad y resumen del cambio.
 - Integraciones: SMTP, Meta WhatsApp Cloud API y webhooks para firma, ERP y acreditación.
 
-La data operacional ya no debe almacenarse en GitHub ni en `localStorage`. El HTML independiente conserva modo demostración al abrirse con `file://`; el despliegue servido por la API usa PostgreSQL como fuente autoritativa.
+La data operacional ya no debe almacenarse en GitHub ni en `localStorage`. `AccesoMina_v6.html` y `public/index.html` se conservan solo como evidencia de migración y respaldo visual; no forman parte del frontend activo. El despliegue servido por la API utiliza React y PostgreSQL como fuente autoritativa.
 
 ## Desarrollo local
 

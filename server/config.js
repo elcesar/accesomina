@@ -10,9 +10,9 @@ export const config = Object.freeze({
   version: '7.7.0',
   port: Number(process.env.PORT || 8088),
   origin: (process.env.APP_ORIGIN || 'http://localhost:8088').replace(/\/$/, ''),
-  // HTML remains available as the verified fallback. Production containers serve
-  // the React build, while local development can select either interface.
-  frontendMode: process.env.FRONTEND_MODE || (process.env.NODE_ENV === 'production' ? 'react' : 'html'),
+  // React is the only active application frontend. The historical HTML files are
+  // retained as migration evidence and are never selected unless explicitly requested.
+  frontendMode: process.env.FRONTEND_MODE || 'react',
   frontendDistDir: path.resolve(process.env.FRONTEND_DIST_DIR || './nexo-v2/dist'),
   legacyPublicDir: path.resolve(process.env.LEGACY_PUBLIC_DIR || './public'),
   databaseUrl: process.env.DATABASE_URL,
