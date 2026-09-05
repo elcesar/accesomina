@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function ActivosInventarioPage() {
-  return <ModuleWorkspacePage forcedModule="activos-inventario" />
+  return <OperationalWorkspacePage moduleId="activos-inventario" />
 }

@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function OrdenesServicioPage() {
-  return <ModuleWorkspacePage forcedModule="ordenes-servicio" />
+  return <OperationalWorkspacePage moduleId="ordenes-servicio" />
 }

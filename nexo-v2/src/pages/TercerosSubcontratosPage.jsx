@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function TercerosSubcontratosPage() {
-  return <ModuleWorkspacePage forcedModule="terceros-subcontratos" />
+  return <OperationalWorkspacePage moduleId="terceros-subcontratos" />
 }

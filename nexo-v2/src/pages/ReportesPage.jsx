@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function ReportesPage() {
-  return <ModuleWorkspacePage forcedModule="reportes" />
+  return <OperationalWorkspacePage moduleId="reportes" />
 }

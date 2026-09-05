@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function AuditoriaPage() {
-  return <ModuleWorkspacePage forcedModule="auditoria" />
+  return <OperationalWorkspacePage moduleId="auditoria" />
 }

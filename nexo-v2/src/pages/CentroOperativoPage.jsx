@@ -1,5 +1,5 @@
-import ModuleWorkspacePage from './ModuleWorkspacePage.jsx'
+import OperationalWorkspacePage from '../components/private/OperationalWorkspacePage.jsx'
 
 export default function CentroOperativoPage() {
-  return <ModuleWorkspacePage forcedModule="centro-operativo" />
+  return <OperationalWorkspacePage moduleId="centro-operativo" />
 }
