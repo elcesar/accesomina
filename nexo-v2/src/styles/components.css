@@ -1,0 +1,644 @@
+/**
+ * NEXO KLAR · Shared Components
+ * Version: 1.0
+ *
+ * Componentes visuales reutilizables.
+ *
+ * IMPORTANTE:
+ * - Todos los valores visuales deben venir desde tokens.css.
+ * - No definir colores corporativos aquí.
+ * - No redefinir tipografías.
+ * - No crear nuevos tokens locales.
+ * - No incluir layouts específicos de páginas.
+ */
+
+@import url("./tokens.css");
+
+
+/* =========================================================
+   01. CONTAINERS
+   ========================================================= */
+
+.nk-container {
+  width: min(100%, var(--content-max-width));
+  margin-inline: auto;
+  padding-inline: var(--page-padding);
+}
+
+.nk-section {
+  width: 100%;
+  padding-block: var(--space-12);
+}
+
+
+/* =========================================================
+   02. BUTTONS
+   ========================================================= */
+
+.nk-button {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  padding: var(--space-2) var(--space-4);
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  line-height: 1.2;
+
+  text-decoration: none;
+  cursor: pointer;
+
+  transition:
+    background-color var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.nk-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+/* Primary */
+
+.nk-button-primary {
+  background: var(--pri);
+  color: var(--color-white);
+}
+
+.nk-button-primary:hover:not(:disabled) {
+  background: var(--pri-deep);
+}
+
+
+/* Action */
+
+.nk-button-action {
+  background: var(--action);
+  color: var(--color-white);
+}
+
+.nk-button-action:hover:not(:disabled) {
+  background: var(--action-deep);
+}
+
+
+/* Secondary */
+
+.nk-button-secondary {
+  background: var(--surf);
+  color: var(--pri);
+  border-color: var(--line);
+}
+
+.nk-button-secondary:hover:not(:disabled) {
+  background: var(--surf-2);
+}
+
+
+/* Quiet */
+
+.nk-button-quiet {
+  background: transparent;
+  color: var(--pri);
+  border-color: transparent;
+}
+
+.nk-button-quiet:hover:not(:disabled) {
+  background: var(--surf-2);
+}
+
+
+/* Danger */
+
+.nk-button-danger {
+  background: var(--err);
+  color: var(--color-white);
+}
+
+
+/* =========================================================
+   03. ICON BUTTON
+   ========================================================= */
+
+.nk-icon-button {
+  width: 36px;
+  height: 36px;
+
+  display: inline-grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+
+  background: var(--surf);
+  color: var(--mut);
+
+  cursor: pointer;
+
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.nk-icon-button:hover {
+  background: var(--surf-2);
+  color: var(--ink);
+}
+
+
+/* =========================================================
+   04. LINKS
+   ========================================================= */
+
+.nk-link {
+  color: var(--pri);
+  text-decoration: none;
+  font-weight: var(--weight-semibold);
+}
+
+.nk-link:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================================================
+   05. CARDS
+   ========================================================= */
+
+.nk-card {
+  background: var(--surf);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+}
+
+.nk-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.nk-card-title {
+  margin: 0;
+
+  color: var(--ink);
+
+  font-family: var(--font-brand);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.nk-card-description {
+  margin: var(--space-1) 0 0;
+
+  color: var(--mut);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+}
+
+
+/* =========================================================
+   06. FORM ELEMENTS
+   ========================================================= */
+
+.nk-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.nk-label {
+  color: var(--ink);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-input,
+.nk-select,
+.nk-textarea {
+  width: 100%;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+
+  background: var(--surf);
+  color: var(--ink);
+
+  padding: var(--space-3) var(--space-3);
+
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.nk-input::placeholder,
+.nk-textarea::placeholder {
+  color: var(--sub);
+}
+
+.nk-input:focus,
+.nk-select:focus,
+.nk-textarea:focus {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--focus-ring);
+}
+
+.nk-input:disabled,
+.nk-select:disabled,
+.nk-textarea:disabled {
+  background: var(--surf-2);
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+
+.nk-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+
+/* =========================================================
+   07. FORM LAYOUT
+   ========================================================= */
+
+.nk-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.nk-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.nk-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+
+/* =========================================================
+   08. BADGES / STATUS
+   ========================================================= */
+
+.nk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+
+  min-height: 24px;
+  padding: 4px 9px;
+
+  border-radius: var(--radius-pill);
+
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+}
+
+
+/* Success */
+
+.nk-badge-ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+
+/* Warning */
+
+.nk-badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+
+/* Error */
+
+.nk-badge-error {
+  background: var(--err-bg);
+  color: var(--err);
+}
+
+
+/* Neutral */
+
+.nk-badge-none {
+  background: var(--none-bg);
+  color: var(--none);
+}
+
+
+/* =========================================================
+   09. TABLE
+   ========================================================= */
+
+.nk-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surf);
+}
+
+.nk-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  font-size: var(--text-md);
+}
+
+.nk-table th {
+  padding: var(--space-3);
+
+  background: var(--graph);
+  color: var(--color-white);
+
+  text-align: left;
+
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.nk-table td {
+  padding: var(--space-3);
+
+  border-bottom: 1px solid var(--line);
+
+  color: var(--ink);
+
+  vertical-align: middle;
+}
+
+.nk-table tbody tr:hover {
+  background: var(--surf-2);
+}
+
+.nk-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+
+/* =========================================================
+   10. SEARCH
+   ========================================================= */
+
+.nk-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  min-height: 40px;
+
+  padding-inline: var(--space-3);
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+
+  background: var(--surf-2);
+  color: var(--mut);
+}
+
+.nk-search input {
+  width: 100%;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: var(--ink);
+
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+}
+
+.nk-search:focus-within {
+  border-color: var(--action);
+  box-shadow: var(--focus-ring);
+}
+
+
+/* =========================================================
+   11. TABS
+   ========================================================= */
+
+.nk-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  border-bottom: 1px solid var(--line);
+}
+
+.nk-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+
+  background: transparent;
+
+  padding: var(--space-3) var(--space-4);
+
+  color: var(--mut);
+
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+
+  cursor: pointer;
+
+  transition:
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.nk-tab:hover {
+  color: var(--ink);
+}
+
+.nk-tab.active {
+  color: var(--pri);
+  border-bottom-color: var(--pri);
+}
+
+
+/* =========================================================
+   12. DIALOG / MODAL
+   ========================================================= */
+
+.nk-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+
+  display: grid;
+  place-items: center;
+
+  padding: var(--space-5);
+
+  background: rgba(20, 26, 32, 0.46);
+  backdrop-filter: blur(3px);
+}
+
+.nk-dialog {
+  width: min(560px, 100%);
+  max-height: calc(100vh - var(--space-10));
+
+  overflow: auto;
+
+  padding: var(--space-6);
+
+  background: var(--surf);
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+
+  box-shadow: var(--shadow-xl);
+}
+
+.nk-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: var(--space-4);
+
+  margin-bottom: var(--space-5);
+}
+
+.nk-dialog-title {
+  margin: 0;
+
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.nk-dialog-body {
+  color: var(--ink);
+}
+
+.nk-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+
+  margin-top: var(--space-5);
+}
+
+
+/* =========================================================
+   13. EMPTY STATE
+   ========================================================= */
+
+.nk-empty {
+  min-height: 200px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: var(--space-2);
+
+  padding: var(--space-6);
+
+  text-align: center;
+
+  color: var(--mut);
+}
+
+.nk-empty-title {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-empty-description {
+  max-width: 500px;
+
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+}
+
+
+/* =========================================================
+   14. DIVIDER
+   ========================================================= */
+
+.nk-divider {
+  width: 100%;
+  height: 1px;
+
+  border: 0;
+
+  background: var(--line);
+
+  margin-block: var(--space-4);
+}
+
+
+/* =========================================================
+   15. ACTION GROUP
+   ========================================================= */
+
+.nk-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   16. RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .nk-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-card-header {
+    flex-direction: column;
+  }
+
+  .nk-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .nk-form-actions .nk-button {
+    width: 100%;
+  }
+}
