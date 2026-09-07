@@ -1,18 +1,8 @@
+const benefits = [['01','Coordina con contexto','Consulta responsables, personas, documentos, turnos, alojamiento y recursos desde cada orden de servicio.'],['02','Actúa a tiempo','Identifica pendientes, vencimientos y brechas operativas con paneles claros.'],['03','Responde con evidencia','Conserva historial, documentos y responsables para revisiones, clientes y auditorías.']]
+
 export default function PlatformSection() {
-  return (
-    <section id="solucion" className="nk-public-section">
-      <div className="nk-container">
-        <div className="nk-section-heading">
-          <span className="nk-badge">Plataforma</span>
-          <h2>Un solo lugar para conectar operación, información y cumplimiento.</h2>
-          <p>Nexo Klar organiza los elementos críticos de la gestión para que las personas puedan encontrar, entender y utilizar la información que necesitan.</p>
-        </div>
-        <div className="nk-card-grid nk-card-grid-3">
-          <article className="nk-card"><h3>Información</h3><p>Centraliza antecedentes relevantes y facilita su acceso.</p></article>
-          <article className="nk-card"><h3>Operación</h3><p>Ordena tareas, responsables y flujos para reducir fricción.</p></article>
-          <article className="nk-card"><h3>Cumplimiento</h3><p>Permite mantener evidencia y trazabilidad de los procesos críticos.</p></article>
-        </div>
-      </div>
-    </section>
-  )
+  return <section id="solucion" className="nk-public-section"><div className="nk-two-columns">
+    <div><p className="nk-eyebrow">Una operación conectada de principio a fin</p><h2>De la oportunidad al servicio cerrado.</h2><p className="nk-lead">Nexo Klar transforma datos dispersos en una operación clara, trazable y fácil de seguir. La información se registra una vez y se relaciona con el cliente, contrato, orden de servicio, persona y recurso correspondiente.</p><div className="nk-number-list">{benefits.map(([n,t,b]) => <article key={n}><strong>{n}</strong><div><b>{t}</b><span>{b}</span></div></article>)}</div></div>
+    <div className="nk-product-mock"><header><i/><i/><i/><span>Nexo Klar · Panel de control</span></header><div><aside>{['Panel de control','Clientes','Contratos','Órdenes de servicio','Personas','Documentos','Alertas','Reportes y analítica'].map((x,i) => <span className={i===0 ? 'active':''} key={x}>{x}</span>)}</aside><main><h3>Resumen de la operación</h3><p>Información centralizada y actualizada</p><div className="nk-mini-kpis">{[['12','Órdenes de servicio activas'],['86%','Documentación vigente'],['7','Alertas por atender']].map(([v,l])=><article key={l}><b>{v}</b><small>{l}</small></article>)}</div>{[['Servicio en terreno','Equipo de Operaciones','Al día'],['Proyecto de instalación','Equipo de Proyectos','En curso'],['Orden programada','Equipo técnico','Revisar']].map(row=><div className="nk-mock-row" key={row[0]}>{row.map(cell=><span key={cell}>{cell}</span>)}</div>)}</main></div></div>
+  </div></section>
 }

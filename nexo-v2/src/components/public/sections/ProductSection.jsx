@@ -1,15 +1,1 @@
-export default function ProductSection({ openPreview }) {
-  return (
-    <section id="producto" className="nk-public-section">
-      <div className="nk-container nk-product-layout">
-        <div>
-          <span className="nk-badge">Producto</span>
-          <h2>Una experiencia diseñada para que la gestión sea simple.</h2>
-          <p>Una interfaz clara, orientada a las tareas y a la información que las personas realmente necesitan para operar.</p>
-          <button className="nk-button nk-button-primary" onClick={openPreview}>Explorar vista</button>
-        </div>
-        <div className="nk-card nk-product-preview"><img src="/dashboard-demo.png" alt="Interfaz de Nexo Klar" /></div>
-      </div>
-    </section>
-  )
-}
+export default function ProductSection({ openPreview }) { return <section id="producto" className="nk-public-section"><div className="nk-two-columns nk-product-section"><div><p className="nk-eyebrow">Producto real</p><h2>Ve la operación antes de que un pendiente detenga el servicio.</h2><p className="nk-lead">Revisa dotación, órdenes de servicio, vencimientos, pendientes y alertas desde un panel centralizado. Identifica rápidamente qué está listo, qué falta y quién debe actuar.</p></div><div><button className="nk-image-button" onClick={openPreview}><img src="/dashboard-demo.png" alt="Panel real de Nexo Klar" /></button><p className="nk-caption">Vista demostrativa. Cada empresa trabaja con su propia configuración, usuarios y datos privados.</p></div></div></section> }

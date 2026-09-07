@@ -1,24 +1,2 @@
-export default function SolutionsSection() {
-  const solutions = [
-    ['Gestión documental', 'Orden y acceso a información relevante.'],
-    ['Procesos', 'Flujos claros con responsables y trazabilidad.'],
-    ['Indicadores', 'Información operacional para monitorear resultados.'],
-    ['Asistencia inteligente', 'Capacidades de IA aplicadas donde aportan valor.'],
-  ]
-
-  return (
-    <section id="capacidades" className="nk-public-section">
-      <div className="nk-container">
-        <div className="nk-section-heading">
-          <span className="nk-badge">Soluciones</span>
-          <h2>Capacidades que se pueden combinar según la necesidad.</h2>
-        </div>
-        <div className="nk-card-grid nk-card-grid-4">
-          {solutions.map(([title, text]) => (
-            <article className="nk-card" key={title}><h3>{title}</h3><p>{text}</p></article>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
+const items = [['01','Clientes y contratos','Registra empresas, vigencias, alcance, responsables y servicios asociados a cada relación comercial.'],['02','Órdenes de servicio','Organiza operaciones recurrentes y órdenes de servicio, junto con las personas y los recursos asignados.'],['03','Personas y asignaciones','Administra personas y distingue trabajadores fijos, trabajadores por proyecto y sus asignaciones.'],['04','Documentos y vencimientos','Centraliza antecedentes, revisa estados y recibe alertas sobre documentos faltantes o próximos a vencer.'],['05','Seguridad y recursos','Controla equipos de protección personal (EPP), exámenes y aptitudes, formación, permisos, vehículos, equipos, credenciales e incidentes.'],['06','Comunicaciones, reportes y analítica','Segmenta equipos, prepara comunicaciones y genera reportes por cliente, contrato, orden de servicio o persona.']]
+export default function SolutionsSection() { return <section id="capacidades" className="nk-public-section"><div><p className="nk-eyebrow">Control centralizado</p><h2>Lo esencial para administrar servicios, personas y cumplimiento.</h2><p className="nk-lead">Activa la información que necesita tu empresa y conserva una visión común entre administración, operación, gestión de personas y cumplimiento.</p><div className="nk-card-grid nk-solutions-grid">{items.map(([n,t,b])=><article key={n}><small>{n}</small><h3>{t}</h3><p>{b}</p></article>)}</div></div></section> }
