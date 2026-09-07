@@ -1,0 +1,258 @@
+.nk-login {
+  min-height: 100vh;
+  display: flex;
+  background: var(--bg);
+}
+
+.nk-login-brand {
+  width: 45%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-12) clamp(32px, 4vw, 52px);
+  background: var(--pri);
+  color: var(--color-white);
+}
+
+.nk-login-brand-logo {
+  width: auto;
+  height: 36px;
+}
+
+.nk-login-brand-copy {
+  max-width: 420px;
+}
+
+.nk-login-brand-title {
+  margin: 0 0 var(--space-4);
+  color: var(--color-white);
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+}
+
+.nk-login-brand-accent {
+  color: var(--acc);
+}
+
+.nk-login-brand-description {
+  max-width: 340px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+}
+
+.nk-login-brand-points {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+}
+
+.nk-login-brand-point {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: var(--text-base);
+}
+
+.nk-login-brand-point::before {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--acc);
+  content: '';
+}
+
+.nk-login-brand-footer {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: var(--text-xs);
+}
+
+.nk-login-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.nk-login-form-wrap {
+  width: 100%;
+  max-width: 360px;
+}
+
+.nk-login-mobile-logo {
+  display: none;
+  margin-bottom: var(--space-8);
+}
+
+.nk-login-mobile-logo img {
+  width: auto;
+  height: 28px;
+}
+
+.nk-login-header {
+  margin-bottom: var(--space-8);
+}
+
+.nk-login-header-mfa {
+  text-align: center;
+}
+
+.nk-login-title {
+  margin: 0 0 var(--space-1);
+  color: var(--ink);
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-snug);
+}
+
+.nk-login-title-mfa {
+  font-size: var(--text-xl);
+}
+
+.nk-login-subtitle {
+  margin: 0;
+  color: var(--mut);
+  font-size: var(--text-base);
+}
+
+.nk-login-mfa-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--pri-light);
+  color: var(--pri);
+}
+
+.nk-login-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.nk-login-field {
+  min-width: 0;
+}
+
+.nk-login-password {
+  position: relative;
+}
+
+.nk-login-password .nk-input {
+  padding-right: 40px;
+}
+
+.nk-login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  transform: translateY(-50%);
+  background: transparent;
+  color: var(--sub);
+}
+
+.nk-login-password-toggle:hover {
+  color: var(--ink);
+}
+
+.nk-login-mfa-input {
+  text-align: center;
+  letter-spacing: 0.3em;
+  font-size: var(--text-2xl);
+}
+
+.nk-login-error {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--err);
+  border-radius: var(--radius-md);
+  background: var(--err-bg);
+}
+
+.nk-login-error p {
+  margin: 0;
+  color: var(--err);
+  font-size: var(--text-base);
+}
+
+.nk-login-submit {
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+.nk-login-spinner {
+  animation: nk-login-spin 0.8s linear infinite;
+}
+
+@keyframes nk-login-spin {
+  to { transform: rotate(360deg); }
+}
+
+.nk-login-back {
+  width: 100%;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: transparent;
+  color: var(--mut);
+  font-size: var(--text-base);
+  text-align: center;
+}
+
+.nk-login-back:hover {
+  color: var(--ink);
+}
+
+.nk-login-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-8);
+  color: var(--sub);
+  font-size: var(--text-xs);
+}
+
+.nk-login-footer p {
+  margin: 0;
+}
+
+.nk-login-back-home {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .nk-login-brand {
+    display: none;
+  }
+
+  .nk-login-content {
+    padding: var(--space-6);
+  }
+
+  .nk-login-mobile-logo {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  .nk-login-content {
+    padding: var(--space-5);
+  }
+}
