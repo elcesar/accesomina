@@ -1,4 +1,4 @@
-import '../../styles/landing.css'
+import '../styles/landing.css'
 import { useEffect, useState } from 'react'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
