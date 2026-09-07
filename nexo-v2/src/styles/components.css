@@ -642,3 +642,173 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   ADICIÓN A components.css — Clases genéricas reutilizables
+   Agregar al final de src/styles/components.css
+   ========================================================= */
+
+
+/* =========================================================
+   17. ACTION GROUP
+   Grupo horizontal de acciones (botones, links).
+   Reemplaza a .nk-actions con soporte para wrap.
+   ========================================================= */
+
+.nk-action-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   18. CARD GRID
+   Grid responsivo de cards. Usar con modificador de columnas.
+   ========================================================= */
+
+.nk-card-grid {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.nk-card-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nk-card-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nk-card-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1024px) {
+  .nk-card-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nk-card-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .nk-card-grid-2,
+  .nk-card-grid-3,
+  .nk-card-grid-4 { grid-template-columns: 1fr; }
+}
+
+
+/* =========================================================
+   19. CHIP LIST
+   Lista horizontal de chips/badges.
+   ========================================================= */
+
+.nk-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+
+/* =========================================================
+   20. SECTION HEADING
+   Encabezado de sección con badge + título + descripción.
+   ========================================================= */
+
+.nk-section-heading {
+  max-width: 680px;
+  margin-bottom: var(--space-10);
+}
+
+.nk-section-heading h2 {
+  margin: var(--space-3) 0 var(--space-3);
+
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+
+  color: var(--ink);
+}
+
+.nk-section-heading p {
+  margin: 0;
+
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+
+  color: var(--mut);
+}
+
+
+/* =========================================================
+   21. PROSE
+   Texto editorial largo (FAQs, términos, contenido legal).
+   ========================================================= */
+
+.nk-prose {
+  max-width: 680px;
+
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--ink);
+}
+
+.nk-prose h2 {
+  margin: var(--space-8) 0 var(--space-3);
+
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+
+  color: var(--ink);
+}
+
+.nk-prose h3 {
+  margin: var(--space-6) 0 var(--space-2);
+
+  font-family: var(--font-brand);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+
+  color: var(--ink);
+}
+
+.nk-prose p {
+  margin: 0 0 var(--space-4);
+}
+
+.nk-prose ul,
+.nk-prose ol {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-5);
+}
+
+.nk-prose li {
+  margin-bottom: var(--space-2);
+}
+
+
+/* =========================================================
+   22. STEP NUMBER
+   Número de paso en procesos secuenciales.
+   ========================================================= */
+
+.nk-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 36px;
+  height: 36px;
+  margin-bottom: var(--space-4);
+
+  border-radius: var(--radius-pill);
+
+  background: var(--pri-light);
+  color: var(--pri);
+
+  font-family: var(--font-brand);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-extrabold);
+  line-height: 1;
+}
