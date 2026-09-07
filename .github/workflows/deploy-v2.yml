@@ -24,6 +24,12 @@ jobs:
         working-directory: nexo-v2
         run: npm run build
 
+      - name: Copy canonical public assets into React build
+        run: |
+          mkdir -p nexo-v2/dist/brand nexo-v2/dist/assets
+          cp public/brand/*.svg nexo-v2/dist/brand/
+          cp public/assets/dashboard-demo.png nexo-v2/dist/assets/
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
