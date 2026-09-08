@@ -12,6 +12,7 @@ import FormacionPage from './pages/FormacionPage.jsx'
 import ExamenesPage from './pages/ExamenesPage.jsx'
 import SaludOcupacionalPage from './pages/SaludOcupacionalPage.jsx'
 import RestringidosPage from './pages/RestringidosPage.jsx'
+import ProteccionEppPage from './pages/ProteccionEppPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
             <Route path="turnos" element={<TurnosPage />} />
+            <Route path="epp" element={<ProteccionEppPage />} />
             <Route path="cursos" element={<FormacionPage />} />
             <Route path="examenes" element={<ExamenesPage />} />
             <Route path="salud" element={<SaludOcupacionalPage />} />
