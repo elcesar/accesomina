@@ -16,6 +16,7 @@ import SaludOcupacionalPage from './pages/SaludOcupacionalPage.jsx'
 import RestringidosPage from './pages/RestringidosPage.jsx'
 import ProteccionEppPage from './pages/ProteccionEppPage.jsx'
 import ClientesPage from './pages/ClientesPage.jsx'
+import ContratosPage from './pages/ContratosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="salud" element={<SaludOcupacionalPage />} />
             <Route path="bloqueados" element={<RestringidosPage />} />
             <Route path="clientes" element={<ClientesPage />} />
+            <Route path="contratos" element={<ContratosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
 
