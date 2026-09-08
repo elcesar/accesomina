@@ -23,6 +23,7 @@ const emptyClient = () => ({
 
 const newId = () => globalThis.crypto?.randomUUID?.() || `cliente-${Date.now()}-${Math.random().toString(16).slice(2)}`
 const rows = value => Array.isArray(value) ? value : []
+const normalize = value => String(value || '').trim().toLowerCase()
 
 function SummaryField({ label, value }) {
   return (
@@ -33,45 +34,66 @@ function SummaryField({ label, value }) {
   )
 }
 
-function ContactForm({ onAdd, disabled }) {
+function ContactForm({ contacts, onAdd, disabled }) {
   const [contact, setContact] = useState({ nombre: '', cargo: '', telefono: '', email: '' })
-  const change = key => event => setContact(current => ({ ...current, [key]: event.target.value }))
+  const [error, setError] = useState('')
+  const change = key => event => {
+    setError('')
+    setContact(current => ({ ...current, [key]: event.target.value }))
+  }
 
   function submit() {
-    if (contact.nombre.trim().length < 3) return
+    const nombre = contact.nombre.trim()
+    const email = contact.email.trim()
+    if (nombre.length < 3) return
+
+    const duplicated = rows(contacts).some(item => {
+      const sameEmail = email && normalize(item.email) === normalize(email)
+      const sameIdentity = normalize(item.nombre) === normalize(nombre) && normalize(item.telefono) === normalize(contact.telefono)
+      return sameEmail || sameIdentity
+    })
+    if (duplicated) {
+      setError('Este contacto ya está registrado para el cliente.')
+      return
+    }
+
     onAdd({
       ...contact,
       id: newId(),
-      nombre: contact.nombre.trim(),
+      nombre,
       cargo: contact.cargo.trim(),
       telefono: contact.telefono.trim(),
-      email: contact.email.trim(),
+      email,
       tipo: 'operativo',
     })
     setContact({ nombre: '', cargo: '', telefono: '', email: '' })
+    setError('')
   }
 
   return (
-    <div className="nk-client-contact-form">
-      <div className="nk-field">
-        <label className="nk-label" htmlFor="client-contact-name">Nombre</label>
-        <input id="client-contact-name" className="nk-input" disabled={disabled} value={contact.nombre} onChange={change('nombre')} placeholder="Nombre y apellido" />
+    <div>
+      <div className="nk-client-contact-form">
+        <div className="nk-field">
+          <label className="nk-label" htmlFor="client-contact-name">Nombre</label>
+          <input id="client-contact-name" className="nk-input" disabled={disabled} value={contact.nombre} onChange={change('nombre')} placeholder="Nombre y apellido" />
+        </div>
+        <div className="nk-field">
+          <label className="nk-label" htmlFor="client-contact-role">Cargo</label>
+          <input id="client-contact-role" className="nk-input" disabled={disabled} value={contact.cargo} onChange={change('cargo')} placeholder="Operaciones, compras..." />
+        </div>
+        <div className="nk-field">
+          <label className="nk-label" htmlFor="client-contact-phone">Teléfono</label>
+          <input id="client-contact-phone" className="nk-input" disabled={disabled} value={contact.telefono} onChange={change('telefono')} placeholder="+56 9..." />
+        </div>
+        <div className="nk-field">
+          <label className="nk-label" htmlFor="client-contact-email">Correo</label>
+          <input id="client-contact-email" className="nk-input" type="email" disabled={disabled} value={contact.email} onChange={change('email')} placeholder="contacto@empresa.cl" />
+        </div>
+        <button type="button" className="nk-button nk-button-secondary nk-client-contact-add" disabled={disabled || contact.nombre.trim().length < 3} onClick={submit}>
+          <IconPlus size={15} />Agregar contacto
+        </button>
       </div>
-      <div className="nk-field">
-        <label className="nk-label" htmlFor="client-contact-role">Cargo</label>
-        <input id="client-contact-role" className="nk-input" disabled={disabled} value={contact.cargo} onChange={change('cargo')} placeholder="Operaciones, compras..." />
-      </div>
-      <div className="nk-field">
-        <label className="nk-label" htmlFor="client-contact-phone">Teléfono</label>
-        <input id="client-contact-phone" className="nk-input" disabled={disabled} value={contact.telefono} onChange={change('telefono')} placeholder="+56 9..." />
-      </div>
-      <div className="nk-field">
-        <label className="nk-label" htmlFor="client-contact-email">Correo</label>
-        <input id="client-contact-email" className="nk-input" type="email" disabled={disabled} value={contact.email} onChange={change('email')} placeholder="contacto@empresa.cl" />
-      </div>
-      <button type="button" className="nk-button nk-button-secondary nk-client-contact-add" disabled={disabled || contact.nombre.trim().length < 3} onClick={submit}>
-        <IconPlus size={15} />Agregar contacto
-      </button>
+      {error && <p className="nk-client-inline-error">{error}</p>}
     </div>
   )
 }
@@ -83,6 +105,7 @@ export default function ClientesPage() {
   const [selectedId, setSelectedId] = useState(null)
   const [draft, setDraft] = useState(emptyClient)
   const [newRequirement, setNewRequirement] = useState('')
+  const [requirementError, setRequirementError] = useState('')
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -215,12 +238,17 @@ export default function ClientesPage() {
 
   function addRequirement() {
     const name = newRequirement.trim()
-    if (!name || rows(draft.requisitos).some(item => item.nombre?.toLowerCase() === name.toLowerCase())) return
+    if (!name) return
+    if (rows(draft.requisitos).some(item => normalize(item.nombre) === normalize(name))) {
+      setRequirementError('Este requisito ya está configurado para el cliente.')
+      return
+    }
     setDraft(current => ({
       ...current,
       requisitos: [...rows(current.requisitos), { id: newId(), nombre: name, estado: 'pendiente' }],
     }))
     setNewRequirement('')
+    setRequirementError('')
   }
 
   const removeRequirement = requirement => {
@@ -245,6 +273,7 @@ export default function ClientesPage() {
               setCreating(true)
               setSelectedId(null)
               setDraft(emptyClient())
+              setRequirementError('')
               setMessage('')
               setMessageTone('')
             }}>
@@ -285,7 +314,7 @@ export default function ClientesPage() {
               type="button"
               key={client.id}
               className={`nk-client-list-item ${String(client.id) === String(selectedId) && !creating ? 'active' : ''}`}
-              onClick={() => { setCreating(false); setSelectedId(client.id); setMessage(''); setMessageTone('') }}
+              onClick={() => { setCreating(false); setSelectedId(client.id); setRequirementError(''); setMessage(''); setMessageTone('') }}
             >
               <IconBuilding size={17} />
               <span>
@@ -336,7 +365,7 @@ export default function ClientesPage() {
             <header>
               <div><h3><IconUser size={17} />Contactos y responsables</h3><p>Personas que participan en la relación comercial u operativa.</p></div>
             </header>
-            <ContactForm disabled={!canEdit} onAdd={addContact} />
+            <ContactForm contacts={draft.contactos} disabled={!canEdit} onAdd={addContact} />
             <div className="nk-client-contact-list">
               {rows(draft.contactos).length ? rows(draft.contactos).map(contact => (
                 <article key={contact.id}>
@@ -352,9 +381,10 @@ export default function ClientesPage() {
               <div><h3><IconFileText size={17} />Requisitos del cliente</h3><p>Documentos, condiciones o validaciones que se aplican a sus contratos y órdenes.</p></div>
             </header>
             <div className="nk-client-requirement-add">
-              <input className="nk-input" disabled={!canEdit} value={newRequirement} onChange={event => setNewRequirement(event.target.value)} placeholder="Ej.: Certificado de seguro vigente" />
+              <input className="nk-input" disabled={!canEdit} value={newRequirement} onChange={event => { setNewRequirement(event.target.value); setRequirementError('') }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addRequirement() } }} placeholder="Ej.: Certificado de seguro vigente" />
               <button type="button" className="nk-button nk-button-secondary" disabled={!canEdit || !newRequirement.trim()} onClick={addRequirement}><IconPlus size={15} />Agregar</button>
             </div>
+            {requirementError && <p className="nk-client-inline-error">{requirementError}</p>}
             <div className="nk-client-tags">
               {rows(draft.requisitos).map(item => (
                 <span key={item.id} className="nk-badge nk-badge-none">{item.nombre}{canEdit && <button type="button" onClick={() => removeRequirement(item)} aria-label={`Quitar ${item.nombre}`}>×</button>}</span>
@@ -369,8 +399,16 @@ export default function ClientesPage() {
                 <div><h3><IconMapPin size={17} />Relación operativa</h3><p>Vínculos que alimentan la ejecución, el cumplimiento y los reportes.</p></div>
               </header>
               <div className="nk-client-relations">
-                <article><strong>Contratos</strong>{relatedContracts.length ? relatedContracts.slice(0, 4).map(item => <span key={item.id}>{item.numero || item.nombre || 'Contrato sin nombre'}</span>) : <span>Sin contratos vinculados.</span>}</article>
-                <article><strong>Órdenes de servicio</strong>{relatedOrders.length ? relatedOrders.slice(0, 4).map(item => <span key={item.id}>{item.nombre || item.codigo || 'Orden sin nombre'}</span>) : <span>Sin órdenes de servicio vinculadas.</span>}</article>
+                <article>
+                  <strong>Contratos</strong>
+                  {relatedContracts.length ? relatedContracts.slice(0, 4).map(item => <span key={item.id}>{item.numero || item.nombre || 'Contrato sin nombre'}</span>) : <span>Sin contratos vinculados.</span>}
+                  {relatedContracts.length > 4 && <small>+ {relatedContracts.length - 4} contratos adicionales</small>}
+                </article>
+                <article>
+                  <strong>Órdenes de servicio</strong>
+                  {relatedOrders.length ? relatedOrders.slice(0, 4).map(item => <span key={item.id}>{item.nombre || item.codigo || 'Orden sin nombre'}</span>) : <span>Sin órdenes de servicio vinculadas.</span>}
+                  {relatedOrders.length > 4 && <small>+ {relatedOrders.length - 4} órdenes adicionales</small>}
+                </article>
               </div>
             </section>
           )}
