@@ -26,12 +26,12 @@ function workerSize(worker, itemName) {
   const epp = worker?.epp || {}
   const name = String(itemName || '').toLowerCase()
   if (/pantal/.test(name)) return epp.pantalon || ''
-  if (/calzad|bot/.test(name)) return epp.calzado || ''
+  if (/calzad|bot|zapat/.test(name)) return epp.calzado || epp.zapato || ''
   if (/guant/.test(name)) return epp.guante || ''
   if (/casco/.test(name)) return epp.casco || ''
   if (/arn[eé]s/.test(name)) return epp.arnes || ''
   if (/respir/.test(name)) return epp.respirador || ''
-  if (/ropa|polera|chaqueta|overol/.test(name)) return epp.ropa || ''
+  if (/ropa|polera|camisa|chaqueta|overol/.test(name)) return epp.ropa || epp.polera || ''
   return ''
 }
 
