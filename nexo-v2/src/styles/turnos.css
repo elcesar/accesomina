@@ -1,10 +1,10 @@
 /* NEXO KLAR · Turnos y Asistencia
- * Layout específico de página. Todos los valores visuales consumen tokens.css.
+ * Layout específico de página. Los patrones compartidos de densidad siguen el Design System.
  */
 
 .nk-turnos-page {
   min-height: 100%;
-  padding: var(--page-padding);
+  padding: var(--space-5) var(--space-6);
   background: var(--bg);
 }
 
@@ -31,7 +31,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 
 .nk-turnos-head > div:first-child { min-width: 0; flex: 1; }
@@ -40,7 +40,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: var(--space-2);
   flex-wrap: nowrap;
   flex: 0 0 auto;
 }
@@ -63,36 +63,59 @@
   line-height: var(--leading-normal);
 }
 
+.nk-turnos-page > .nk-tabs {
+  margin-bottom: var(--space-3);
+}
+
 .nk-turnos-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-3);
 }
 
-.nk-turnos-kpi { min-width: 0; }
+.nk-turnos-kpi {
+  min-width: 0;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
 .nk-turnos-kpi-value {
+  flex: 0 0 auto;
   margin: 0;
   color: var(--pri);
   font-family: var(--font-brand);
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   font-weight: var(--weight-extrabold);
+  line-height: 1;
 }
 .nk-turnos-kpi-value.ok { color: var(--ok); }
 .nk-turnos-kpi-value.warn { color: var(--warn-ink); }
 .nk-turnos-kpi-value.error { color: var(--err); }
 .nk-turnos-kpi-value.accent { color: var(--acc-ink); }
-.nk-turnos-kpi-label { margin: var(--space-1) 0 0; color: var(--mut); font-size: var(--text-sm); }
+.nk-turnos-kpi-label {
+  margin: 0;
+  color: var(--mut);
+  font-size: var(--text-sm);
+  line-height: 1.25;
+}
 
 .nk-turnos-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(150px, 1fr));
   gap: var(--space-2);
-  margin-bottom: var(--space-4);
-  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: var(--surf-2);
+  background: var(--surf);
+}
+
+.nk-turnos-filters .nk-select {
+  min-height: 40px;
 }
 
 .nk-turnos-table-card { padding: 0; overflow: hidden; }
@@ -125,9 +148,11 @@
 }
 
 @media (max-width: 640px) {
+  .nk-turnos-page { padding: var(--space-4); }
   .nk-turnos-head { flex-direction: column; }
   .nk-turnos-head > .nk-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
   .nk-turnos-head > .nk-button { width: 100%; }
   .nk-turnos-kpis, .nk-turnos-filters, .nk-turnos-modal-grid { grid-template-columns: 1fr; }
+  .nk-turnos-kpi { min-height: 64px; }
   .nk-turnos-modal-wide { grid-column: auto; }
 }
