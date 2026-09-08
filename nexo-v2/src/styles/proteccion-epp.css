@@ -1,5 +1,8 @@
 .nk-epp-page{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-6)}
 .nk-epp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.nk-epp-header>div:first-child{min-width:0;flex:1}
+.nk-epp-header>.nk-actions{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:var(--space-3);flex-wrap:nowrap;flex:0 0 auto}
+.nk-epp-header>.nk-actions .nk-button{width:auto;white-space:nowrap}
 .nk-epp-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.6rem,2.2vw,2.15rem);letter-spacing:-.03em}
 .nk-epp-header p{max-width:760px;margin:var(--space-2) 0 0;color:var(--mut);line-height:1.55}
 .nk-epp-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
@@ -14,10 +17,11 @@
 .nk-epp-item{display:flex;flex-direction:column;gap:2px}
 .nk-epp-feedback{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}
 .nk-epp-feedback.error{border-color:var(--danger,#c7362f)}
-.nk-epp-feedback.ok{border-color:var(--teal)}
+.nk-epp-feedback.ok{border-color:var(--acc)}
 .nk-epp-empty{padding:var(--space-7) var(--space-4)}
 .nk-epp-dialog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-4)}
 .nk-epp-dialog-wide{grid-column:1/-1}
 .nk-epp-size-hint{margin-top:var(--space-2);font-size:.78rem;color:var(--mut)}
-@media(max-width:900px){.nk-epp-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-epp-toolbar{grid-template-columns:1fr}.nk-epp-header{flex-direction:column}}
-@media(max-width:620px){.nk-epp-page{padding:var(--space-4)}.nk-epp-summary{grid-template-columns:1fr}.nk-epp-dialog-grid{grid-template-columns:1fr}.nk-epp-dialog-wide{grid-column:auto}}
+@media(max-width:900px){.nk-epp-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-epp-toolbar{grid-template-columns:1fr}}
+@media(max-width:720px){.nk-epp-header{flex-direction:column}.nk-epp-header>.nk-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}}
+@media(max-width:620px){.nk-epp-page{padding:var(--space-4)}.nk-epp-summary{grid-template-columns:1fr}.nk-epp-dialog-grid{grid-template-columns:1fr}.nk-epp-dialog-wide{grid-column:auto}.nk-epp-header>.nk-actions{display:grid;grid-template-columns:1fr 1fr}.nk-epp-header>.nk-actions .nk-button{width:100%}}
