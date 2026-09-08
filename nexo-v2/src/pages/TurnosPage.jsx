@@ -132,6 +132,7 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }
 export default function TurnosPage() {
   const navigate = useNavigate()
   const [state, setState] = useState(null)
+  const [moduleVersions, setModuleVersions] = useState({})
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('jornadas')
   const [showModal, setShowModal] = useState(false)
@@ -143,7 +144,10 @@ export default function TurnosPage() {
 
   useEffect(() => {
     api.get('/state')
-      .then(response => setState(response?.state || response))
+      .then(response => {
+        setState(response?.state || response)
+        setModuleVersions(response?.moduleVersions || {})
+      })
       .catch(error => console.error('No fue posible cargar turnos', error))
       .finally(() => setLoading(false))
   }, [])
@@ -190,11 +194,12 @@ export default function TurnosPage() {
     try {
       const nuevo = { id: `turno_${Date.now()}`, ...form, hh: Number(form.hh) || 0 }
       const nuevosTurnos = [...turnos, nuevo]
-      await api.put('/state/modules', {
-        changes: { turnos: { version: 0, data: nuevosTurnos } },
+      const result = await api.put('/state/modules', {
+        changes: { turnos: { version: Number(moduleVersions.turnos || 0), data: nuevosTurnos } },
         reason: 'Nueva jornada registrada',
       })
       setState(current => ({ ...current, turnos: nuevosTurnos }))
+      setModuleVersions(current => ({ ...current, ...result.moduleVersions }))
       setShowModal(false)
     } catch (error) {
       console.error('No fue posible guardar la jornada', error)
