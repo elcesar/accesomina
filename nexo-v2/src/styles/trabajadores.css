@@ -1,0 +1,290 @@
+.nk-people-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.nk-people-header {
+  flex: 0 0 auto;
+  padding: var(--space-4) var(--page-padding) 0;
+  background: var(--surf);
+  border-bottom: 1px solid var(--line);
+}
+
+.nk-people-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.nk-people-title {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+}
+
+.nk-people-subtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--mut);
+  font-size: var(--text-sm);
+}
+
+.nk-people-tabs {
+  overflow-x: auto;
+}
+
+.nk-people-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.nk-people-tab-count {
+  min-width: 22px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surf-2);
+  color: var(--sub);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.nk-people-tab.active .nk-people-tab-count {
+  background: var(--pri-light);
+  color: var(--pri);
+}
+
+.nk-people-filters {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--page-padding);
+  background: var(--surf-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.nk-people-search {
+  width: min(220px, 100%);
+  min-height: 36px;
+  background: var(--surf);
+}
+
+.nk-people-search-clear {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--sub);
+}
+
+.nk-people-search-clear:hover {
+  background: var(--surf-2);
+  color: var(--ink);
+}
+
+.nk-people-filter {
+  width: auto;
+  min-width: 150px;
+  min-height: 36px;
+  padding-block: var(--space-2);
+  background: var(--surf);
+  font-size: var(--text-sm);
+}
+
+.nk-people-filter.is-active {
+  border-color: var(--pri);
+  background: var(--pri-light);
+  color: var(--pri);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-people-clear-filters {
+  margin-left: auto;
+}
+
+.nk-people-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3) var(--page-padding) var(--space-5);
+}
+
+.nk-people-table {
+  min-width: 920px;
+}
+
+.nk-people-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.nk-people-sort-muted {
+  opacity: 0.3;
+}
+
+.nk-people-sort-active {
+  color: var(--acc);
+}
+
+.nk-people-row {
+  cursor: pointer;
+}
+
+.nk-people-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.nk-people-avatar {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--pri);
+  color: var(--color-white);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-extrabold);
+}
+
+.nk-people-name {
+  overflow: hidden;
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nk-people-rut,
+.nk-people-muted {
+  color: var(--sub);
+  font-size: var(--text-xs);
+}
+
+.nk-people-cell-muted {
+  color: var(--mut) !important;
+}
+
+.nk-people-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nk-people-progress-track {
+  width: 56px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.nk-people-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.nk-people-progress-bar.is-ok { background: var(--ok); }
+.nk-people-progress-bar.is-warn { background: var(--warn); }
+.nk-people-progress-bar.is-error { background: var(--err); }
+
+.nk-people-progress-value {
+  min-width: 32px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+}
+
+.nk-people-progress-value.is-ok { color: var(--ok); }
+.nk-people-progress-value.is-warn { color: var(--warn-ink); }
+.nk-people-progress-value.is-error { color: var(--err); }
+
+.nk-people-empty-cell {
+  padding: 0 !important;
+}
+
+.nk-people-empty-icon {
+  color: var(--sub);
+}
+
+.nk-people-loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+
+.nk-people-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--sub);
+  font-size: var(--text-base);
+}
+
+.nk-people-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--pri-light);
+  border-top-color: var(--pri);
+  border-radius: 50%;
+  animation: nk-people-spin 0.7s linear infinite;
+}
+
+@keyframes nk-people-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .nk-people-header-row {
+    flex-direction: column;
+  }
+
+  .nk-people-header-row .nk-actions {
+    width: 100%;
+  }
+
+  .nk-people-filter,
+  .nk-people-search {
+    flex: 1 1 180px;
+    width: auto;
+  }
+
+  .nk-people-clear-filters {
+    margin-left: 0;
+  }
+}
