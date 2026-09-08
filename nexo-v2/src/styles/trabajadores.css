@@ -39,13 +39,17 @@
 }
 
 .nk-people-tabs {
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 .nk-people-tab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
@@ -73,14 +77,18 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
   padding: var(--space-2) var(--page-padding);
   background: var(--surf-2);
   border-bottom: 1px solid var(--line);
 }
 
 .nk-people-search {
-  width: min(220px, 100%);
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 170px;
+  max-width: 240px;
   min-height: 36px;
   background: var(--surf);
 }
@@ -104,8 +112,10 @@
 }
 
 .nk-people-filter {
+  flex: 1 1 150px;
   width: auto;
-  min-width: 150px;
+  min-width: 120px;
+  max-width: 190px;
   min-height: 36px;
   padding-block: var(--space-2);
   background: var(--surf);
@@ -120,7 +130,9 @@
 }
 
 .nk-people-clear-filters {
+  flex: 0 0 auto;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .nk-people-content {
@@ -269,6 +281,22 @@
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 1100px) {
+  .nk-people-filters {
+    flex-wrap: wrap;
+  }
+
+  .nk-people-search,
+  .nk-people-filter {
+    flex: 1 1 160px;
+    max-width: none;
+  }
+
+  .nk-people-clear-filters {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .nk-people-header-row {
     flex-direction: column;
@@ -277,14 +305,17 @@
   .nk-people-header-row .nk-actions {
     width: 100%;
   }
+}
 
-  .nk-people-filter,
-  .nk-people-search {
-    flex: 1 1 180px;
-    width: auto;
+@media (max-width: 640px) {
+  .nk-people-filters {
+    align-items: stretch;
   }
 
-  .nk-people-clear-filters {
-    margin-left: 0;
+  .nk-people-search,
+  .nk-people-filter {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 100%;
   }
 }
