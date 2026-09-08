@@ -1,119 +1,160 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  IconChevronDown,
-  IconChevronUp,
-  IconDownload,
-  IconFilter,
-  IconPlus,
-  IconSearch,
-  IconUserCheck,
-  IconUserOff,
-  IconUsers,
-  IconX,
+  IconPlus, IconDownload, IconSearch, IconX,
+  IconFilter, IconUsers, IconUserOff, IconUserCheck,
+  IconChevronUp, IconChevronDown,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
-import '../styles/trabajadores.css'
 
-function diasHasta(fecha) {
-  if (!fecha) return null
-  return Math.floor((new Date(fecha) - new Date()) / 86400000)
+// ─── tokens ────────────────────────────────────────────────
+const T = {
+  bg:    '#F4EFE3', surf:  '#FFFFFF', surf2: '#FBF9F5', line:  '#E3DED2',
+  ink:   '#141A20', mut:   '#5D6B7A', sub:   '#8A96A1',
+  pri:   '#2A2A8C', priD:  '#1A1A5E', graph: '#26313A',
+  acc:   '#00CFC1', accT:  '#00706A',
+  ok:    '#1B7F4B', okBg:  '#E6F2EB',
+  warn:  '#C77700', warnBg:'#FBF1DF',
+  err:   '#B3261E', errBg: '#FBE8E6',
 }
 
-const REQUIRED_ITEMS = [
-  { type: 'documento', name: 'Cédula de identidad' },
-  { type: 'contrato', name: 'Contrato de trabajo' },
-  { type: 'documento', name: 'Certificado AFP' },
-  { type: 'documento', name: 'Certificado Fonasa/Isapre' },
-  { type: 'examen', name: 'Examen preocupacional' },
-  { type: 'curso', name: 'ODI / Derecho a Saber' },
-  { type: 'curso', name: 'Reglamento Interno' },
-]
+// ─── helpers ────────────────────────────────────────────────
+function diasHasta(fecha) {
+  if (!fecha) return null
+  const diff = Math.floor((new Date(fecha) - new Date()) / 86400000)
+  return diff
+}
 
-function acreditacionPct(persona) {
-  const items = persona.workerItems || []
-  if (!items.length) return 0
+function estadoVence(fecha) {
+  if (!fecha) return null
+  const d = diasHasta(fecha)
+  if (d < 0)  return 'vencido'
+  if (d <= 30) return 'por_vencer'
+  return 'vigente'
+}
 
-  const ok = REQUIRED_ITEMS.filter(req => (
-    items.some(item => (
-      item.type === req.type &&
-      item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
-      item.estado !== 'rechazado' &&
-      !(item.vence && diasHasta(item.vence) < 0)
-    ))
-  )).length
+function acreditacionPct(t) {
+  const checks = [
+    t.docCI?.vence, t.docContrato?.vence, t.docAFP?.vence,
+    t.docSalud?.vence, t.exPreocupacional?.vence, t.curODI?.vence,
+    t.curReglamento?.fecha,
+  ].filter(Boolean)
+  if (!checks.length) return 0
+  const ok = checks.filter(v => diasHasta(v) >= 0).length
+  return Math.round((ok / checks.length) * 100)
+}
 
-  return Math.round((ok / REQUIRED_ITEMS.length) * 100)
+function proxVence(t) {
+  const fechas = [
+    t.docCI?.vence, t.docContrato?.vence, t.docAFP?.vence,
+    t.docSalud?.vence, t.exPreocupacional?.vence, t.curODI?.vence,
+  ].filter(Boolean).map(f => new Date(f)).filter(d => !isNaN(d))
+  if (!fechas.length) return null
+  const min = new Date(Math.min(...fechas))
+  return min.toISOString().split('T')[0]
 }
 
 function initials(nombre) {
   if (!nombre) return '?'
   const parts = nombre.trim().split(' ')
-  return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
+  return (parts[0]?.[0] || '') + (parts[1]?.[0] || '')
 }
 
-function workerProjectIds(persona, asignaciones) {
-  return asignaciones
-    .filter(asignacion => asignacion.trabId === persona.id)
-    .map(asignacion => asignacion.mantId)
+const AVATAR_COLORS = [
+  '#2A2A8C','#1B7F4B','#C77700','#B3261E','#00706A',
+  '#26313A','#4A3C8C','#0F6E56','#8C3A1B',
+]
+function avatarColor(id) {
+  let h = 0
+  for (let i = 0; i < (id || '').length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffff
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
 }
 
-function workerContractIds(persona, asignaciones, mantenciones) {
-  const projectIds = workerProjectIds(persona, asignaciones)
-  return [...new Set(
-    projectIds
-      .map(projectId => mantenciones.find(project => project.id === projectId)?.contratoId)
-      .filter(Boolean)
-  )]
-}
+// ─── sub-componentes ────────────────────────────────────────
 
-function AvailabilityBadge({ value, blocked }) {
-  if (blocked) return <span className="nk-badge nk-badge-error">Restringido</span>
-
+function Badge({ estado }) {
   const map = {
-    disponible: ['nk-badge-ok', 'Disponible'],
-    vacaciones: ['nk-badge-warn', 'Vacaciones'],
-    asignado: ['nk-badge-none', 'Asignado'],
+    vigente:    { label: 'Vigente',    bg: T.okBg,   color: T.ok },
+    por_vencer: { label: 'Por vencer', bg: T.warnBg, color: T.warn },
+    vencido:    { label: 'Vencido',    bg: T.errBg,  color: T.err },
   }
-  const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin información']
-  return <span className={`nk-badge ${cls}`}>{label}</span>
-}
-
-function LinkTypeBadge({ type }) {
-  return type === 'permanente'
-    ? <span className="nk-badge nk-badge-none">Fijo</span>
-    : <span className="nk-badge nk-badge-warn">Por proyecto</span>
-}
-
-function ProgressBar({ pct }) {
-  const stateClass = pct >= 85 ? 'is-ok' : pct >= 60 ? 'is-warn' : 'is-error'
-
+  const s = map[estado] || { label: '—', bg: T.surf2, color: T.sub }
   return (
-    <div className="nk-people-progress" aria-label={`${pct}% de cumplimiento documental`}>
-      <div className="nk-people-progress-track" aria-hidden="true">
-        <div
-          className={`nk-people-progress-bar ${stateClass}`}
-          style={{ width: `${pct}%` }}
-        />
+    <span style={{
+      background: s.bg, color: s.color,
+      fontSize: 10, fontWeight: 700,
+      padding: '2px 7px', borderRadius: 99,
+      whiteSpace: 'nowrap',
+    }}>{s.label}</span>
+  )
+}
+
+function BadgeDisp({ disp }) {
+  const map = {
+    disponible: { label: 'Disponible', bg: T.okBg,   color: T.ok },
+    asignado:   { label: 'Asignado',   bg: '#E3E3F0', color: T.pri },
+    vacaciones: { label: 'Vacaciones', bg: T.warnBg,  color: T.warn },
+    bloqueado:  { label: 'Restringido', bg: T.errBg,   color: T.err },
+  }
+  const s = map[disp] || { label: disp || '—', bg: T.surf2, color: T.sub }
+  return (
+    <span style={{
+      background: s.bg, color: s.color,
+      fontSize: 10, fontWeight: 700,
+      padding: '2px 7px', borderRadius: 99,
+    }}>{s.label}</span>
+  )
+}
+
+function ProgBar({ pct }) {
+  const color = pct >= 85 ? T.ok : pct >= 60 ? T.warn : T.err
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ width: 52, height: 5, borderRadius: 3, background: T.line, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 3 }} />
       </div>
-      <span className={`nk-people-progress-value ${stateClass}`}>{pct}%</span>
+      <span style={{ fontSize: 10, color, fontWeight: 700, minWidth: 28 }}>{pct}%</span>
     </div>
   )
 }
 
-const TABS = [
-  { key: 'planta', label: 'Personal fijo', icon: IconUserCheck },
-  { key: 'esporadico', label: 'Por proyecto', icon: IconUsers },
-  { key: 'disponible', label: 'Disponibles', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
-]
-
-const TAB_LABELS = {
-  planta: 'personas con vínculo fijo',
-  esporadico: 'personas vinculadas por proyecto',
-  disponible: 'personas disponibles',
-  bloqueados: 'personas restringidas',
+function Avatar({ nombre, id }) {
+  return (
+    <div style={{
+      width: 28, height: 28, borderRadius: '50%',
+      background: avatarColor(id),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#fff', fontSize: 10, fontWeight: 800, flexShrink: 0,
+    }}>
+      {initials(nombre).toUpperCase()}
+    </div>
+  )
 }
+
+function EmptyState({ tab }) {
+  const msg = {
+    planta:     'No hay trabajadores fijos registrados.',
+    esporadico: 'No hay trabajadores por proyecto registrados.',
+    bloqueados: 'No hay trabajadores restringidos.',
+  }
+  return (
+    <tr>
+      <td colSpan={7} style={{ textAlign: 'center', padding: '40px 0', color: T.sub, fontSize: 13 }}>
+        <IconUsers size={28} strokeWidth={1.5} style={{ display: 'block', margin: '0 auto 8px', color: T.line }} />
+        {msg[tab] || 'Sin resultados.'}
+      </td>
+    </tr>
+  )
+}
+
+// ─── página principal ────────────────────────────────────────
+
+const TABS = [
+  { key: 'planta',     label: 'Trabajador fijo',        icon: IconUserCheck },
+  { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
+  { key: 'disponible', label: 'Trabajador disponible',  icon: IconUserCheck },
+  { key: 'bloqueados', label: 'Restringidos',            icon: IconUserOff },
+]
 
 export default function TrabajadoresPage() {
   const navigate = useNavigate()
@@ -121,21 +162,18 @@ export default function TrabajadoresPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('planta')
   const [search, setSearch] = useState('')
-  const [specialty, setSpecialty] = useState('')
-  const [availability, setAvailability] = useState('')
-  const [clientId, setClientId] = useState('')
-  const [projectId, setProjectId] = useState('')
+  const [filtEsp, setFiltEsp] = useState('')
+  const [filtDisp, setFiltDisp] = useState('')
+  const [filtCliente, setFiltCliente] = useState('')
   const [sortCol, setSortCol] = useState('nombre')
   const [sortAsc, setSortAsc] = useState(true)
 
   const loadState = () => {
     setLoading(true)
-    api.get('/state')
-      .then(result => {
-        setState(result?.state || result)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    api.get('/state').then(r => {
+      setState(r?.state || r)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -144,197 +182,177 @@ export default function TrabajadoresPage() {
     return () => window.removeEventListener('focus', loadState)
   }, [])
 
-  const personas = state?.trabajadores || []
-  const clientes = state?.minas || []
-  const proyectos = state?.mantenciones || []
-  const contratos = state?.contratos || []
-  const asignaciones = state?.asignaciones || []
+  const trabajadores = state?.trabajadores || []
+  const clientes     = state?.minas        || []
 
-  const specialties = useMemo(() => (
-    [...new Set(personas.map(persona => persona.especialidad).filter(Boolean))].sort()
-  ), [personas])
+  // especialidades únicas
+  const especialidades = useMemo(() =>
+    [...new Set(trabajadores.map(t => t.especialidad).filter(Boolean))].sort()
+  , [trabajadores])
 
-  const tabCount = key => {
-    if (key === 'planta') return personas.filter(p => p.tipo === 'permanente' && !p.bloqueado).length
-    if (key === 'esporadico') return personas.filter(p => p.tipo === 'esporadico' && !p.bloqueado).length
-    if (key === 'disponible') return personas.filter(p => !p.bloqueado && p.disponibilidad === 'disponible').length
-    return personas.filter(p => p.bloqueado).length
-  }
-
-  const getContext = persona => {
-    const clientNames = (persona.mineras || [])
-      .map(id => clientes.find(cliente => cliente.id === id)?.nombre)
-      .filter(Boolean)
-
-    const workerProjects = workerProjectIds(persona, asignaciones)
-    const projectNames = workerProjects
-      .map(id => proyectos.find(project => project.id === id)?.nombre)
-      .filter(Boolean)
-
-    const workerContracts = workerContractIds(persona, asignaciones, proyectos)
-    const contractNames = workerContracts
-      .map(id => contratos.find(contract => contract.id === id)?.nombre)
-      .filter(Boolean)
-
-    return {
-      clients: clientNames.join(', '),
-      projects: projectNames.join(', '),
-      contracts: contractNames.join(', '),
-    }
-  }
-
+  // filtros + tab
   const filtered = useMemo(() => {
-    let list = personas
+    let list = trabajadores
 
-    if (tab === 'planta') list = list.filter(p => p.tipo === 'permanente' && !p.bloqueado)
-    if (tab === 'esporadico') list = list.filter(p => p.tipo === 'esporadico' && !p.bloqueado)
-    if (tab === 'disponible') list = list.filter(p => !p.bloqueado && p.disponibilidad === 'disponible')
-    if (tab === 'bloqueados') list = list.filter(p => p.bloqueado)
+    if (tab === 'planta')     list = list.filter(t => t.tipo === 'permanente' && !t.bloqueado)
+    if (tab === 'esporadico') list = list.filter(t => t.tipo === 'esporadico' && !t.bloqueado)
+    if (tab === 'disponible') list = list.filter(t => t.disponibilidad === 'disponible' && !t.bloqueado)
+    if (tab === 'bloqueados') list = list.filter(t => t.bloqueado)
 
-    if (search) {
-      const term = search.toLocaleLowerCase()
-      list = list.filter(p => (
-        p.nombre?.toLocaleLowerCase().includes(term) || p.rut?.includes(search)
-      ))
-    }
-    if (specialty) list = list.filter(p => p.especialidad === specialty)
-    if (availability) list = list.filter(p => p.disponibilidad === availability)
-    if (clientId) list = list.filter(p => (p.mineras || []).includes(clientId))
-    if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones).includes(projectId))
+    if (search)     list = list.filter(t =>
+      t.nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      t.rut?.includes(search)
+    )
+    if (filtEsp)    list = list.filter(t => t.especialidad === filtEsp)
+    if (filtDisp)   list = list.filter(t => t.disponibilidad === filtDisp)
+    if (filtCliente) list = list.filter(t => (t.mineras || []).includes(filtCliente))
 
-    return [...list].sort((a, b) => {
-      let valueA = a[sortCol] ?? ''
-      let valueB = b[sortCol] ?? ''
-
-      if (sortCol === 'acreditacion') {
-        valueA = acreditacionPct(a)
-        valueB = acreditacionPct(b)
-      }
-
-      if (valueA < valueB) return sortAsc ? -1 : 1
-      if (valueA > valueB) return sortAsc ? 1 : -1
+    // sort
+    list = [...list].sort((a, b) => {
+      let va = a[sortCol] ?? ''
+      let vb = b[sortCol] ?? ''
+      if (sortCol === 'acreditacion') { va = acreditacionPct(a); vb = acreditacionPct(b) }
+      if (va < vb) return sortAsc ? -1 : 1
+      if (va > vb) return sortAsc ? 1 : -1
       return 0
     })
-  }, [personas, asignaciones, tab, search, specialty, availability, clientId, projectId, sortCol, sortAsc])
 
-  const activeFilters = [search, specialty, availability, clientId, projectId].filter(Boolean).length
+    return list
+  }, [trabajadores, tab, search, filtEsp, filtDisp, filtCliente, sortCol, sortAsc])
 
-  const toggleSort = col => {
-    if (sortCol === col) setSortAsc(value => !value)
-    else {
-      setSortCol(col)
-      setSortAsc(true)
-    }
+  const filtrosActivos = [search, filtEsp, filtDisp, filtCliente].filter(Boolean).length
+
+  function toggleSort(col) {
+    if (sortCol === col) setSortAsc(v => !v)
+    else { setSortCol(col); setSortAsc(true) }
   }
 
-  const clearFilters = () => {
-    setSearch('')
-    setSpecialty('')
-    setAvailability('')
-    setClientId('')
-    setProjectId('')
-  }
-
-  const SortIcon = ({ col }) => {
-    if (sortCol !== col) return <IconChevronDown className="nk-people-sort-muted" size={11} />
+  function SortIcon({ col }) {
+    if (sortCol !== col) return <IconChevronDown size={11} style={{ opacity: 0.3 }} />
     return sortAsc
-      ? <IconChevronUp className="nk-people-sort-active" size={11} />
-      : <IconChevronDown className="nk-people-sort-active" size={11} />
+      ? <IconChevronUp size={11} style={{ color: T.acc }} />
+      : <IconChevronDown size={11} style={{ color: T.acc }} />
   }
 
-  if (loading) {
-    return (
-      <div className="nk-people-loading">
-        <div className="nk-people-loading-content">
-          <div className="nk-people-spinner" aria-hidden="true" />
-          <span>Cargando personas…</span>
-        </div>
-      </div>
-    )
+  function limpiarFiltros() {
+    setSearch(''); setFiltEsp(''); setFiltDisp(''); setFiltCliente('')
   }
+
+  if (loading) return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg }}>
+      <span style={{ color: T.sub, fontSize: 13 }}>Cargando trabajadores…</span>
+    </div>
+  )
 
   return (
-    <div className="nk-people-page">
-      <section className="nk-people-header">
-        <div className="nk-people-header-row">
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: T.bg, overflow: 'hidden' }}>
+
+      {/* ── ZONA 1: encabezado ── */}
+      <div style={{ background: T.surf, borderBottom: `1px solid ${T.line}`, padding: '14px 20px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <div>
-            <h1 className="nk-people-title">Personas</h1>
-            <p className="nk-people-subtitle">
-              {filtered.length} {TAB_LABELS[tab]}
-              {activeFilters > 0 && ` · ${activeFilters} filtro${activeFilters > 1 ? 's' : ''} activo${activeFilters > 1 ? 's' : ''}`}
+            <h1 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 800, fontSize: 18, color: T.ink, margin: 0 }}>
+              Trabajadores
+            </h1>
+            <p style={{ fontSize: 12, color: T.mut, margin: '3px 0 0' }}>
+              {filtered.length} {tab === 'planta' ? 'trabajadores fijos' : tab === 'esporadico' ? 'trabajadores por proyecto' : tab === 'disponible' ? 'trabajadores disponibles' : 'trabajadores restringidos'}
+              {filtrosActivos > 0 && ` · ${filtrosActivos} filtro${filtrosActivos > 1 ? 's' : ''} activo${filtrosActivos > 1 ? 's' : ''}`}
             </p>
           </div>
-
-          <div className="nk-actions">
-            <button className="nk-button nk-button-secondary" type="button">
-              <IconDownload size={15} strokeWidth={1.7} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: `1px solid ${T.line}`, borderRadius: 8, background: T.surf, color: T.mut, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <IconDownload size={14} strokeWidth={1.8} />
               Exportar
             </button>
             <button
-              className="nk-button nk-button-primary"
-              type="button"
               onClick={() => navigate('/app/trabajadores/nuevo')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: 'none', borderRadius: 8, background: T.pri, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = T.priD}
+              onMouseLeave={e => e.currentTarget.style.background = T.pri}
             >
-              <IconPlus size={15} strokeWidth={2} />
-              Nueva persona
+              <IconPlus size={14} strokeWidth={2.2} />
+              Trabajador
             </button>
           </div>
         </div>
 
-        <div className="nk-tabs nk-people-tabs" role="tablist" aria-label="Segmentos de personas">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              className={`nk-tab nk-people-tab ${tab === key ? 'active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              key={key}
-              onClick={() => setTab(key)}
-            >
-              <Icon size={14} strokeWidth={1.7} />
-              {label}
-              <span className="nk-people-tab-count">{tabCount(key)}</span>
-            </button>
-          ))}
+        {/* ── ZONA 2: tabs ── */}
+        <div style={{ display: 'flex', gap: 0 }}>
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const count = key === 'planta'
+              ? trabajadores.filter(t => t.tipo === 'permanente' && !t.bloqueado).length
+              : key === 'esporadico'
+              ? trabajadores.filter(t => t.tipo === 'esporadico' && !t.bloqueado).length
+              : key === 'disponible'
+              ? trabajadores.filter(t => t.disponibilidad === 'disponible' && !t.bloqueado).length
+              : trabajadores.filter(t => t.bloqueado).length
+            const active = tab === key
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', border: 'none', background: 'transparent',
+                  fontSize: 12, fontWeight: active ? 700 : 500,
+                  color: active ? T.pri : T.mut,
+                  borderBottom: active ? `2px solid ${T.pri}` : '2px solid transparent',
+                  marginBottom: -1, cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                <Icon size={13} strokeWidth={1.8} />
+                {label}
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                  background: active ? '#E3E3F0' : T.surf2,
+                  color: active ? T.pri : T.sub,
+                }}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
         </div>
-      </section>
+      </div>
 
-      <section className="nk-people-filters" aria-label="Filtros de personas">
-        <div className="nk-search nk-people-search">
-          <IconSearch size={14} strokeWidth={1.7} />
+      {/* ── ZONA 3: filtros ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+        padding: '8px 20px', background: T.surf2, borderBottom: `1px solid ${T.line}`,
+      }}>
+        {/* búsqueda */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', border: `1px solid ${T.line}`, borderRadius: 7, background: T.surf, flex: '1 1 160px', maxWidth: 200 }}>
+          <IconSearch size={13} strokeWidth={1.8} style={{ color: T.sub, flexShrink: 0 }} />
           <input
             value={search}
-            onChange={event => setSearch(event.target.value)}
+            onChange={e => setSearch(e.target.value)}
             placeholder="Nombre o RUT"
-            aria-label="Buscar persona por nombre o RUT"
+            style={{ border: 'none', outline: 'none', fontSize: 12, color: T.ink, background: 'transparent', width: '100%' }}
           />
           {search && (
-            <button
-              className="nk-people-search-clear"
-              type="button"
-              onClick={() => setSearch('')}
-              aria-label="Limpiar búsqueda"
-            >
-              <IconX size={13} />
+            <button onClick={() => setSearch('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: T.sub, padding: 0, display: 'flex' }}>
+              <IconX size={12} />
             </button>
           )}
         </div>
 
+        {/* especialidad */}
         <select
-          className={`nk-select nk-people-filter ${specialty ? 'is-active' : ''}`}
-          value={specialty}
-          onChange={event => setSpecialty(event.target.value)}
-          aria-label="Filtrar por especialidad"
+          value={filtEsp}
+          onChange={e => setFiltEsp(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${filtEsp ? T.pri : T.line}`, borderRadius: 7, background: filtEsp ? '#E3E3F0' : T.surf, color: filtEsp ? T.pri : T.mut, fontSize: 12, fontWeight: filtEsp ? 700 : 500, cursor: 'pointer', outline: 'none' }}
         >
           <option value="">Especialidad</option>
-          {specialties.map(item => <option key={item} value={item}>{item}</option>)}
+          {especialidades.map(e => <option key={e} value={e}>{e}</option>)}
         </select>
 
+        {/* disponibilidad */}
         <select
-          className={`nk-select nk-people-filter ${availability ? 'is-active' : ''}`}
-          value={availability}
-          onChange={event => setAvailability(event.target.value)}
-          aria-label="Filtrar por disponibilidad"
+          value={filtDisp}
+          onChange={e => setFiltDisp(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${filtDisp ? T.pri : T.line}`, borderRadius: 7, background: filtDisp ? '#E3E3F0' : T.surf, color: filtDisp ? T.pri : T.mut, fontSize: 12, fontWeight: filtDisp ? 700 : 500, cursor: 'pointer', outline: 'none' }}
         >
           <option value="">Disponibilidad</option>
           <option value="disponible">Disponible</option>
@@ -342,152 +360,137 @@ export default function TrabajadoresPage() {
           <option value="vacaciones">Vacaciones</option>
         </select>
 
+        {/* cliente */}
         <select
-          className={`nk-select nk-people-filter ${clientId ? 'is-active' : ''}`}
-          value={clientId}
-          onChange={event => setClientId(event.target.value)}
-          aria-label="Filtrar por cliente"
+          value={filtCliente}
+          onChange={e => setFiltCliente(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${filtCliente ? T.pri : T.line}`, borderRadius: 7, background: filtCliente ? '#E3E3F0' : T.surf, color: filtCliente ? T.pri : T.mut, fontSize: 12, fontWeight: filtCliente ? 700 : 500, cursor: 'pointer', outline: 'none' }}
         >
           <option value="">Cliente</option>
-          {clientes.map(cliente => (
-            <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
-          ))}
+          {clientes.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
         </select>
 
-        <select
-          className={`nk-select nk-people-filter ${projectId ? 'is-active' : ''}`}
-          value={projectId}
-          onChange={event => setProjectId(event.target.value)}
-          aria-label="Filtrar por proyecto"
-        >
-          <option value="">Proyecto / servicio</option>
-          {proyectos.map(project => (
-            <option key={project.id} value={project.id}>{project.nombre}</option>
-          ))}
-        </select>
-
-        {activeFilters > 0 && (
+        {/* limpiar */}
+        {filtrosActivos > 0 && (
           <button
-            className="nk-button nk-button-quiet nk-people-clear-filters"
-            type="button"
-            onClick={clearFilters}
+            onClick={limpiarFiltros}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', border: 'none', background: 'none', color: T.accT, fontSize: 12, fontWeight: 700, cursor: 'pointer', marginLeft: 'auto' }}
           >
-            <IconFilter size={14} strokeWidth={1.7} />
-            Limpiar ({activeFilters})
+            <IconFilter size={12} />
+            Limpiar ({filtrosActivos})
           </button>
         )}
-      </section>
+      </div>
 
-      <main className="nk-people-content">
-        <div className="nk-table-wrapper">
-          <table className="nk-table nk-people-table">
-            <thead>
-              <tr>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>
-                    Persona <SortIcon col="nombre" />
-                  </button>
+      {/* ── ZONA 4: tabla ── */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 20px 20px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 10 }}>
+          <thead>
+            <tr style={{ background: T.graph }}>
+              {[
+                { col: 'nombre',       label: 'Trabajador',    w: '22%' },
+                { col: 'especialidad', label: 'Especialidad',  w: '16%' },
+                { col: 'disponibilidad',label:'Disponibilidad',w: '12%' },
+                { col: 'cliente',      label: 'Cliente',       w: '16%' },
+                { col: 'acreditacion', label: 'Cumplimiento documental', w: '13%' },
+                { col: 'proxVence',    label: 'Próx. vence',   w: '11%' },
+                { col: '',             label: '',              w: '10%' },
+              ].map(({ col, label, w }) => (
+                <th
+                  key={col || 'acc'}
+                  onClick={() => col && toggleSort(col)}
+                  style={{
+                    padding: '8px 10px', textAlign: 'left', color: '#fff',
+                    fontWeight: 600, fontSize: 11, letterSpacing: '.04em',
+                    width: w, whiteSpace: 'nowrap',
+                    cursor: col ? 'pointer' : 'default',
+                    userSelect: 'none',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {label}
+                    {col && <SortIcon col={col} />}
+                  </span>
                 </th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>
-                    Especialidad <SortIcon col="especialidad" />
-                  </button>
-                </th>
-                <th>Vinculación</th>
-                <th>Contexto operacional</th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>
-                    Disponibilidad <SortIcon col="disponibilidad" />
-                  </button>
-                </th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>
-                    Cumplimiento <SortIcon col="acreditacion" />
-                  </button>
-                </th>
-                <th aria-label="Acciones" />
-              </tr>
-            </thead>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <EmptyState tab={tab} />
+            ) : filtered.map((t, i) => {
+              const pct = acreditacionPct(t)
+              const pv  = proxVence(t)
+              const estPv = estadoVence(pv)
+              const clienteNombre = clientes.find(m => (t.mineras || []).includes(m.id))?.nombre
 
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td className="nk-people-empty-cell" colSpan={7}>
-                    <div className="nk-empty">
-                      <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">
-                        Ajusta los filtros o registra una nueva persona para comenzar su gestión documental y operacional.
-                      </p>
-                      <button
-                        className="nk-button nk-button-primary"
-                        type="button"
-                        onClick={() => navigate('/app/trabajadores/nuevo')}
-                      >
-                        <IconPlus size={15} strokeWidth={2} />
-                        Nueva persona
-                      </button>
+              return (
+                <tr
+                  key={t.id}
+                  style={{ background: i % 2 === 0 ? T.surf : T.surf2, cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#EEF0FF'}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? T.surf : T.surf2}
+                  onClick={() => navigate(`/app/trabajadores/${t.id}`)}
+                >
+                  {/* trabajador */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Avatar nombre={t.nombre} id={t.id} />
+                      <div>
+                        <div style={{ fontWeight: 600, color: T.ink }}>{t.nombre}</div>
+                        <div style={{ fontSize: 10, color: T.sub }}>{t.rut}</div>
+                      </div>
                     </div>
                   </td>
-                </tr>
-              ) : filtered.map(persona => {
-                const pct = acreditacionPct(persona)
-                const context = getContext(persona)
 
-                return (
-                  <tr
-                    className="nk-people-row"
-                    key={persona.id}
-                    tabIndex={0}
-                    onClick={() => navigate(`/app/trabajadores/${persona.id}`)}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        navigate(`/app/trabajadores/${persona.id}`)
-                      }
-                    }}
+                  {/* especialidad */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}`, color: T.mut }}>
+                    {t.especialidad || '—'}
+                  </td>
+
+                  {/* disponibilidad */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}` }}>
+                    {tab === 'bloqueados'
+                      ? <span style={{ fontSize: 11, color: T.err }}>{t.motivoBloq || 'Sin motivo'}</span>
+                      : <BadgeDisp disp={t.disponibilidad} />
+                    }
+                  </td>
+
+                  {/* cliente */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}`, color: T.mut, fontSize: 11 }}>
+                    {clienteNombre || '—'}
+                  </td>
+
+                  {/* acreditación */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}` }}>
+                    <ProgBar pct={pct} />
+                  </td>
+
+                  {/* próx vence */}
+                  <td style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}` }}>
+                    {pv ? <Badge estado={estPv} /> : <span style={{ color: T.sub, fontSize: 11 }}>—</span>}
+                  </td>
+
+                  {/* acciones */}
+                  <td
+                    style={{ padding: '9px 10px', borderBottom: `1px solid ${T.line}`, textAlign: 'right' }}
+                    onClick={e => e.stopPropagation()}
                   >
-                    <td>
-                      <div className="nk-people-person">
-                        <div className="nk-people-avatar" aria-hidden="true">
-                          {initials(persona.nombre)}
-                        </div>
-                        <div>
-                          <div className="nk-people-name">{persona.nombre || 'Sin nombre'}</div>
-                          <div className="nk-people-rut">{persona.rut || 'Sin RUT'}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="nk-people-cell-muted">{persona.especialidad || '—'}</td>
-                    <td><LinkTypeBadge type={persona.tipo} /></td>
-                    <td>
-                      <div>{context.clients || '—'}</div>
-                      {(context.projects || context.contracts) && (
-                        <div className="nk-people-muted">
-                          {[context.projects, context.contracts].filter(Boolean).join(' · ')}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <AvailabilityBadge value={persona.disponibilidad} blocked={persona.bloqueado} />
-                    </td>
-                    <td><ProgressBar pct={pct} /></td>
-                    <td onClick={event => event.stopPropagation()}>
-                      <button
-                        className="nk-button nk-button-quiet"
-                        type="button"
-                        onClick={() => navigate(`/app/trabajadores/${persona.id}`)}
-                      >
-                        Ficha
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </main>
+                    <button
+                      onClick={() => navigate(`/app/trabajadores/${t.id}`)}
+                      style={{ padding: '4px 10px', border: `1px solid ${T.line}`, borderRadius: 6, background: T.surf, color: T.mut, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = T.pri; e.currentTarget.style.color = T.pri }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = T.line; e.currentTarget.style.color = T.mut }}
+                    >
+                      Ficha
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

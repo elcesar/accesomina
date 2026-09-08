@@ -1,6 +1,6 @@
 {
-  "name": "accesomina-cloud",
-  "version": "7.6.0",
+  "name": "nexo-klar-cloud",
+  "version": "7.7.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,11 +8,16 @@
   },
   "scripts": {
     "dev": "node --watch server/index.js",
+    "build:frontend": "pnpm --dir nexo-v2 build",
+    "dev:frontend": "pnpm --dir nexo-v2 dev",
     "start": "node server/index.js",
     "migrate": "node server/scripts/migrate.js",
     "seed:admin": "node server/scripts/seed-admin.js",
+    "video:voice": "node tools/azure-catalina-tts.mjs",
     "test": "node --test server/test/*.test.js",
-    "check": "node --check server/index.js && node --check public/cloud-client.js && node --test server/test/*.test.js"
+    "check": "node --check server/index.js && node --check public/cloud-client.js && node --test server/test/*.test.js",
+    "validate:release": "node server/scripts/validate-release.js",
+    "validate:production": "STRICT_RELEASE_VALIDATION=true node server/scripts/validate-release.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.830.0",

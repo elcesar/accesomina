@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
-import { hashPassword, normalizeEmail, randomToken, validatePassword } from '../security.js';
+import { hashPassword, normalizeEmail, randomToken, validatePassword, clientIp } from '../security.js';
 import { sanitizeJson, userSchema } from '../validation.js';
+import { createPasswordReset, deliverPasswordReset, resetDeliveryResponse } from '../password-reset.js';
 
 export const usersRouter = Router();
 usersRouter.get('/', allowRoles('domian_admin','client_admin'), async (req, res) => {
@@ -39,18 +40,16 @@ usersRouter.patch('/:id', allowRoles('domian_admin','client_admin'), async (req,
 });
 usersRouter.post('/:id/reset-password', allowRoles('domian_admin','client_admin'), async (req, res) => {
   if(req.params.id===req.auth.userId)return res.status(409).json({error:'CANNOT_RESET_SELF',message:'Use the personal password change option for your own account.'});
-  const temporary=`${randomToken(12)}Aa1`,credentials=await hashPassword(temporary);
   const user=await withTenant(req.auth.tenantId,async client=>{
     const before=(await client.query('SELECT id,email,full_name,role,active FROM app_users WHERE id=$1 AND tenant_id=$2',[req.params.id,req.auth.tenantId])).rows[0];
     if(!before)return null;
     if(before.role==='domian_admin'&&req.auth.role!=='domian_admin')throw Object.assign(new Error('The Domian global administrator account is protected'),{status:403,code:'DOMIAN_ADMIN_PROTECTED'});
-    const updated=(await client.query(`UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=true,failed_login_count=0,locked_until=NULL,updated_at=now() WHERE id=$3 AND tenant_id=$4 RETURNING id,email,full_name,role,active,must_change_password`,[credentials.hash,credentials.salt,req.params.id,req.auth.tenantId])).rows[0];
-    await client.query('UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND tenant_id=$2 AND revoked_at IS NULL',[req.params.id,req.auth.tenantId]);
-    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.params.id,action:'user.password_reset_by_company_admin',oldValue:{email:before.email},newValue:{mustChangePassword:true,sessionsRevoked:true}});
-    return updated;
+    return before;
   });
   if(!user)return res.status(404).json({error:'USER_NOT_FOUND'});
-  res.json({user,temporaryPassword:temporary,mustChangePassword:true});
+  const request=await createPasswordReset({tenantId:req.auth.tenantId,user,requestedBy:req.auth.userId,ip:clientIp(req),reason:'company_admin'});
+  const delivery=await deliverPasswordReset({email:user.email,fullName:user.full_name,url:request.url}).catch(()=>({delivered:false,reason:'DELIVERY_FAILED'}));
+  res.json({user:{id:user.id,email:user.email,fullName:user.full_name},message:'Se solicitó un enlace de restablecimiento para el usuario.',...resetDeliveryResponse({...delivery,url:request.url})});
 });
 
 usersRouter.post('/:id/reset-mfa',allowRoles('domian_admin','client_admin'),async(req,res)=>{if(req.params.id===req.auth.userId)return res.status(409).json({error:'CANNOT_RESET_SELF_MFA'});const user=await withTenant(req.auth.tenantId,async client=>{const before=(await client.query('SELECT id,email,full_name,role,mfa_enabled FROM app_users WHERE id=$1 AND tenant_id=$2',[req.params.id,req.auth.tenantId])).rows[0];if(!before)return null;if(before.role==='domian_admin'&&req.auth.role!=='domian_admin')throw Object.assign(new Error('The Domian global administrator account is protected'),{status:403,code:'DOMIAN_ADMIN_PROTECTED'});const updated=(await client.query("UPDATE app_users SET mfa_enabled=false,mfa_secret_encrypted=NULL,mfa_pending_secret_encrypted=NULL,mfa_recovery_code_hashes='[]'::jsonb,mfa_enrolled_at=NULL,updated_at=now() WHERE id=$1 AND tenant_id=$2 RETURNING id,email,full_name,role,mfa_enabled",[req.params.id,req.auth.tenantId])).rows[0];await client.query('UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND tenant_id=$2 AND revoked_at IS NULL',[req.params.id,req.auth.tenantId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.params.id,action:'user.mfa_reset_by_admin',oldValue:{mfaEnabled:before.mfa_enabled},newValue:{mfaEnabled:false,sessionsRevoked:true}});return updated;});if(!user)return res.status(404).json({error:'USER_NOT_FOUND'});res.json({user,mfaReset:true,message:'El usuario deberá configurar MFA nuevamente en su próximo ingreso.'});});

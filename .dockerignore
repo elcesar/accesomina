@@ -2,6 +2,11 @@
 .env
 .env.*
 node_modules
+nexo-v2/node_modules
+nexo-v2/dist
+nexo-klar-react
+Material de apoyo
+Entregables
 outputs
 backups
 uploads
