@@ -1,6 +1,6 @@
 # Nexo Klar — Mapa de módulos, dependencias y migración
 
-**Estado:** Fase 0 cerrada — arquitectura, ownership y dependencias verificadas en producción  
+**Estado:** Fase 1 cerrada — Capital Humano estabilizado en producción  
 **Objetivo:** fijar una referencia única para decidir qué módulo es dueño de cada dato, qué claves legacy siguen vigentes, qué wrappers/orquestadores deben esperar y en qué orden se moderniza la aplicación.
 
 ## 1. Principios obligatorios
@@ -174,7 +174,8 @@ Protección EPP:
 
 - lee `eppDeliveries || eppEntregas`;
 - escribe nuevos registros en `eppDeliveries`;
-- utiliza `inventoryItems` como catálogo opcional del elemento entregado.
+- utiliza `inventoryItems` como catálogo opcional del elemento entregado;
+- reutiliza las tallas guardadas en la ficha de Persona, incluyendo compatibilidad `zapato/calzado` y `polera/ropa`.
 
 **Decisión:** `eppDeliveries` es la fuente canónica de entregas; `eppEntregas` queda como lectura legacy hasta migrar datos históricos.
 
@@ -182,9 +183,7 @@ Protección EPP:
 
 **Estado:** fuente funcional vigente con dependencia fuerte de `mantenciones`.
 
-Turnos escribe `turnos`, pero la implementación actual envía `version: 0` al guardar una jornada. Como `/api/state/modules` exige coincidencia con la versión real, esto puede provocar conflicto después de que el módulo tenga una versión distinta de cero.
-
-**Acción Fase 1:** corregir Turnos para conservar `moduleVersions.turnos` al cargar el estado y escribir con la versión real.
+Turnos conserva `moduleVersions.turnos`, escribe usando la versión real y actualiza la versión local luego de cada guardado. Se mantiene la dependencia de `mantenciones/mantId` hasta la futura migración de Órdenes de servicio.
 
 ## 8. Mapa funcional y de transición
 
@@ -192,13 +191,13 @@ Turnos escribe `turnos`, pero la implementación actual envía `version: 0` al g
 
 | Módulo | Tipo objetivo | Lectura actual confirmada | Escritura actual | Decisión |
 |---|---|---|---|---|
-| Personas | FUNCIONAL | `trabajadores` | `trabajadores` | mantener |
-| Turnos y asistencia | FUNCIONAL | `trabajadores`, `mantenciones`, `minas`, `turnos`, `asignaciones` | `turnos` | mantener `turnos`; corregir versionado; desacoplar de legacy al migrar órdenes/clientes |
-| Protección EPP | FUNCIONAL | `trabajadores`, `inventoryItems`, `eppDeliveries/eppEntregas` | `eppDeliveries` | `eppDeliveries` canónico |
-| Formación | FUNCIONAL | `trabajadores.workerItems` + `cursos` legacy | `trabajadores.workerItems` | retirar `cursos` después de migración |
-| Exámenes | FUNCIONAL | `trabajadores.workerItems` + `examenes` legacy | `trabajadores.workerItems` | retirar `examenes` después de migración |
-| Salud ocupacional | FUNCIONAL | `protocolosSalud`, `trabajadores` | `protocolosSalud` | mantener |
-| Restringidos | FUNCIONAL | `trabajadores`, `restricted` | `restricted` + persona | revisar en Fase 1 |
+| Personas | FUNCIONAL | `trabajadores` | `trabajadores` | estabilizado |
+| Turnos y asistencia | FUNCIONAL | `trabajadores`, `mantenciones`, `minas`, `turnos`, `asignaciones` | `turnos` | estabilizado; usa versionado real |
+| Protección EPP | FUNCIONAL | `trabajadores`, `inventoryItems`, `eppDeliveries/eppEntregas` | `eppDeliveries` | estabilizado; `eppDeliveries` canónico |
+| Formación | FUNCIONAL | `trabajadores.workerItems` + `cursos` legacy | `trabajadores.workerItems` | estabilizado; retirar `cursos` después de migración |
+| Exámenes | FUNCIONAL | `trabajadores.workerItems` + `examenes` legacy | `trabajadores.workerItems` | estabilizado; retirar `examenes` después de migración |
+| Salud ocupacional | FUNCIONAL | `protocolosSalud`, `trabajadores` | `protocolosSalud` | estabilizado |
+| Restringidos | FUNCIONAL | `trabajadores`, `restricted` | `restricted` + persona | estabilizado; sincroniza `bloqueado` y disponibilidad |
 
 ### 8.2 Relación Comercial
 
@@ -306,8 +305,8 @@ Por tanto:
 
 ```text
 FASE 0  Mapa, ownership, legacy y dependencias          ✓ CERRADA
-FASE 1  Cierre Capital Humano                           ← SIGUIENTE
-FASE 2  Clientes
+FASE 1  Cierre Capital Humano                           ✓ CERRADA
+FASE 2  Clientes                                        ← SIGUIENTE
 FASE 3  Contratos
 FASE 4  Órdenes de servicio
 FASE 5  Gestión operacional
@@ -335,7 +334,20 @@ Fase 0 queda cerrada porque:
 - se detectó el problema de versionado en Turnos como corrección prioritaria de Fase 1;
 - ningún wrapper/orquestador fue convertido en fuente de verdad.
 
-## 12. Checklist obligatorio por módulo
+## 12. Resultado de Fase 1 — Capital Humano
+
+Fase 1 queda cerrada porque:
+
+- Personas mantiene `trabajadores` como fuente funcional y su barra de filtros se alineó con el patrón compacto de escritorio del Design System;
+- Nueva Persona usa versionado real para `trabajadores` y `asignaciones`;
+- Turnos dejó de enviar `version: 0` y ahora conserva/actualiza `moduleVersions.turnos`;
+- Formación y Exámenes escriben únicamente en `trabajadores[].workerItems`, manteniendo `cursos` y `examenes` como lectura legacy;
+- Salud Ocupacional mantiene `protocolosSalud` como fuente canónica separada de Exámenes;
+- Protección EPP escribe en `eppDeliveries`, mantiene lectura legacy de `eppEntregas` y reutiliza correctamente las tallas de la ficha de Persona;
+- Restringidos sincroniza la restricción con la Persona mediante `bloqueado: true` y `disponibilidad: bloqueado`;
+- no se introdujo ninguna nueva fuente paralela ni se modificaron claves legacy estructurales de Cliente/Orden.
+
+## 13. Checklist obligatorio por módulo
 
 Antes de modificar un módulo:
 
