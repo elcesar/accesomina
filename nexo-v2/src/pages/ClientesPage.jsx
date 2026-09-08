@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   IconBuilding, IconCheck, IconFileText, IconLoader2, IconMail,
-  IconMapPin, IconPhone, IconPlus, IconRefresh, IconTrash, IconUser,
+  IconMapPin, IconPhone, IconPlus, IconRefresh, IconSearch, IconTrash, IconUser,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
@@ -88,6 +88,8 @@ export default function ClientesPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('')
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
   async function load() {
     setLoading(true)
@@ -110,6 +112,17 @@ export default function ClientesPage() {
     const canonical = rows(state.minas)
     return canonical.length || state.minas ? canonical : rows(state.clientes)
   }, [state.minas, state.clientes])
+  const visibleClients = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    return clients.filter(client => {
+      const matchesStatus = !statusFilter || (client.estado || 'activo') === statusFilter
+      if (!matchesStatus) return false
+      if (!term) return true
+      return [client.nombre, client.mandante, client.rut, client.region, client.comuna]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(term))
+    })
+  }, [clients, search, statusFilter])
   const selected = clients.find(client => String(client.id) === String(selectedId)) || null
   const contracts = useMemo(() => rows(state.contratos), [state.contratos])
   const orders = useMemo(() => rows(state.mantenciones || state.proyectos), [state.mantenciones, state.proyectos])
@@ -247,13 +260,27 @@ export default function ClientesPage() {
         <aside className="nk-client-list nk-card">
           <div className="nk-client-list-head">
             <strong>Clientes registrados</strong>
-            <span className="nk-badge nk-badge-none">{clients.length}</span>
+            <span className="nk-badge nk-badge-none">{visibleClients.length}/{clients.length}</span>
+          </div>
+          <div className="nk-client-list-filters">
+            <div className="nk-search nk-client-search">
+              <IconSearch size={16} />
+              <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar cliente..." aria-label="Buscar cliente" />
+            </div>
+            <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} aria-label="Filtrar clientes por estado">
+              <option value="">Todos los estados</option>
+              <option value="activo">Activos</option>
+              <option value="prospecto">Prospectos</option>
+              <option value="inactivo">Inactivos</option>
+            </select>
           </div>
           {loading ? (
             <div className="nk-client-list-empty">Cargando clientes…</div>
           ) : clients.length === 0 ? (
             <div className="nk-client-list-empty">Aún no hay clientes. Crea el primero para iniciar contratos y órdenes de servicio.</div>
-          ) : clients.map(client => (
+          ) : visibleClients.length === 0 ? (
+            <div className="nk-client-list-empty">No hay clientes que coincidan con la búsqueda o filtro actual.</div>
+          ) : visibleClients.map(client => (
             <button
               type="button"
               key={client.id}
