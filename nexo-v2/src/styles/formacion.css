@@ -1,0 +1,162 @@
+.nk-training-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+  padding: var(--page-padding);
+}
+
+.nk-training-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-16);
+}
+
+.nk-training-header h1 {
+  margin: 0 0 var(--space-8);
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  line-height: var(--leading-tight);
+  color: var(--ink);
+}
+
+.nk-training-header p {
+  margin: 0;
+  max-width: 720px;
+  color: var(--mut);
+}
+
+.nk-training-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+.nk-training-kpi {
+  min-width: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surf);
+  box-shadow: var(--shadow-sm);
+}
+
+.nk-training-kpi strong {
+  display: block;
+  margin-bottom: var(--space-4);
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  color: var(--ink);
+}
+
+.nk-training-kpi span {
+  color: var(--mut);
+  font-size: var(--text-sm);
+}
+
+.nk-training-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(150px, .7fr));
+  gap: var(--space-12);
+  align-items: end;
+}
+
+.nk-training-table-card {
+  overflow: hidden;
+}
+
+.nk-training-person {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.nk-training-person button {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pri);
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nk-training-person span,
+.nk-training-subtle {
+  color: var(--mut);
+  font-size: var(--text-sm);
+}
+
+.nk-training-name {
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+}
+
+.nk-training-dialog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+.nk-training-dialog-wide {
+  grid-column: 1 / -1;
+}
+
+.nk-training-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+  color: var(--mut);
+  font-size: var(--text-sm);
+}
+
+.nk-training-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-md);
+}
+
+.nk-training-feedback.ok {
+  background: var(--state-ok-bg);
+  color: var(--state-ok);
+}
+
+.nk-training-feedback.error {
+  background: var(--state-error-bg);
+  color: var(--state-error);
+}
+
+.nk-training-empty {
+  padding: var(--space-32);
+}
+
+@media (max-width: 900px) {
+  .nk-training-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nk-training-toolbar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .nk-training-header {
+    flex-direction: column;
+  }
+
+  .nk-training-summary,
+  .nk-training-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-training-dialog-wide {
+    grid-column: auto;
+  }
+}
