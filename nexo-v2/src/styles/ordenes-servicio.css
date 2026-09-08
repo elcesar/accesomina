@@ -28,5 +28,18 @@
 .nk-orders-relations>div{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);color:var(--ink)}
 .nk-orders-relations span,.nk-orders-relations small{color:var(--mut);font-size:var(--text-sm)}
 .nk-orders-links{display:flex;flex-wrap:wrap;gap:var(--space-3)}
+.nk-orders-requirements{margin:0;padding-left:var(--space-5);color:var(--ink);font-size:var(--text-sm)}
+.nk-orders-people{padding:var(--space-4);border-top:1px solid var(--line)}
+.nk-orders-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);margin-bottom:var(--space-3)}
+.nk-orders-section-head>div:first-child{display:flex;flex-direction:column;gap:var(--space-1)}
+.nk-orders-section-head strong{display:flex;align-items:center;gap:var(--space-2);color:var(--ink)}
+.nk-orders-section-head span{font-size:var(--text-sm);color:var(--mut)}
+.nk-orders-assign-control{display:flex;align-items:center;gap:var(--space-2);min-width:min(100%,390px)}
+.nk-orders-assign-control .nk-select{min-width:220px}
+.nk-orders-people-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden}
+.nk-orders-person{display:grid;grid-template-columns:minmax(160px,1fr) minmax(120px,1fr) auto;align-items:center;gap:var(--space-3);padding:var(--space-3);background:var(--surf)}
+.nk-orders-person+.nk-orders-person{border-top:1px solid var(--line)}
+.nk-orders-person span{color:var(--mut);font-size:var(--text-sm)}
+.nk-orders-people-empty{padding:var(--space-5)}
 @media(max-width:1100px){.nk-orders-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-orders-layout{grid-template-columns:1fr}.nk-orders-list{max-height:430px;overflow:auto}}
-@media(max-width:720px){.nk-orders-page{padding:var(--space-4)}.nk-orders-header,.nk-orders-workspace-head{flex-direction:column}.nk-orders-summary,.nk-orders-form-grid,.nk-orders-relations{grid-template-columns:1fr}.nk-orders-wide{grid-column:auto}.nk-orders-filters{grid-template-columns:1fr}}
+@media(max-width:720px){.nk-orders-page{padding:var(--space-4)}.nk-orders-header,.nk-orders-workspace-head,.nk-orders-section-head{flex-direction:column}.nk-orders-summary,.nk-orders-form-grid,.nk-orders-relations{grid-template-columns:1fr}.nk-orders-wide{grid-column:auto}.nk-orders-filters{grid-template-columns:1fr}.nk-orders-assign-control{width:100%;min-width:0;flex-direction:column;align-items:stretch}.nk-orders-assign-control .nk-select{min-width:0}.nk-orders-person{grid-template-columns:1fr auto}.nk-orders-person span{grid-column:1/-1;grid-row:2}}
