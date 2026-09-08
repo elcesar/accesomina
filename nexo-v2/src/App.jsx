@@ -45,18 +45,9 @@ export default function App() {
       <AuthProvider>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         <Routes>
-          {/* Landing pública */}
           <Route path="/" element={<LandingPage />} />
-
-          {/* Login */}
-          <Route path="/login" element={
-            <PublicRoute><LoginPage /></PublicRoute>
-          } />
-
-          {/* App privada */}
-          <Route path="/app" element={
-            <ProtectedRoute><AppLayout /></ProtectedRoute>
-          }>
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
@@ -69,11 +60,11 @@ export default function App() {
             <Route path="salud" element={<SaludOcupacionalPage />} />
             <Route path="bloqueados" element={<RestringidosPage />} />
             <Route path="clientes" element={<ClientesPage />} />
+            <Route path="clientes/:clientId" element={<ClientesPage />} />
             <Route path="contratos" element={<ContratosPage />} />
+            <Route path="contratos/:contractId" element={<ContratosPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
-
-          {/* Catch all */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
