@@ -19,6 +19,7 @@ import ClientesPage from './pages/ClientesPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
 import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
 import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
+import VehiculosPage from './pages/VehiculosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -63,6 +64,7 @@ export default function App() {
             <Route path="bloqueados" element={<RestringidosPage />} />
             <Route path="llamados" element={<ComunicacionesPage />} />
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
+            <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="clientes/:clientId" element={<ClientesPage />} />
             <Route path="contratos" element={<ContratosPage />} />
