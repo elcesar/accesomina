@@ -1,6 +1,6 @@
 # Nexo Klar — Mapa de módulos, dependencias y migración
 
-**Estado:** Fase 0 — arquitectura y saneamiento previo a la modernización secuencial  
+**Estado:** Fase 0 cerrada — arquitectura, ownership y dependencias verificadas en producción  
 **Objetivo:** fijar una referencia única para decidir qué módulo es dueño de cada dato, qué claves legacy siguen vigentes, qué wrappers/orquestadores deben esperar y en qué orden se moderniza la aplicación.
 
 ## 1. Principios obligatorios
@@ -45,7 +45,30 @@ Las rutas especializadas actualmente conectadas en `App.jsx` son:
 
 El resto de páginas/wrappers analizados provienen de la capa de referencia entregada para la migración y **no debe asumirse que están conectados hoy en producción**.
 
-## 4. Capas arquitectónicas objetivo
+## 4. Persistencia real confirmada en backend
+
+Producción no persiste cada módulo como una tabla SQL de dominio independiente. `/api/state` reconstruye el estado desde `tenant_module_state`, donde cada `module_key` almacena un bloque JSONB y una versión. `/api/state/modules` actualiza únicamente las claves declaradas, con control optimista por `version`, validación transversal y auditoría.
+
+```text
+Página React
+   ↓
+GET /api/state
+   ↓
+tenant_module_state
+(module_key + JSONB + version)
+
+PUT /api/state/modules
+   ↓
+validateTenantState(estado propuesto completo)
+   ↓
+actualiza module_key + incrementa version
+   ↓
+auditoría
+```
+
+**Consecuencia:** una clave como `minas` sí es una dependencia del backend actual, aunque no sea una tabla SQL llamada `minas`. El nombre forma parte del contrato de estado y de sus validaciones.
+
+## 5. Capas arquitectónicas objetivo
 
 ```text
 RUTA / SIDEBAR
@@ -71,7 +94,7 @@ Página especializada o alias
 - **ORQUESTADOR**: cruza varias fuentes funcionales; no debe introducir una fuente paralela.
 - **TRANSVERSAL**: gobierno, configuración, permisos, importación/exportación o analítica.
 
-## 5. Alias de navegación detectados
+## 6. Alias de navegación detectados
 
 La capa de referencia define, entre otros:
 
@@ -94,29 +117,96 @@ La capa de referencia define, entre otros:
 
 Los alias se mantienen solo por compatibilidad de navegación mientras se consolida el modelo.
 
-## 6. Mapa funcional y de transición
+## 7. Inventario verificado de claves críticas en producción
 
-### 6.1 Capital Humano
+### 7.1 `minas` / `minaId`
 
-| Módulo | Tipo objetivo | Lecturas detectadas en referencia | Escritura de referencia | Fuente objetivo / decisión |
+**Estado:** legacy activo, no renombrable todavía.
+
+Consumidores confirmados:
+
+- `ClientesPage`: lee `state.minas` con fallback `state.clientes`, escribe actualmente **`minas`**.
+- `ClientesPage`: relaciona contratos y órdenes por `item.minaId`.
+- `TurnosPage`: lee `minas`; filtra servicios mediante `mantencion.minaId`.
+- backend `validateTenantState`:
+  - considera `state.minas` colección de clientes/minas;
+  - valida unicidad;
+  - valida `contrato.minaId`;
+  - valida `mantencion/proyecto.minaId`;
+  - valida `trabajador.mineras[]`;
+  - valida `hotel.minaIds[]`;
+  - valida credenciales, salud y otras relaciones mediante `minaId`.
+
+**Decisión:** `clientes` es el nombre objetivo del dominio, pero la migración `minas → clientes` exige una migración coordinada frontend + validación backend + foreign keys JSON + datos existentes. No se realizará dentro de una actualización visual de Clientes.
+
+### 7.2 `mantenciones` / `mantId` / `proyectos`
+
+**Estado:** legacy estructural activo.
+
+Consumidores confirmados:
+
+- `ClientesPage`: usa `mantenciones || proyectos` para órdenes relacionadas.
+- `TurnosPage`: usa `mantenciones` como proyecto/servicio; `turnos.mantId` y `asignaciones.mantId` dependen de sus IDs.
+- backend `validateTenantState` trata `state.mantenciones` como proyectos/servicios y valida referencias desde asignaciones, turnos, hotelería y otras colecciones.
+
+**Decisión:** el objetivo de dominio continúa siendo una entidad explícita de **Orden de servicio**, pero no se crea todavía `ordenesServicio` hasta diseñar migración de `mantenciones/mantId` y distinguir proyecto, servicio y mantenimiento de activos.
+
+### 7.3 `cursos` / `examenes`
+
+**Estado:** lectura legacy solamente en las páginas especializadas actuales.
+
+- Formación escribe nuevos registros en `trabajadores[].workerItems` con `type: curso|certificacion` y conserva lectura de `state.cursos` para históricos.
+- Exámenes escribe nuevos registros en `trabajadores[].workerItems` con `type: examen` y conserva lectura de `state.examenes` para históricos.
+
+**Decisión:** `trabajadores[].workerItems` es la fuente canónica actual para nuevos registros de Formación y Exámenes. `cursos` y `examenes` quedan marcados para retiro posterior, no para nueva escritura.
+
+### 7.4 `protocolosSalud`
+
+**Estado:** canónico actual.
+
+Salud Ocupacional lee y escribe `protocolosSalud`, vinculando cada registro a una persona. Se mantiene separado conceptualmente de Exámenes/Aptitudes.
+
+### 7.5 `eppDeliveries` / `eppEntregas`
+
+**Estado:** transición activa.
+
+Protección EPP:
+
+- lee `eppDeliveries || eppEntregas`;
+- escribe nuevos registros en `eppDeliveries`;
+- utiliza `inventoryItems` como catálogo opcional del elemento entregado.
+
+**Decisión:** `eppDeliveries` es la fuente canónica de entregas; `eppEntregas` queda como lectura legacy hasta migrar datos históricos.
+
+### 7.6 `turnos`
+
+**Estado:** fuente funcional vigente con dependencia fuerte de `mantenciones`.
+
+Turnos escribe `turnos`, pero la implementación actual envía `version: 0` al guardar una jornada. Como `/api/state/modules` exige coincidencia con la versión real, esto puede provocar conflicto después de que el módulo tenga una versión distinta de cero.
+
+**Acción Fase 1:** corregir Turnos para conservar `moduleVersions.turnos` al cargar el estado y escribir con la versión real.
+
+## 8. Mapa funcional y de transición
+
+### 8.1 Capital Humano
+
+| Módulo | Tipo objetivo | Lectura actual confirmada | Escritura actual | Decisión |
 |---|---|---|---|---|
-| Personas | FUNCIONAL | `trabajadores` | `trabajadores` | `trabajadores` |
-| Turnos y asistencia | FUNCIONAL | `turnos`, `asistencias` | `turnos` | revisar consolidación de asistencia |
-| Protección EPP | FUNCIONAL | `eppEntregas`, `inventoryItems` | `eppDeliveries` | normalizar entrega EPP y compatibilidad `eppEntregas/eppDeliveries` |
-| Formación | FUNCIONAL | `cursos`, `trabajadores` | `cursos` | **objetivo actual:** formación/certificación dentro de `trabajador.workerItems` |
-| Exámenes | FUNCIONAL | `examenes`, `trabajadores` | `examenes` | **objetivo actual:** examen dentro de `trabajador.workerItems` |
-| Salud ocupacional | FUNCIONAL | `protocolosSalud`, `trabajadores` | `protocolosSalud` | `protocolosSalud` |
-| Restringidos | FUNCIONAL | `trabajadores`, `restricted` | `restricted` | `restricted` + disponibilidad persona según regla funcional |
+| Personas | FUNCIONAL | `trabajadores` | `trabajadores` | mantener |
+| Turnos y asistencia | FUNCIONAL | `trabajadores`, `mantenciones`, `minas`, `turnos`, `asignaciones` | `turnos` | mantener `turnos`; corregir versionado; desacoplar de legacy al migrar órdenes/clientes |
+| Protección EPP | FUNCIONAL | `trabajadores`, `inventoryItems`, `eppDeliveries/eppEntregas` | `eppDeliveries` | `eppDeliveries` canónico |
+| Formación | FUNCIONAL | `trabajadores.workerItems` + `cursos` legacy | `trabajadores.workerItems` | retirar `cursos` después de migración |
+| Exámenes | FUNCIONAL | `trabajadores.workerItems` + `examenes` legacy | `trabajadores.workerItems` | retirar `examenes` después de migración |
+| Salud ocupacional | FUNCIONAL | `protocolosSalud`, `trabajadores` | `protocolosSalud` | mantener |
+| Restringidos | FUNCIONAL | `trabajadores`, `restricted` | `restricted` + persona | revisar en Fase 1 |
 
-**Acción Fase 1:** reconciliar el catálogo de referencia con las implementaciones especializadas ya modernizadas. No volver a introducir `cursos` o `examenes` como fuente nueva si la implementación especializada ya escribe en `workerItems`.
+### 8.2 Relación Comercial
 
-### 6.2 Relación Comercial
-
-| Módulo | Tipo objetivo | Lecturas detectadas | Escritura de referencia | Fuente objetivo |
+| Módulo | Tipo objetivo | Lecturas detectadas | Escritura actual/referencia | Fuente objetivo |
 |---|---|---|---|---|
-| Clientes | FUNCIONAL | `minas`, `clientes` | `minas` | `clientes` |
+| Clientes | FUNCIONAL | `minas`, `clientes`, `contratos`, `mantenciones/proyectos` | `minas` | `clientes` mediante migración coordinada posterior |
 | Contratos | FUNCIONAL | `contratos` | `contratos` | `contratos` |
-| Órdenes de servicio | FUNCIONAL | `proyectos`, `mantenciones`, `asignaciones` | `mantenciones` | `ordenesServicio` (nombre objetivo; migración a diseñar) |
+| Órdenes de servicio | FUNCIONAL | `proyectos`, `mantenciones`, `asignaciones` | `mantenciones` | entidad explícita a diseñar en Fase 4 |
 | Prospectos | FUNCIONAL | `prospectos`, `oportunidades` | `prospectos` | `prospectos` |
 
 **Dependencia principal objetivo:**
@@ -132,9 +222,7 @@ Cliente
               └── Comunicaciones
 ```
 
-**Legacy prioritario:** `minas/minaId` y `mantenciones/proyectos`. No renombrar todavía: primero localizar todos sus consumidores en frontend y backend.
-
-### 6.3 Gestión Operacional
+### 8.3 Gestión Operacional
 
 | Módulo | Tipo objetivo | Lecturas detectadas | Escritura de referencia |
 |---|---|---|---|
@@ -146,7 +234,7 @@ Cliente
 
 Estos módulos se especializan después de estabilizar Órdenes de servicio, para que las relaciones operativas tengan un identificador de servicio consistente.
 
-### 6.4 Terceros / Contratistas
+### 8.4 Terceros / Contratistas
 
 | Módulo | Tipo objetivo | Lecturas detectadas | Escritura de referencia |
 |---|---|---|---|
@@ -158,7 +246,7 @@ Estos módulos se especializan después de estabilizar Órdenes de servicio, par
 
 Regla: no duplicar personas o contratos si el dominio puede expresarse mediante relaciones con las entidades canónicas.
 
-### 6.5 Cumplimiento
+### 8.5 Cumplimiento
 
 | Módulo | Tipo objetivo | Lecturas detectadas | Escritura de referencia |
 |---|---|---|---|
@@ -169,7 +257,7 @@ Regla: no duplicar personas o contratos si el dominio puede expresarse mediante 
 
 Se especializan después de Cliente + Contrato + Orden + Persona, porque sus reglas cruzan esos dominios.
 
-### 6.6 Activos, equipos e inventario
+### 8.6 Activos, equipos e inventario
 
 La referencia muestra una convergencia clara en `inventoryItems`.
 
@@ -189,7 +277,7 @@ La referencia muestra una convergencia clara en `inventoryItems`.
 
 **Lineamiento objetivo:** evaluar un dominio común `inventoryItems` con tipo/categoría, manteniendo colecciones separadas solo para eventos/relaciones (`inventoryMovements`, bodegas, mantenimiento, asignaciones).
 
-### 6.7 Orquestadores
+### 8.7 Orquestadores
 
 | Módulo | Tipo | Lecturas detectadas | Problema a eliminar |
 |---|---|---|---|
@@ -200,11 +288,11 @@ La referencia muestra una convergencia clara en `inventoryItems`.
 
 Los orquestadores se construyen al final y sus acciones deben delegar al módulo funcional correspondiente.
 
-### 6.8 Gobierno y transversal
+### 8.8 Gobierno y transversal
 
 Configuración, usuarios/permisos, privacidad, bitácora de cambios, importar/exportar, administración de clientes y reportes se estabilizan una vez definido el modelo funcional principal.
 
-## 7. Diferencia entre referencia y producción actual
+## 9. Diferencia entre referencia y producción actual
 
 La capa entregada de referencia contiene `moduleCatalog`, wrappers y CRUD genérico. Sin embargo, el `main` React actual conecta directamente páginas especializadas y no contiene actualmente `src/components/private` en la estructura productiva revisada.
 
@@ -214,11 +302,11 @@ Por tanto:
 - se utilizará como mapa para recuperar reglas, permisos, aliases y dependencias;
 - cada incorporación al `main` deberá justificarse por una dependencia real del módulo en modernización.
 
-## 8. Secuencia aprobada
+## 10. Secuencia aprobada
 
 ```text
-FASE 0  Mapa, ownership, legacy y dependencias          ← ACTUAL
-FASE 1  Cierre Capital Humano
+FASE 0  Mapa, ownership, legacy y dependencias          ✓ CERRADA
+FASE 1  Cierre Capital Humano                           ← SIGUIENTE
 FASE 2  Clientes
 FASE 3  Contratos
 FASE 4  Órdenes de servicio
@@ -235,17 +323,19 @@ FASE 14 Gobierno / administración
 FASE 15 Retiro definitivo de aliases y claves legacy
 ```
 
-## 9. Criterio de salida de Fase 0
+## 11. Resultado de Fase 0
 
-Fase 0 se considera cerrada cuando:
+Fase 0 queda cerrada porque:
 
-- existe este mapa como referencia en el repositorio;
-- se reconoce explícitamente la diferencia entre producción actual y capa de referencia;
-- `minas/minaId`, `mantenciones/proyectos`, `eppEntregas/eppDeliveries`, `cursos/examenes` quedan marcados como puntos de migración y no como decisiones finales;
-- ningún wrapper/orquestador se convierte en fuente de verdad;
-- el siguiente trabajo se limita a reconciliar Capital Humano y luego cerrar Clientes antes de Contratos/Órdenes.
+- existe un mapa versionado en el repositorio;
+- se verificó el contrato real de persistencia modular del backend;
+- se distinguió producción actual de la capa genérica de referencia;
+- se identificaron consumidores reales de `minas/minaId` y `mantenciones/mantId`;
+- se fijaron fuentes canónicas actuales para Formación, Exámenes, Salud y EPP;
+- se detectó el problema de versionado en Turnos como corrección prioritaria de Fase 1;
+- ningún wrapper/orquestador fue convertido en fuente de verdad.
 
-## 10. Checklist obligatorio por módulo
+## 12. Checklist obligatorio por módulo
 
 Antes de modificar un módulo:
 
@@ -259,4 +349,5 @@ Antes de modificar un módulo:
 - [ ] confirmar permisos afectados;
 - [ ] revisar componentes/tokens existentes antes de CSS/JSX local;
 - [ ] mantener compatibilidad de lectura solo cuando sea necesaria;
+- [ ] usar `moduleVersions` real en toda escritura modular;
 - [ ] no eliminar fallback genérico hasta que no queden consumidores.
