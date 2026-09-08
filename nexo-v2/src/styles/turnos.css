@@ -31,7 +31,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .nk-turnos-head > div:first-child { min-width: 0; flex: 1; }
@@ -64,7 +64,11 @@
 }
 
 .nk-turnos-page > .nk-tabs {
-  margin-bottom: var(--space-3);
+  margin-bottom: 0;
+}
+
+.nk-turnos-page > .nk-section {
+  padding-block: var(--space-3) 0;
 }
 
 .nk-turnos-kpis {
