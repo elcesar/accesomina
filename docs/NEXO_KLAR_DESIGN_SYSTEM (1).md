@@ -1,54 +1,15 @@
 # Nexo Klar — Design System Guide
-**Version 3.1 · Septiembre 2026**
+**Version 3.2 · Septiembre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
-> Este documento es la referencia de diseño y UX de Nexo Klar.
-> Antes de crear una clase CSS, modificar una interfaz o introducir un patrón visual,
-> revisar este documento, `tokens.css` y `components.css`.
+> Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
+> Antes de crear una clase CSS, modificar una interfaz, introducir un patrón visual o crear una nueva vista transversal, revisar este documento, `tokens.css` y `components.css`.
 >
-> La regla base es simple: **los valores visuales compartidos pertenecen a tokens,
-> los componentes reutilizables pertenecen a components.css, los layouts específicos
-> pertenecen a un CSS específico y el JSX describe estructura y comportamiento.**
+> Regla base: **los valores visuales compartidos pertenecen a tokens, los componentes reutilizables pertenecen a `components.css`, los layouts específicos pertenecen a CSS específico y el JSX describe estructura y comportamiento.**
 
 ---
 
-## Índice
-
-1. [Arquitectura del sistema](#1-arquitectura-del-sistema)
-2. [Estrategia CSS](#2-estrategia-css)
-3. [Recursos gráficos](#3-recursos-gráficos)
-4. [Tokens de diseño](#4-tokens-de-diseño)
-5. [Componentes compartidos](#5-componentes-compartidos)
-6. [Reglas de implementación](#6-reglas-de-implementación)
-7. [Patrón de páginas y layouts](#7-patrón-de-páginas-y-layouts)
-8. [Estados semánticos](#8-estados-semánticos)
-9. [Principios de producto y UX](#9-principios-de-producto-y-ux)
-10. [Navegación y densidad](#10-navegación-y-densidad)
-11. [Lo que nunca se debe hacer](#11-lo-que-nunca-se-debe-hacer)
-12. [Implementaciones de referencia](#12-implementaciones-de-referencia)
-
----
-
-# 1. Arquitectura del sistema
-
-```text
-nexo-v2/
-└── src/
-    ├── styles/
-    │   ├── tokens.css       ← fuente única de valores visuales globales
-    │   ├── components.css   ← componentes visuales compartidos nk-*
-    │   ├── login.css        ← layout/estilos específicos de Login
-    │   ├── sidebar.css      ← layout/estilos específicos de Sidebar
-    │   ├── header.css       ← layout/estilos específicos de Header
-    │   └── [modulo].css     ← CSS específico de páginas o módulos cuando corresponda
-    ├── pages/
-    └── components/
-
-public/
-└── brand/                   ← SVG oficiales de Nexo Klar
-```
-
-## Jerarquía oficial
+## 1. Arquitectura visual oficial
 
 ```text
 tokens.css
@@ -60,458 +21,142 @@ CSS específico de layout / página / módulo
 JSX
 ```
 
-Esta jerarquía reemplaza el enfoque anterior basado en estilos inline.
+`tokens.css` es la única fuente de verdad de valores visuales compartidos. `components.css` contiene componentes reutilizables `nk-*`. El CSS de módulo solo debe resolver composición, grid, flex, posiciones, anchuras y excepciones propias de esa pantalla.
 
-### Regla
+### Regla de reutilización
 
-**El JSX no debe actuar como hoja de estilos.**
+Antes de crear una clase, token o patrón nuevo:
 
-Los estilos inline deben evitarse. Solo se aceptan excepcionalmente para valores
-realmente dinámicos que dependan de datos en runtime y que no puedan expresarse
-razonablemente mediante clases, variables CSS o atributos.
+1. comprobar si existe en `tokens.css`;
+2. comprobar si existe en `components.css`;
+3. comprobar si otro módulo ya resuelve el mismo patrón;
+4. crear CSS local únicamente cuando la composición sea realmente específica.
 
-No usar estilos inline para:
+No crear sistemas visuales paralelos, colores corporativos hardcodeados, tipografía local ni nuevos aliases `--nk-*`.
 
-- colores;
-- tipografía;
-- padding o margin estándar;
-- borders;
-- shadows;
-- radios;
-- estados hover/focus;
-- layouts persistentes de una página;
-- valores que ya existan como token.
+Los estilos inline se aceptan únicamente para valores verdaderamente dinámicos de runtime que no puedan expresarse razonablemente mediante clases, atributos o variables CSS.
 
 ---
 
-# 2. Estrategia CSS
+## 2. Recursos gráficos
 
-## 2.1 `src/styles/tokens.css` — Design Tokens v3.0
+Los recursos oficiales viven en `public/brand/`:
 
-Es la **única fuente de verdad de valores visuales compartidos**.
+- `NK-color-horizontal.svg`: logo principal sobre fondo claro.
+- `NK-color-horizontal-claim.svg`: portada y piezas con claim.
+- `NK-blanco-horizontal.svg`: fondos oscuros.
+- `NK-favico.svg`: favicon y representación reducida.
 
-Incluye:
-
-- tipografía;
-- colores de marca;
-- colores semánticos;
-- estados;
-- espaciado;
-- radios;
-- sombras;
-- motion;
-- layout global;
-- accesibilidad;
-- aliases temporales de compatibilidad.
-
-### Cuándo modificarlo
-
-Solo cuando un valor tenga sentido transversal en toda la aplicación.
-
-No agregar aquí:
-
-- estilos específicos de una página;
-- reglas particulares de Sidebar/Header/Login;
-- hacks de compatibilidad;
-- layouts específicos;
-- estilos de un solo componente complejo.
+No duplicar assets, recrear logos como texto, modificar `fill`, aplicar filtros CSS ni usar variantes incompatibles con el fondo.
 
 ---
 
-## 2.2 `src/styles/components.css` — Shared Components
+## 3. Tokens y componentes compartidos
 
-Contiene componentes visuales reutilizables con prefijo `nk-`.
+Los nombres y valores reales de tokens están definidos en `src/styles/tokens.css`; ese archivo es la referencia técnica final.
 
-Ejemplos:
+Familias principales:
 
 ```text
-.nk-button
-.nk-button-primary
-.nk-button-secondary
+Tipografía: --font-ui, --font-brand, --text-*, --weight-*, --leading-*
+Superficies: --bg, --surf, --surf-2, --line
+Texto: --ink, --mut, --sub, --disabled
+Marca/acción: --pri, --action, --acc, --hot, --graph
+Estados: --ok, --warn, --err, --none y sus fondos
+Layout: --sidebar-width, --header-height, --content-max-width, --page-padding
+Motion/accesibilidad: --transition-*, --focus-ring
+```
+
+Componentes compartidos principales:
+
+```text
+.nk-button / primary / action / secondary / quiet / danger
 .nk-icon-button
-.nk-input
-.nk-select
 .nk-card
-.nk-badge
-.nk-table
-.nk-tabs
+.nk-field / .nk-label / .nk-input / .nk-select / .nk-textarea
+.nk-badge / ok / warn / error / none
+.nk-table-wrapper / .nk-table
+.nk-search
+.nk-tabs / .nk-tab
 .nk-dialog
+.nk-empty
 .nk-actions
 ```
 
-### Regla
+Máximo una acción primaria visible por contexto principal. Tablas: máximo recomendado de siete columnas sin personalización, acciones a la derecha e información necesaria para decidir antes que detalle exhaustivo.
 
-`components.css` consume tokens. **No define un segundo sistema visual.**
-
-No incorporar en este archivo:
-
-- colores corporativos hardcodeados;
-- nueva tipografía;
-- tokens locales;
-- estilos específicos de una página;
-- layouts propios de Sidebar/Header/Login.
+Usar Tabler Icons outline. No usar emojis como iconos funcionales.
 
 ---
 
-## 2.3 CSS específico
+## 4. Patrón estándar de página operacional
 
-Cuando un componente o página tiene composición propia, debe utilizar un archivo CSS
-específico que consuma los tokens existentes.
-
-Patrón:
+La experiencia implementada en Personas, Formación, Exámenes, Salud, EPP, Turnos y Centro de Control establece este patrón:
 
 ```text
-src/components/layout/Sidebar.jsx
-src/styles/sidebar.css
+HEADER DEL MÓDULO
+  título + descripción                    acciones
+                                         Actualizar | Acción principal
 
-src/components/layout/Header.jsx
-src/styles/header.css
+FEEDBACK
+  éxito / error cuando corresponda
 
-src/pages/LoginPage.jsx
-src/styles/login.css
+RESUMEN OPERACIONAL
+  KPIs relevantes, no decorativos
+
+BÚSQUEDA Y FILTROS
+  solo controles que ayudan a decidir
+
+CONTENIDO
+  tabla / lista / ficha / panel
+
+ACCIÓN CONTEXTUAL
+  diálogo o flujo específico cuando corresponda
 ```
 
-Para una página operacional:
+### 4.1 Encabezado de módulo
+
+En escritorio:
 
 ```text
-src/pages/TrabajadoresPage.jsx
-src/styles/trabajadores.css
-```
-
-El archivo específico puede definir:
-
-- grid;
-- flex;
-- posiciones;
-- composición de secciones;
-- anchuras propias de esa pantalla;
-- variantes de layout que no sean reutilizables globalmente.
-
-Debe consumir tokens mediante `var(--token)`.
-
----
-
-# 3. Recursos gráficos
-
-Todos los recursos oficiales viven en:
-
-```text
-public/brand/
-```
-
-Archivos oficiales actuales:
-
-| Archivo | Uso recomendado |
-|---|---|
-| `NK-color-horizontal.svg` | logo principal sobre fondo claro |
-| `NK-color-horizontal-claim.svg` | landing, portada y piezas con claim |
-| `NK-blanco-horizontal.svg` | fondos oscuros |
-| `NK-favico.svg` | favicon / representación reducida |
-
-### Reglas
-
-- usar siempre las variantes SVG oficiales;
-- no duplicar assets dentro de componentes;
-- no aplicar filtros CSS al logo;
-- no modificar `fill` para alterar colores;
-- no recrear el logo como texto;
-- no usar logo color sobre fondos oscuros;
-- no escalar la versión horizontal por debajo de 24 px de alto.
-
-Ejemplo:
-
-```jsx
-<img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
-```
-
-La dimensión visual se controla en CSS, no mediante estilos inline en JSX.
-
----
-
-# 4. Tokens de diseño
-
-Los tokens reales están definidos en `src/styles/tokens.css`. Este documento resume
-su uso semántico; **el archivo CSS es la referencia técnica final de nombres y valores.**
-
-## 4.1 Tipografía
-
-```css
---font-ui
---font-brand
-
---text-xs
---text-sm
---text-base
---text-md
---text-lg
---text-xl
---text-2xl
---text-3xl
---text-4xl
-
---weight-regular
---weight-medium
---weight-semibold
---weight-bold
---weight-extrabold
-
---leading-tight
---leading-snug
---leading-normal
---leading-relaxed
-```
-
-Uso:
-
-- **Inter / `--font-ui`**: contenido de aplicación;
-- **Manrope / `--font-brand`**: títulos y headings.
-
----
-
-## 4.2 Tokens semánticos principales
-
-### Superficies
-
-```css
---bg
---surf
---surf-2
---line
-```
-
-### Texto
-
-```css
---ink
---mut
---sub
---disabled
-```
-
-### Marca y acción
-
-```css
---pri
---pri-deep
---pri-light
-
---action
---action-deep
-
---acc
---acc-ink
---acc-light
-
---hot
---hot-ink
---hot-light
-
---graph
-```
-
-### Layout
-
-```css
---sidebar-width
---header-height
---content-max-width
---page-padding
-```
-
-### Motion y accesibilidad
-
-```css
---transition-fast
---transition-base
---transition-slow
---focus-ring
-```
-
-### Compatibilidad
-
-Los aliases `--nk-*` existen únicamente para migración de código antiguo.
-
-**No crear nuevos `--nk-*` ni usarlos en código nuevo.**
-
----
-
-# 5. Componentes compartidos
-
-## Botones
-
-```jsx
-<button className="nk-button nk-button-primary">Guardar</button>
-<button className="nk-button nk-button-action">Confirmar</button>
-<button className="nk-button nk-button-secondary">Cancelar</button>
-<button className="nk-button nk-button-quiet">Ver detalle</button>
-<button className="nk-button nk-button-danger">Eliminar</button>
-```
-
-Máximo **1 acción primaria visible por contexto principal**.
-
-## Botón de ícono
-
-```jsx
-<button className="nk-icon-button" aria-label="Ir a alertas">
-  <IconBell size={18} />
-</button>
-```
-
-## Cards
-
-```jsx
-<div className="nk-card">
-  <div className="nk-card-header">
-    <div>
-      <h3 className="nk-card-title">Título</h3>
-      <p className="nk-card-description">Descripción</p>
-    </div>
-  </div>
-</div>
-```
-
-## Formularios
-
-```jsx
-<div className="nk-field">
-  <label className="nk-label" htmlFor="nombre">Nombre completo</label>
-  <input className="nk-input" id="nombre" />
-</div>
-```
-
-## Badges
-
-```jsx
-<span className="nk-badge nk-badge-ok">Vigente</span>
-<span className="nk-badge nk-badge-warn">Por vencer</span>
-<span className="nk-badge nk-badge-error">No habilitado</span>
-<span className="nk-badge nk-badge-none">Sin información</span>
-```
-
-## Tablas
-
-```jsx
-<div className="nk-table-wrapper">
-  <table className="nk-table">
-    <thead>...</thead>
-    <tbody>...</tbody>
-  </table>
-</div>
+[Título]
+[Descripción]                         [Actualizar] [Acción principal]
 ```
 
 Reglas:
 
-- máximo 7 columnas sin personalización;
-- acciones a la derecha;
-- información primaria primero;
-- estado documental visible sin necesidad de abrir la ficha.
+- título y descripción a la izquierda;
+- acciones agrupadas mediante `.nk-actions` a la derecha;
+- acciones en `display:flex` y `flex-direction:row`;
+- separación mediante tokens de spacing;
+- botones con `white-space: nowrap` cuando sea necesario;
+- no apilar botones en escritorio por estilos locales accidentales;
+- en pantallas pequeñas se permite `flex-wrap` o apilamiento controlado;
+- la acción primaria debe ser la acción de negocio principal; `Actualizar` normalmente es secundaria.
 
-## Tabs
+### 4.2 KPIs
 
-```jsx
-<div className="nk-tabs">
-  <button className="nk-tab active">Resumen</button>
-  <button className="nk-tab">Documentación</button>
-</div>
-```
+Los KPIs deben responder preguntas operacionales. Evitar gráficos o métricas sin capacidad de orientar una acción.
 
-Máximo recomendado: 4 tabs por nivel. En fichas complejas puede usarse un máximo de 5
-cuando sea necesario para representar dominios principales.
+### 4.3 Feedback
 
----
+Toda acción debe producir feedback perceptible:
 
-# 6. Reglas de implementación
-
-| Situación | Enfoque correcto |
+| Situación | Patrón |
 |---|---|
-| Color / tipografía / spacing compartido | token de `tokens.css` |
-| Botón / input / badge / tabla / card | clase de `components.css` |
-| Layout específico de página | CSS específico |
-| Layout específico de componente estructural | CSS específico |
-| Componente reutilizable en varias pantallas | `components.css` |
-| Estado dinámico | clase semántica / atributo / variable CSS cuando corresponda |
-| Color hardcodeado | ❌ no permitido |
-| Styling persistente inline | ❌ evitar |
+| Guardado exitoso | estado semántico OK |
+| Error | estado semántico error |
+| Request activo | loading + control disabled |
+| Resultado vacío | explicación + CTA cuando exista una acción posible |
+| Filtro sin coincidencias | estado vacío contextual |
 
-## Íconos
-
-Usar **Tabler Icons**, variante outline.
-
-```jsx
-<IconUsers size={16} strokeWidth={1.7} />
-```
-
-Referencia:
-
-- `strokeWidth={1.7}` para navegación y acciones;
-- `strokeWidth={1.3}` para elementos decorativos.
-
-No usar emojis como íconos funcionales.
+No usar color como único indicador.
 
 ---
 
-# 7. Patrón de páginas y layouts
+## 5. Estados semánticos
 
-Una página operacional se compone normalmente de cuatro zonas:
-
-```text
-┌─────────────────────────────────────────────────┐
-│ ZONA 1 · Identidad / contexto                   │
-│ título + subtítulo + acción principal           │
-├─────────────────────────────────────────────────┤
-│ ZONA 2 · Navegación interna                     │
-│ tabs cuando sean necesarias                     │
-├─────────────────────────────────────────────────┤
-│ ZONA 3 · Búsqueda y filtros                     │
-│ controles visibles y relevantes                 │
-├─────────────────────────────────────────────────┤
-│ ZONA 4 · Contenido                              │
-│ tabla / lista / ficha / panel operacional       │
-└─────────────────────────────────────────────────┘
-```
-
-No todas las pantallas necesitan obligatoriamente tabs o filtros; se debe evitar crear
-controles vacíos únicamente para cumplir una plantilla.
-
-### Estructura JSX recomendada
-
-```jsx
-export default function MiPagina() {
-  return (
-    <main className="nk-page mi-pagina">
-      <section className="mi-pagina-header">
-        ...
-      </section>
-
-      <section className="mi-pagina-filters">
-        ...
-      </section>
-
-      <section className="mi-pagina-content">
-        ...
-      </section>
-    </main>
-  )
-}
-```
-
-```css
-.mi-pagina {
-  background: var(--bg);
-}
-
-.mi-pagina-header {
-  background: var(--surf);
-  border-bottom: 1px solid var(--line);
-  padding: var(--space-4) var(--page-padding);
-}
-```
-
----
-
-# 8. Estados semánticos
-
-Nexo Klar usa cuatro estados principales para **personas, documentos y habilitaciones**.
+Estados principales para personas, documentación, habilitaciones y recursos:
 
 | Estado | Significado |
 |---|---|
@@ -520,47 +165,17 @@ Nexo Klar usa cuatro estados principales para **personas, documentos y habilitac
 | No habilitado | condición vencida, rechazada o bloqueante |
 | Sin información | dato requerido aún no disponible |
 
-Tokens:
+Usar exclusivamente los tokens/clases semánticos del Design System. **Un módulo no debe inventar colores, variables o badges propios para representar estos mismos estados.**
 
-```css
---ok
---ok-bg
---warn
---warn-ink
---warn-bg
---err
---err-bg
---none
---none-bg
-```
-
-### Regla de 30 días
-
-Como convención visual, un documento puede mostrarse como **Por vencer** cuando su
-fecha de término se encuentra dentro de los próximos 30 días. La regla de negocio
-final debe permanecer en la lógica del dominio y no codificarse exclusivamente en CSS.
-
-### Principio fundamental
-
-Los estados semánticos no son decoración. Deben permitir responder rápidamente:
-
-- ¿esta persona puede operar hoy?;
-- ¿qué documento bloquea su habilitación?;
-- ¿qué vence pronto?;
-- ¿qué información falta?;
-- ¿qué recurso debe ser entregado, renovado o recuperado?.
+Como convención visual, un documento puede mostrarse `Por vencer` dentro de los próximos 30 días. La regla de negocio final pertenece al dominio, no al CSS.
 
 ---
 
-# 9. Principios de producto y UX
-
-## 9.1 Personas como entidad central
-
-A partir de la versión 3.1, Nexo Klar adopta explícitamente un modelo **people-first**.
+## 6. Principio people-first
 
 La entidad principal de experiencia es la **Persona**.
 
-El modelo anterior:
+La jerarquía rígida anterior:
 
 ```text
 Empresa → Oportunidad → Contrato → Persona
@@ -568,7 +183,7 @@ Empresa → Oportunidad → Contrato → Persona
 
 no debe utilizarse como jerarquía obligatoria de UX.
 
-El modelo conceptual principal pasa a ser:
+Modelo conceptual:
 
 ```text
                     PERSONA
@@ -584,114 +199,130 @@ El modelo conceptual principal pasa a ser:
                                     Asignaciones
 ```
 
-Empresa, cliente, contrato, proyecto y oportunidad siguen siendo entidades relevantes,
-pero actúan principalmente como **contexto operacional, comercial o contractual de las
-personas y del trabajo que realizan**.
-
----
-
-## 9.2 Pregunta central de diseño
-
-Cada vista relacionada con Capital Humano debe ayudar a responder:
+Pregunta central:
 
 > **¿Quién es esta persona, está habilitada para trabajar y qué necesita para hacerlo correctamente?**
 
-La interfaz debe priorizar:
+Prioridad de interfaz:
 
 1. identificación;
 2. condición/habilitación;
 3. documentación;
 4. recursos asignados;
-5. restricciones o alertas;
-6. contexto laboral y contractual.
+5. restricciones/alertas;
+6. contexto laboral/contractual.
 
----
-
-## 9.3 Modelo de ficha de Persona
-
-La ficha debe evolucionar hacia esta estructura conceptual:
+### Ficha de Persona
 
 ```text
 Persona
-│
 ├── Resumen
 │   ├── identidad
-│   ├── empresa / relación laboral
+│   ├── relación laboral
 │   ├── proyecto actual
-│   ├── estado de habilitación
+│   ├── habilitación
 │   └── alertas críticas
-│
 ├── Documentación
-│   ├── documentos personales
-│   ├── documentos laborales
-│   ├── documentos del mandante
-│   ├── fechas de vencimiento
-│   └── estado documental
-│
 ├── Formación y aptitudes
 │   ├── cursos
 │   ├── certificaciones
 │   ├── exámenes
 │   └── salud ocupacional
-│
 ├── Recursos
 │   ├── EPP y tallas
-│   ├── herramientas
-│   ├── equipos
+│   ├── herramientas/equipos
 │   ├── vehículos
 │   └── credenciales
-│
 └── Historial
     ├── asignaciones
-    ├── proyectos
-    ├── contratos
-    ├── movimientos
-    └── cambios relevantes
+    ├── proyectos/contratos
+    └── movimientos/cambios
 ```
-
-No es obligación mostrar todos estos dominios simultáneamente; la pantalla debe mantener
-densidad controlada y priorizar el estado operativo actual.
 
 ---
 
-## 9.4 Relaciones contextuales
+## 7. Módulos funcionales y módulos orquestadores
 
-La Persona puede relacionarse con:
+### 7.1 Módulos funcionales
 
-```text
-Persona
-  ├─ Empresa empleadora
-  ├─ Cliente / mandante
-  ├─ Contrato
-  ├─ Proyecto / servicio
-  ├─ Turno
-  ├─ Alojamiento
-  ├─ Vehículo
-  ├─ EPP / equipo / herramienta
-  └─ documentación y habilitaciones
-```
+Son responsables de administrar información propia de un dominio y constituyen las fuentes funcionales del producto.
 
-Estas relaciones deben poder consultarse desde la ficha sin obligar al usuario a
-reconstruir manualmente la cadena comercial.
+Ejemplos actuales:
+
+- Personas;
+- Turnos y asistencia;
+- Protección personal / EPP;
+- Formación y certificaciones;
+- Exámenes y aptitudes;
+- Salud Ocupacional;
+- Restringidos;
+- futuros módulos de activos, contratos, órdenes, clientes, etc.
+
+Un módulo funcional puede crear o modificar información cuando esa información pertenece a su dominio.
+
+### 7.2 Módulos orquestadores
+
+Integran información proveniente de módulos funcionales para ayudar a decidir o ejecutar un proceso transversal.
+
+En Centro de Control:
+
+- Panel General;
+- Alertas;
+- Gestión de trabajadores por proyecto;
+- Centro Operativo.
+
+Regla:
+
+> **Un módulo orquestador debe consumir, relacionar y accionar sobre las fuentes funcionales existentes; no debe crear un modelo paralelo solo para construir su vista.**
+
+Panel General y Alertas pueden derivar información desde Personas, Formación, Exámenes, Salud, Restricciones, EPP, Turnos y operación. Gestión por Proyecto y Centro Operativo deben evolucionar como capas de coordinación sobre módulos funcionales maduros.
+
+### 7.3 Wrappers
+
+Un wrapper de navegación/composición debe permanecer liviano. Puede seleccionar un módulo, aportar contexto o montar un workspace, pero no debe transformarse prematuramente en un segundo CRUD del mismo dominio.
+
+Antes de especializar un wrapper:
+
+1. identificar los módulos funcionales que debe consumir;
+2. confirmar que esos módulos estén construidos y sus fuentes de datos sean estables;
+3. reutilizar sus datos y acciones;
+4. agregar solo lógica transversal propia de la orquestación.
 
 ---
 
-# 10. Navegación y densidad
+## 8. Una sola fuente de verdad por dato
 
-## 10.1 Sidebar
+Toda información de negocio debe tener una fuente funcional primaria. Las vistas transversales pueden leerla y modificarla mediante el flujo oficial, pero no duplicarla en otra colección por conveniencia visual.
 
-El Sidebar actual se organiza por dominios funcionales.
+Fuentes actualmente consolidadas durante la modernización:
+
+| Dominio | Fuente funcional actual |
+|---|---|
+| Persona | `trabajadores` |
+| Formación / certificaciones de Persona | `trabajador.workerItems` (`curso`, `certificacion`) |
+| Exámenes de Persona | `trabajador.workerItems` (`examen`) |
+| Entregas de EPP | `eppDeliveries` |
+| Salud Ocupacional | `protocolosSalud` |
+| Restricciones | `restricted` |
+
+Estas referencias describen la arquitectura vigente; si el modelo de dominio cambia formalmente, esta tabla debe actualizarse en el mismo cambio.
+
+### Regla de compatibilidad
+
+Los datos legacy pueden mantenerse en lectura durante una migración, pero los nuevos registros deben escribirse en la fuente funcional vigente. No perpetuar dos fuentes de verdad.
+
+---
+
+## 9. Navegación por dominios
 
 ### Centro de Control
-
 - Panel General
 - Alertas
 - Gestión de trabajadores por proyecto
 - Centro Operativo
 
 ### Capital Humano
-
-- **Personas**
+- Personas
 - Turnos y asistencia
 - Protección personal / EPP
 - Formación y certificaciones
@@ -699,268 +330,113 @@ El Sidebar actual se organiza por dominios funcionales.
 - Salud Ocupacional
 - Restringidos
 
-### Gestión Operacional
+Los demás dominios del Sidebar mantienen su agrupación funcional: Gestión Operacional, Contratistas, Relación Comercial, Cumplimiento y Calidad, Gestión de Proyectos y Negocios, Activos/Inventario y Gestión/Administración.
 
-- Comunicaciones y convocatorias
-- Vehículos, activos y equipos
-- Alojamientos y estadías
-- Credenciales
-
-### Contratistas
-
-- Terceros y subcontratos
-- Contratos y convenios
-- Personal del contratista
-- Habilitaciones y cumplimiento
-- Evaluación de desempeño
-
-### Relación Comercial
-
-- Clientes
-- Contratos y firmas
-- Órdenes de servicio
-
-### Cumplimiento y Calidad
-
-- Documentación de la Empresa
-- Habilitación del Cliente
-- Incidentes y no conformidades
-- Auditoría
-
-### Gestión de Proyectos y Negocios
-
-- Libro de obra
-- Prospectos y oportunidades
-
-### Activos, Equipos e Inventario
-
-Inventario, maquinaria, equipos, herramientas, EPP, materiales, insumos, bodegas,
-movimientos, mantenimiento y asignaciones.
-
-### Gestión y Administración
-
-- Reportes y analítica
-- Importar y exportar
-- Usuarios y permisos
-- Bitácora de cambios
-- Privacidad y datos
-
-### Comportamiento
-
-Por defecto pueden mantenerse abiertos:
-
-- Centro de Control;
-- Capital Humano;
-- Relación Comercial.
-
-El Sidebar usa `var(--sidebar-width)` y estilos definidos en `sidebar.css`.
+La navegación no define propiedad de datos: una misma entidad puede aparecer contextualizada en varias vistas, pero conserva una fuente funcional primaria.
 
 ---
 
-## 10.2 Header
+## 10. Densidad, formularios y responsividad
 
-El Header global tiene tres responsabilidades:
+### Listados
 
-```text
-[ contexto de página ]       [ búsqueda global ] [ alertas ]
-```
+Mostrar información suficiente para decidir, no toda la ficha. En Personas, priorizar identidad, contexto, habilitación, cumplimiento y acción.
 
-Debe conservar:
+### Formularios
 
-- título;
-- subtítulo cuando corresponda;
-- búsqueda global;
-- acceso a alertas.
+- máximo recomendado: 8 campos por sección/paso;
+- dividir formularios complejos;
+- máximo recomendado: 5 pasos;
+- permitir alta mínima cuando el negocio lo permita;
+- completar información progresivamente desde la ficha.
 
-Su composición visual se define en `header.css`.
+### Responsividad
 
----
-
-## 10.3 Listados de personas
-
-La tabla de Personas debe priorizar datos que permitan tomar una decisión operacional.
-
-Orden conceptual recomendado:
-
-```text
-Persona | Identificación | Proyecto / contexto | Habilitación | Documentación | Alertas | Acciones
-```
-
-Evitar llenar la tabla con todos los atributos disponibles de la ficha.
-
-Las columnas detalladas pertenecen a la ficha; la tabla responde principalmente:
-
-- quién es;
-- dónde está asignado;
-- si está habilitado;
-- si tiene problemas documentales;
-- qué acción requiere atención.
-
----
-
-## 10.4 Formularios
-
-Reglas generales:
-
-- máximo recomendado de 8 campos por sección/paso;
-- formularios complejos divididos en pasos;
-- máximo 5 pasos;
-- permitir alta inicial con información mínima cuando la lógica de negocio lo permita;
-- completar documentación y recursos progresivamente desde la ficha.
-
-El último paso puede ser un resumen antes de confirmar.
-
----
-
-## 10.5 Feedback
-
-Toda acción debe producir feedback visual inmediato.
-
-| Situación | Patrón |
-|---|---|
-| Guardado exitoso | feedback semántico OK |
-| Error | feedback semántico error |
-| Request activo | estado loading + control disabled |
-| Resultado vacío | explicación + CTA cuando corresponda |
-| Filtro sin coincidencias | contador / estado vacío contextual |
-
-No usar color como único indicador de estado.
-
----
-
-## 10.6 Responsividad
-
-Nexo Klar está optimizado principalmente para escritorio.
-
-En pantallas pequeñas:
+Nexo Klar se optimiza principalmente para escritorio. En pantallas pequeñas:
 
 - formularios pasan a una columna;
-- acciones pueden apilarse;
-- cards se reorganizan verticalmente;
-- tablas deben conservar legibilidad mediante scroll horizontal cuando sea necesario;
-- el comportamiento responsive del Sidebar pertenece a `Sidebar.jsx/sidebar.css`, no a las páginas.
+- acciones pueden hacer wrap o apilarse;
+- cards se reorganizan;
+- tablas mantienen legibilidad mediante scroll horizontal;
+- el comportamiento del Sidebar pertenece al componente de Sidebar, no a páginas individuales.
 
 ---
 
-# 11. Lo que nunca se debe hacer
+## 11. Lo que nunca se debe hacer
 
 ```text
 ❌ Colores corporativos hardcodeados en JSX o CSS específico.
-   Usar tokens semánticos.
-
-❌ Crear un sistema de tokens paralelo dentro de una página.
-
-❌ Definir tipografía local cuando ya existe --font-ui / --font-brand.
-
-❌ Usar JSX como hoja de estilos mediante grandes bloques style={{ ... }}.
-
-❌ Manipular estilos visuales desde onMouseEnter/onMouseLeave.
-   Hover y focus pertenecen a CSS.
-
-❌ Agregar estilos de Sidebar/Header/Login en components.css.
-
-❌ Agregar estilos exclusivos de una página a components.css.
-
+❌ Crear tokens o sistemas visuales paralelos dentro de una página.
+❌ Definir tipografía local cuando existe --font-ui / --font-brand.
+❌ Usar JSX como hoja de estilos con grandes bloques style={{ ... }}.
+❌ Implementar hover/focus mediante handlers JS cuando corresponde a CSS.
 ❌ Crear nuevos aliases --nk-*.
-
-❌ Duplicar logos de public/brand.
-
-❌ Emojis como íconos funcionales.
-
+❌ Duplicar assets oficiales de public/brand.
+❌ Usar emojis como iconos funcionales.
 ❌ Acciones destructivas sin confirmación.
-
-❌ Estados vacíos sin explicación o acción cuando existe una acción posible.
-
-❌ Tablas que intentan representar toda la ficha de una Persona.
-
-❌ Diseñar Personas como elemento terminal de una cadena comercial rígida.
+❌ Estados vacíos sin explicación/acción cuando existe una acción posible.
+❌ Tablas que intentan representar toda la ficha de Persona.
+❌ Diseñar Persona como elemento terminal de una cadena comercial rígida.
+❌ Crear una colección paralela solo porque una vista transversal necesita el dato.
+❌ Convertir un wrapper/orquestador en otro CRUD antes de construir el módulo funcional.
+❌ Inventar nuevos colores/tokens para estados que ya existen en el Design System.
+❌ Apilar acciones principales en escritorio cuando existe espacio horizontal suficiente.
 ```
 
 ---
 
-# 12. Implementaciones de referencia
+## 12. Implementaciones de referencia
 
-Las siguientes implementaciones representan el patrón vigente de migración al Design System.
+### Estructura global
+- `LoginPage.jsx` + `login.css`
+- `Sidebar.jsx` + `sidebar.css`
+- `Header.jsx` + `header.css`
 
-## Login
+### Capital Humano
+Las implementaciones modernizadas de Personas, Turnos, Formación, Exámenes, Salud, Restringidos y Protección/EPP son referencias para el patrón operacional, especialmente en composición de encabezados, KPIs, filtros, tablas y diálogos.
 
-```text
-src/pages/LoginPage.jsx
-src/styles/login.css
-```
-
-Características:
-
-- usa assets oficiales;
-- usa componentes compartidos;
-- layout específico en CSS;
-- sin colores visuales inline.
-
-## Sidebar
-
-```text
-src/components/layout/Sidebar.jsx
-src/styles/sidebar.css
-```
-
-Características:
-
-- navegación mediante clases `nk-*` específicas;
-- estados active/hover en CSS;
-- badges dinámicos conservados;
-- usuario, configuración y logout conservados;
-- valores visuales provenientes de tokens.
-
-## Header
-
-```text
-src/components/layout/Header.jsx
-src/styles/header.css
-```
-
-Características:
-
-- conserva título/subtítulo;
-- incorpora búsqueda global;
-- acceso a alertas;
-- dropdown de resultados;
-- sin estilos visuales inline.
+### Centro de Control
+Panel General y Alertas son referencias iniciales para vistas transversales. Gestión de trabajadores por proyecto y Centro Operativo deben permanecer como capas de orquestación hasta que los módulos funcionales que necesitan estén suficientemente consolidados.
 
 ---
 
 # Principios ejecutivos
 
-Al tomar decisiones de diseño, aplicar este orden:
-
 ```text
 1. Personas primero
-   La experiencia operacional se organiza alrededor de las personas,
-   su habilitación, documentación y recursos.
+   La experiencia operacional se organiza alrededor de personas, habilitación,
+   documentación y recursos cuando el proceso involucra Capital Humano.
 
-2. Estado operativo visible
-   El usuario debe detectar rápidamente bloqueos, vencimientos y faltantes.
+2. Una sola fuente de verdad
+   Una vista puede reutilizar un dato; no debe clonarlo para resolver su UI.
 
-3. Densidad controlada
-   Mostrar la información necesaria para decidir, no todo lo disponible.
+3. Función antes que orquestación
+   Construir y estabilizar módulos funcionales antes de enriquecer wrappers y hubs.
 
-4. Jerarquía visual clara
+4. Estado operativo visible
+   Bloqueos, vencimientos, faltantes y próximas acciones deben detectarse rápido.
+
+5. Densidad controlada
+   Mostrar lo necesario para decidir, no todo lo disponible.
+
+6. Jerarquía visual clara
    Contexto, estado y acción principal deben ser evidentes.
 
-5. Consistencia antes que creatividad
-   Reutilizar tokens y patrones existentes.
+7. Consistencia antes que creatividad
+   Reutilizar tokens, componentes y patrones existentes.
 
-6. CSS antes que styling en JSX
-   JSX describe estructura y comportamiento; CSS describe presentación.
+8. CSS antes que styling en JSX
+   JSX describe estructura/comportamiento; CSS describe presentación.
 
-7. Feedback inmediato
-   Toda acción debe entregar respuesta perceptible.
+9. Feedback inmediato
+   Toda acción debe entregar una respuesta perceptible.
 
-8. Acciones destructivas confirmadas
-   Sin excepciones.
+10. Acciones destructivas confirmadas
+    Sin excepciones.
 ```
 
 ---
 
-*Nexo Klar Design System · Guide v3.1 · tokens.css v3.0 · Septiembre 2026*  
+*Nexo Klar Design System · Guide v3.2 · tokens.css v3.0 · Septiembre 2026*  
 *Estrategia vigente: tokens.css → components.css → CSS específico → JSX.*  
-*Modelo UX vigente: Personas como entidad central; documentación, habilitaciones y recursos como dominios operacionales prioritarios.*
+*Modelo UX vigente: people-first, módulos funcionales como fuentes de verdad y Centro de Control como capa de orquestación.*
