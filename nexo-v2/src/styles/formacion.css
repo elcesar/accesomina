@@ -1,15 +1,15 @@
 .nk-training-page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-20);
-  padding: var(--page-padding);
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
 }
 
 .nk-training-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-16);
+  gap: var(--space-4);
 }
 
 .nk-training-header .nk-actions {
@@ -26,52 +26,68 @@
 }
 
 .nk-training-header h1 {
-  margin: 0 0 var(--space-8);
+  margin: 0;
   font-family: var(--font-brand);
-  font-size: var(--text-3xl);
+  font-size: clamp(1.55rem, 2vw, 2rem);
   line-height: var(--leading-tight);
   color: var(--ink);
 }
 
 .nk-training-header p {
-  margin: 0;
-  max-width: 720px;
+  margin: .35rem 0 0;
+  max-width: 760px;
   color: var(--mut);
 }
 
 .nk-training-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-12);
+  gap: var(--space-3);
 }
 
 .nk-training-kpi {
   min-width: 0;
-  padding: var(--space-16);
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surf);
-  box-shadow: var(--shadow-sm);
 }
 
 .nk-training-kpi strong {
   display: block;
-  margin-bottom: var(--space-4);
+  flex: 0 0 auto;
+  margin: 0;
   font-family: var(--font-brand);
-  font-size: var(--text-2xl);
+  font-size: 1.45rem;
+  line-height: 1;
   color: var(--ink);
 }
 
 .nk-training-kpi span {
   color: var(--mut);
   font-size: var(--text-sm);
+  line-height: 1.25;
 }
 
 .nk-training-toolbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(150px, .7fr));
-  gap: var(--space-12);
+  grid-template-columns: minmax(260px, 1fr) minmax(160px, 190px) minmax(160px, 190px);
+  gap: var(--space-3);
   align-items: end;
+  padding: var(--space-3);
+}
+
+.nk-training-toolbar .nk-field {
+  margin: 0;
+}
+
+.nk-training-toolbar .nk-search,
+.nk-training-toolbar .nk-select {
+  min-height: 40px;
 }
 
 .nk-training-table-card {
@@ -81,7 +97,7 @@
 .nk-training-person {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-1);
 }
 
 .nk-training-person button {
@@ -110,7 +126,7 @@
 .nk-training-dialog-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-12);
+  gap: var(--space-3);
 }
 
 .nk-training-dialog-wide {
@@ -120,8 +136,8 @@
 .nk-training-file {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
-  margin-top: var(--space-8);
+  gap: var(--space-2);
+  margin-top: var(--space-2);
   color: var(--mut);
   font-size: var(--text-sm);
 }
@@ -130,8 +146,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-12);
-  padding: var(--space-12) var(--space-16);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
 }
 
@@ -146,7 +162,7 @@
 }
 
 .nk-training-empty {
-  padding: var(--space-32);
+  padding: var(--space-8);
 }
 
 @media (max-width: 900px) {
@@ -160,6 +176,10 @@
 }
 
 @media (max-width: 640px) {
+  .nk-training-page {
+    padding: var(--space-4);
+  }
+
   .nk-training-header {
     flex-direction: column;
   }
@@ -173,6 +193,10 @@
   .nk-training-summary,
   .nk-training-dialog-grid {
     grid-template-columns: 1fr;
+  }
+
+  .nk-training-kpi {
+    min-height: 64px;
   }
 
   .nk-training-dialog-wide {
