@@ -17,6 +17,7 @@ import RestringidosPage from './pages/RestringidosPage.jsx'
 import ProteccionEppPage from './pages/ProteccionEppPage.jsx'
 import ClientesPage from './pages/ClientesPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
+import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -63,6 +64,10 @@ export default function App() {
             <Route path="clientes/:clientId" element={<ClientesPage />} />
             <Route path="contratos" element={<ContratosPage />} />
             <Route path="contratos/:contractId" element={<ContratosPage />} />
+            <Route path="servicios" element={<OrdenesServicioPage />} />
+            <Route path="servicios/:orderId" element={<OrdenesServicioPage />} />
+            <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
+            <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
