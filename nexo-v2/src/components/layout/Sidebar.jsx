@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
 import {
   IconLayoutDashboard, IconBell, IconBook, IconServer,
@@ -11,99 +12,94 @@ import {
   IconSettings, IconLogout, IconPackage, IconTruckDelivery, IconTools,
   IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
 } from '@tabler/icons-react'
-import { useState } from 'react'
+import '../../styles/sidebar.css'
 
-// ─── GRUPOS (estructura 1:1 con Ricardo v6 AccesoMina_v6.html) ──────────────
-// Grupos: Centro de Control · Capital Humano · Gestión Operacional ·
-//         Contratistas · Relación Comercial · Cumplimiento y Calidad ·
-//         Gestión de Proyectos y Negocios · Activos Equipos e Inventario ·
-//         Gestión y Administración
 const NAV = [
   {
     key: 'centro-control',
     label: 'Centro de Control',
     items: [
-      { to: '/app',              label: 'Panel General',                   icon: IconLayoutDashboard, exact: true },
-      { to: '/app/alertas',      label: 'Alertas',                         icon: IconBell,            badge: true },
-      { to: '/app/reclutamiento',label: 'Gestión de trabajadores por proyecto', icon: IconClipboardList },
-      { to: '/app/operaciones',  label: 'Centro Operativo',                icon: IconServer },
+      { to: '/app', label: 'Panel General', icon: IconLayoutDashboard, exact: true },
+      { to: '/app/alertas', label: 'Alertas', icon: IconBell, badge: true },
+      { to: '/app/reclutamiento', label: 'Gestión de trabajadores por proyecto', icon: IconClipboardList },
+      { to: '/app/operaciones', label: 'Centro Operativo', icon: IconServer },
     ],
   },
   {
     key: 'capital-humano',
     label: 'Capital Humano',
     items: [
-      { to: '/app/trabajadores', label: 'Personas',                        icon: IconUsers },
-      { to: '/app/turnos',       label: 'Turnos y asistencia',             icon: IconClock },
-      { to: '/app/epp',          label: 'Protección personal / EPP',       icon: IconShield,          badge: true },
-      { to: '/app/cursos',       label: 'Formación y certificaciones',     icon: IconSchool },
-      { to: '/app/examenes',     label: 'Exámenes y aptitudes',            icon: IconMicroscope },
-      { to: '/app/salud',        label: 'Salud Ocupacional',               icon: IconStethoscope },
-      { to: '/app/bloqueados',   label: 'Restringidos',                    icon: IconBan },
+      { to: '/app/trabajadores', label: 'Personas', icon: IconUsers },
+      { to: '/app/turnos', label: 'Turnos y asistencia', icon: IconClock },
+      { to: '/app/epp', label: 'Protección personal / EPP', icon: IconShield, badge: true },
+      { to: '/app/cursos', label: 'Formación y certificaciones', icon: IconSchool },
+      { to: '/app/examenes', label: 'Exámenes y aptitudes', icon: IconMicroscope },
+      { to: '/app/salud', label: 'Salud Ocupacional', icon: IconStethoscope },
+      { to: '/app/bloqueados', label: 'Restringidos', icon: IconBan },
     ],
   },
   {
     key: 'gestion-operacional',
     label: 'Gestión Operacional',
     items: [
-      { to: '/app/llamados',     label: 'Comunicaciones y convocatorias',  icon: IconBrandWhatsapp },
-      { to: '/app/vehiculos',    label: 'Vehículos, activos y equipos',    icon: IconCar },
-      { to: '/app/hoteleria',    label: 'Alojamientos y estadías',         icon: IconBed },
-      { to: '/app/credenciales', label: 'Credenciales',                    icon: IconId },
+      { to: '/app/llamados', label: 'Comunicaciones y convocatorias', icon: IconBrandWhatsapp },
+      { to: '/app/vehiculos', label: 'Vehículos, activos y equipos', icon: IconCar },
+      { to: '/app/hoteleria', label: 'Alojamientos y estadías', icon: IconBed },
+      { to: '/app/credenciales', label: 'Credenciales', icon: IconId },
     ],
   },
   {
     key: 'contratistas',
     label: 'Contratistas',
     items: [
-      { to: '/app/subcontratos',                              label: 'Terceros y subcontratos',       icon: IconSitemap },
-      { to: '/app/modulos/contratos-convenios',               label: 'Contratos y convenios',         icon: IconFileText },
-      { to: '/app/modulos/personal-empresa-servicios',        label: 'Personal del contratista',      icon: IconUsers },
-      { to: '/app/modulos/habilitaciones-cumplimiento',       label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
-      { to: '/app/modulos/evaluacion-desempeno',              label: 'Evaluación de desempeño',       icon: IconChartBar },
+      { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
+      { to: '/app/modulos/contratos-convenios', label: 'Contratos y convenios', icon: IconFileText },
+      { to: '/app/modulos/personal-empresa-servicios', label: 'Personal del contratista', icon: IconUsers },
+      { to: '/app/modulos/habilitaciones-cumplimiento', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
+      { to: '/app/modulos/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
     ],
   },
   {
     key: 'relacion-comercial',
     label: 'Relación Comercial',
     items: [
-      { to: '/app/clientes',      label: 'Clientes',                       icon: IconBuilding },
-      { to: '/app/contratos',     label: 'Contratos y firmas',             icon: IconFileText,        badge: true },
-      { to: '/app/servicios',     label: 'Órdenes de servicio',            icon: IconTool },
+      { to: '/app/clientes', label: 'Clientes', icon: IconBuilding },
+      { to: '/app/contratos', label: 'Contratos y firmas', icon: IconFileText, badge: true },
+      { to: '/app/servicios', label: 'Órdenes de servicio', icon: IconTool },
     ],
   },
   {
     key: 'cumplimiento-calidad',
     label: 'Cumplimiento y Calidad',
     items: [
-      { to: '/app/acreditacion-empresa',  label: 'Documentación de la Empresa',  icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente',      icon: IconCircleCheck },
-      { to: '/app/incidentes',            label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
-      { to: '/app/auditoria',             label: 'Auditoría',                     icon: IconClipboard },
+      { to: '/app/acreditacion-empresa', label: 'Documentación de la Empresa', icon: IconBuildingCommunity },
+      { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente', icon: IconCircleCheck },
+      { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
+      { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
     ],
   },
   {
     key: 'proyectos-negocios',
     label: 'Gestión de Proyectos y Negocios',
     items: [
-      { to: '/app/libro-obra',    label: 'Libro de obra',                  icon: IconBook,            badge: true },
-      { to: '/app/oportunidades', label: 'Prospectos y oportunidades',     icon: IconBriefcase },
+      { to: '/app/libro-obra', label: 'Libro de obra', icon: IconBook, badge: true },
+      { to: '/app/oportunidades', label: 'Prospectos y oportunidades', icon: IconBriefcase },
     ],
   },
   {
     key: 'activos-inventario',
     label: 'Activos, Equipos e Inventario',
     items: [
-      { to: '/app/modulos/activos-inventario',  label: 'Inventario y existencias',    icon: IconPackage },
-      { to: '/app/modulos/maquinaria',          label: 'Maquinaria',                  icon: IconTruckDelivery },
-      { to: '/app/modulos/equipos-instrumentos',label: 'Equipos e instrumentos',      icon: IconTool },
-      { to: '/app/modulos/herramientas',        label: 'Herramientas',                icon: IconTools },
-      { to: '/app/modulos/epp-inventario',      label: 'EPP y protección personal',   icon: IconShield },
-      { to: '/app/modulos/materiales',          label: 'Materiales y ferretería',     icon: IconBox },
-      { to: '/app/modulos/insumos',             label: 'Insumos y consumibles',       icon: IconTestPipe },
-      { to: '/app/modulos/bodegas',             label: 'Bodegas y almacenes',         icon: IconBuildingWarehouse },
+      { to: '/app/modulos/activos-inventario', label: 'Inventario y existencias', icon: IconPackage },
+      { to: '/app/modulos/maquinaria', label: 'Maquinaria', icon: IconTruckDelivery },
+      { to: '/app/modulos/equipos-instrumentos', label: 'Equipos e instrumentos', icon: IconTool },
+      { to: '/app/modulos/herramientas', label: 'Herramientas', icon: IconTools },
+      { to: '/app/modulos/epp-inventario', label: 'EPP y protección personal', icon: IconShield },
+      { to: '/app/modulos/materiales', label: 'Materiales y ferretería', icon: IconBox },
+      { to: '/app/modulos/insumos', label: 'Insumos y consumibles', icon: IconTestPipe },
+      { to: '/app/modulos/bodegas', label: 'Bodegas y almacenes', icon: IconBuildingWarehouse },
       { to: '/app/modulos/movimientos-inventario', label: 'Movimientos de inventario', icon: IconArrowsExchange },
-      { to: '/app/modulos/mantenimiento',       label: 'Mantenimiento',               icon: IconTools },
+      { to: '/app/modulos/mantenimiento', label: 'Mantenimiento', icon: IconTools },
       { to: '/app/modulos/asignaciones-prestamos', label: 'Asignaciones y préstamos', icon: IconClipboardList },
     ],
   },
@@ -111,66 +107,48 @@ const NAV = [
     key: 'gestion-administracion',
     label: 'Gestión y Administración',
     items: [
-      { to: '/app/reportes',      label: 'Reportes y analítica',           icon: IconChartBar },
-      { to: '/app/transferencia', label: 'Importar y exportar',            icon: IconArrowsUpDown },
-      { to: '/app/usuarios',      label: 'Usuarios y permisos',            icon: IconUsersGroup },
-      { to: '/app/bitacora',      label: 'Bitácora de cambios',            icon: IconHistory },
-      { to: '/app/privacidad',    label: 'Privacidad y datos',             icon: IconShieldLock },
+      { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },
+      { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
+      { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
+      { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
+      { to: '/app/privacidad', label: 'Privacidad y datos', icon: IconShieldLock },
     ],
   },
 ]
 
-// ─── NAV ITEM ───────────────────────────────────────────────────────────────
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
   return (
     <NavLink
       to={to}
       end={exact}
-      className={({ isActive }) =>
-        `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-          isActive
-            ? 'bg-[#E3E3F0] text-[#2A2A8C] font-semibold'
-            : 'text-[#5D6B7A] hover:text-[#141A20] hover:bg-[#FBF9F5]'
-        }`
-      }
+      className={({ isActive }) => `nk-side-link ${isActive ? 'active' : ''}`}
     >
-      <Icon size={15} strokeWidth={1.7} className="flex-shrink-0" />
-      <span className="flex-1 truncate text-xs">{label}</span>
+      <Icon size={15} strokeWidth={1.7} />
+      <span className="nk-side-link-label">{label}</span>
       {badge && badgeCount > 0 && (
-        <span className="bg-[#FBE8E6] text-[#B3261E] text-xs px-1.5 py-0.5 rounded-full font-bold tabular-nums">
-          {badgeCount}
-        </span>
+        <span className="nk-side-badge">{badgeCount}</span>
       )}
     </NavLink>
   )
 }
 
-// ─── NAV GROUP ──────────────────────────────────────────────────────────────
 function NavGroup({ group, badges, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div>
+    <section className="nk-side-group">
       <button
+        className="nk-side-group-title"
+        type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors"
-        style={{ color: '#8A96A1', background: 'transparent', border: 'none', cursor: 'pointer' }}
-        onMouseEnter={e => e.currentTarget.style.background = '#FBF9F5'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        aria-expanded={open}
       >
         <span>{group.label}</span>
-        <IconChevronDown
-          size={12}
-          strokeWidth={2}
-          style={{
-            transition: 'transform 0.2s',
-            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-            color: '#8A96A1',
-          }}
-        />
+        <IconChevronDown size={12} strokeWidth={2} />
       </button>
+
       {open && (
-        <div className="space-y-0.5 mt-0.5">
+        <div className="nk-side-group-items">
           {group.items.map(item => (
             <NavItem
               key={item.to}
@@ -180,11 +158,10 @@ function NavGroup({ group, badges, defaultOpen = true }) {
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
-// ─── SIDEBAR ────────────────────────────────────────────────────────────────
 export default function Sidebar() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
@@ -195,37 +172,23 @@ export default function Sidebar() {
   }
 
   const badges = {
-    '/app/alertas':    session?.state?.alertCount        || 0,
-    '/app/libro-obra': session?.state?.workBookCount     || 0,
-    '/app/contratos':  session?.state?.pendingSignatures || 0,
-    '/app/epp':        session?.state?.eppPending        || 0,
+    '/app/alertas': session?.state?.alertCount || 0,
+    '/app/libro-obra': session?.state?.workBookCount || 0,
+    '/app/contratos': session?.state?.pendingSignatures || 0,
+    '/app/epp': session?.state?.eppPending || 0,
   }
 
   return (
-    <aside
-      className="w-56 h-screen flex flex-col flex-shrink-0"
-      style={{ background: '#FFFFFF', borderRight: '1px solid #E3DED2' }}
-    >
-      {/* Logo — SVG oficial brandbook */}
-      <div className="px-4 py-4" style={{ borderBottom: '1px solid #E3DED2' }}>
-        <img
-          src="/brand/NK-color-horizontal.svg"
-          alt="Nexo Klar"
-          style={{ height: 28, width: 'auto', maxWidth: '100%' }}
-        />
+    <aside className="nk-sidebar">
+      <div className="nk-sidebar-brand">
+        <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
       </div>
 
-      {/* Tenant */}
       {session?.tenant && (
-        <div className="px-4 py-2" style={{ borderBottom: '1px solid #E3DED2' }}>
-          <p className="text-xs truncate" style={{ color: '#5D6B7A' }}>
-            {session.tenant.name}
-          </p>
-        </div>
+        <div className="nk-tenant-name">{session.tenant.name}</div>
       )}
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+      <nav className="nk-sidebar-nav" aria-label="Navegación principal">
         {NAV.map(group => (
           <NavGroup
             key={group.key}
@@ -236,48 +199,36 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Configuración + logout */}
-      <div className="px-2 py-3 space-y-0.5" style={{ borderTop: '1px solid #E3DED2' }}>
+      <div className="nk-sidebar-bottom">
         <NavLink
           to="/app/configuracion"
-          className={({ isActive }) =>
-            `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-              isActive
-                ? 'bg-[#E3E3F0] text-[#2A2A8C] font-semibold'
-                : 'text-[#5D6B7A] hover:text-[#141A20] hover:bg-[#FBF9F5]'
-            }`
-          }
+          className={({ isActive }) => `nk-sidebar-action ${isActive ? 'active' : ''}`}
         >
           <IconSettings size={15} strokeWidth={1.7} />
-          <span className="text-xs">Configuración</span>
+          <span>Configuración</span>
         </NavLink>
+
         <button
+          className="nk-sidebar-action nk-sidebar-action-danger"
+          type="button"
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors"
-          style={{ color: '#5D6B7A' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#B3261E'; e.currentTarget.style.background = '#FBE8E6' }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#5D6B7A'; e.currentTarget.style.background = 'transparent' }}
         >
           <IconLogout size={15} strokeWidth={1.7} />
-          <span className="text-xs">Cerrar sesión</span>
+          <span>Cerrar sesión</span>
         </button>
       </div>
 
-      {/* Usuario */}
       {session?.user && (
-        <div className="px-4 py-3" style={{ borderTop: '1px solid #E3DED2' }}>
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
-              style={{ background: '#E3E3F0', color: '#2A2A8C' }}
-            >
+        <div className="nk-sidebar-user">
+          <div className="nk-sidebar-user-row">
+            <div className="nk-sidebar-user-avatar">
               {(session.user.name || session.user.email || '?').charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium truncate" style={{ color: '#141A20' }}>
+            <div className="nk-sidebar-user-copy">
+              <p className="nk-sidebar-user-name">
                 {session.user.name || session.user.email}
               </p>
-              <p className="text-xs truncate capitalize" style={{ color: '#8A96A1' }}>
+              <p className="nk-sidebar-user-role">
                 {session.user.role?.replace('_', ' ')}
               </p>
             </div>
