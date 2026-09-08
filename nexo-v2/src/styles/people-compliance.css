@@ -1,0 +1,20 @@
+.nk-compliance-page{display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-6)}
+.nk-compliance-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.nk-compliance-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem)}
+.nk-compliance-header p{margin:.45rem 0 0;color:var(--mut);max-width:760px}
+.nk-compliance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
+.nk-compliance-kpi{display:flex;flex-direction:column;gap:.2rem;padding:var(--space-4);background:var(--surf);border:1px solid var(--line);border-radius:var(--radius-lg)}
+.nk-compliance-kpi strong{font-size:1.55rem;color:var(--ink)}
+.nk-compliance-kpi span{color:var(--mut);font-size:.85rem}
+.nk-compliance-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 190px 190px;gap:var(--space-3);align-items:end;padding:var(--space-4)}
+.nk-compliance-feedback{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}
+.nk-compliance-feedback.error{border-color:var(--state-error-border)}
+.nk-compliance-feedback.ok{border-color:var(--state-ok-border)}
+.nk-compliance-empty{padding:var(--space-8)}
+.nk-compliance-person{display:flex;flex-direction:column;gap:.15rem}
+.nk-compliance-person strong{color:var(--ink)}
+.nk-compliance-person span,.nk-compliance-subtle{color:var(--mut);font-size:.82rem}
+.nk-compliance-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.nk-compliance-dialog-wide{grid-column:1/-1}
+@media(max-width:900px){.nk-compliance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-compliance-toolbar{grid-template-columns:1fr}.nk-compliance-header{flex-direction:column}}
+@media(max-width:600px){.nk-compliance-page{padding:var(--space-4)}.nk-compliance-summary{grid-template-columns:1fr}.nk-compliance-dialog-grid{grid-template-columns:1fr}.nk-compliance-dialog-wide{grid-column:auto}}
