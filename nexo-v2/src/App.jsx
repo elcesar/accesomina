@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
+import AlertasPage from './pages/AlertasPage.jsx'
 import TrabajadoresPage from './pages/TrabajadoresPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import NuevoTrabajadorPage from './pages/NuevoTrabajadorPage.jsx'
@@ -53,6 +55,8 @@ export default function App() {
           <Route path="/app" element={
             <ProtectedRoute><AppLayout /></ProtectedRoute>
           }>
+            <Route index element={<DashboardPage />} />
+            <Route path="alertas" element={<AlertasPage />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
