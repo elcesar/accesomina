@@ -7,7 +7,7 @@
 .nk-contract-feedback{padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf);color:var(--mut)}
 .nk-contract-feedback.ok{border-color:var(--state-ok);background:var(--state-ok-bg);color:var(--state-ok)}
 .nk-contract-feedback.error{border-color:var(--state-error);background:var(--state-error-bg);color:var(--state-error)}
-.nk-contract-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+.nk-contract-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
 .nk-contract-summary-field{display:flex;align-items:center;gap:var(--space-3);min-height:72px;padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf-2)}
 .nk-contract-summary-field strong{font-family:var(--font-brand);font-size:1.45rem;line-height:1;color:var(--ink)}
 .nk-contract-summary-field span{color:var(--mut);font-size:var(--text-xs)}
@@ -25,8 +25,22 @@
 .nk-contract-workspace-head h2{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:var(--text-2xl);font-weight:var(--weight-bold)}
 .nk-contract-workspace-head p:last-child{margin:var(--space-1) 0 0;color:var(--mut)}
 .nk-contract-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}.nk-contract-wide{grid-column:1/-1}
+.nk-contract-document{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf-2)}
+.nk-contract-document-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3)}
+.nk-contract-document-head>div{display:flex;flex-direction:column;gap:var(--space-1)}
+.nk-contract-document-head strong{color:var(--ink);font-size:var(--text-md)}
+.nk-contract-document-head small,.nk-contract-document-empty{color:var(--mut);font-size:var(--text-sm)}
+.nk-contract-document-empty{margin:0}
+.nk-contract-file-input{display:none}
+.nk-contract-document-file{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}
+.nk-contract-document-file>svg{flex:0 0 auto;color:var(--pri)}
+.nk-contract-document-file>span{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px}
+.nk-contract-document-file>span strong,.nk-contract-document-file>span small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nk-contract-document-file>span strong{color:var(--ink);font-size:var(--text-md)}
+.nk-contract-document-file>span small{color:var(--mut);font-size:var(--text-xs)}
 .nk-contract-relation{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf-2)}
 .nk-contract-relation span{color:var(--ink)}.nk-contract-relation small{color:var(--mut)}
 .nk-contract-spin{animation:nk-contract-spin .7s linear infinite}@keyframes nk-contract-spin{to{transform:rotate(360deg)}}
+@media(max-width:1100px){.nk-contract-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){.nk-contract-layout{grid-template-columns:1fr}.nk-contract-list{position:static}}
-@media(max-width:700px){.nk-contract-page{padding:var(--space-4)}.nk-contract-header,.nk-contract-workspace-head{flex-direction:column}.nk-contract-header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}.nk-contract-summary,.nk-contract-form-grid{grid-template-columns:1fr}.nk-contract-wide{grid-column:auto}}
+@media(max-width:700px){.nk-contract-page{padding:var(--space-4)}.nk-contract-header,.nk-contract-workspace-head,.nk-contract-document-head{flex-direction:column}.nk-contract-header-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}.nk-contract-summary,.nk-contract-form-grid{grid-template-columns:1fr}.nk-contract-wide{grid-column:auto}.nk-contract-document-head .nk-button{width:100%}.nk-contract-document-file{align-items:flex-start;flex-wrap:wrap}.nk-contract-document-file .nk-button{width:100%}}
