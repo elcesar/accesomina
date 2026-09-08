@@ -18,6 +18,7 @@ import ProteccionEppPage from './pages/ProteccionEppPage.jsx'
 import ClientesPage from './pages/ClientesPage.jsx'
 import ContratosPage from './pages/ContratosPage.jsx'
 import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
+import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -60,6 +61,8 @@ export default function App() {
             <Route path="examenes" element={<ExamenesPage />} />
             <Route path="salud" element={<SaludOcupacionalPage />} />
             <Route path="bloqueados" element={<RestringidosPage />} />
+            <Route path="llamados" element={<ComunicacionesPage />} />
+            <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="clientes/:clientId" element={<ClientesPage />} />
             <Route path="contratos" element={<ContratosPage />} />
