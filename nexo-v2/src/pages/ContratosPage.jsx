@@ -12,6 +12,7 @@ const rows = value => Array.isArray(value) ? value : []
 const newId = () => globalThis.crypto?.randomUUID?.() || `contrato-${Date.now()}-${Math.random().toString(16).slice(2)}`
 const ALLOWED_FILE_TYPES = new Set(['application/pdf','image/jpeg','image/png','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
 const MAX_FILE_SIZE = 25 * 1024 * 1024
+const CONTRACT_EDIT_ROLES = new Set(['domian_admin','client_admin'])
 const emptyContract = () => ({ numero:'', nombre:'', minaId:'', tipo:'', fechaInicio:'', fechaTermino:'', estado:'vigente', responsable:'', observacion:'', fileId:'', archivo:'', archivoTipo:'', archivoTamano:0, archivoFecha:'' })
 const contractDraft = contract => ({
   ...emptyContract(),
@@ -28,7 +29,7 @@ export default function ContratosPage() {
   const { session } = useAuth()
   const { contractId } = useParams()
   const navigate = useNavigate()
-  const canEdit = session?.user?.role !== 'consulta'
+  const canEdit = CONTRACT_EDIT_ROLES.has(session?.user?.role)
   const fileInputRef = useRef(null)
   const [response,setResponse]=useState(null), [selectedId,setSelectedId]=useState(null), [draft,setDraft]=useState(emptyContract), [creating,setCreating]=useState(false)
   const [loading,setLoading]=useState(true), [saving,setSaving]=useState(false), [uploading,setUploading]=useState(false), [message,setMessage]=useState(''), [messageTone,setMessageTone]=useState(''), [search,setSearch]=useState(''), [statusFilter,setStatusFilter]=useState('')
