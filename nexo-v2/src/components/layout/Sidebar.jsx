@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
 import {
@@ -9,7 +9,7 @@ import {
   IconCar, IconBed, IconId, IconBrandWhatsapp,
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
-  IconSettings, IconLogout, IconPackage, IconTruckDelivery, IconTools,
+  IconSettings, IconPackage, IconTruckDelivery, IconTools,
   IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
 } from '@tabler/icons-react'
 import '../../styles/sidebar.css'
@@ -163,13 +163,7 @@ function NavGroup({ group, badges, defaultOpen = true }) {
 }
 
 export default function Sidebar() {
-  const { session, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = async () => {
-    await logout()
-    navigate('/login')
-  }
+  const { session } = useAuth()
 
   const badges = {
     '/app/alertas': session?.state?.alertCount || 0,
@@ -183,10 +177,6 @@ export default function Sidebar() {
       <div className="nk-sidebar-brand">
         <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
       </div>
-
-      {session?.tenant && (
-        <div className="nk-tenant-name">{session.tenant.name}</div>
-      )}
 
       <nav className="nk-sidebar-nav" aria-label="Navegación principal">
         {NAV.map(group => (
@@ -207,34 +197,7 @@ export default function Sidebar() {
           <IconSettings size={15} strokeWidth={1.7} />
           <span>Configuración</span>
         </NavLink>
-
-        <button
-          className="nk-sidebar-action nk-sidebar-action-danger"
-          type="button"
-          onClick={handleLogout}
-        >
-          <IconLogout size={15} strokeWidth={1.7} />
-          <span>Cerrar sesión</span>
-        </button>
       </div>
-
-      {session?.user && (
-        <div className="nk-sidebar-user">
-          <div className="nk-sidebar-user-row">
-            <div className="nk-sidebar-user-avatar">
-              {(session.user.name || session.user.email || '?').charAt(0).toUpperCase()}
-            </div>
-            <div className="nk-sidebar-user-copy">
-              <p className="nk-sidebar-user-name">
-                {session.user.name || session.user.email}
-              </p>
-              <p className="nk-sidebar-user-role">
-                {session.user.role?.replace('_', ' ')}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
   )
 }
