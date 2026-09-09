@@ -1,0 +1,103 @@
+/*
+ * NEXO KLAR · Navegación pública responsive
+ * Mantiene una sola línea en escritorio y dos niveles en mobile.
+ */
+
+.nk-public-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+
+.nk-public-mobile-tabs {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .nk-public-header {
+    background: var(--surf);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nk-public-topbar {
+    position: relative;
+    top: auto;
+    z-index: auto;
+    min-height: 58px;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nk-public-brand-button {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .nk-public-logo {
+    height: 27px;
+  }
+
+  .nk-public-nav-links {
+    display: none;
+  }
+
+  .nk-public-nav-cta {
+    margin-left: auto;
+  }
+
+  .nk-public-nav-cta .nk-button-quiet {
+    display: none;
+  }
+
+  .nk-public-mobile-tabs {
+    min-height: 44px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-inline: var(--space-2);
+    background: var(--surf);
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nk-public-mobile-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nk-public-mobile-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--mut);
+    font: var(--weight-semibold) var(--text-sm)/1 var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+    scroll-snap-align: start;
+  }
+
+  .nk-public-mobile-tabs button.is-active {
+    color: var(--pri);
+    border-bottom-color: var(--pri);
+    background: var(--pri-light);
+  }
+
+  .nk-public-site main {
+    min-height: calc(100vh - 102px);
+  }
+
+  .nk-public-section {
+    scroll-margin-top: 102px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nk-public-mobile-tabs {
+    scroll-behavior: auto;
+  }
+}
