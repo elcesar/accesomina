@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   IconBell,
   IconBuilding,
@@ -16,14 +16,25 @@ const roleLabel = value => String(value || 'usuario')
   .replaceAll('_', ' ')
   .replace(/\b\w/g, letter => letter.toUpperCase())
 
+const activeModuleForPath = pathname => {
+  if (pathname.startsWith('/app/trabajadores')) return 'personas'
+  if (pathname.startsWith('/app/clientes')) return 'clientes'
+  if (pathname.startsWith('/app/contratos')) return 'contratos'
+  if (pathname.startsWith('/app/servicios')) return 'servicios'
+  return null
+}
+
 export default function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { session, logout } = useAuth()
   const role = session?.user?.role
   const canCreateGeneral = role !== 'consulta'
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
   const tenantName = session?.tenant?.name || 'Nexo Klar'
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
+  const activeModule = activeModuleForPath(location.pathname)
+  const createClass = module => `nk-button ${activeModule === module ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
 
   const handleLogout = async () => {
     await logout()
@@ -42,7 +53,7 @@ export default function Header() {
       <div className="nk-global-actions" aria-label="Acciones globales">
         {canCreateGeneral && (
           <button
-            className="nk-button nk-button-primary nk-global-create"
+            className={createClass('personas')}
             type="button"
             onClick={() => navigate('/app/trabajadores/nuevo')}
           >
@@ -53,7 +64,7 @@ export default function Header() {
 
         {canCreateGeneral && (
           <button
-            className="nk-button nk-button-secondary nk-global-create"
+            className={createClass('clientes')}
             type="button"
             onClick={() => navigate('/app/clientes/nuevo')}
           >
@@ -64,7 +75,7 @@ export default function Header() {
 
         {canCreateCommercial && (
           <button
-            className="nk-button nk-button-secondary nk-global-create"
+            className={createClass('contratos')}
             type="button"
             onClick={() => navigate('/app/contratos/nuevo')}
           >
@@ -75,7 +86,7 @@ export default function Header() {
 
         {canCreateCommercial && (
           <button
-            className="nk-button nk-button-secondary nk-global-create"
+            className={createClass('servicios')}
             type="button"
             onClick={() => navigate('/app/servicios/nuevo')}
           >
