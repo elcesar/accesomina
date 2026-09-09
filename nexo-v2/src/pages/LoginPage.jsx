@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../services/auth.jsx'
+import { postLoginPath, useAuth } from '../services/auth.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 
 const INPUT_STYLE = {
@@ -63,13 +63,7 @@ export default function LoginPage() {
     setError(null)
     try {
       const data = await login({ ...form, mfaCode: mfaRequired ? mfaCode : undefined })
-      if (data.user?.mustChangePassword) {
-        navigate('/cambiar-password')
-      } else if (data.user?.mfaEnrollmentRequired) {
-        navigate('/configurar-mfa')
-      } else {
-        navigate('/app')
-      }
+      navigate(postLoginPath(data))
     } catch (err) {
       if (err.code === 'MFA_REQUIRED') {
         setMfaRequired(true)

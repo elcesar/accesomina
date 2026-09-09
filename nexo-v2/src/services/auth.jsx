@@ -3,6 +3,12 @@ import { api, setCsrf } from './api.js'
 
 const AuthContext = createContext(null)
 
+export function postLoginPath(session) {
+  if (session?.user?.mustChangePassword) return '/cambiar-password'
+  if (session?.user?.mfaEnrollmentRequired) return '/configurar-mfa'
+  return '/app'
+}
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)

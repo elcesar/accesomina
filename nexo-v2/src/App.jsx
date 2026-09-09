@@ -22,6 +22,8 @@ import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 import VehiculosPage from './pages/VehiculosPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
+import MfaSetupPage from './pages/MfaSetupPage.jsx'
 import PrivateModuleRouter from './pages/PrivateModuleRouter.jsx'
 
 function ProtectedRoute({ children }) {
@@ -55,6 +57,8 @@ export default function App() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+          <Route path="/cambiar-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
+          <Route path="/configurar-mfa" element={<ProtectedRoute><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />

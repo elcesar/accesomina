@@ -4,7 +4,8 @@ import fs from 'node:fs';
 
 const html = fs.readFileSync(new URL('../../AccesoMina_v6.html', import.meta.url), 'utf8');
 const production = fs.readFileSync(new URL('../../public/index.html', import.meta.url), 'utf8');
-const enterpriseCss = fs.readFileSync(new URL('../../assets/nexo-klar-enterprise.css', import.meta.url), 'utf8');
+const reactFoundations = fs.readFileSync(new URL('../../nexo-v2/src/styles/ux-foundations.css', import.meta.url), 'utf8');
+const reactComponents = fs.readFileSync(new URL('../../nexo-v2/src/styles/components.css', import.meta.url), 'utf8');
 
 test('local and production frontends remain identical', () => {
   assert.equal(html, production);
@@ -38,7 +39,7 @@ test('visible terminology supports multiple industries without changing legacy d
     'Cumplimiento corporativo',
     'Alojamientos y estadías',
     'Credenciales de acceso',
-    'Libro de Obra'
+    'Libro de obra'
   ]) assert.ok(html.includes(neutralLabel), `missing neutral label: ${neutralLabel}`);
 
   assert.match(html, /function translateClientTerminology/);
@@ -96,7 +97,7 @@ test('operational log remains visible in the project and business management gro
   const generalNavigation = html.slice(generalStart, nextStart);
 
   assert.match(generalNavigation, /id="nav-work-book-v125"/);
-  assert.match(generalNavigation, /📖 Libro de Obra/);
+  assert.match(generalNavigation, /📖 Libro de obra/);
   assert.ok(generalNavigation.includes("nav('oportunidades')"));
 });
 
@@ -107,9 +108,8 @@ test('every private navigation group can collapse without hiding the active modu
   for (const fn of ['toggleNavGroupV147', 'setNavGroupCollapsedV147', 'expandNavGroupContainingV147', 'restoreNavGroupsV147']) {
     assert.match(html, new RegExp(`function ${fn}`));
   }
-  assert.match(enterpriseCss, /nav-group-label\.is-collapsed .nav-group-toggle/);
   assert.match(html, /nav-item-collapsed-v147/);
-  assert.match(enterpriseCss, /\.nav-item\.nav-item-collapsed-v147\s*\{\s*display: none !important;/);
+  assert.match(html, /item\.hidden=collapsed/);
 });
 
 test('contractor and asset workspaces reuse operational data instead of creating silos', () => {
@@ -169,11 +169,11 @@ test('people can use all operational link profiles and contractors can register 
 });
 
 test('private workspace uses one visual system for typography, controls and data tables', () => {
-  for (const token of ['--font-sans', '--space-4', '--radius-md', '--focus-ring']) {
-    assert.ok(html.includes(token), `missing UI token: ${token}`);
+  for (const token of ['--nk-space-4', '--nk-radius', '--nk-focus']) {
+    assert.ok(reactFoundations.includes(token), `missing React UI token: ${token}`);
   }
-  for (const rule of ['body.private .section-header', 'body.private .table-wrap', 'body.private .tab-bar', 'body.private .modal', 'body.private .nav-item']) {
-    assert.ok(enterpriseCss.includes(rule), `missing private UI rule: ${rule}`);
+  for (const rule of ['.nk-module-workflow', '.nk-context-relations', '.nk-table-wrapper', '.nk-dialog']) {
+    assert.ok(`${reactFoundations}\n${reactComponents}`.includes(rule), `missing private UI rule: ${rule}`);
   }
   assert.match(html, /button, input, select, textarea \{ font:inherit; \}/);
 });
