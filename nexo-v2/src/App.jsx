@@ -66,10 +66,13 @@ export default function App() {
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="clientes" element={<ClientesPage />} />
+            <Route path="clientes/nuevo" element={<ClientesPage createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage />} />
             <Route path="contratos" element={<ContratosPage />} />
+            <Route path="contratos/nuevo" element={<ContratosPage createMode />} />
             <Route path="contratos/:contractId" element={<ContratosPage />} />
             <Route path="servicios" element={<OrdenesServicioPage />} />
+            <Route path="servicios/nuevo" element={<OrdenesServicioPage createMode />} />
             <Route path="servicios/:orderId" element={<OrdenesServicioPage />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
             <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
