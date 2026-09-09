@@ -22,7 +22,7 @@ const primaryLinks = [
 export default function PublicNavigation({ active = 'inicio', onNavigate }) {
   return <>
     <nav className="nk-public-topbar" aria-label="Navegación principal">
-      <button className="nk-image-button" type="button" onClick={() => onNavigate?.('inicio')} aria-label="Ir al inicio">
+      <button className="nk-button nk-button-quiet" type="button" onClick={() => onNavigate?.('inicio')} aria-label="Ir al inicio">
         <BrandLogo className="nk-public-logo" />
       </button>
 
