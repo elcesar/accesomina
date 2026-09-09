@@ -22,6 +22,8 @@ export default function Header() {
   const role = session?.user?.role
   const canCreateGeneral = role !== 'consulta'
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
+  const tenantName = session?.tenant?.name || 'Nexo Klar'
+  const userName = session?.user?.name || session?.user?.email || 'Usuario'
 
   const handleLogout = async () => {
     await logout()
@@ -31,16 +33,10 @@ export default function Header() {
   return (
     <header className="nk-global-header">
       <div className="nk-global-context" aria-label="Contexto de sesión">
-        <div className="nk-global-context-item">
-          <span className="nk-global-context-label">Empresa</span>
-          <strong>{session?.tenant?.name || 'Nexo Klar'}</strong>
-        </div>
-        <div className="nk-global-context-separator" aria-hidden="true" />
-        <div className="nk-global-context-item">
-          <span className="nk-global-context-label">Usuario</span>
-          <strong>{session?.user?.name || session?.user?.email || 'Usuario'}</strong>
-          <small>{roleLabel(role)}</small>
-        </div>
+        <strong className="nk-global-tenant" title={tenantName}>{tenantName}</strong>
+        <span className="nk-global-user" title={`${userName} · ${roleLabel(role)}`}>
+          {userName} <small>· {roleLabel(role)}</small>
+        </span>
       </div>
 
       <div className="nk-global-actions" aria-label="Acciones globales">
