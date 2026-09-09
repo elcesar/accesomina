@@ -24,7 +24,7 @@ const activeModuleForPath = pathname => {
   return null
 }
 
-export default function Header() {
+export default function Header({ mobileNavigation }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { session, logout } = useAuth()
@@ -49,6 +49,8 @@ export default function Header() {
           {userName} <small>· {roleLabel(role)}</small>
         </span>
       </div>
+
+      {mobileNavigation}
 
       <div className="nk-global-actions" aria-label="Acciones globales">
         {canCreateGeneral && (

@@ -20,7 +20,7 @@ const ITEM_TYPES = {
 const REQUIRED_ITEMS = [
   { type: 'documento', name: 'Cédula de identidad' },
   { type: 'contrato', name: 'Contrato de trabajo' },
-  { type: 'contrato', name: 'Anexo de faena' },
+  { type: 'contrato', name: 'Anexo asociado al servicio' },
   { type: 'documento', name: 'Certificado AFP' },
   { type: 'documento', name: 'Certificado AFC' },
   { type: 'documento', name: 'Certificado Fonasa/Isapre' },

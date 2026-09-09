@@ -12,7 +12,7 @@ const groups = [
   ['Contratistas', [['terceros-subcontratos', 'Terceros y subcontratos', IconSitemap], ['contratos-convenios', 'Convenios y contratos de terceros', IconFileText], ['personal-empresa-servicios', 'Personas de empresas colaboradoras', IconUsers], ['habilitaciones-cumplimiento', 'Habilitaciones y cumplimiento', IconCircleCheck], ['evaluacion-desempeno', 'Evaluación de desempeño', IconChartBar]]],
   ['Relación comercial', [['clientes', 'Clientes', IconBuilding], ['contratos', 'Contratos y firmas', IconFileText], ['ordenes-servicio', 'Órdenes de servicio', IconTool]]],
   ['Cumplimiento y calidad', [['cumplimiento-corporativo', 'Cumplimiento corporativo', IconBuilding], ['habilitacion-cliente', 'Requisitos del cliente', IconCircleCheck], ['incidentes', 'Incidentes y no conformidades', IconAlertTriangle], ['auditoria', 'Auditoría', IconClipboardCheck]]],
-  ['Gestión de proyectos y negocios', [['libro-obra', 'Libro de Obra', IconBook], ['prospectos', 'Prospectos y oportunidades', IconBriefcase]]],
+  ['Gestión de proyectos y negocios', [['libro-obra', 'Libro de obra', IconBook], ['prospectos', 'Prospectos y oportunidades', IconBriefcase]]],
   ['Activos, equipos e inventario', [['activos-inventario', 'Activos, equipos e inventario', IconBox], ['maquinaria', 'Maquinaria', IconTool], ['equipos-instrumentos', 'Equipos e instrumentos', IconSitemap], ['herramientas', 'Herramientas', IconTools], ['epp-inventario', 'Inventario de equipos de protección personal', IconShield], ['materiales', 'Materiales y ferretería', IconBox], ['insumos', 'Insumos y consumibles', IconBox], ['bodegas', 'Bodegas', IconBuildingWarehouse], ['movimientos-inventario', 'Movimientos de inventario', IconArrowsExchange], ['mantenimiento', 'Mantenimiento', IconTools], ['asignaciones-prestamos', 'Asignaciones y préstamos', IconClipboardCheck]]],
   ['Reportes y datos', [['reportes', 'Reportes', IconChartBar], ['importar-exportar', 'Importar y exportar', IconArrowsExchange]]],
   ['Gestión y administración', [['configuracion', 'Configuración de la empresa', IconSettings], ['usuarios-permisos', 'Usuarios y permisos', IconUsers], ['bitacora', 'Bitácora de cambios', IconHistory], ['privacidad', 'Privacidad y datos', IconShieldLock]]],
@@ -22,9 +22,20 @@ const groups = [
 const route = id => id === '/' ? '/app' : `/app/${id}`
 function Group({ name, items, session }) { const [open, setOpen] = useState(true); const visible=items.filter(([id])=>id==='/'||canUseModule(moduleFor(id),session)); if(!visible.length)return null; return <section className="nk-side-group"><button className="nk-side-group-title" onClick={() => setOpen(!open)} aria-expanded={open}>{name}<IconChevronDown size={15} className={open ? '' : 'closed'} /></button>{open && visible.map(([id,label,Icon]) => <NavLink end={id === '/'} className={({isActive}) => `nk-side-link ${isActive ? 'active':''}`} to={route(id)} key={id}><Icon size={17}/><span>{label}</span></NavLink>)}</section> }
 
+const quickAccessByRole = {
+  rrhh: [['personas', 'Personas'], ['gestion-personal-proyecto', 'Personal por proyecto'], ['turnos-asistencia', 'Turnos y asistencia']],
+  prevencion: [['alertas', 'Alertas'], ['proteccion-epp', 'Protección personal / EPP'], ['examenes', 'Exámenes y aptitudes']],
+  acreditacion: [['alertas', 'Alertas'], ['habilitacion-cliente', 'Requisitos del cliente'], ['credenciales', 'Credenciales de acceso']],
+  client_admin: [['alertas', 'Alertas'], ['clientes', 'Clientes'], ['ordenes-servicio', 'Órdenes de servicio']],
+  domian_admin: [['administracion-clientes', 'Administración de clientes'], ['alertas', 'Alertas'], ['reportes', 'Reportes']],
+  consulta: [['alertas', 'Alertas'], ['personas', 'Personas'], ['reportes', 'Reportes']],
+}
+
 export default function Sidebar() {
   const { session, logout } = useAuth()
   const navigate = useNavigate()
   const handleLogout = async () => { await logout(); navigate('/login') }
-  return <aside className="nk-sidebar"><div className="nk-sidebar-brand"><img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" /></div>{session?.tenant && <div className="nk-tenant-name">{session.tenant.name}</div>}<nav>{groups.map(([name,items]) => <Group key={name} name={name} items={items} session={session} />)}</nav><div className="nk-sidebar-bottom"><button onClick={handleLogout}><IconLogout size={17}/>Cerrar sesión</button></div></aside>
+  const quickAccess = (quickAccessByRole[session?.user?.role] || quickAccessByRole.consulta)
+    .filter(([id]) => canUseModule(moduleFor(id), session))
+  return <aside className="nk-sidebar"><div className="nk-sidebar-brand"><img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" /></div>{session?.tenant && <div className="nk-tenant-name">{session.tenant.name}</div>}<nav>{quickAccess.length > 0 && <section className="nk-side-quick-access" aria-label="Accesos frecuentes"><b>Accesos frecuentes</b>{quickAccess.map(([id, label]) => <NavLink key={id} to={route(id)}>{label}</NavLink>)}</section>}{groups.map(([name,items]) => <Group key={name} name={name} items={items} session={session} />)}</nav><div className="nk-sidebar-bottom"><button type="button" onClick={handleLogout}><IconLogout size={17}/>Cerrar sesión</button></div></aside>
 }

@@ -1,14 +1,16 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
+import MobileModuleNav from './MobileModuleNav.jsx'
 
 export default function AppLayout() {
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#F4EFE3', overflow: 'hidden' }}>
+    <div className="nk-app-shell">
+      <a className="nk-skip-link" href="#contenido-principal">Ir al contenido principal</a>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <Header />
-        <main style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div className="nk-app-content">
+        <Header mobileNavigation={<MobileModuleNav />} />
+        <main id="contenido-principal" className="nk-app-main" tabIndex="-1">
           <Outlet />
         </main>
       </div>
