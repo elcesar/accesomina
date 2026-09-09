@@ -110,6 +110,10 @@
   justify-content: flex-end;
 }
 
+.nk-public-mobile-tabs {
+  display: none;
+}
+
 /* Shared landing typography */
 .nk-eyebrow {
   margin: 0 0 var(--space-3);
@@ -118,7 +122,9 @@
   font-weight: var(--weight-bold);
   letter-spacing: .06em;
   text-transform: uppercase;
+  text-align: left;
 }
+
 .nk-public-section h2 {
   margin: 0 0 var(--space-4);
   max-width: 760px;
@@ -127,23 +133,28 @@
   font-size: clamp(28px, 4vw, 40px);
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-tight);
+  text-align: left;
 }
+
 .nk-lead {
   max-width: 760px;
   margin: 0;
   color: var(--mut);
   font-size: var(--text-lg);
   line-height: var(--leading-relaxed);
+  text-align: left;
 }
-.nk-centered > div { text-align: center; }
-.nk-centered .nk-lead { margin-inline: auto; }
+
+/* Todas las vistas públicas usan la misma alineación de cabecera. */
+.nk-centered > div { text-align: left; }
+.nk-centered .nk-lead { margin-inline: 0; }
 .nk-centered .nk-card-grid { text-align: left; }
 
 /* Hero */
 .nk-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, .95fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(40px, 6vw, 88px);
   min-height: 640px;
   background: transparent;
@@ -202,7 +213,7 @@
 .nk-two-columns {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: clamp(40px, 6vw, 80px);
 }
 .nk-two-columns > div { min-width: 0; }
@@ -270,7 +281,7 @@
 .nk-outcome-grid span { color: var(--mut); font-size: var(--text-sm); line-height: var(--leading-normal); }
 
 /* Product */
-.nk-product-section { align-items: center; }
+.nk-product-section { align-items: start; }
 .nk-product-section > div:last-child { text-align: center; }
 .nk-caption { margin: var(--space-3) 0 0; color: var(--sub); font-size: var(--text-xs); line-height: var(--leading-normal); }
 
@@ -282,8 +293,8 @@
 .nk-solutions-grid p, .nk-steps p, .nk-statements p { margin: 0; color: var(--mut); font-size: var(--text-sm); line-height: var(--leading-normal); }
 
 /* Industries */
-.nk-industry-heading { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--space-8); align-items: end; }
-.nk-industry-heading .nk-lead { margin-bottom: 2px; }
+.nk-industry-heading { display: grid; grid-template-columns: 1.1fr .9fr; gap: var(--space-8); align-items: start; }
+.nk-industry-heading .nk-lead { margin: 0; }
 .nk-industries-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: var(--space-8); }
 .nk-industries-grid article { min-height: 170px; }
 .nk-industries-grid small { color: var(--pri); font-weight: var(--weight-bold); }
@@ -370,7 +381,36 @@
   .nk-public-logo { height: 26px; }
   .nk-public-nav-links { display: none; }
   .nk-public-nav-cta .nk-button-quiet { display: none; }
-  .nk-public-section { scroll-margin-top: 58px; }
+  .nk-public-mobile-tabs {
+    position: sticky;
+    top: 58px;
+    z-index: 49;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    background: var(--surf);
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+  }
+  .nk-public-mobile-tabs::-webkit-scrollbar { display: none; }
+  .nk-public-mobile-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: var(--mut);
+    font: 600 var(--text-sm)/1 var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .nk-public-mobile-tabs button.is-active {
+    color: var(--pri);
+    border-bottom-color: var(--pri);
+  }
+  .nk-public-section { scroll-margin-top: 102px; }
+  .nk-public-site main { min-height: calc(100vh - 102px); }
   .nk-hero-copy h1 { font-size: clamp(36px, 11vw, 52px); }
   .nk-hero-points, .nk-product-notes, .nk-outcome-grid, .nk-solutions-grid, .nk-industries-grid, .nk-steps, .nk-statements, .nk-values { grid-template-columns: 1fr; }
   .nk-product-mock > div { grid-template-columns: 1fr; }
@@ -384,5 +424,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nk-public-nav-links .nk-button, .nk-image-button, .nk-lightbox { scroll-behavior: auto; transition: none; }
+  .nk-public-nav-links .nk-button, .nk-public-mobile-tabs button, .nk-image-button, .nk-lightbox { scroll-behavior: auto; transition: none; }
 }
