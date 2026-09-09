@@ -1,127 +1,110 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBell, IconSearch, IconX } from '@tabler/icons-react'
-import { api } from '../../services/api.js'
+import {
+  IconBell,
+  IconBuilding,
+  IconFileText,
+  IconLogout,
+  IconTool,
+  IconUserPlus,
+} from '@tabler/icons-react'
+import { useAuth } from '../../services/auth.jsx'
 import '../../styles/header.css'
 
-const routes = {
-  trabajadores: ['personas', 'Personas'],
-  minas: ['clientes', 'Clientes'],
-  clientes: ['clientes', 'Clientes'],
-  contratos: ['contratos', 'Contratos y firmas'],
-  mantenciones: ['ordenes-servicio', 'Órdenes de servicio'],
-  proyectos: ['ordenes-servicio', 'Órdenes de servicio'],
-  vehiculos: ['vehiculos', 'Flota y equipos móviles'],
-  inventoryItems: ['activos-inventario', 'Activos, equipos e inventario'],
-  subcontratos: ['terceros-subcontratos', 'Terceros y subcontratos'],
-  prospectos: ['prospectos', 'Prospectos y oportunidades'],
-}
+const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
 
-const rowsFor = value => (
-  Array.isArray(value)
-    ? value
-    : value && typeof value === 'object'
-      ? Object.values(value)
-      : []
-)
+const roleLabel = value => String(value || 'usuario')
+  .replaceAll('_', ' ')
+  .replace(/\b\w/g, letter => letter.toUpperCase())
 
-const nameFor = row => (
-  row.nombre || row.name || row.razonSocial || row.rut || row.codigo || row.id || 'Registro sin nombre'
-)
-
-export default function Header({ title, subtitle }) {
+export default function Header() {
   const navigate = useNavigate()
-  const [query, setQuery] = useState('')
-  const [state, setState] = useState(null)
-  const [open, setOpen] = useState(false)
+  const { session, logout } = useAuth()
+  const role = session?.user?.role
+  const canCreateGeneral = role !== 'consulta'
+  const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
 
-  useEffect(() => {
-    if (open && !state) {
-      api.get('/state')
-        .then(result => setState(result?.state || result))
-        .catch(() => setState({}))
-    }
-  }, [open, state])
-
-  const results = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase()
-    if (term.length < 2) return []
-
-    return Object.entries(routes)
-      .flatMap(([key, [path, module]]) => (
-        rowsFor(state?.[key]).map(row => ({ row, path, module }))
-      ))
-      .filter(({ row }) => JSON.stringify(row).toLocaleLowerCase().includes(term))
-      .slice(0, 8)
-  }, [query, state])
-
-  const choose = result => {
-    setQuery('')
-    setOpen(false)
-    navigate(`/app/${result.path}`)
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
   }
 
   return (
     <header className="nk-global-header">
-      <div className="nk-global-heading">
-        {title && <h1 className="nk-global-title">{title}</h1>}
-        {subtitle && <p className="nk-global-subtitle">{subtitle}</p>}
+      <div className="nk-global-context" aria-label="Contexto de sesión">
+        <div className="nk-global-context-item">
+          <span className="nk-global-context-label">Empresa</span>
+          <strong>{session?.tenant?.name || 'Nexo Klar'}</strong>
+        </div>
+        <div className="nk-global-context-separator" aria-hidden="true" />
+        <div className="nk-global-context-item">
+          <span className="nk-global-context-label">Usuario</span>
+          <strong>{session?.user?.name || session?.user?.email || 'Usuario'}</strong>
+          <small>{roleLabel(role)}</small>
+        </div>
       </div>
 
-      <div className="nk-global-tools">
-        <label className="nk-global-search">
-          <IconSearch size={17} strokeWidth={1.7} />
-          <input
-            value={query}
-            onFocus={() => setOpen(true)}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            onChange={event => setQuery(event.target.value)}
-            placeholder="Buscar persona, cliente, contrato, orden o recurso"
-            aria-label="Buscar en Nexo Klar"
-          />
+      <div className="nk-global-actions" aria-label="Acciones globales">
+        {canCreateGeneral && (
+          <button
+            className="nk-button nk-button-primary nk-global-create"
+            type="button"
+            onClick={() => navigate('/app/trabajadores/nuevo')}
+          >
+            <IconUserPlus size={15} strokeWidth={1.8} />
+            + Persona
+          </button>
+        )}
 
-          {query && (
-            <button
-              className="nk-global-search-clear"
-              type="button"
-              onClick={() => setQuery('')}
-              aria-label="Limpiar búsqueda"
-            >
-              <IconX size={15} />
-            </button>
-          )}
+        {canCreateGeneral && (
+          <button
+            className="nk-button nk-button-secondary nk-global-create"
+            type="button"
+            onClick={() => navigate('/app/clientes/nuevo')}
+          >
+            <IconBuilding size={15} strokeWidth={1.8} />
+            + Cliente
+          </button>
+        )}
 
-          {open && (
-            <div className="nk-global-results">
-              {query.trim().length < 2 ? (
-                <span>Escribe al menos dos caracteres para buscar en tu empresa.</span>
-              ) : results.length ? (
-                results.map(result => (
-                  <button
-                    className="nk-global-result"
-                    type="button"
-                    key={`${result.path}-${result.row.id}`}
-                    onMouseDown={event => event.preventDefault()}
-                    onClick={() => choose(result)}
-                  >
-                    <strong>{nameFor(result.row)}</strong>
-                    <small>{result.module}</small>
-                  </button>
-                ))
-              ) : (
-                <span>No encontramos resultados en la empresa actual.</span>
-              )}
-            </div>
-          )}
-        </label>
+        {canCreateCommercial && (
+          <button
+            className="nk-button nk-button-secondary nk-global-create"
+            type="button"
+            onClick={() => navigate('/app/contratos/nuevo')}
+          >
+            <IconFileText size={15} strokeWidth={1.8} />
+            + Contrato
+          </button>
+        )}
+
+        {canCreateCommercial && (
+          <button
+            className="nk-button nk-button-secondary nk-global-create"
+            type="button"
+            onClick={() => navigate('/app/servicios/nuevo')}
+          >
+            <IconTool size={15} strokeWidth={1.8} />
+            + Orden de servicio
+          </button>
+        )}
 
         <button
           className="nk-icon-button"
           type="button"
           onClick={() => navigate('/app/alertas')}
           aria-label="Ir a alertas"
+          title="Alertas"
         >
           <IconBell size={18} strokeWidth={1.7} />
+        </button>
+
+        <button
+          className="nk-button nk-button-quiet nk-global-logout"
+          type="button"
+          onClick={handleLogout}
+        >
+          <IconLogout size={15} strokeWidth={1.8} />
+          Salir
         </button>
       </div>
     </header>
