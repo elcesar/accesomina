@@ -5,7 +5,6 @@ import {
   IconChevronUp,
   IconDownload,
   IconFilter,
-  IconPlus,
   IconSearch,
   IconUserCheck,
   IconUserOff,
@@ -270,14 +269,6 @@ export default function TrabajadoresPage() {
               <IconDownload size={15} strokeWidth={1.7} />
               Exportar
             </button>
-            <button
-              className="nk-button nk-button-primary"
-              type="button"
-              onClick={() => navigate('/app/trabajadores/nuevo')}
-            >
-              <IconPlus size={15} strokeWidth={2} />
-              Nueva persona
-            </button>
           </div>
         </div>
 
@@ -417,16 +408,8 @@ export default function TrabajadoresPage() {
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
                       <p className="nk-empty-title">Sin personas en esta vista</p>
                       <p className="nk-empty-description">
-                        Ajusta los filtros o registra una nueva persona para comenzar su gestión documental y operacional.
+                        Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.
                       </p>
-                      <button
-                        className="nk-button nk-button-primary"
-                        type="button"
-                        onClick={() => navigate('/app/trabajadores/nuevo')}
-                      >
-                        <IconPlus size={15} strokeWidth={2} />
-                        Nueva persona
-                      </button>
                     </div>
                   </td>
                 </tr>
