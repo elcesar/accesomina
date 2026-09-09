@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { IconPaperclip, IconPlus, IconRefresh, IconSearch, IconTable, IconX } from '@tabler/icons-react'
 import { api } from '../../services/api.js'
 import { canEditModule, canUseModule, moduleFor } from './moduleCatalog.js'
+import { experienceFor } from './moduleExperience.js'
 import { useAuth } from '../../services/auth.jsx'
 
 const labelFor = key => key.replace(/([A-Z])/g, ' $1').replace(/[_-]/g, ' ').replace(/^./, char => char.toUpperCase())
@@ -9,7 +11,9 @@ const asRows = value => Array.isArray(value) ? value : value && typeof value ===
 const recordId = () => globalThis.crypto?.randomUUID?.() || `nk-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
 function CreateRecordDialog({ module, state, versions, onClose, onSaved }) {
-  const [form, setForm] = useState({ nombre: '', descripcion: '', estado: 'activo', responsable: '', vinculo: '' })
+  const experience = experienceFor(module.id)
+  const initialForm = { nombre: '', descripcion: '', estado: 'activo', responsable: '', vinculo: '', ...Object.fromEntries(experience.formFields.map(field => [field.key, ''])) }
+  const [form, setForm] = useState(initialForm)
   const [file, setFile] = useState(null)
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
@@ -30,7 +34,8 @@ function CreateRecordDialog({ module, state, versions, onClose, onSaved }) {
       const id = recordId()
       const uploaded = file ? await api.upload(file, { entityType: module.id, entityId: id }) : null
       const current = asRows(state?.[module.writeKey])
-      const item = { id, nombre: form.nombre.trim(), descripcion: form.descripcion.trim(), estado: form.estado, responsable: form.responsable.trim(), vinculo: form.vinculo.trim(), createdAt: new Date().toISOString(), ...(uploaded ? { fileId: uploaded.id, archivo: uploaded.original_name } : {}) }
+      const detailFields = Object.fromEntries(experience.formFields.map(field => [field.key, String(form[field.key] || '').trim()]).filter(([, value]) => value))
+      const item = { id, nombre: form.nombre.trim(), descripcion: form.descripcion.trim(), estado: form.estado, responsable: form.responsable.trim(), vinculo: form.vinculo.trim(), ...detailFields, createdAt: new Date().toISOString(), ...(uploaded ? { fileId: uploaded.id, archivo: uploaded.original_name } : {}) }
       await api.put('/state/modules', { changes: { [module.writeKey]: { version: Number(versions?.[module.writeKey] || 0), data: [...current, item] } }, reason: `Registro creado desde ${module.title}` })
       onSaved()
     } catch (cause) {
@@ -42,7 +47,7 @@ function CreateRecordDialog({ module, state, versions, onClose, onSaved }) {
     <form className="nk-dialog" role="dialog" aria-modal="true" aria-labelledby={`dialog-${module.id}`} onKeyDown={closeWithEscape} onSubmit={save} onMouseDown={event => event.stopPropagation()}>
       <header><div><p className="nk-module-kicker">Nuevo registro</p><h2 id={`dialog-${module.id}`}>{module.action}</h2><p>El registro se guarda en la empresa actual y conserva su trazabilidad.</p></div><button type="button" className="nk-icon-button" onClick={onClose} aria-label="Cerrar"><IconX size={18}/></button></header>
       <div className="nk-dialog-steps"><span className={step === 1 ? 'active' : ''}>1. Identificación</span><span className={step === 2 ? 'active' : ''}>2. Estado y evidencia</span></div>
-      {step === 1 ? <><label>{fields.name}<input autoFocus required value={form.nombre} onChange={event => setForm({ ...form, nombre: event.target.value })} placeholder={fields.example} /></label><label>Detalle inicial<textarea value={form.descripcion} onChange={event => setForm({ ...form, descripcion: event.target.value })} placeholder={fields.detail} rows="4" /></label></> : <><div className="nk-dialog-fields"><label>Responsable<input value={form.responsable} onChange={event => setForm({ ...form, responsable: event.target.value })} placeholder="Persona o equipo responsable" /></label><label>{fields.relation}<input value={form.vinculo} onChange={event => setForm({ ...form, vinculo: event.target.value })} placeholder={fields.relation} /></label></div><label>Estado<select value={form.estado} onChange={event => setForm({ ...form, estado: event.target.value })}><option value="activo">Activo</option><option value="en_revision">En revisión</option><option value="pendiente">Pendiente</option></select></label><label className="nk-file-field"><IconPaperclip size={16}/><span>{file?.name || 'Adjuntar evidencia (opcional)'}</span><input type="file" accept="application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => setFile(event.target.files?.[0] || null)} /></label><p className="nk-dialog-copy">Podrás complementar o corregir esta información más adelante sin perder el historial.</p></>}
+      {step === 1 ? <><label>{fields.name}<input autoFocus required value={form.nombre} onChange={event => setForm({ ...form, nombre: event.target.value })} placeholder={fields.example} /></label><label>Detalle inicial<textarea value={form.descripcion} onChange={event => setForm({ ...form, descripcion: event.target.value })} placeholder={fields.detail} rows="4" /></label>{experience.formFields.length > 0 && <div className="nk-dialog-fields">{experience.formFields.map(field => <label key={field.key}>{field.label}{field.type === 'select' ? <select value={form[field.key]} onChange={event => setForm({ ...form, [field.key]: event.target.value })}>{field.options.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select> : <input type={field.type || 'text'} value={form[field.key]} onChange={event => setForm({ ...form, [field.key]: event.target.value })} placeholder={field.placeholder} />}</label>)}</div>}</> : <><div className="nk-dialog-fields"><label>Responsable<input value={form.responsable} onChange={event => setForm({ ...form, responsable: event.target.value })} placeholder="Persona o equipo responsable" /></label><label>{fields.relation}<input value={form.vinculo} onChange={event => setForm({ ...form, vinculo: event.target.value })} placeholder={fields.relation} /></label></div><label>Estado<select value={form.estado} onChange={event => setForm({ ...form, estado: event.target.value })}><option value="activo">Activo</option><option value="en_revision">En revisión</option><option value="pendiente">Pendiente</option></select></label><label className="nk-file-field"><IconPaperclip size={16}/><span>{file?.name || 'Adjuntar evidencia (opcional)'}</span><input type="file" accept="application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => setFile(event.target.files?.[0] || null)} /></label><p className="nk-dialog-copy">Podrás complementar o corregir esta información más adelante sin perder el historial.</p></>}
       {error && <p className="nk-form-error">{error}</p>}
       <footer>{step === 1 ? <><button type="button" className="nk-button nk-button-secondary" onClick={onClose}>Cancelar</button><button type="button" className="nk-button nk-button-primary" onClick={() => form.nombre.trim().length >= 2 ? setStep(2) : setError('Indica un nombre o identificador para continuar.')}>Continuar</button></> : <><button type="button" className="nk-button nk-button-secondary" onClick={() => setStep(1)}>Volver</button><button className="nk-button nk-button-primary" disabled={saving}>{saving ? 'Guardando…' : 'Guardar registro'}</button></>}</footer>
     </form>
@@ -51,6 +56,7 @@ function CreateRecordDialog({ module, state, versions, onClose, onSaved }) {
 
 export default function PrivateModulePage({ moduleId }) {
   const module = moduleFor(moduleId)
+  const navigate = useNavigate()
   const { session } = useAuth()
   const [response, setResponse] = useState(null)
   const [query, setQuery] = useState('')
@@ -64,17 +70,20 @@ export default function PrivateModulePage({ moduleId }) {
   const rows = useMemo(() => source.filter(row => JSON.stringify(row).toLocaleLowerCase().includes(query.toLocaleLowerCase())).slice(0, 50), [source, query])
   const headings = useMemo(() => [...new Set(rows.flatMap(row => Object.keys(row || {})))].filter(key => !['id','tenantId','createdAt','updatedAt','fileId'].includes(key)).slice(0, 5), [rows])
   const canEdit = canEditModule(module, session)
-  const taskHint = module.id === 'ordenes-servicio' ? 'Crea la orden y luego vincula personas, recursos y evidencia.' : module.id === 'personas' ? 'Crea la ficha y completa sus requisitos antes de asignarla a una orden.' : module.id === 'clientes' ? 'Registra el cliente antes de crear su contrato y sus órdenes de servicio.' : module.id === 'contratos' ? 'Relaciona cada contrato con un cliente y define responsables y vigencias.' : module.id === 'activos-inventario' ? 'Registra el activo y luego controla su ubicación, custodia y mantenimiento.' : module.id === 'terceros-subcontratos' ? 'Incorpora la empresa colaboradora y revisa su cumplimiento antes de asignarla.' : `Registra la información esencial y vincúlala con los módulos relacionados.`
+  const experience = experienceFor(module.id)
+  const taskHint = module.id === 'ordenes-servicio' ? 'Crea la orden y luego vincula personas, recursos y evidencia.' : module.id === 'personas' ? 'Crea la ficha y completa sus requisitos antes de asignarla a una orden.' : module.id === 'clientes' ? 'Registra el cliente antes de crear su contrato y sus órdenes de servicio.' : module.id === 'contratos' ? 'Relaciona cada contrato con un cliente y define responsables y vigencias.' : experience.workflow
+  const relations = experience.relations.length > 0 ? experience.relations : module.related.map(label => ({ label }))
 
   if (!canUseModule(module, session)) return <section className="nk-module-page"><div className="nk-module-empty"><b>Sin acceso a este módulo</b><span>Tu perfil no tiene permiso para consultar esta información.</span></div></section>
   return <section className="nk-module-page" aria-labelledby={`module-${module.id}`}>
     <header className="nk-module-header"><div><p className="nk-module-kicker">Nexo Klar · {session?.tenant?.name || 'Empresa'}</p><h1 id={`module-${module.id}`}>{module.title}</h1><p>{module.description}</p></div><div className="nk-module-actions"><button type="button" className="nk-button nk-button-secondary" onClick={load}><IconRefresh size={16}/>Actualizar</button>{canEdit && <button type="button" className="nk-button nk-button-primary" onClick={() => setCreating(true)}><IconPlus size={16}/>{module.action}</button>}</div></header>
     <div className="nk-module-summary" aria-live="polite"><article><b>{loading ? '…' : source.length}</b><span>Registros vinculados</span></article><article><b>{module.related.length}</b><span>Relaciones operativas</span></article><article><b>{error ? '!' : '✓'}</b><span>{error ? 'Requiere revisión' : 'Datos actualizados'}</span></article></div>
     <section className="nk-next-action"><div><b>Siguiente acción recomendada</b><span>{taskHint}</span></div>{canEdit && <button type="button" className="nk-button nk-button-primary" onClick={() => setCreating(true)}><IconPlus size={16}/>{module.action}</button>}</section>
+    <section className="nk-module-workflow" aria-label="Ruta de trabajo recomendada"><b>Ruta de trabajo</b><span>{experience.workflow}</span></section>
     <article className="nk-module-card"><div className="nk-module-card-header"><div><h2>Registros del módulo</h2><p>Datos de la empresa actual; las relaciones se conservan entre los módulos autorizados.</p></div><label className="nk-search"><IconSearch size={16} aria-hidden="true"/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar en este módulo" aria-label={`Buscar en ${module.title}`} /></label></div>
       {error ? <div className="nk-module-empty" role="alert">{error}</div> : loading ? <div className="nk-module-empty" aria-live="polite">Cargando información…</div> : rows.length === 0 ? <div className="nk-module-empty"><IconTable size={28}/><b>Aún no hay registros para mostrar</b><span>{canEdit ? `Utiliza “${module.action}” para comenzar o importa información desde el módulo correspondiente.` : 'Solicita a un administrador que incorpore información a este módulo.'}</span></div> : <div className="nk-data-table"><table><caption>Registros de {module.title}</caption><thead><tr>{headings.map(key => <th scope="col" key={key}>{labelFor(key)}</th>)}</tr></thead><tbody>{rows.map((row,index) => <tr key={row.id || index}>{headings.map(key => <td key={key}>{typeof row[key] === 'object' ? 'Información relacionada' : String(row[key] ?? '—')}</td>)}</tr>)}</tbody></table></div>}
     </article>
-    <aside className="nk-module-relationships"><b>Se relaciona con</b>{module.related.map(item => <span key={item}>{item}</span>)}</aside>
+    <aside className="nk-module-relationships"><b>Se relaciona con</b>{relations.map(item => item.to ? <button type="button" className="nk-relation-link" key={item.label} onClick={() => navigate(`/app/${item.to}`)}>{item.label}</button> : <span key={item.label}>{item.label}</span>)}</aside>
     {creating && <CreateRecordDialog module={module} state={state} versions={response?.moduleVersions} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
   </section>
 }

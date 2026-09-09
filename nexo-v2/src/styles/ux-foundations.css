@@ -68,9 +68,15 @@ textarea:disabled { cursor: not-allowed; opacity: .58; }
 .nk-side-quick-access a:hover { color: var(--nk-deep); text-decoration: underline; }
 
 .nk-dialog[role="dialog"] { outline: none; }
+.nk-dialog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nk-space-3); }
+.nk-dialog-fields label { min-width: 0; }
 .nk-dialog-copy { padding: 10px 12px; border-left: 3px solid var(--nk-mint); border-radius: var(--nk-radius-sm); background: #f1fbfa; }
 .nk-module-card .nk-data-table { overscroll-behavior-x: contain; }
 .nk-data-table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.nk-module-workflow { display: flex; align-items: center; gap: var(--nk-space-3); margin: 0 0 var(--nk-space-4); padding: 12px 14px; border: 1px solid var(--nk-line); border-left: 3px solid var(--nk-mint); border-radius: var(--nk-radius); background: #fff; color: var(--nk-muted); font-size: 13px; }
+.nk-module-workflow b { color: var(--nk-ink); white-space: nowrap; }
+.nk-relation-link { border: 0; border-bottom: 1px solid transparent; padding: 0; background: transparent; color: var(--nk-indigo); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.nk-relation-link:hover { border-bottom-color: currentColor; color: var(--nk-deep); }
 
 @media (max-width: 980px) {
   .nk-mobile-module-nav { display: flex; }
@@ -88,6 +94,8 @@ textarea:disabled { cursor: not-allowed; opacity: .58; }
   .nk-data-table table { min-width: 620px; }
   .nk-dialog-backdrop { align-items: end; padding: 0; }
   .nk-dialog { width: 100%; max-height: min(88svh, 760px); border-radius: 12px 12px 0 0; padding: 20px; }
+  .nk-dialog-fields { grid-template-columns: 1fr; }
+  .nk-module-workflow { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
