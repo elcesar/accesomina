@@ -45,6 +45,17 @@ function acreditacionPct(persona) {
   return Math.round((ok / REQUIRED_ITEMS.length) * 100)
 }
 
+function qualificationMatches(persona, filter) {
+  if (!filter) return true
+  const value = Number(persona.calificacion)
+  if (!Number.isFinite(value)) return false
+  if (filter === '7') return value >= 7
+  if (filter === '5') return value >= 5 && value <= 6
+  if (filter === '3') return value >= 3 && value <= 4
+  if (filter === '1') return value >= 1 && value <= 2
+  return true
+}
+
 function initials(nombre) {
   if (!nombre) return '?'
   const parts = nombre.trim().split(' ')
@@ -124,6 +135,9 @@ export default function TrabajadoresPage() {
   const [availability, setAvailability] = useState('')
   const [clientId, setClientId] = useState('')
   const [projectId, setProjectId] = useState('')
+  const [contractId, setContractId] = useState('')
+  const [qualification, setQualification] = useState('')
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
   const [sortCol, setSortCol] = useState('nombre')
   const [sortAsc, setSortAsc] = useState(true)
 
@@ -152,6 +166,29 @@ export default function TrabajadoresPage() {
   const specialties = useMemo(() => (
     [...new Set(personas.map(persona => persona.especialidad).filter(Boolean))].sort()
   ), [personas])
+
+  const availableContracts = useMemo(() => (
+    contratos.filter(contract => !clientId || contract.minaId === clientId)
+  ), [contratos, clientId])
+
+  const availableProjects = useMemo(() => (
+    proyectos.filter(project => (
+      (!clientId || project.minaId === clientId) &&
+      (!contractId || project.contratoId === contractId)
+    ))
+  ), [proyectos, clientId, contractId])
+
+  useEffect(() => {
+    if (contractId && !availableContracts.some(contract => contract.id === contractId)) {
+      setContractId('')
+    }
+  }, [availableContracts, contractId])
+
+  useEffect(() => {
+    if (projectId && !availableProjects.some(project => project.id === projectId)) {
+      setProjectId('')
+    }
+  }, [availableProjects, projectId])
 
   const tabCount = key => {
     if (key === 'planta') return personas.filter(p => p.tipo === 'permanente' && !p.bloqueado).length
@@ -197,9 +234,12 @@ export default function TrabajadoresPage() {
       ))
     }
     if (specialty) list = list.filter(p => p.especialidad === specialty)
-    if (availability) list = list.filter(p => p.disponibilidad === availability)
+    if (availability === 'bloqueado') list = list.filter(p => p.bloqueado)
+    else if (availability) list = list.filter(p => p.disponibilidad === availability && !p.bloqueado)
     if (clientId) list = list.filter(p => (p.mineras || []).includes(clientId))
     if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones).includes(projectId))
+    if (contractId) list = list.filter(p => workerContractIds(p, asignaciones, proyectos).includes(contractId))
+    if (qualification) list = list.filter(p => qualificationMatches(p, qualification))
 
     return [...list].sort((a, b) => {
       let valueA = a[sortCol] ?? ''
@@ -214,9 +254,10 @@ export default function TrabajadoresPage() {
       if (valueA > valueB) return sortAsc ? 1 : -1
       return 0
     })
-  }, [personas, asignaciones, tab, search, specialty, availability, clientId, projectId, sortCol, sortAsc])
+  }, [personas, proyectos, asignaciones, tab, search, specialty, availability, clientId, projectId, contractId, qualification, sortCol, sortAsc])
 
-  const activeFilters = [search, specialty, availability, clientId, projectId].filter(Boolean).length
+  const secondaryFilters = [projectId, contractId, qualification].filter(Boolean).length
+  const activeFilters = [search, specialty, availability, clientId, projectId, contractId, qualification].filter(Boolean).length
 
   const toggleSort = col => {
     if (sortCol === col) setSortAsc(value => !value)
@@ -232,6 +273,8 @@ export default function TrabajadoresPage() {
     setAvailability('')
     setClientId('')
     setProjectId('')
+    setContractId('')
+    setQualification('')
   }
 
   const SortIcon = ({ col }) => {
@@ -331,6 +374,7 @@ export default function TrabajadoresPage() {
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
           <option value="vacaciones">Vacaciones</option>
+          <option value="bloqueado">Restringido</option>
         </select>
 
         <select
@@ -345,17 +389,79 @@ export default function TrabajadoresPage() {
           ))}
         </select>
 
-        <select
-          className={`nk-select nk-people-filter ${projectId ? 'is-active' : ''}`}
-          value={projectId}
-          onChange={event => setProjectId(event.target.value)}
-          aria-label="Filtrar por proyecto"
-        >
-          <option value="">Proyecto / servicio</option>
-          {proyectos.map(project => (
-            <option key={project.id} value={project.id}>{project.nombre}</option>
-          ))}
-        </select>
+        <div className="nk-people-more-wrap">
+          <button
+            className={`nk-button nk-button-secondary nk-people-more-button ${secondaryFilters ? 'is-active' : ''}`}
+            type="button"
+            aria-expanded={moreFiltersOpen}
+            aria-controls="nk-people-more-filters"
+            onClick={() => setMoreFiltersOpen(value => !value)}
+          >
+            <IconFilter size={14} strokeWidth={1.7} />
+            Más filtros{secondaryFilters ? ` (${secondaryFilters})` : ''}
+            <IconChevronDown className={moreFiltersOpen ? 'is-open' : ''} size={13} strokeWidth={1.7} />
+          </button>
+
+          {moreFiltersOpen && (
+            <div className="nk-people-more-panel" id="nk-people-more-filters">
+              <div className="nk-people-more-grid">
+                <label className="nk-field">
+                  <span className="nk-label">Orden de servicio</span>
+                  <select
+                    className="nk-select"
+                    value={projectId}
+                    onChange={event => setProjectId(event.target.value)}
+                  >
+                    <option value="">Todas las órdenes de servicio</option>
+                    {availableProjects.map(project => (
+                      <option key={project.id} value={project.id}>{project.nombre}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="nk-field">
+                  <span className="nk-label">Contrato</span>
+                  <select
+                    className="nk-select"
+                    value={contractId}
+                    onChange={event => setContractId(event.target.value)}
+                  >
+                    <option value="">Todos los contratos</option>
+                    {availableContracts.map(contract => (
+                      <option key={contract.id} value={contract.id}>{contract.nombre}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="nk-field">
+                  <span className="nk-label">Calificación</span>
+                  <select
+                    className="nk-select"
+                    value={qualification}
+                    onChange={event => setQualification(event.target.value)}
+                  >
+                    <option value="">Todas las calificaciones</option>
+                    <option value="7">A (7)</option>
+                    <option value="5">B+ (5–6)</option>
+                    <option value="3">C (3–4)</option>
+                    <option value="1">D (1–2)</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="nk-people-more-actions">
+                {activeFilters > 0 && (
+                  <button className="nk-button nk-button-quiet" type="button" onClick={clearFilters}>
+                    Limpiar filtros ({activeFilters})
+                  </button>
+                )}
+                <button className="nk-button nk-button-secondary" type="button" onClick={() => setMoreFiltersOpen(false)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {activeFilters > 0 && (
           <button
@@ -363,7 +469,7 @@ export default function TrabajadoresPage() {
             type="button"
             onClick={clearFilters}
           >
-            <IconFilter size={14} strokeWidth={1.7} />
+            <IconX size={14} strokeWidth={1.7} />
             Limpiar ({activeFilters})
           </button>
         )}
