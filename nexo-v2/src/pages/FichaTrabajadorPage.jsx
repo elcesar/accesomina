@@ -6,6 +6,7 @@ import {
   IconLoader2, IconPaperclip, IconPlus, IconShield, IconUser, IconX,
 } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
+import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/ficha-trabajador.css'
 
 const ITEM_TYPES = {
@@ -115,14 +116,7 @@ function statusClass(pct) {
 }
 
 function BadgeDisp({ value }) {
-  const map = {
-    disponible: ['Disponible', 'nk-badge-ok'],
-    asignado: ['Asignado', 'nk-badge-none'],
-    vacaciones: ['Vacaciones', 'nk-badge-warn'],
-    bloqueado: ['Restringido', 'nk-badge-error'],
-  }
-  const [label, cls] = map[value] || [value || 'Sin información', 'nk-badge-none']
-  return <span className={`nk-badge ${cls}`}>{label}</span>
+  return <StatusBadge value={value} />
 }
 
 function Field({ label, children }) {
