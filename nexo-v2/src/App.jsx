@@ -20,6 +20,9 @@ import ContratosPage from './pages/ContratosPage.jsx'
 import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
 import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 import VehiculosPage from './pages/VehiculosPage.jsx'
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import PrivateModuleRouter from './pages/PrivateModuleRouter.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -50,6 +53,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+          <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
@@ -76,6 +81,8 @@ export default function App() {
             <Route path="servicios/:orderId" element={<OrdenesServicioPage />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
             <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
+            <Route path="modulos/:modulePath" element={<PrivateModuleRouter />} />
+            <Route path=":modulePath" element={<PrivateModuleRouter />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />

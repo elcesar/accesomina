@@ -1,0 +1,149 @@
+/* Nexo Klar Brandbook v1.0
+   Official visual layer: original logo, approved palette and type roles. */
+@font-face {
+  font-family: 'NK Inter';
+  src: url('brand/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'NK Manrope';
+  src: url('brand/fonts/Manrope-VariableFont_wght.ttf') format('truetype');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --nk-indigo: #2a2a8c;
+  --nk-indigo-deep: #1a1a5e;
+  --nk-cobalt: #1e3ae0;
+  --nk-graphite: #26313a;
+  --nk-magenta: #e4006e;
+  --nk-magenta-ink: #a3004f;
+  --nk-turquoise: #00cfc1;
+  --nk-turquoise-ink: #00706a;
+  --nk-amber: #e9a319;
+  --nk-amber-ink: #8a5a00;
+  --nk-ivory: #f4efe3;
+  --nk-paper: #fbf9f5;
+  --nk-line: #e3ded2;
+  --nk-ink: #141a20;
+  --nk-muted: #5d6b7a;
+  --nk-subtle: #8a96a1;
+  --font-sans: 'NK Inter', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-brand: 'NK Manrope', Manrope, Arial, sans-serif;
+  --focus-ring: 0 0 0 3px rgba(0, 207, 193, .32);
+}
+
+html, body, button, input, select, textarea { font-family: var(--font-sans); }
+body { font-weight: 450; text-rendering: optimizeLegibility; }
+
+/* Original marks, always shown at their intended proportions. */
+.nk-logo { display:block; width:auto; height:auto; object-fit:contain; }
+.public-brand { gap:0; }
+.public-brand .nk-logo { width:190px; max-width:44vw; height:50px; }
+.access-brand-logo { width:180px; height:58px; object-fit:contain; object-position:left center; }
+.sidebar-logo .nk-logo { width:164px; height:42px; object-fit:contain; object-position:left center; }
+
+/* Public communication follows Manrope; navigation and action controls remain precise in Inter. */
+.public-shell { font-family: var(--font-brand); }
+.public-shell :is(button, input, select, textarea, .btn, .public-progress-nav, .public-nav) { font-family: var(--font-sans); }
+.public-shell .hero-title,
+.public-shell .public-heading,
+.public-shell h1,
+.public-shell h2,
+.public-shell h3 { font-family: var(--font-brand); font-weight: 750; letter-spacing: 0; }
+.public-shell .hero-copy,
+.public-shell .public-lead,
+.public-shell .hero-point,
+.public-shell .value-item,
+.public-shell .capability,
+.public-shell .industry-card,
+.public-shell .outcome-card,
+.public-shell .step,
+.public-shell .purpose-statement,
+.public-shell .purpose-value { font-family: var(--font-brand); }
+
+/* Brand palette: colour conveys hierarchy and state, not decoration. */
+body.light {
+  --bg: var(--nk-ivory);
+  --bg2: #ffffff;
+  --bg3: var(--nk-paper);
+  --bg4: #ffffff;
+  --orange: var(--nk-indigo);
+  --orange-light: #e8e8f6;
+  --orange-dark: var(--nk-indigo-deep);
+  --blue: var(--nk-turquoise-ink);
+  --blue-light: var(--nk-turquoise);
+  --text: var(--nk-ink);
+  --text-muted: var(--nk-muted);
+  --text-dim: var(--nk-subtle);
+  --border: var(--nk-line);
+  --border-light: #c7d0d6;
+  --green: #146b3e;
+  --red: #9b2226;
+  --yellow: var(--nk-amber-ink);
+}
+body.dark {
+  --bg: #12123a;
+  --bg2: #1a1a4d;
+  --bg3: #20205d;
+  --bg4: #1a1a4d;
+  --orange: var(--nk-turquoise);
+  --orange-light: #064a47;
+  --orange-dark: var(--nk-turquoise-ink);
+  --blue: #86dcd5;
+  --blue-light: var(--nk-turquoise);
+  --text: #f7f7fb;
+  --text-muted: #c7d0d6;
+  --text-dim: #aeb7c2;
+  --border: #3b3b75;
+  --border-light: #5a5a96;
+  --green: #67d99b;
+  --red: #ff9a93;
+  --yellow: #f3c25f;
+}
+
+body.private .btn-primary,
+.public-shell .btn-primary,
+.public-shell .public-access-button { background: var(--nk-indigo); }
+body.private .btn-primary:hover,
+.public-shell .btn-primary:hover,
+.public-shell .public-access-button:hover { background: var(--nk-indigo-deep); }
+body.private .btn:focus-visible,
+.public-shell .btn:focus-visible,
+body.private :is(.form-input,.form-select,.form-textarea,.filter-input,.filter-select):focus,
+.public-shell :is(input,select,textarea):focus { box-shadow: var(--focus-ring); }
+body.private .nav-item.active { color: var(--nk-indigo); border-left-color: var(--nk-indigo); }
+body.private .nav-group-label.tone-control,
+body.private .nav-group-label.tone-assets { --group-color: var(--nk-indigo); }
+body.private .nav-group-label.tone-people,
+body.private .nav-group-label.tone-commercial { --group-color: var(--nk-turquoise-ink); }
+body.private .nav-group-label.tone-operations,
+body.private .nav-group-label.tone-compliance { --group-color: #146b3e; }
+body.private .nav-group-label.tone-contractors { --group-color: var(--nk-amber-ink); }
+body.private .nav-group-label.tone-projects { --group-color: var(--nk-magenta-ink); }
+body.private .nav-badge-orange { background: var(--nk-indigo); }
+body.private .table-wrap table thead th { background: var(--nk-graphite); }
+body.private .badge-blue { color: var(--nk-turquoise-ink); background: rgba(0,207,193,.15); }
+body.private .badge-orange { color: var(--nk-indigo); background: rgba(42,42,140,.12); }
+body.private .kpi-orange::before { background: var(--nk-indigo); }
+body.private .kpi-blue::before { background: var(--nk-turquoise-ink); }
+body.private .kpi-yellow::before { background: var(--nk-amber); }
+
+.public-shell .public-eyebrow,
+.public-shell .hero-kicker { color: var(--nk-indigo); }
+.public-shell .hero-title span { color: var(--nk-magenta); }
+.public-shell .public-progress-nav a.active { background: var(--nk-indigo); }
+.public-shell .public-progress-nav a:hover { background: rgba(42,42,140,.09); color: var(--nk-indigo); }
+.public-shell .public-progress-nav a.active:hover { background: var(--nk-indigo-deep); color:#fff; }
+.public-shell .capability-icon { color: var(--nk-indigo)!important; background: rgba(42,42,140,.09)!important; border-color: rgba(42,42,140,.18)!important; }
+.public-shell .industry-card::before { background: linear-gradient(90deg, var(--nk-indigo), var(--nk-turquoise), var(--nk-magenta)); }
+.public-shell .purpose-value { border-left-color: var(--nk-turquoise); }
+
+@media (max-width: 600px) {
+  .public-brand .nk-logo { width:154px; height:42px; max-width:50vw; }
+  .sidebar-logo .nk-logo { width:150px; }
+}

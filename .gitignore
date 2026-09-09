@@ -1,9 +1,11 @@
 .DS_Store
 *.log
 node_modules/
+nexo-v2/dist/
 .env
 .env.*
 !.env.example
 uploads/
 backups/
 *.zip
+infra/aws/*.rendered.json

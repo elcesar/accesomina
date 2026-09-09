@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import '../styles/landing.css'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
 import PlatformSection from '../components/public/sections/PlatformSection.jsx'
@@ -34,7 +33,7 @@ export default function LandingPage() {
       <CustomerAccessSection />
     </main>
     <footer className="nk-public-footer"><span>Nexo Klar · Gestión operativa, información y cumplimiento</span><div><button onClick={()=>setDialog('faq')}>Preguntas frecuentes</button><button onClick={()=>setDialog('legal')}>Términos y privacidad</button><a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a></div></footer>
-    {preview && <div className="nk-lightbox" role="dialog" aria-modal="true" onClick={() => setPreview(false)}><button aria-label="Cerrar vista ampliada" onClick={() => setPreview(false)}>×</button><img src="/assets/dashboard-demo.png" alt="Vista ampliada de Nexo Klar" onClick={event => event.stopPropagation()} /></div>}
+    {preview && <div className="nk-lightbox" role="dialog" aria-modal="true" onClick={() => setPreview(false)}><button aria-label="Cerrar vista ampliada" onClick={() => setPreview(false)}>×</button><img src="/dashboard-demo.png" alt="Vista ampliada de Nexo Klar" onClick={event => event.stopPropagation()} /></div>}
     {dialog==='demo'&&<DemoRequestDialog onClose={()=>setDialog(null)}/>} {dialog&&dialog!=='demo'&&<InformationDialog kind={dialog} onClose={()=>setDialog(null)}/>}
   </div>
 }
