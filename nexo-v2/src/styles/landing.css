@@ -152,6 +152,8 @@
 
 /* Hero */
 .nk-hero {
+  width: min(calc(100% - 2 * var(--page-padding)), var(--content-max-width));
+  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, .95fr);
   align-items: start;
