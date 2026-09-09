@@ -73,6 +73,8 @@
 }
 
 .nk-people-filters {
+  position: relative;
+  z-index: 4;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -127,6 +129,58 @@
   background: var(--pri-light);
   color: var(--pri);
   font-weight: var(--weight-semibold);
+}
+
+.nk-people-more-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.nk-people-more-button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.nk-people-more-button.is-active {
+  border-color: var(--pri);
+  background: var(--pri-light);
+  color: var(--pri);
+}
+
+.nk-people-more-button svg:last-child {
+  transition: transform var(--transition-fast);
+}
+
+.nk-people-more-button svg:last-child.is-open {
+  transform: rotate(180deg);
+}
+
+.nk-people-more-panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: min(620px, calc(100vw - var(--sidebar-width) - (var(--page-padding) * 2)));
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surf);
+  box-shadow: var(--shadow-lg);
+}
+
+.nk-people-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.nk-people-more-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
 }
 
 .nk-people-clear-filters {
@@ -292,8 +346,17 @@
     max-width: none;
   }
 
+  .nk-people-more-wrap {
+    flex: 0 0 auto;
+  }
+
   .nk-people-clear-filters {
     margin-left: 0;
+  }
+
+  .nk-people-more-panel {
+    right: 0;
+    width: min(620px, calc(100vw - (var(--page-padding) * 2)));
   }
 }
 
@@ -304,6 +367,14 @@
 
   .nk-people-header-row .nk-actions {
     width: 100%;
+  }
+
+  .nk-people-more-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nk-people-more-panel {
+    width: min(420px, calc(100vw - (var(--page-padding) * 2)));
   }
 }
 
@@ -317,5 +388,22 @@
     flex: 1 1 100%;
     width: 100%;
     min-width: 100%;
+  }
+
+  .nk-people-more-wrap,
+  .nk-people-more-button,
+  .nk-people-clear-filters {
+    width: 100%;
+  }
+
+  .nk-people-more-panel {
+    position: static;
+    width: 100%;
+    margin-top: var(--space-2);
+  }
+
+  .nk-people-more-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
