@@ -152,6 +152,29 @@ Toda acción debe producir feedback perceptible:
 
 No usar color como único indicador.
 
+### 4.4 Filtros progresivos en listados
+
+Los filtros deben ayudar a reducir el contenido sin competir visualmente con el listado, tabla o resultado principal.
+
+Regla general en escritorio:
+
+- mostrar **como máximo cuatro filtros principales visibles** de forma simultánea;
+- priorizar los filtros de uso más frecuente o mayor valor operacional;
+- cuando existan filtros adicionales, agruparlos bajo una acción **`Más filtros`**;
+- `Más filtros` debe indicar cuando contiene criterios activos, idealmente mediante un contador;
+- ofrecer una acción clara para limpiar filtros activos;
+- los filtros secundarios pueden ser dependientes del contexto cuando exista una relación de dominio clara (por ejemplo Cliente → Contrato → Orden de servicio);
+- evitar cards o paneles de filtros sobredimensionados que resten altura al contenido principal;
+- en pantallas pequeñas se puede reducir aún más la cantidad de filtros visibles y trasladar controles adicionales a `Más filtros`.
+
+Ejemplo recomendado:
+
+```text
+[ Buscar ] [ Especialidad ] [ Disponibilidad ] [ Cliente ] [ Más filtros (2) ]
+```
+
+La cantidad total de criterios disponibles no está limitada a cuatro: **el límite aplica a los filtros expuestos simultáneamente en la vista principal**.
+
 ---
 
 ## 5. Estados semánticos
