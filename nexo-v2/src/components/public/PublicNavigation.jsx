@@ -15,15 +15,15 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
   return (
     <nav className="nk-public-topbar" aria-label="Navegación principal">
       <button
-        className="nk-button nk-button-quiet"
+        className="nk-public-brand-button"
         type="button"
         onClick={() => onNavigate?.('inicio')}
         aria-label="Ir al inicio"
       >
-        <BrandLogo className="nk-public-logo" />
+        <BrandLogo claim={false} className="nk-public-logo" />
       </button>
 
-      <div className="nk-public-actions" aria-label="Secciones del sitio">
+      <div className="nk-public-actions nk-public-nav-links" aria-label="Secciones del sitio">
         {publicSections.map(([id, label]) => (
           <button
             key={id}
@@ -37,7 +37,7 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
         ))}
       </div>
 
-      <div className="nk-public-actions">
+      <div className="nk-public-actions nk-public-nav-cta">
         <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.cl">
           contacto@nexoklar.cl
         </a>
