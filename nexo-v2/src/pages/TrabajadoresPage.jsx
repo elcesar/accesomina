@@ -45,6 +45,27 @@ function acreditacionPct(persona) {
   return Math.round((ok / REQUIRED_ITEMS.length) * 100)
 }
 
+function nextExpiry(persona) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const dates = (persona.workerItems || [])
+    .map(item => item.vence)
+    .filter(Boolean)
+    .map(value => new Date(`${value}T00:00:00`))
+    .filter(date => !Number.isNaN(date.getTime()) && date >= today)
+    .sort((a, b) => a - b)
+
+  return dates[0] || null
+}
+
+function formatShortDate(date) {
+  if (!date) return ''
+  return new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'short' })
+    .format(date)
+    .replace('.', '')
+}
+
 function qualificationMatches(persona, filter) {
   if (!filter) return true
   const value = Number(persona.calificacion)
@@ -95,18 +116,23 @@ function LinkTypeBadge({ type }) {
     : <span className="nk-badge nk-badge-warn">Por proyecto</span>
 }
 
-function ProgressBar({ pct }) {
+function ProgressBar({ pct, expiry }) {
   const stateClass = pct >= 85 ? 'is-ok' : pct >= 60 ? 'is-warn' : 'is-error'
 
   return (
-    <div className="nk-people-progress" aria-label={`${pct}% de cumplimiento documental`}>
-      <div className="nk-people-progress-track" aria-hidden="true">
-        <div
-          className={`nk-people-progress-bar ${stateClass}`}
-          style={{ width: `${pct}%` }}
-        />
+    <div className="nk-people-compliance">
+      <div className="nk-people-progress" aria-label={`${pct}% de cumplimiento documental`}>
+        <div className="nk-people-progress-track" aria-hidden="true">
+          <div
+            className={`nk-people-progress-bar ${stateClass}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className={`nk-people-progress-value ${stateClass}`}>{pct}%</span>
       </div>
-      <span className={`nk-people-progress-value ${stateClass}`}>{pct}%</span>
+      <div className="nk-people-expiry">
+        {expiry ? `Próx. vence: ${formatShortDate(expiry)}` : 'Sin vencimientos próximos'}
+      </div>
     </div>
   )
 }
@@ -179,15 +205,11 @@ export default function TrabajadoresPage() {
   ), [proyectos, clientId, contractId])
 
   useEffect(() => {
-    if (contractId && !availableContracts.some(contract => contract.id === contractId)) {
-      setContractId('')
-    }
+    if (contractId && !availableContracts.some(contract => contract.id === contractId)) setContractId('')
   }, [availableContracts, contractId])
 
   useEffect(() => {
-    if (projectId && !availableProjects.some(project => project.id === projectId)) {
-      setProjectId('')
-    }
+    if (projectId && !availableProjects.some(project => project.id === projectId)) setProjectId('')
   }, [availableProjects, projectId])
 
   const tabCount = key => {
@@ -207,15 +229,9 @@ export default function TrabajadoresPage() {
       .map(id => proyectos.find(project => project.id === id)?.nombre)
       .filter(Boolean)
 
-    const workerContracts = workerContractIds(persona, asignaciones, proyectos)
-    const contractNames = workerContracts
-      .map(id => contratos.find(contract => contract.id === id)?.nombre)
-      .filter(Boolean)
-
     return {
-      clients: clientNames.join(', '),
-      projects: projectNames.join(', '),
-      contracts: contractNames.join(', '),
+      clients: clientNames,
+      projects: projectNames,
     }
   }
 
@@ -229,9 +245,7 @@ export default function TrabajadoresPage() {
 
     if (search) {
       const term = search.toLocaleLowerCase()
-      list = list.filter(p => (
-        p.nombre?.toLocaleLowerCase().includes(term) || p.rut?.includes(search)
-      ))
+      list = list.filter(p => p.nombre?.toLocaleLowerCase().includes(term) || p.rut?.includes(search))
     }
     if (specialty) list = list.filter(p => p.especialidad === specialty)
     if (availability === 'bloqueado') list = list.filter(p => p.bloqueado)
@@ -244,12 +258,10 @@ export default function TrabajadoresPage() {
     return [...list].sort((a, b) => {
       let valueA = a[sortCol] ?? ''
       let valueB = b[sortCol] ?? ''
-
       if (sortCol === 'acreditacion') {
         valueA = acreditacionPct(a)
         valueB = acreditacionPct(b)
       }
-
       if (valueA < valueB) return sortAsc ? -1 : 1
       if (valueA > valueB) return sortAsc ? 1 : -1
       return 0
@@ -306,27 +318,17 @@ export default function TrabajadoresPage() {
               {activeFilters > 0 && ` · ${activeFilters} filtro${activeFilters > 1 ? 's' : ''} activo${activeFilters > 1 ? 's' : ''}`}
             </p>
           </div>
-
           <div className="nk-actions">
             <button className="nk-button nk-button-secondary" type="button">
-              <IconDownload size={15} strokeWidth={1.7} />
-              Exportar
+              <IconDownload size={15} strokeWidth={1.7} /> Exportar
             </button>
           </div>
         </div>
 
         <div className="nk-tabs nk-people-tabs" role="tablist" aria-label="Segmentos de personas">
           {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              className={`nk-tab nk-people-tab ${tab === key ? 'active' : ''}`}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              key={key}
-              onClick={() => setTab(key)}
-            >
-              <Icon size={14} strokeWidth={1.7} />
-              {label}
+            <button className={`nk-tab nk-people-tab ${tab === key ? 'active' : ''}`} type="button" role="tab" aria-selected={tab === key} key={key} onClick={() => setTab(key)}>
+              <Icon size={14} strokeWidth={1.7} /> {label}
               <span className="nk-people-tab-count">{tabCount(key)}</span>
             </button>
           ))}
@@ -336,40 +338,16 @@ export default function TrabajadoresPage() {
       <section className="nk-people-filters" aria-label="Filtros de personas">
         <div className="nk-search nk-people-search">
           <IconSearch size={14} strokeWidth={1.7} />
-          <input
-            value={search}
-            onChange={event => setSearch(event.target.value)}
-            placeholder="Nombre o RUT"
-            aria-label="Buscar persona por nombre o RUT"
-          />
-          {search && (
-            <button
-              className="nk-people-search-clear"
-              type="button"
-              onClick={() => setSearch('')}
-              aria-label="Limpiar búsqueda"
-            >
-              <IconX size={13} />
-            </button>
-          )}
+          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Nombre o RUT" aria-label="Buscar persona por nombre o RUT" />
+          {search && <button className="nk-people-search-clear" type="button" onClick={() => setSearch('')} aria-label="Limpiar búsqueda"><IconX size={13} /></button>}
         </div>
 
-        <select
-          className={`nk-select nk-people-filter ${specialty ? 'is-active' : ''}`}
-          value={specialty}
-          onChange={event => setSpecialty(event.target.value)}
-          aria-label="Filtrar por especialidad"
-        >
+        <select className={`nk-select nk-people-filter ${specialty ? 'is-active' : ''}`} value={specialty} onChange={event => setSpecialty(event.target.value)} aria-label="Filtrar por especialidad">
           <option value="">Especialidad</option>
           {specialties.map(item => <option key={item} value={item}>{item}</option>)}
         </select>
 
-        <select
-          className={`nk-select nk-people-filter ${availability ? 'is-active' : ''}`}
-          value={availability}
-          onChange={event => setAvailability(event.target.value)}
-          aria-label="Filtrar por disponibilidad"
-        >
+        <select className={`nk-select nk-people-filter ${availability ? 'is-active' : ''}`} value={availability} onChange={event => setAvailability(event.target.value)} aria-label="Filtrar por disponibilidad">
           <option value="">Disponibilidad</option>
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
@@ -377,26 +355,13 @@ export default function TrabajadoresPage() {
           <option value="bloqueado">Restringido</option>
         </select>
 
-        <select
-          className={`nk-select nk-people-filter ${clientId ? 'is-active' : ''}`}
-          value={clientId}
-          onChange={event => setClientId(event.target.value)}
-          aria-label="Filtrar por cliente"
-        >
+        <select className={`nk-select nk-people-filter ${clientId ? 'is-active' : ''}`} value={clientId} onChange={event => setClientId(event.target.value)} aria-label="Filtrar por cliente">
           <option value="">Cliente</option>
-          {clientes.map(cliente => (
-            <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>
-          ))}
+          {clientes.map(cliente => <option key={cliente.id} value={cliente.id}>{cliente.nombre}</option>)}
         </select>
 
         <div className="nk-people-more-wrap">
-          <button
-            className={`nk-button nk-button-secondary nk-people-more-button ${secondaryFilters ? 'is-active' : ''}`}
-            type="button"
-            aria-expanded={moreFiltersOpen}
-            aria-controls="nk-people-more-filters"
-            onClick={() => setMoreFiltersOpen(value => !value)}
-          >
+          <button className={`nk-button nk-button-secondary nk-people-more-button ${secondaryFilters ? 'is-active' : ''}`} type="button" aria-expanded={moreFiltersOpen} aria-controls="nk-people-more-filters" onClick={() => setMoreFiltersOpen(value => !value)}>
             <IconFilter size={14} strokeWidth={1.7} />
             Más filtros{secondaryFilters ? ` (${secondaryFilters})` : ''}
             <IconChevronDown className={moreFiltersOpen ? 'is-open' : ''} size={13} strokeWidth={1.7} />
@@ -407,39 +372,21 @@ export default function TrabajadoresPage() {
               <div className="nk-people-more-grid">
                 <label className="nk-field">
                   <span className="nk-label">Orden de servicio</span>
-                  <select
-                    className="nk-select"
-                    value={projectId}
-                    onChange={event => setProjectId(event.target.value)}
-                  >
+                  <select className="nk-select" value={projectId} onChange={event => setProjectId(event.target.value)}>
                     <option value="">Todas las órdenes de servicio</option>
-                    {availableProjects.map(project => (
-                      <option key={project.id} value={project.id}>{project.nombre}</option>
-                    ))}
+                    {availableProjects.map(project => <option key={project.id} value={project.id}>{project.nombre}</option>)}
                   </select>
                 </label>
-
                 <label className="nk-field">
                   <span className="nk-label">Contrato</span>
-                  <select
-                    className="nk-select"
-                    value={contractId}
-                    onChange={event => setContractId(event.target.value)}
-                  >
+                  <select className="nk-select" value={contractId} onChange={event => setContractId(event.target.value)}>
                     <option value="">Todos los contratos</option>
-                    {availableContracts.map(contract => (
-                      <option key={contract.id} value={contract.id}>{contract.nombre}</option>
-                    ))}
+                    {availableContracts.map(contract => <option key={contract.id} value={contract.id}>{contract.nombre}</option>)}
                   </select>
                 </label>
-
                 <label className="nk-field">
                   <span className="nk-label">Calificación</span>
-                  <select
-                    className="nk-select"
-                    value={qualification}
-                    onChange={event => setQualification(event.target.value)}
-                  >
+                  <select className="nk-select" value={qualification} onChange={event => setQualification(event.target.value)}>
                     <option value="">Todas las calificaciones</option>
                     <option value="7">A (7)</option>
                     <option value="5">B+ (5–6)</option>
@@ -448,29 +395,17 @@ export default function TrabajadoresPage() {
                   </select>
                 </label>
               </div>
-
               <div className="nk-people-more-actions">
-                {activeFilters > 0 && (
-                  <button className="nk-button nk-button-quiet" type="button" onClick={clearFilters}>
-                    Limpiar filtros ({activeFilters})
-                  </button>
-                )}
-                <button className="nk-button nk-button-secondary" type="button" onClick={() => setMoreFiltersOpen(false)}>
-                  Cerrar
-                </button>
+                {activeFilters > 0 && <button className="nk-button nk-button-quiet" type="button" onClick={clearFilters}>Limpiar filtros ({activeFilters})</button>}
+                <button className="nk-button nk-button-secondary" type="button" onClick={() => setMoreFiltersOpen(false)}>Cerrar</button>
               </div>
             </div>
           )}
         </div>
 
         {activeFilters > 0 && (
-          <button
-            className="nk-button nk-button-quiet nk-people-clear-filters"
-            type="button"
-            onClick={clearFilters}
-          >
-            <IconX size={14} strokeWidth={1.7} />
-            Limpiar ({activeFilters})
+          <button className="nk-button nk-button-quiet nk-people-clear-filters" type="button" onClick={clearFilters}>
+            <IconX size={14} strokeWidth={1.7} /> Limpiar ({activeFilters})
           </button>
         )}
       </section>
@@ -480,28 +415,12 @@ export default function TrabajadoresPage() {
           <table className="nk-table nk-people-table">
             <thead>
               <tr>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>
-                    Persona <SortIcon col="nombre" />
-                  </button>
-                </th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>
-                    Especialidad <SortIcon col="especialidad" />
-                  </button>
-                </th>
-                <th>Vinculación</th>
+                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
+                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
+                <th>Tipo</th>
                 <th>Contexto operacional</th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>
-                    Disponibilidad <SortIcon col="disponibilidad" />
-                  </button>
-                </th>
-                <th>
-                  <button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>
-                    Cumplimiento <SortIcon col="acreditacion" />
-                  </button>
-                </th>
+                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
+                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
                 <th aria-label="Acciones" />
               </tr>
             </thead>
@@ -513,34 +432,28 @@ export default function TrabajadoresPage() {
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
                       <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">
-                        Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.
-                      </p>
+                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.</p>
                     </div>
                   </td>
                 </tr>
               ) : filtered.map(persona => {
                 const pct = acreditacionPct(persona)
+                const expiry = nextExpiry(persona)
                 const context = getContext(persona)
+                const primaryClient = context.clients[0]
+                const primaryProject = context.projects[0]
+                const extraContext = Math.max(context.clients.length, context.projects.length) - 1
 
                 return (
-                  <tr
-                    className="nk-people-row"
-                    key={persona.id}
-                    tabIndex={0}
-                    onClick={() => navigate(`/app/trabajadores/${persona.id}`)}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        navigate(`/app/trabajadores/${persona.id}`)
-                      }
-                    }}
-                  >
+                  <tr className="nk-people-row" key={persona.id} tabIndex={0} onClick={() => navigate(`/app/trabajadores/${persona.id}`)} onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      navigate(`/app/trabajadores/${persona.id}`)
+                    }
+                  }}>
                     <td>
                       <div className="nk-people-person">
-                        <div className="nk-people-avatar" aria-hidden="true">
-                          {initials(persona.nombre)}
-                        </div>
+                        <div className="nk-people-avatar" aria-hidden="true">{initials(persona.nombre)}</div>
                         <div>
                           <div className="nk-people-name">{persona.nombre || 'Sin nombre'}</div>
                           <div className="nk-people-rut">{persona.rut || 'Sin RUT'}</div>
@@ -550,25 +463,13 @@ export default function TrabajadoresPage() {
                     <td className="nk-people-cell-muted">{persona.especialidad || '—'}</td>
                     <td><LinkTypeBadge type={persona.tipo} /></td>
                     <td>
-                      <div>{context.clients || '—'}</div>
-                      {(context.projects || context.contracts) && (
-                        <div className="nk-people-muted">
-                          {[context.projects, context.contracts].filter(Boolean).join(' · ')}
-                        </div>
-                      )}
+                      <div className="nk-people-context-primary">{primaryClient || '—'}</div>
+                      {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
-                    <td>
-                      <AvailabilityBadge value={persona.disponibilidad} blocked={persona.bloqueado} />
-                    </td>
-                    <td><ProgressBar pct={pct} /></td>
+                    <td><AvailabilityBadge value={persona.disponibilidad} blocked={persona.bloqueado} /></td>
+                    <td><ProgressBar pct={pct} expiry={expiry} /></td>
                     <td onClick={event => event.stopPropagation()}>
-                      <button
-                        className="nk-button nk-button-quiet"
-                        type="button"
-                        onClick={() => navigate(`/app/trabajadores/${persona.id}`)}
-                      >
-                        Ficha
-                      </button>
+                      <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>
                     </td>
                   </tr>
                 )
