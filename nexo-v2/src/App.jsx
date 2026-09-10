@@ -42,6 +42,7 @@ import BodegasPage from './pages/BodegasPage.jsx'
 import MovimientosInventarioPage from './pages/MovimientosInventarioPage.jsx'
 import MantenimientoPage from './pages/MantenimientoPage.jsx'
 import AsignacionesPrestamosPage from './pages/AsignacionesPrestamosPage.jsx'
+import ProspectosPage from './pages/ProspectosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -98,6 +99,8 @@ export default function App() {
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
+            <Route path="oportunidades" element={<ProspectosPage />} />
+            <Route path="modulos/prospectos" element={<Navigate to="/app/oportunidades" replace />} />
             <Route path="activos-inventario" element={<ActivosInventarioPage />} />
             <Route path="modulos/activos-inventario" element={<Navigate to="/app/activos-inventario" replace />} />
             <Route path="maquinaria" element={<MaquinariaPage />} />
