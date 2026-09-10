@@ -11,7 +11,7 @@
 .nk-people-header {
   flex: 0 0 auto;
   padding: var(--space-4) var(--page-padding) 0;
-  background: var(--surf);
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
@@ -78,33 +78,17 @@
 .nk-people-progress-value.is-warn { color: var(--warn-ink); }
 .nk-people-progress-value.is-error { color: var(--err); }
 .nk-people-expiry { white-space: nowrap; }
-.nk-people-empty-cell { padding: 0 !important; }
-.nk-people-empty-icon { color: var(--sub); }
-.nk-people-loading { flex: 1; display: grid; place-items: center; background: var(--bg); }
-.nk-people-loading-content { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); color: var(--sub); font-size: var(--text-base); }
-.nk-people-spinner { width: 28px; height: 28px; border: 3px solid var(--pri-light); border-top-color: var(--pri); border-radius: 50%; animation: nk-people-spin 0.7s linear infinite; }
-
-@keyframes nk-people-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 1100px) {
   .nk-people-filters { flex-wrap: wrap; }
-  .nk-people-search, .nk-people-filter { flex: 1 1 160px; max-width: none; }
-  .nk-people-more-wrap { flex: 0 0 auto; }
-  .nk-people-clear-filters { margin-left: 0; }
-  .nk-people-more-panel { right: 0; width: min(620px, calc(100vw - (var(--page-padding) * 2))); }
+  .nk-people-search { max-width: none; }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 760px) {
+  .nk-people-header { padding-inline: var(--space-4); }
   .nk-people-header-row { flex-direction: column; }
-  .nk-people-header-row .nk-actions { width: 100%; }
+  .nk-people-filters { padding-inline: var(--space-4); }
+  .nk-people-content { padding-inline: var(--space-4); }
+  .nk-people-more-panel { position: fixed; left: var(--space-4); right: var(--space-4); width: auto; }
   .nk-people-more-grid { grid-template-columns: 1fr; }
-  .nk-people-more-panel { width: min(420px, calc(100vw - (var(--page-padding) * 2))); }
-}
-
-@media (max-width: 640px) {
-  .nk-people-filters { align-items: stretch; }
-  .nk-people-search, .nk-people-filter { flex: 1 1 100%; width: 100%; min-width: 100%; }
-  .nk-people-more-wrap, .nk-people-more-button, .nk-people-clear-filters { width: 100%; }
-  .nk-people-more-panel { position: static; width: 100%; margin-top: var(--space-2); }
-  .nk-people-more-actions { align-items: stretch; flex-direction: column; }
 }
