@@ -36,7 +36,8 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora además Cliente–Contrato, requisitos, preparación, recursos, cierre y evidencia documental. |
-| Fase 5 · Comunicaciones | `ComunicacionesPage.jsx` | Actualizada · Revisada | Centraliza comunicaciones y convocatorias vinculadas a personas y órdenes de servicio. Se incorporó navegación desde el contexto operacional hacia la orden asociada y KPIs superiores derivados del estado actual de las comunicaciones. |
+| Fase 5 · Gestión Operacional | `ComunicacionesPage.jsx` | Actualizada · Revisada | Submódulo Comunicaciones y convocatorias completado. Centraliza comunicaciones vinculadas a personas y órdenes, incorpora navegación al contexto operacional y KPIs derivados del estado. |
+| Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada | Reemplaza el wrapper `VehiculosPage.jsx → ModuleWorkspacePage`. `state.vehiculos` se mantiene como fuente funcional. La página especializada incorpora disponibilidad, propiedad/arriendo, operador, clientes/faenas y relación con Orden de servicio mediante `mantId`. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
 
@@ -88,16 +89,32 @@ La implementación especializada conserva y amplía el flujo de origen `Crear or
 
 La validación final confirma que no quedan brechas relevantes para mantener abierta la fase. La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
 
-## Cierre de Fase 5 · Comunicaciones
+## Avance de Fase 5 · Gestión Operacional
 
-**Estado:** CERRADA  
-**Fecha de cierre:** 10 de septiembre de 2026
+**Estado:** EN CURSO  
+**Fecha de actualización:** 10 de septiembre de 2026
 
-La Fase 5 queda cerrada con una página especializada para administrar comunicaciones y convocatorias operacionales vinculadas a personas y órdenes de servicio. El módulo permite registrar tipo, estado, mensaje, orden, persona o especialidades, turno, cupos, canal, prioridad, plazo de respuesta y responsable, además de preparar destinatarios elegibles para convocatorias.
+La Fase 5 agrupa Comunicaciones y convocatorias, Flota y equipos móviles, Alojamientos/estadías y Credenciales de acceso. La fase no se considera cerrada hasta completar y validar los cuatro submódulos.
+
+### Comunicaciones y convocatorias — COMPLETADO
+
+La página especializada administra comunicaciones y convocatorias operacionales vinculadas a personas y órdenes de servicio. El módulo permite registrar tipo, estado, mensaje, orden, persona o especialidades, turno, cupos, canal, prioridad, plazo de respuesta y responsable, además de preparar destinatarios elegibles para convocatorias.
 
 El propósito funcional queda definido como centralizar y dar trazabilidad a las comunicaciones operacionales, especialmente aquellas originadas por necesidades de dotación o coordinación de una Orden de servicio. El flujo conecta `Orden de servicio → Personas elegibles → Comunicación/convocatoria → Respuesta → Asignación`, evitando convertir el módulo en mensajería genérica sin contexto operacional.
 
-Como correcciones de cierre, el bloque Contexto operacional incorpora navegación directa hacia la Orden de servicio asociada y los KPIs superiores se derivan del estado actual de `callouts` —Total, Pendientes, Enviadas y Confirmadas—, por lo que reaccionan inmediatamente después de guardar un cambio de estado. Las métricas de Enviados, Respondieron, Asignados y Elegibles preparados se mantienen en el detalle de cada comunicación, donde representan ejecución y respuesta.
+Como correcciones de cierre del submódulo, el bloque Contexto operacional incorpora navegación directa hacia la Orden de servicio asociada y los KPIs superiores se derivan del estado actual de `callouts` —Total, Pendientes, Enviadas y Confirmadas—, por lo que reaccionan inmediatamente después de guardar un cambio de estado. Las métricas de Enviados, Respondieron, Asignados y Elegibles preparados se mantienen en el detalle de cada comunicación, donde representan ejecución y respuesta.
+
+### Flota y equipos móviles — ACTUALIZADO / EN VALIDACIÓN
+
+El origen revisado era `VehiculosPage.jsx → ModuleWorkspacePage.jsx`. La versión especializada trabaja directamente con `state.vehiculos`, que se mantiene como fuente funcional del dominio durante esta etapa.
+
+La revisión contra las reglas del backend detectó capacidades ya soportadas que no estaban expuestas en la interfaz: relación con operador mediante `operadorId`, asociación con clientes/faenas mediante `minaIds`, propiedad propia o arrendada con fecha obligatoria de término para arriendos y relación operacional con Orden de servicio. También se conserva la validación de unicidad por patente o número de serie.
+
+La página fue ampliada para administrar tipo, identificación interna, patente, VIN/serie, marca, modelo, estado operacional, propiedad, vencimiento de arriendo, operador responsable, clientes/faenas habilitadas, Orden de servicio actual mediante `mantId` y observaciones. El contexto operacional permite navegar directamente hacia la Orden asociada y los indicadores superiores separan Total, Disponibles, Asignados y Mantenimiento/Fuera de servicio.
+
+`inventoryItems` no se adopta como fuente de Flota en esta fase. La consolidación de Inventario/Activos corresponde a Fase 8; por ahora se evita crear o alimentar un modelo paralelo al dominio `vehiculos`.
+
+**Pendientes de Fase 5:** Alojamientos/estadías y Credenciales de acceso.
 
 ## Corrección transversal · Creación desde Header
 
