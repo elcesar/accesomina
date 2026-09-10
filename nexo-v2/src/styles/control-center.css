@@ -54,7 +54,7 @@
 .nk-alerts-summary span { display: block; margin-top: var(--space-1); font-size: var(--text-sm); color: var(--mut); }
 .nk-alert-toolbar { display: flex; gap: var(--space-3); align-items: end; }
 .nk-alert-toolbar .nk-search { flex: 1; }
-.nk-alert-groups { display: grid; gap: var(--space-4); }
+.nk-alert-groups { display: grid; gap: var(--space-3); }
 .nk-alert-group { background: var(--surf); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
 .nk-alert-group > header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--line); }
 .nk-alert-group > header > div:first-child { display: flex; align-items: center; gap: var(--space-3); }
@@ -64,12 +64,30 @@
 .nk-alert-actions { display: flex; align-items: center; gap: var(--space-2); }
 .nk-alert-actions label input { display: none; }
 .nk-alert-list { margin: 0; }
-.nk-alert-list li { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
+.nk-alert-list li { display: grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); }
 .nk-alert-list li:last-child { border-bottom: 0; }
 .nk-alert-list svg { flex: none; color: var(--warn); margin-top: 2px; }
 .nk-alert-list b { display: block; color: var(--ink); }
 .nk-alert-list span { display: block; margin-top: var(--space-1); color: var(--mut); font-size: var(--text-sm); }
 .nk-control-feedback { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surf); }
+
+/* Fase 12 · Alertas */
+.nk-alert-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--space-3); }
+.nk-alert-summary button { text-align:left; padding:var(--space-4); border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--surf); box-shadow:var(--shadow-sm); color:var(--ink); cursor:pointer; font:inherit; }
+.nk-alert-summary button.active { border-color:var(--pri); box-shadow:0 0 0 1px var(--pri); }
+.nk-alert-summary b { display:block; font-family:var(--font-brand); font-size:var(--text-2xl); line-height:1; }
+.nk-alert-summary span { display:block; margin-top:var(--space-2); font-weight:var(--weight-semibold); }
+.nk-alert-summary small { display:block; margin-top:var(--space-1); color:var(--mut); font-size:var(--text-xs); line-height:var(--leading-normal); }
+.nk-alert-bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); min-height:36px; color:var(--mut); font-size:var(--text-sm); }
+.nk-alert-bulk-actions > div { display:flex; gap:var(--space-1); }
+.nk-alert-group-trigger { width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto 28px; align-items:center; gap:var(--space-3); padding:var(--space-4); border:0; background:transparent; color:var(--ink); cursor:pointer; text-align:left; font:inherit; }
+.nk-alert-group-trigger > span:first-child b { display:block; }
+.nk-alert-group-trigger small { display:block; margin-top:3px; color:var(--mut); font-size:var(--text-xs); }
+.nk-alert-toggle-summary { color:var(--mut); font-size:var(--text-sm); white-space:nowrap; }
+.nk-alert-plus { display:grid; place-items:center; width:28px; height:28px; border-radius:var(--radius-pill); background:var(--surf-2); color:var(--pri); font-weight:var(--weight-bold); }
+.nk-alert-group-detail { border-top:1px solid var(--line); }
+.nk-alert-group-detail > .nk-alert-actions { justify-content:flex-end; padding:var(--space-3) var(--space-4); background:var(--surf-2); }
+.nk-alert-context-link { white-space:nowrap; }
 
 /* Fase 11 · Centro Operativo */
 .nk-operations-page { gap: var(--space-4); }
@@ -102,6 +120,8 @@
   .nk-dashboard-columns { grid-template-columns: 1fr; }
   .nk-ops-guide { align-items:flex-start; flex-direction:column; }
   .nk-ops-tab-grid { grid-template-columns:1fr; }
+  .nk-alert-list li { grid-template-columns:auto minmax(0,1fr) auto; }
+  .nk-alert-context-link { grid-column:2/-1; justify-self:start; }
 }
 
 @media (max-width: 720px) {
@@ -114,8 +134,14 @@
     flex-direction: column;
   }
   .nk-dashboard-grid,
-  .nk-alerts-summary { grid-template-columns: 1fr; }
+  .nk-alerts-summary,
+  .nk-alert-summary { grid-template-columns: 1fr; }
   .nk-alert-actions { flex-wrap: wrap; }
+  .nk-alert-bulk-actions { align-items:flex-start; flex-direction:column; }
+  .nk-alert-group-trigger { grid-template-columns:minmax(0,1fr) 28px; }
+  .nk-alert-toggle-summary { grid-column:1/-1; grid-row:2; white-space:normal; }
+  .nk-alert-list li { grid-template-columns:auto minmax(0,1fr); }
+  .nk-alert-list li > .nk-badge,.nk-alert-context-link { grid-column:2; justify-self:start; }
   .nk-ops-form { grid-template-columns:1fr; }
   .nk-ops-full { grid-column:auto; }
   .nk-ops-tabs { width:100%; }
