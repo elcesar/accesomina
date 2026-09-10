@@ -1,0 +1,80 @@
+/**
+ * NEXO KLAR · Encabezado universal de páginas internas
+ * Design System v3.3
+ *
+ * Regla de contenido:
+ * - Línea 1 (.nk-page-domain): nombre EXACTO del grupo del Sidebar.
+ * - Línea 2 (.nk-page-title): nombre EXACTO del ítem del Sidebar.
+ * - Línea 3 (.nk-page-description): descripción funcional breve, sin claves técnicas.
+ *
+ * Este archivo normaliza además los H1 existentes mientras las páginas
+ * especializadas adoptan progresivamente la estructura nk-page-header.
+ */
+
+.nk-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.nk-page-heading {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.nk-page-domain {
+  margin: 0 0 var(--space-1);
+  color: var(--pri);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nk-page-title,
+.nk-app-main h1 {
+  margin-top: 0;
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.nk-page-title {
+  margin-bottom: var(--space-1);
+}
+
+.nk-page-description {
+  margin: 0;
+  max-width: 760px;
+  color: var(--mut);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+}
+
+.nk-page-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .nk-page-header {
+    flex-direction: column;
+  }
+
+  .nk-page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
