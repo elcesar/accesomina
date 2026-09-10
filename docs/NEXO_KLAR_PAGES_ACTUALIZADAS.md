@@ -35,7 +35,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
-| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx` con `moduleId="ordenes-servicio"`. La versión actual es especializada y trabaja con `mantenciones` como fuente de órdenes, además de clientes, contratos, asignaciones, personas, restricciones, salud, EPP y recursos. La revisión funcional profunda del orquestador legacy queda condicionada a disponer de `OperationalWorkspacePage.jsx` de referencia. |
+| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora además Cliente–Contrato, requisitos, preparación, recursos, cierre y evidencia documental. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
 
@@ -84,19 +84,23 @@ La corrección reside en `App.jsx` y no cambia las fuentes funcionales ni los es
 
 ## Infraestructura legacy / origen común revisado
 
-Esta sección registra infraestructura de referencia utilizada para reconstruir el origen de páginas reemplazadas. Estos archivos **no se consideran módulos funcionales de Fase 1 ni se agregan a la tabla principal de Pages actualizadas**.
+Esta sección registra infraestructura de referencia utilizada para reconstruir el origen de páginas reemplazadas. Estos archivos **no se consideran módulos funcionales ni se agregan a la tabla principal de Pages actualizadas**.
 
 | Archivo / infraestructura | Estado | Rol en la migración |
 | --- | --- | --- |
 | `ModuleWorkspacePage.jsx` | Revisado · Infraestructura legacy | Wrapper que resuelve el módulo solicitado y delega la experiencia a la infraestructura genérica. Forma parte del origen común de Turnos, Formación, Exámenes, Salud Ocupacional, EPP y Restringidos. |
-| `PrivateModulePage.jsx` | Revisado · Infraestructura legacy | Implementación CRUD genérica utilizada por los wrappers de referencia. Se revisó para recuperar campos, relaciones, permisos y comportamiento de origen, pero no se adopta como fuente funcional de los módulos especializados. |
-| `OperationalWorkspacePage.jsx` | Pendiente de revisión | Orquestador legacy utilizado por el wrapper de referencia de Órdenes de servicio. La referencia confirma la cadena `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx`; falta disponer del contenido de este archivo para una comparación funcional profunda. |
+| `PrivateModulePage.jsx` | Revisado · Infraestructura legacy | Implementación CRUD genérica utilizada por wrappers y por el orquestador operacional. Se revisó para recuperar campos, relaciones, permisos, creación y evidencia de origen, pero no se adopta como fuente funcional de los módulos especializados. |
+| `OperationalWorkspacePage.jsx` | Revisado · Infraestructura legacy | Orquestador legacy de Órdenes de servicio. Para `ordenes-servicio` agregaba visión general, detección genérica de pendientes, etapas `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre` y delegaba CRUD a `PrivateModulePage.jsx`. |
 
 La cadena legacy común validada para varios módulos de Capital Humano es:
 
 `Page legacy` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración del módulo.
 
-La especialización actual reemplaza esa experiencia genérica cuando existe una página funcional dedicada, conservando únicamente las reglas y relaciones de origen que siguen siendo válidas.
+Para Órdenes de servicio se validó la cadena:
+
+`OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `ordenes-servicio`.
+
+La especialización actual reemplaza estas experiencias genéricas cuando existe una página funcional dedicada, conservando las reglas y relaciones de origen que siguen siendo válidas.
 
 ## Trazabilidad específica · Turnos y asistencia
 
@@ -172,15 +176,19 @@ Durante la transición también se detectan como restricciones implícitas las p
 
 ## Trazabilidad específica · Órdenes de servicio
 
-La referencia revisada de Fase 4 corresponde a un wrapper mínimo:
+La revisión de Fase 4 confirmó el siguiente origen:
 
-`OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` con `moduleId="ordenes-servicio"`.
+`OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `ordenes-servicio`.
 
-La página de producción actual reemplaza ese wrapper por una implementación especializada. Trabaja con `state.mantenciones` como fuente de órdenes de servicio y con `state.asignaciones` para la vinculación de personas. También consume `minas`, `contratos`, `trabajadores`, `restricted`, `protocolosSalud`, `eppDeliveries` / `eppEntregas`, `inventoryItems` y `vehiculos` para preparación operacional y relaciones existentes.
+El orquestador legacy trabajaba conceptualmente con `proyectos`, `mantenciones` y `asignaciones`; definía las etapas `Crear orden`, `Completar requisitos`, `Asignar recursos` y `Registrar cierre`, detectaba registros pendientes y delegaba el CRUD genérico a `PrivateModulePage.jsx`. El catálogo ya definía `mantenciones` como `writeKey` del módulo. El diálogo genérico permitía registrar nombre, detalle, responsable, vínculo, estado y evidencia opcional.
 
-La implementación actual ya incorpora creación y edición, relación Cliente–Contrato, validación de coherencia entre cliente y contrato, responsables, fechas, estado, cierre con observación, búsqueda y filtros, asignación de personas, evaluación de brechas de preparación y recursos relacionados.
+La página especializada actual conserva y amplía ese flujo. `state.mantenciones` es la fuente canónica y clave de escritura, mientras `state.proyectos` se mantiene como fallback legacy de lectura cuando la fuente canónica no está disponible. `state.asignaciones` conserva la relación persona–orden mediante `mantId`.
 
-Con la referencia disponible se confirma que la página especializada **reemplaza** la arquitectura wrapper anterior. No se inventan reglas adicionales del `OperationalWorkspacePage.jsx` legacy que no estén respaldadas por su archivo de referencia; por ello, la comparación profunda de ese orquestador queda pendiente hasta disponer de dicho archivo.
+La implementación especializada administra Cliente y Contrato de forma estructurada mediante `minaId` y `contratoId`, valida que el contrato pertenezca al cliente seleccionado, incorpora responsables, fechas, estado y observación obligatoria de cierre, y consume requisitos del cliente, personas, restricciones, formación, exámenes, salud ocupacional, EPP, inventario y vehículos para construir la preparación operacional sin crear fuentes paralelas.
+
+Durante la revisión se detectó que la arquitectura legacy contemplaba evidencia y la página especializada no la exponía. Se restituyó esta capacidad mediante carga a `/api/files` como `order_document`, guardando `fileId`, `archivo`, `archivoTipo`, `archivoTamano` y `archivoFecha` en la orden. También se incorporó descarga y reemplazo de la evidencia, con validación de formatos y tamaño máximo de 25 MB.
+
+La Fase 4 permanece abierta hasta completar la validación visual/final de la pantalla especializada.
 
 ## Seguimiento
 
