@@ -1,6 +1,6 @@
 /**
  * NEXO KLAR · Encabezado universal de páginas internas
- * Design System v3.3
+ * Design System v3.4
  *
  * Regla de contenido:
  * - Línea 1 (.nk-page-domain): nombre EXACTO del grupo del Sidebar.
@@ -9,6 +9,15 @@
  * - El dominio se renderiza una sola vez desde AppLayout; las páginas no deben repetirlo.
  * - Todos los H1 internos comparten tipografía, tamaño, peso y eje horizontal.
  * - En bloques de contexto, toda entidad con ficha propia debe presentarse como enlace navegable.
+ *
+ * Regla de densidad operacional:
+ * - Nexo Klar usa densidad media-alta en páginas internas.
+ * - Separación normal entre bloques principales: --space-3 / --space-4.
+ * - --space-5 / --space-6 se reserva para cambios de sección importantes, no como separación por defecto.
+ * - Workspaces y cards operacionales usan normalmente padding --space-4.
+ * - Formularios usan normalmente gap --space-3.
+ * - KPIs compactos mantienen altura cercana a 72px.
+ * - El Design System define la densidad; el CSS específico de cada módulo define la composición.
  */
 
 .nk-page-header {
@@ -47,7 +56,8 @@
 .nk-app-main[data-page-domain] .nk-client-header .nk-client-kicker,
 .nk-app-main[data-page-domain] .nk-contract-header .nk-contract-kicker,
 .nk-app-main[data-page-domain] .nk-orders-header .nk-orders-kicker,
-.nk-app-main[data-page-domain] .nk-fleet-header .nk-fleet-kicker {
+.nk-app-main[data-page-domain] .nk-fleet-header .nk-fleet-kicker,
+.nk-app-main[data-page-domain] .nk-lodging-header .nk-lodging-kicker {
   display: none;
 }
 
@@ -59,7 +69,8 @@
 .nk-app-page-domain + .nk-client-page,
 .nk-app-page-domain + .nk-contract-page,
 .nk-app-page-domain + .nk-orders-page,
-.nk-app-page-domain + .nk-fleet-page {
+.nk-app-page-domain + .nk-fleet-page,
+.nk-app-page-domain + .nk-lodging-page {
   padding-top: var(--space-1);
 }
 
