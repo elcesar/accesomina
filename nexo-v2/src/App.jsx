@@ -32,6 +32,8 @@ import HabilitacionClientePage from './pages/HabilitacionClientePage.jsx'
 import IncidentesPage from './pages/IncidentesPage.jsx'
 import AuditoriaPage from './pages/AuditoriaPage.jsx'
 import ActivosInventarioPage from './pages/ActivosInventarioPage.jsx'
+import MaquinariaPage from './pages/MaquinariaPage.jsx'
+import EquiposInstrumentosPage from './pages/EquiposInstrumentosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -88,7 +90,10 @@ export default function App() {
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
-            <Route path="modulos/activos-inventario" element={<ActivosInventarioPage />} />
+            <Route path="activos-inventario" element={<ActivosInventarioPage />} />
+            <Route path="modulos/activos-inventario" element={<Navigate to="/app/activos-inventario" replace />} />
+            <Route path="maquinaria" element={<MaquinariaPage />} />
+            <Route path="equipos-instrumentos" element={<EquiposInstrumentosPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
