@@ -32,7 +32,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ExamenesPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Los nuevos exámenes se consolidan en `trabajadores[].workerItems`; `state.examenes` queda como lectura legacy. Se incorporó evidencia documental asociada a la persona. |
 | Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `SaludOcupacionalPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `protocolosSalud` es la fuente canónica y se incorporó evidencia documental asociada a la persona. |
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada | Módulo especializado de personas restringidas. |
-| Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada | Módulo especializado de protección personal / EPP. |
+| Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada | Módulo especializado de clientes; mantiene compatibilidad con la fuente estructural actual. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada | Módulo especializado de contratos. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada | Módulo especializado de órdenes de servicio y preparación operacional. |
@@ -86,6 +86,18 @@ La página anterior era un wrapper hacia la experiencia genérica. La implementa
 La fuente canónica actual es `state.protocolosSalud`. Los registros se vinculan directamente con `trabajadores` mediante `workerId` y permiten navegar desde el seguimiento hacia la ficha de la persona.
 
 Como parte de la revisión se incorporó respaldo documental al flujo. La evidencia se carga mediante `/api/files`, asociada como `worker_document` a la persona, y el protocolo guarda `fileId`, `fileName`, `fileType` y `fileSize`. La tabla de Salud Ocupacional muestra además la evidencia registrada.
+
+## Trazabilidad específica · Protección personal / EPP
+
+La revisión del módulo de Protección personal / EPP confirmó el siguiente origen:
+
+`ProteccionEppPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `proteccion-epp`.
+
+La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual administra entregas de EPP por persona, con equipo, talla o medida, marca o modelo, certificación, fecha de entrega, fecha de reposición y observaciones.
+
+La fuente canónica actual es `state.eppDeliveries`. `state.eppEntregas` se mantiene como compatibilidad legacy durante la migración. El módulo se relaciona con `trabajadores` y, cuando existe correspondencia, con `inventoryItems` para seleccionar el EPP del inventario.
+
+La versión especializada además sugiere tallas a partir de la información registrada en la ficha de la persona y calcula el estado de reposición como vigente, próxima, vencida o sin información. No se agregó evidencia documental genérica en esta revisión, porque el registro principal representa una entrega física y un futuro respaldo debería tratarse como constancia específica de entrega o recepción.
 
 ## Seguimiento
 
