@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 7 cerradas.
+**Estado global:** Fases 0 a 8 cerradas.
 
 ## Estados
 
@@ -54,6 +54,17 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 7 · Cumplimiento | `HabilitacionClientePage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `ModuleWorkspacePage`. Recupera la habilitación por Cliente y objeto con KPIs, filtros y grilla compacta de **Entidad / Cliente / Estado / Responsable-plazo / Observación / Evidencia**. `acreditacionesMandante` es fuente especializada de escritura. Los cambios de estado usan actualización optimista para reflejar inmediatamente valores como `Corregido`. |
 | Fase 7 · Cumplimiento | `IncidentesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico y recupera layout HTML **filtros → KPIs → tabla global → seguimiento al abrir**. `incidentes` es fuente canónica. El cierre exige seguimiento y evidencia; la grilla fue compactada para mantener la acción `Abrir seguimiento` dentro del viewport. |
 | Fase 7 · Cumplimiento | `AuditoriaPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OperationalWorkspacePage`. Recupera vista de auditoría operacional sobre personas, requisitos y estado de habilitación. Es una vista derivada sobre `trabajadores[].workerItems`, relaciones y fuentes existentes; no crea un dominio documental paralelo. |
+| Fase 8 · Inventario / Activos | `ActivosInventarioPage.jsx` | Actualizada · Revisada · Reemplazada | Página matriz del dominio. Usa bodegas y ubicaciones internas reales; conecta conteo físico y recepción/reposición con actualización de stock y trazabilidad. |
+| Fase 8 · Inventario / Activos | `MaquinariaPage.jsx` | Actualizada · Revisada | Vista especializada en estado operativo, asignación, bodega/ubicación, próximo mantenimiento y stock. |
+| Fase 8 · Inventario / Activos | `EquiposInstrumentosPage.jsx` | Actualizada · Revisada | Vista especializada en calibración, certificado, custodia, bodega/ubicación y stock. |
+| Fase 8 · Inventario / Activos | `HerramientasPage.jsx` | Actualizada · Revisada | Vista especializada en disponibilidad, asignación/préstamo, persona, OS, devolución esperada y bodega/stock. |
+| Fase 8 · Inventario / Activos | `EppInventarioPage.jsx` | Actualizada · Revisada | Control de inventario físico de EPP por talla, stock, mínimo, vencimiento/vida útil y ubicación; entrega individual permanece en Capital Humano. |
+| Fase 8 · Inventario / Activos | `MaterialesPage.jsx` | Actualizada · Revisada · Reemplazada | Usa `MaterialsInventoryPage.jsx`; controla existencia, unidad de medida, mínimo, bodega/ubicación y último movimiento. |
+| Fase 8 · Inventario / Activos | `InsumosPage.jsx` | Actualizada · Revisada · Reemplazada | Usa `ConsumablesInventoryPage.jsx`; controla consumo, disponible, mínimo/reposición, bodega/ubicación y último consumo. |
+| Fase 8 · Inventario / Activos | `BodegasPage.jsx` | Actualizada · Revisada · Reemplazada | Administra bodegas e `inventoryLocations`, responsables, zonas, ubicaciones internas y existencias distribuidas. |
+| Fase 8 · Inventario / Activos | `MovimientosInventarioPage.jsx` | Actualizada · Revisada · Reemplazada | Registra ingresos/reposiciones, egresos, traslados, ajustes y trazabilidad por recurso y bodega. |
+| Fase 8 · Inventario / Activos | `MantenimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Planes preventivos e historial para maquinaria, equipos y herramientas, con vencimiento, costo, indisponibilidad y próxima ejecución. |
+| Fase 8 · Inventario / Activos | `AsignacionesPrestamosPage.jsx` | Actualizada · Revisada · Reemplazada | Préstamos de maquinaria, equipos y herramientas asociados a persona/OS, bodega de origen, devolución esperada y devolución efectiva. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
@@ -109,6 +120,27 @@ La fase queda cerrada con cuatro módulos especializados y contrastados con el H
 
 **Resultado:** Fase 7 cerrada manteniendo la secuencia Cliente → Contrato → OS → Persona y separando claramente documentación corporativa, habilitación del mandante, eventos de cumplimiento y auditoría.
 
+### Fase 8 · Inventario / Activos — CERRADA
+**Fecha:** 10 de septiembre de 2026
+
+La fase queda cerrada con once módulos revisados y especializados sobre un dominio común de recursos físicos:
+
+1. **Inventario y existencias:** `ActivosInventarioPage.jsx` actúa como página matriz; registra recursos con bodega y ubicación interna, conecta conteo físico y recepción/reposición y mantiene trazabilidad.
+2. **Maquinaria, Equipos, Herramientas y EPP:** usan especialización por categoría sobre `inventoryItems`, mostrando estado operativo, calibración, custodia, préstamos, vida útil y stock según corresponda.
+3. **Materiales e Insumos:** mantienen componentes especializados orientados a existencias, mínimos, reposición, consumo y último movimiento.
+4. **Bodegas y ubicaciones:** `BodegasPage.jsx` administra `warehouses`/`bodegas` e `inventoryLocations`.
+5. **Movimientos:** `MovimientosInventarioPage.jsx` administra entradas, salidas, traslados y ajustes por bodega.
+6. **Mantenimiento:** `MantenimientoPage.jsx` administra `assetMaintenancePlans` y `assetMaintenanceRecords`.
+7. **Asignaciones y préstamos:** `AsignacionesPrestamosPage.jsx` administra préstamos de maquinaria, equipos y herramientas y su devolución a la bodega de origen.
+
+**Ownership confirmado:** `inventoryItems` es el catálogo canónico común de recursos de Fase 8. `vehiculos` permanece fuera del dominio y conserva ownership en Gestión Operacional. La entrega individual de EPP permanece en Capital Humano.
+
+**Regla de stock:** `stock` representa el saldo total y debe corresponder a la suma de `stockByLocation`. `warehouseId` representa la bodega principal y `locationId` la ubicación interna principal. La capa `/api/state` normaliza registros legacy y evita que una bodega sin saldo herede stock global de otra.
+
+**Limpieza técnica:** `InventoryOperationsPage.jsx` fue eliminado después de verificar que no tenía imports ni consumidores activos. Bodegas, Movimientos, Mantenimiento y Asignaciones permanecen como Pages especializadas y no como variantes de un wrapper operacional común.
+
+**Resultado:** Fase 8 cerrada con catálogo, bodegas, ubicaciones, movimientos, conteo físico, reposición, mantenimiento y préstamos/devoluciones integrados bajo una única lógica de stock y ownership.
+
 ## Correcciones transversales registradas
 
 ### Creación desde Header
@@ -118,10 +150,13 @@ Las rutas `/nuevo` de Cliente, Contrato y OS instancian explícitamente formular
 `AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System. Se mantiene densidad media-alta y toolbars compactas; filtros secundarios pueden agruparse bajo `Más filtros`.
 
 ### Grillas de escritorio
-Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fase 7 se aplicó explícitamente a Documentación de la Empresa e Incidentes.
+Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fases 7 y 8 se aplicó explícitamente a las vistas de cumplimiento e inventario.
 
 ### Navegación contextual
 Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderizarse como enlaces cuando aparecen como contexto de otro módulo.
+
+### Stock e inventario
+En Fase 8 se consolidó la regla `stock = suma(stockByLocation)`. Los registros legacy se normalizan desde `/api/state`, y movimientos, préstamos y devoluciones operan siempre contra la bodega correspondiente.
 
 ## Infraestructura legacy revisada
 
@@ -130,9 +165,10 @@ Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderi
 | `ModuleWorkspacePage.jsx` | Wrapper/orquestación genérica utilizada como referencia para recuperar configuración y layout de origen. |
 | `PrivateModulePage.jsx` | CRUD genérico legacy; referencia de campos, relaciones, permisos y evidencia. |
 | `OperationalWorkspacePage.jsx` | Orquestador legacy; referencia de flujos históricos de módulos operacionales y Terceros. |
+| `InventoryOperationsPage.jsx` | Componente genérico de Fase 8 retirado tras confirmar que no tenía consumidores; reemplazado por Pages operacionales especializadas. |
 
 Estas piezas no son fuentes funcionales de los módulos especializados.
 
 ## Próximo punto
 
-Con Fases 0–7 cerradas, el siguiente bloque es **Fase 8 · Inventario / Activos**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
+Con Fases 0–8 cerradas, el siguiente bloque es **Fase 9 · Prospectos + operación**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
