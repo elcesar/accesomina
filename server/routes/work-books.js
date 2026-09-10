@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
+import crypto from 'node:crypto';
+import rateLimit from 'express-rate-limit';
 import { config } from '../config.js';
 import { withTenant } from '../db.js';
 import { allowRoles } from '../middleware.js';
@@ -10,6 +12,8 @@ import { canTransitionWorkBookEntry, workBookFolio } from '../work-book.js';
 import { tenantIntegration } from './settings.js';
 
 export const workBooksRouter = Router();
+export const workBookSignatureCallbacksRouter = Router();
+workBookSignatureCallbacksRouter.use(rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
 const editors = allowRoles('domian_admin', 'client_admin', 'rrhh', 'prevencion', 'acreditacion');
 const text = (min, max) => z.string().trim().min(min).max(max);
 const entryStates = ['borrador', 'pendiente_firma', 'observado', 'firmado', 'cerrado'];
@@ -62,6 +66,21 @@ const signatureRequestSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['signerPhone'], message: 'El teléfono es obligatorio para este canal' });
   }
 });
+const approvalSchema = z.object({
+  role: z.enum(['redactor', 'supervisor', 'cliente', 'inspector']),
+  decision: z.enum(['aprobado', 'observado', 'rechazado']),
+  comment: text(3, 2000),
+  evidenceFiles: evidenceSchema.optional()
+});
+const signatureCallbackSchema = z.object({
+  tenantId: z.string().uuid(),
+  envelopeId: z.string().trim().min(1).max(300),
+  status: z.enum(['sent', 'delivered', 'viewed', 'signed', 'rejected', 'expired']),
+  signingUrl: z.string().url().optional().or(z.literal('')),
+  signedDocumentUrl: z.string().url().optional().or(z.literal('')),
+  certificate: z.record(z.unknown()).optional(),
+  provider: z.string().trim().max(120).optional()
+});
 
 function resolvedIntegration(tenant, fallback) {
   return tenant ? (tenant.enabled ? { ...tenant.publicConfig, ...tenant.secret } : {}) : fallback;
@@ -74,6 +93,12 @@ function safeSigningUrl(value) {
   } catch {
     return '';
   }
+}
+
+function secureEqual(value, expected) {
+  const a = Buffer.from(String(value || ''));
+  const b = Buffer.from(String(expected || ''));
+  return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
 }
 
 async function sendSignatureEmail(settings, { to, signerName, subject, signingUrl, message }) {
@@ -169,12 +194,18 @@ workBooksRouter.get('/entries/:id', async (req, res) => {
     )).rows;
     const signatureRequests = (await client.query(
       `SELECT id,signer_name,signer_email,signer_phone,channel,status,provider,provider_envelope_id,
-              signing_url,delivery_status,requested_at,updated_at
+              signing_url,signed_document_url,provider_certificate,signed_at,delivery_status,requested_at,updated_at
        FROM work_book_signature_requests
        WHERE tenant_id=$1 AND entry_id=$2 ORDER BY requested_at DESC`,
       [req.auth.tenantId, req.params.id]
     )).rows;
-    return { ...entry, history, signature_requests: signatureRequests };
+    const approvals = (await client.query(
+      `SELECT a.id,a.reviewer_role,a.decision,a.comment,a.evidence_files,a.decided_at,u.full_name AS decided_by_name
+       FROM work_book_entry_approvals a LEFT JOIN app_users u ON u.id=a.decided_by
+       WHERE a.tenant_id=$1 AND a.entry_id=$2 ORDER BY a.decided_at DESC`,
+      [req.auth.tenantId, req.params.id]
+    )).rows;
+    return { ...entry, history, signature_requests: signatureRequests, approvals };
   });
   if (!result) return res.status(404).json({ error: 'WORK_BOOK_ENTRY_NOT_FOUND' });
   res.json(result);
@@ -301,6 +332,73 @@ workBooksRouter.post('/entries/:id/signature-requests', editors, async (req, res
     return updated;
   });
   res.status(202).json(saved);
+});
+
+workBooksRouter.post('/entries/:id/approvals', editors, async (req, res) => {
+  const body = approvalSchema.parse(req.body);
+  const result = await withTenant(req.auth.tenantId, async client => {
+    const entry = (await client.query('SELECT id,status,subject FROM work_book_entries WHERE tenant_id=$1 AND id=$2 FOR UPDATE', [req.auth.tenantId, req.params.id])).rows[0];
+    if (!entry) return null;
+    if (['firmado', 'cerrado'].includes(entry.status)) throw Object.assign(new Error('La anotación está protegida y no admite nuevas aprobaciones'), { status: 409, code: 'WORK_BOOK_ENTRY_ALREADY_LOCKED' });
+    const approval = (await client.query(
+      `INSERT INTO work_book_entry_approvals(tenant_id,entry_id,reviewer_role,decision,comment,evidence_files,decided_by)
+       VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)
+       ON CONFLICT(tenant_id,entry_id,reviewer_role) DO UPDATE SET decision=$4,comment=$5,evidence_files=$6::jsonb,decided_by=$7,decided_at=now()
+       RETURNING *`,
+      [req.auth.tenantId, entry.id, body.role, body.decision, body.comment, JSON.stringify(sanitizeJson(body.evidenceFiles || [])), req.auth.userId]
+    )).rows[0];
+    const nextStatus = body.decision === 'aprobado' ? entry.status : 'observado';
+    await client.query('UPDATE work_book_entries SET status=$3,updated_at=now() WHERE tenant_id=$1 AND id=$2', [req.auth.tenantId, entry.id, nextStatus]);
+    await client.query(
+      `INSERT INTO work_book_entry_history(tenant_id,entry_id,action,reason,new_value,changed_by)
+       VALUES($1,$2,'aprobacion_registrada',$3,$4::jsonb,$5)`,
+      [req.auth.tenantId, entry.id, body.comment, JSON.stringify({ role: body.role, decision: body.decision, evidenceCount: (body.evidenceFiles || []).length }), req.auth.userId]
+    );
+    await appendAudit(client, { tenantId: req.auth.tenantId, userId: req.auth.userId, entityType: 'work_book_entry', entityId: entry.id, action: 'work_book.approval.recorded', newValue: { role: body.role, decision: body.decision } });
+    return approval;
+  });
+  if (!result) return res.status(404).json({ error: 'WORK_BOOK_ENTRY_NOT_FOUND' });
+  res.status(201).json(result);
+});
+
+workBookSignatureCallbacksRouter.post('/', async (req, res) => {
+  const body = signatureCallbackSchema.parse(req.body);
+  const tenantSignature = await tenantIntegration(body.tenantId, 'signature');
+  const signature = resolvedIntegration(tenantSignature, config.integrations.signature);
+  if (!signature.webhookSecret || !secureEqual(req.get('x-nexo-signature-secret'), signature.webhookSecret)) {
+    return res.status(401).json({ error: 'SIGNATURE_CALLBACK_UNAUTHORIZED' });
+  }
+  const result = await withTenant(body.tenantId, async client => {
+    const request = (await client.query(
+      `SELECT r.*,e.id AS entry_id,e.status AS entry_status FROM work_book_signature_requests r
+       JOIN work_book_entries e ON e.id=r.entry_id AND e.tenant_id=r.tenant_id
+       WHERE r.tenant_id=$1 AND r.provider_envelope_id=$2 FOR UPDATE`,
+      [body.tenantId, body.envelopeId]
+    )).rows[0];
+    if (!request) return null;
+    const statusMap = { sent: 'enviada', delivered: 'entregada', viewed: 'vista', signed: 'firmada', rejected: 'rechazada', expired: 'vencida' };
+    const requestStatus = statusMap[body.status];
+    const entryStatus = body.status === 'signed' ? 'firmado' : ['rejected', 'expired'].includes(body.status) ? 'observado' : request.entry_status;
+    const signatureState = body.status === 'signed' ? 'firmado' : body.status === 'rejected' ? 'rechazado' : 'pendiente';
+    const updated = (await client.query(
+      `UPDATE work_book_signature_requests
+       SET status=$3,provider=COALESCE(NULLIF($4,''),provider),signing_url=COALESCE(NULLIF($5,''),signing_url),
+           signed_document_url=COALESCE(NULLIF($6,''),signed_document_url),provider_certificate=COALESCE($7::jsonb,provider_certificate),
+           signed_at=CASE WHEN $3='firmada' THEN now() ELSE signed_at END,updated_at=now()
+       WHERE tenant_id=$1 AND id=$2 RETURNING *`,
+      [body.tenantId, request.id, requestStatus, String(body.provider || ''), safeSigningUrl(body.signingUrl), safeSigningUrl(body.signedDocumentUrl), body.certificate ? JSON.stringify(sanitizeJson(body.certificate)) : null]
+    )).rows[0];
+    await client.query('UPDATE work_book_entries SET status=$3,signature_state=$4,updated_at=now() WHERE tenant_id=$1 AND id=$2', [body.tenantId, request.entry_id, entryStatus, signatureState]);
+    await client.query(
+      `INSERT INTO work_book_entry_history(tenant_id,entry_id,action,reason,new_value)
+       VALUES($1,$2,'firma_actualizada_por_proveedor',$3,$4::jsonb)`,
+      [body.tenantId, request.entry_id, `Proveedor informó estado ${requestStatus}`, JSON.stringify({ envelopeId: body.envelopeId, status: requestStatus, signedDocument: Boolean(body.signedDocumentUrl), certificate: Boolean(body.certificate) })]
+    );
+    await appendAudit(client, { tenantId: body.tenantId, userId: null, entityType: 'work_book_entry', entityId: request.entry_id, action: 'work_book.signature.callback', newValue: { envelopeId: body.envelopeId, status: requestStatus } });
+    return updated;
+  });
+  if (!result) return res.status(404).json({ error: 'SIGNATURE_ENVELOPE_NOT_FOUND' });
+  res.json({ accepted: true, status: result.status });
 });
 
 workBooksRouter.post('/entries', editors, async (req, res) => {
