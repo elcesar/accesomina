@@ -14,9 +14,17 @@ function pageDomain(pathname) {
   ) return 'Capital Humano'
 
   if (
+    pathname.startsWith('/app/clientes') ||
+    pathname.startsWith('/app/contratos') ||
+    pathname.startsWith('/app/servicios')
+  ) return 'Relación Comercial'
+
+  if (
     pathname.startsWith('/app/llamados') ||
     pathname.startsWith('/app/comunicaciones') ||
-    pathname.startsWith('/app/vehiculos')
+    pathname.startsWith('/app/vehiculos') ||
+    pathname.startsWith('/app/hoteleria') ||
+    pathname.startsWith('/app/credenciales')
   ) return 'Gestión Operacional'
 
   return ''
