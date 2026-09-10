@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import BrandLogo from './BrandLogo.jsx'
 import '../../styles/public-navigation.css'
 
@@ -13,6 +14,8 @@ export const publicSections = [
 ]
 
 export default function PublicNavigation({ active = 'inicio', onNavigate }) {
+  const navigate = useNavigate()
+
   return (
     <header className="nk-public-header">
       <nav className="nk-public-topbar" aria-label="Navegación principal">
@@ -30,10 +33,9 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
             contacto@nexoklar.cl
           </a>
           <button
-            className={`nk-button ${active === 'clientes-access' ? 'nk-button-secondary' : 'nk-button-primary'}`}
+            className="nk-button nk-button-primary"
             type="button"
-            aria-current={active === 'clientes-access' ? 'page' : undefined}
-            onClick={() => onNavigate?.('clientes-access')}
+            onClick={() => navigate('/login')}
           >
             Acceso
           </button>
