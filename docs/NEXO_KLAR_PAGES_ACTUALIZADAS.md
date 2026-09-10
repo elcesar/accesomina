@@ -28,7 +28,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `NuevoTrabajadorPage.jsx` | Actualizada · Revisada | Revisada contra archivo de referencia; se conserva la versión actual de `main` por ser funcional y arquitectónicamente más completa. |
 | Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Contrastada con archivo de referencia; conserva ficha, asignaciones, documentación, formación, EPP e historial. |
 | Fase 1 · Capital Humano | `TurnosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `TurnosAsistenciaPage.jsx` y el flujo genérico `TurnosAsistenciaPage → ModuleWorkspacePage → PrivateModulePage`. `turnos` queda como fuente canónica y la asistencia como atributo de la jornada. |
-| Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada | Módulo especializado de formación y certificaciones. |
+| Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `FormacionPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Nuevos cursos y certificaciones se consolidan en `trabajadores[].workerItems`; `state.cursos` queda como lectura legacy. |
 | Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada | Módulo especializado de exámenes y aptitudes. |
 | Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada | Módulo especializado de salud ocupacional. |
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada | Módulo especializado de personas restringidas. |
@@ -50,6 +50,18 @@ La implementación anterior era una experiencia genérica configurada para plani
 `TurnosPage.jsx` reemplaza esa experiencia genérica por una implementación especializada que trabaja con `turnos`, `trabajadores`, `mantenciones`, `minas` y `asignaciones`, e incorpora cobertura, brechas, régimen, turno, asistencia, horarios y horas hombre.
 
 El backend actual valida explícitamente `state.turnos`, sus relaciones con persona y servicio y la unicidad por persona, fecha y turno. Por ello, `turnos` se considera la fuente canónica actual; no se mantiene una colección operacional separada de `asistencias`.
+
+## Trazabilidad específica · Formación y certificaciones
+
+La revisión del módulo de Formación confirmó el siguiente origen:
+
+`FormacionPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `formacion`.
+
+La página anterior era únicamente un wrapper hacia la experiencia genérica. El catálogo conceptual asociaba Formación con `cursos` y `trabajadores`, y utilizaba `cursos` como clave de escritura.
+
+La implementación especializada actual conserva el propósito de administrar cursos, certificaciones y vigencias por persona, y amplía el flujo con búsqueda, filtros por tipo y estado, indicadores de vigencia, evidencia documental y navegación hacia la ficha de la persona.
+
+Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `curso` o `certificacion`. `state.cursos` se conserva como fuente legacy de solo lectura durante la migración, evitando duplicar registros ya presentes en la fuente canónica.
 
 ## Seguimiento
 
