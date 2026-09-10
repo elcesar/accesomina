@@ -34,7 +34,7 @@ const REQUIREMENTS = [
   { id: 'equipos_vehiculos', area: 'operacional', name: 'Listado de vehículos/equipos y documentación asociada', expires: true, src: 'Acceso a faena' },
 ]
 
-function asRows(value) { return Array.isArray(value) ? value : [] }
+const asRows = value => Array.isArray(value) ? value : []
 
 function daysUntil(date) {
   if (!date) return null
@@ -179,16 +179,20 @@ export default function CumplimientoCorporativoPage() {
     setUploadId('')
   }
 
+  function setCloudUrl(doc) {
+    const url = window.prompt('URL https del respaldo', doc.cloudUrl || '')
+    if (url === null) return
+    patchDraft(doc.id, 'cloudUrl', url)
+    persistDoc(doc.id, { cloudUrl: url, fileName: '' })
+  }
+
   const company = state.empresa || {}
   const activeContracts = asRows(state.contratos).filter(contract => String(contract.estado || '').toLowerCase() !== 'cerrado').length
 
   return (
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
-        <div>
-          <h1>Documentación de la Empresa</h1>
-          <p>Documentación legal, laboral, previsional y preventiva de la empresa.</p>
-        </div>
+        <div><h1>Documentación de la Empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
         <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
       </header>
 
@@ -196,16 +200,8 @@ export default function CumplimientoCorporativoPage() {
 
       <section className="nk-card nk-compliance-filters" aria-label="Filtros de documentación corporativa">
         <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
-        <select className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}>
-          <option value="">Todas las áreas</option>
-          {Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
-          <option value="">Todos los estados</option>
-          <option value="ok">Cargado y vigente</option>
-          <option value="faltante">Faltante</option>
-          <option value="vencido">Vencido / crítico</option>
-        </select>
+        <select className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="">Todas las áreas</option>{Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Cargado y vigente</option><option value="faltante">Faltante</option><option value="vencido">Vencido / crítico</option></select>
       </section>
 
       <section className="nk-compliance-summary" aria-label="Resumen de cumplimiento corporativo">
@@ -227,19 +223,26 @@ export default function CumplimientoCorporativoPage() {
         {loading ? <div className="nk-empty nk-compliance-empty"><IconFile size={30} /><p className="nk-empty-title">Cargando documentación…</p></div> : (
           <div className="nk-table-wrapper">
             <table className="nk-table nk-compliance-table">
-              <thead><tr><th>Documento</th><th>Área</th><th>Estado</th><th>Vence</th><th>Respaldo</th><th>Observación</th><th>Cargar</th></tr></thead>
+              <thead><tr><th>Documento</th><th>Área</th><th>Estado</th><th>Vence</th><th>Respaldo</th><th>Observación</th></tr></thead>
               <tbody>{filtered.map(doc => {
                 const status = statusFor(doc)
                 const requirement = REQUIREMENTS.find(item => item.id === doc.reqId)
                 return (
                   <tr key={doc.id}>
-                    <td><div className="nk-compliance-doc"><strong>{doc.name}</strong><span>{doc.src || requirement?.src || ''}</span></div></td>
+                    <td><div className="nk-compliance-doc"><strong title={doc.name}>{doc.name}</strong><span title={doc.src || requirement?.src || ''}>{doc.src || requirement?.src || ''}</span></div></td>
                     <td><span className="nk-compliance-area">{AREA_LABELS[doc.area] || doc.area}</span></td>
                     <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
                     <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} />}</td>
-                    <td>{doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14} /> Enlace nube</a> : doc.fileName ? <span className="nk-badge nk-badge-ok">{doc.fileName}</span> : <span className="nk-compliance-na">—</span>}</td>
-                    <td><input className="nk-input nk-compliance-note" value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Folio, portal o comentario" /></td>
-                    <td><div className="nk-compliance-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id}><IconUpload size={14} /> PC</button><button className="nk-button nk-button-quiet" type="button" onClick={() => { const url = window.prompt('URL https del respaldo', doc.cloudUrl || ''); if (url !== null) { patchDraft(doc.id, 'cloudUrl', url); persistDoc(doc.id, { cloudUrl: url, fileName: '' }) } }} disabled={savingId === doc.id}>Nube</button></div></td>
+                    <td>
+                      <div className="nk-compliance-evidence-cell">
+                        {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileName ? <span className="nk-compliance-file" title={doc.fileName}><IconFile size={13} /> Archivo</span> : <span className="nk-compliance-na">Sin respaldo</span>}
+                        <div className="nk-compliance-actions">
+                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> PC</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Link</button>
+                        </div>
+                      </div>
+                    </td>
+                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" /></td>
                   </tr>
                 )
               })}</tbody>
