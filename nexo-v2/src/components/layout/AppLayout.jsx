@@ -4,6 +4,11 @@ import Header from './Header.jsx'
 
 function pageDomain(pathname) {
   if (
+    pathname.startsWith('/app/reclutamiento') ||
+    pathname.startsWith('/app/modulos/gestion-personal-proyecto')
+  ) return 'Centro de Control'
+
+  if (
     pathname.startsWith('/app/trabajadores') ||
     pathname.startsWith('/app/turnos') ||
     pathname.startsWith('/app/epp') ||
