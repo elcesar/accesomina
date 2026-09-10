@@ -65,15 +65,15 @@ export default function App() {
             <Route path="llamados" element={<ComunicacionesPage />} />
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
-            <Route path="clientes" element={<ClientesPage />} />
-            <Route path="clientes/nuevo" element={<ClientesPage createMode />} />
-            <Route path="clientes/:clientId" element={<ClientesPage />} />
-            <Route path="contratos" element={<ContratosPage />} />
-            <Route path="contratos/nuevo" element={<ContratosPage createMode />} />
-            <Route path="contratos/:contractId" element={<ContratosPage />} />
-            <Route path="servicios" element={<OrdenesServicioPage />} />
-            <Route path="servicios/nuevo" element={<OrdenesServicioPage createMode />} />
-            <Route path="servicios/:orderId" element={<OrdenesServicioPage />} />
+            <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
+            <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
+            <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
+            <Route path="contratos" element={<ContratosPage key="contratos-list" />} />
+            <Route path="contratos/nuevo" element={<ContratosPage key="contratos-new" createMode />} />
+            <Route path="contratos/:contractId" element={<ContratosPage key="contratos-detail" />} />
+            <Route path="servicios" element={<OrdenesServicioPage key="servicios-list" />} />
+            <Route path="servicios/nuevo" element={<OrdenesServicioPage key="servicios-new" createMode />} />
+            <Route path="servicios/:orderId" element={<OrdenesServicioPage key="servicios-detail" />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
             <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
             <Route path="*" element={<NotFoundPage />} />
