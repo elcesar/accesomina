@@ -36,6 +36,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora además Cliente–Contrato, requisitos, preparación, recursos, cierre y evidencia documental. |
+| Fase 5 · Comunicaciones | `ComunicacionesPage.jsx` | Actualizada · Revisada | Centraliza comunicaciones y convocatorias vinculadas a personas y órdenes de servicio. Se incorporó navegación desde el contexto operacional hacia la orden asociada y KPIs superiores derivados del estado actual de las comunicaciones. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
 
@@ -86,6 +87,17 @@ La Fase 4 queda formalmente cerrada después de contrastar `OrdenesServicioPage.
 La implementación especializada conserva y amplía el flujo de origen `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`, integrando Cliente mediante `minaId`, Contrato mediante `contratoId`, requisitos del cliente, preparación de personas desde Capital Humano, recursos vinculados y observación obligatoria de cierre. También se restituyó la evidencia documental contemplada por la arquitectura legacy mediante carga, descarga y reemplazo de documentos asociados a la orden.
 
 La validación final confirma que no quedan brechas relevantes para mantener abierta la fase. La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
+
+## Cierre de Fase 5 · Comunicaciones
+
+**Estado:** CERRADA  
+**Fecha de cierre:** 10 de septiembre de 2026
+
+La Fase 5 queda cerrada con una página especializada para administrar comunicaciones y convocatorias operacionales vinculadas a personas y órdenes de servicio. El módulo permite registrar tipo, estado, mensaje, orden, persona o especialidades, turno, cupos, canal, prioridad, plazo de respuesta y responsable, además de preparar destinatarios elegibles para convocatorias.
+
+El propósito funcional queda definido como centralizar y dar trazabilidad a las comunicaciones operacionales, especialmente aquellas originadas por necesidades de dotación o coordinación de una Orden de servicio. El flujo conecta `Orden de servicio → Personas elegibles → Comunicación/convocatoria → Respuesta → Asignación`, evitando convertir el módulo en mensajería genérica sin contexto operacional.
+
+Como correcciones de cierre, el bloque Contexto operacional incorpora navegación directa hacia la Orden de servicio asociada y los KPIs superiores se derivan del estado actual de `callouts` —Total, Pendientes, Enviadas y Confirmadas—, por lo que reaccionan inmediatamente después de guardar un cambio de estado. Las métricas de Enviados, Respondieron, Asignados y Elegibles preparados se mantienen en el detalle de cada comunicación, donde representan ejecución y respuesta.
 
 ## Corrección transversal · Creación desde Header
 
