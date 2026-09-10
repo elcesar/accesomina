@@ -44,6 +44,7 @@ import MantenimientoPage from './pages/MantenimientoPage.jsx'
 import AsignacionesPrestamosPage from './pages/AsignacionesPrestamosPage.jsx'
 import ProspectosPage from './pages/ProspectosPage.jsx'
 import GestionPersonalProyectoPage from './pages/GestionPersonalProyectoPage.jsx'
+import CentroOperativoPage from './pages/CentroOperativoPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -79,6 +80,8 @@ export default function App() {
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="reclutamiento" element={<GestionPersonalProyectoPage />} />
             <Route path="modulos/gestion-personal-proyecto" element={<Navigate to="/app/reclutamiento" replace />} />
+            <Route path="operaciones" element={<CentroOperativoPage />} />
+            <Route path="modulos/centro-operativo" element={<Navigate to="/app/operaciones" replace />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
