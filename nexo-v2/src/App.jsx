@@ -28,6 +28,7 @@ import PersonalEmpresaServiciosPage from './pages/PersonalEmpresaServiciosPage.j
 import HabilitacionesCumplimientoPage from './pages/HabilitacionesCumplimientoPage.jsx'
 import EvaluacionDesempenoPage from './pages/EvaluacionDesempenoPage.jsx'
 import CumplimientoCorporativoPage from './pages/CumplimientoCorporativoPage.jsx'
+import IncidentesPage from './pages/IncidentesPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -81,6 +82,7 @@ export default function App() {
             <Route path="modulos/habilitaciones-cumplimiento" element={<HabilitacionesCumplimientoPage />} />
             <Route path="modulos/evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
             <Route path="acreditacion-empresa" element={<CumplimientoCorporativoPage />} />
+            <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
