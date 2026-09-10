@@ -33,7 +33,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `SaludOcupacionalPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `protocolosSalud` es la fuente canónica y se incorporó evidencia documental asociada a la persona. |
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `RestringidosPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `restricted` mantiene el detalle de restricciones y sincroniza el estado operativo de `trabajadores`. |
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
-| Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada | Módulo especializado de clientes; mantiene compatibilidad con la fuente estructural actual. |
+| Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada | Módulo especializado de contratos. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada | Módulo especializado de órdenes de servicio y preparación operacional. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
@@ -47,6 +47,19 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 La Fase 1 queda formalmente cerrada con cobertura funcional y trazabilidad de Personas, Turnos y asistencia, Protección EPP, Formación, Exámenes, Salud Ocupacional y Restringidos. Personas se documenta además mediante sus páginas especializadas de listado, alta y ficha.
 
 Durante el cierre se contrastaron las páginas especializadas con sus referencias y flujos de origen, se identificaron las fuentes canónicas y legacy relevantes y se confirmó que los wrappers genéricos no deben convertirse en nuevas fuentes de verdad. Las diferencias funcionales detectadas se resolvieron dentro del módulo dueño correspondiente, manteniendo la arquitectura React de producción y el Design System vigente.
+
+## Cierre de Fase 2 · Clientes
+
+**Estado:** CERRADA  
+**Fecha de cierre:** 10 de septiembre de 2026
+
+La Fase 2 queda formalmente cerrada después de contrastar `ClientesPage.jsx` con su implementación especializada de referencia y validar visualmente la pantalla actual de producción.
+
+La arquitectura funcional original se conserva: listado de clientes a la izquierda y ficha comercial del cliente seleccionado a la derecha. La versión actual amplía esta propuesta con búsqueda y filtro por estado, navegación directa por cliente y hacia sus relaciones, validación de duplicados, confirmación de acciones destructivas y alineación con el Design System.
+
+`state.minas` se mantiene como fuente canónica estructural y clave de escritura; `state.clientes` permanece únicamente como fallback compatible de lectura. Las relaciones con contratos y órdenes de servicio continúan resolviéndose mediante `minaId`, evitando crear una fuente paralela para Clientes.
+
+La revisión funcional y visual no detectó brechas relevantes que requieran cambios adicionales antes del cierre.
 
 ## Infraestructura legacy / origen común revisado
 
