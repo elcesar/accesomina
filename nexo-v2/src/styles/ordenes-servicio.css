@@ -1,4 +1,4 @@
-.nk-orders-page{display:flex;width:100%;min-width:0;max-width:100%;box-sizing:border-box;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6);overflow-x:hidden}
+.nk-orders-page{display:flex;width:100%;min-width:0;max-width:100%;box-sizing:border-box;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6);overflow-x:hidden;background:var(--bg)}
 .nk-orders-header{display:flex;min-width:0;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
 .nk-orders-header>div:first-child{min-width:0}
 .nk-orders-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem);font-weight:var(--weight-bold);line-height:var(--leading-tight)}
