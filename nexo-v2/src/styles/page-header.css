@@ -6,9 +6,6 @@
  * - Línea 1 (.nk-page-domain): nombre EXACTO del grupo del Sidebar.
  * - Línea 2 (.nk-page-title): nombre EXACTO del ítem del Sidebar.
  * - Línea 3 (.nk-page-description): descripción funcional breve, sin claves técnicas.
- *
- * Mientras las páginas especializadas convergen a nk-page-header, AppLayout
- * expone el dominio de navegación y este archivo lo presenta sobre el H1.
  */
 
 .nk-page-header {
@@ -24,8 +21,7 @@
   max-width: 760px;
 }
 
-.nk-page-domain,
-.nk-app-main[data-page-domain] h1::before {
+.nk-page-domain {
   display: block;
   margin: 0 0 var(--space-1);
   color: var(--pri);
@@ -37,8 +33,16 @@
   text-transform: uppercase;
 }
 
-.nk-app-main[data-page-domain] h1::before {
-  content: attr(data-page-domain);
+/*
+ * Compatibilidad transversal mientras cada Page adopta nk-page-header.
+ * AppLayout renderiza explícitamente esta línea; no usar pseudo-elementos
+ * porque un pseudo-elemento del H1 no puede leer atributos de su padre.
+ */
+.nk-app-page-domain {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--space-3) var(--page-padding) 0;
+  background: var(--surf);
 }
 
 .nk-page-title,
