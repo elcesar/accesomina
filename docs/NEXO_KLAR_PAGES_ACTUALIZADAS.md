@@ -29,7 +29,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Contrastada con archivo de referencia; conserva ficha, asignaciones, documentación, formación, EPP e historial. |
 | Fase 1 · Capital Humano | `TurnosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `TurnosAsistenciaPage.jsx` y el flujo genérico `TurnosAsistenciaPage → ModuleWorkspacePage → PrivateModulePage`. `turnos` queda como fuente canónica y la asistencia como atributo de la jornada. |
 | Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `FormacionPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Nuevos cursos y certificaciones se consolidan en `trabajadores[].workerItems`; `state.cursos` queda como lectura legacy. |
-| Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada | Módulo especializado de exámenes y aptitudes. |
+| Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ExamenesPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Los nuevos exámenes se consolidan en `trabajadores[].workerItems`; `state.examenes` queda como lectura legacy. Se incorporó evidencia documental asociada a la persona. |
 | Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada | Módulo especializado de salud ocupacional. |
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada | Módulo especializado de personas restringidas. |
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada | Módulo especializado de protección personal / EPP. |
@@ -62,6 +62,18 @@ La página anterior era únicamente un wrapper hacia la experiencia genérica. E
 La implementación especializada actual conserva el propósito de administrar cursos, certificaciones y vigencias por persona, y amplía el flujo con búsqueda, filtros por tipo y estado, indicadores de vigencia, evidencia documental y navegación hacia la ficha de la persona.
 
 Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `curso` o `certificacion`. `state.cursos` se conserva como fuente legacy de solo lectura durante la migración, evitando duplicar registros ya presentes en la fuente canónica.
+
+## Trazabilidad específica · Exámenes y aptitudes
+
+La revisión del módulo de Exámenes confirmó el siguiente origen:
+
+`ExamenesPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `examenes`.
+
+La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual administra examen o aptitud, resultado, vencimiento, observaciones y estado por persona, con búsqueda, filtros e indicadores de vigencia.
+
+Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `examen`; `state.examenes` se conserva como fuente legacy de solo lectura y se evita duplicar registros ya consolidados en la persona.
+
+Como parte de la revisión se identificó la ausencia de respaldo documental en la página especializada. Se incorporó carga de evidencia mediante `/api/files`, asociada como `worker_document` a la persona, guardando `fileId`, `fileName`, `fileType` y `fileSize` dentro del registro de examen. La tabla de Exámenes muestra además la evidencia registrada.
 
 ## Seguimiento
 
