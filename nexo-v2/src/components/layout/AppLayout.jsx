@@ -43,17 +43,18 @@ function pageDomain(pathname) {
   ) return 'Cumplimiento y Calidad'
 
   if (
-    pathname.startsWith('/app/modulos/activos-inventario') ||
-    pathname.startsWith('/app/modulos/maquinaria') ||
-    pathname.startsWith('/app/modulos/equipos-instrumentos') ||
-    pathname.startsWith('/app/modulos/herramientas') ||
-    pathname.startsWith('/app/modulos/epp-inventario') ||
-    pathname.startsWith('/app/modulos/materiales') ||
-    pathname.startsWith('/app/modulos/insumos') ||
-    pathname.startsWith('/app/modulos/bodegas') ||
-    pathname.startsWith('/app/modulos/movimientos-inventario') ||
-    pathname.startsWith('/app/modulos/mantenimiento') ||
-    pathname.startsWith('/app/modulos/asignaciones-prestamos')
+    pathname.startsWith('/app/activos-inventario') ||
+    pathname.startsWith('/app/maquinaria') ||
+    pathname.startsWith('/app/equipos-instrumentos') ||
+    pathname.startsWith('/app/herramientas') ||
+    pathname.startsWith('/app/epp-inventario') ||
+    pathname.startsWith('/app/materiales') ||
+    pathname.startsWith('/app/insumos') ||
+    pathname.startsWith('/app/bodegas') ||
+    pathname.startsWith('/app/movimientos-inventario') ||
+    pathname.startsWith('/app/mantenimiento') ||
+    pathname.startsWith('/app/asignaciones-prestamos') ||
+    pathname.startsWith('/app/modulos/activos-inventario')
   ) return 'Activos, Equipos e Inventario'
 
   return ''
