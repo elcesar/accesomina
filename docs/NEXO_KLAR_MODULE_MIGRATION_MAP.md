@@ -1,6 +1,6 @@
 # Nexo Klar — Mapa de módulos, dependencias y migración
 
-**Estado:** Fases 0 a 5 cerradas · próxima Fase 6  
+**Estado:** Fases 0 a 6 cerradas · próxima Fase 7  
 **Actualizado:** 10 de septiembre de 2026  
 **Objetivo:** mantener una referencia única del orden de modernización de Nexo Klar, ownership de datos, dependencias, decisiones de layout y criterios de cierre.
 
@@ -34,6 +34,11 @@
 - **Flota:** `vehiculos`; no se migra a `inventoryItems` en Fase 5.
 - **Alojamientos:** `hoteles` para catálogo/habitaciones y `hotelAsig` para estadías.
 - **Credenciales:** `credenciales`; Persona por `trabId` y Cliente/faena por `minaId`.
+- **Terceros:** `subcontratos` para empresa colaboradora.
+- **Contratos/convenios de terceros:** `convenios`, relacionados por `subcontratoId`.
+- **Personal del contratista:** `personalContratista` como relación Empresa ↔ Persona; `trabajadores` conserva ownership de Persona.
+- **Habilitaciones de contratistas:** `habilitaciones`.
+- **Evaluación de desempeño de contratistas:** `evaluaciones`.
 
 ## 3. Dependencia funcional principal
 
@@ -46,6 +51,11 @@ Cliente
               ├── Flota y equipos móviles
               ├── Alojamientos y estadías
               ├── Credenciales de acceso
+              ├── Terceros / contratistas
+              │     ├── Convenios
+              │     ├── Personal relacionado
+              │     ├── Habilitaciones
+              │     └── Evaluaciones
               ├── Recursos / inventario
               └── Cumplimiento
 ```
@@ -58,47 +68,35 @@ Las relaciones se almacenan una vez en el módulo dueño y se visualizan/navegan
 Mapa de ownership, persistencia, aliases legacy, rutas y dependencias establecido.
 
 ### FASE 1 · Capital Humano — ✓ CERRADA
-
-**Módulos:** Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos.
-
-**Ajustes finales de layout (10-09-2026):**
-- `ProteccionEppPage.jsx`: recupera la arquitectura histórica **Personas | Matriz por función | Historial de entregas**, segmentos de personas y KPIs orientados a cobertura/reposición, manteniendo `Registrar entrega`.
-- `FormacionPage.jsx`: conserva tabla especializada e incorpora contexto **Cliente → Contrato → OS** derivado de asignaciones. La toolbar se compactó a búsqueda + Cliente + `Más filtros`; Contrato, OS, Tipo y Estado quedan como filtros secundarios.
-- `ExamenesPage.jsx`: incorpora contexto **Cliente → Contrato → OS** y mantiene tabla especializada, evidencia y vigencia.
-- `RestringidosPage.jsx`: se mantiene compacto con búsqueda + Estado; no requiere expansión adicional.
-- Personas, Turnos y Salud Ocupacional mantienen su estructura React por estar alineada o mejorar el patrón histórico.
-
-**Estado:** validada, documentada y cerrada.
+Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos especializados y documentados.
 
 ### FASE 2 · Clientes — ✓ CERRADA
-
-`ClientesPage.jsx` fue revalidada contra el HTML histórico. El layout final recupera el patrón **filtros → grid de clientes → ficha al abrir**, evitando selección automática del primer cliente. La ficha conserva contactos, requisitos y relaciones Cliente → Contrato → OS. No duplica `+ Cliente` ni otras acciones globales del Header.
+`ClientesPage.jsx` recupera **filtros → grid de clientes → ficha al abrir**. `minas` permanece como fuente canónica y `clientes` como fallback.
 
 ### FASE 3 · Contratos — ✓ CERRADA
-
-`ContratosPage.jsx` recupera el patrón **filtros/KPIs → tabla global → ficha al abrir**. Conserva documentación contractual, relación con Cliente y OS, y navegación entre entidades. No duplica `+ Contrato` del Header.
+`ContratosPage.jsx` recupera **filtros/KPIs → tabla global → ficha al abrir**, con Cliente, OS y documentación contractual.
 
 ### FASE 4 · Órdenes de servicio — ✓ CERRADA
-
-`OrdenesServicioPage.jsx` recupera el patrón histórico **filtros → cards operacionales → ficha al abrir**, manteniendo la implementación React especializada de preparación de personas, requisitos, alojamientos, recursos, evidencias y cierre. La ficha dispone de scroll vertical propio y encabezado sticky para operaciones extensas. No duplica `+ Orden de servicio` del Header.
-
-`mantenciones` continúa como fuente canónica de escritura; `proyectos` queda como fallback legacy y `asignaciones.mantId` conserva la relación de personas.
+`OrdenesServicioPage.jsx` recupera **filtros → cards operacionales → ficha al abrir**. `mantenciones` es canónico; `proyectos` fallback; personas por `asignaciones.mantId`.
 
 ### FASE 5 · Gestión Operacional — ✓ CERRADA
+Comunicaciones, Flota, Alojamientos/estadías y Credenciales especializados y contrastados con su origen HTML/wrapper.
+
+### FASE 6 · Contratistas — ✓ CERRADA
 
 **Fecha de cierre:** 10 de septiembre de 2026.
 
-Los cuatro submódulos fueron especializados, contrastados con su origen y ajustados al Design System:
+La fase quedó especializada recuperando los layouts útiles del HTML histórico y separando ownership por dominio:
 
-1. **Comunicaciones y convocatorias — COMPLETADO.** Flujo OS → personas elegibles → comunicación/convocatoria → respuesta → asignación. Navegación al contexto operacional y KPIs derivados de `callouts`.
-2. **Flota y equipos móviles — COMPLETADO.** `VehiculosPage.jsx` recupera layout operacional tabular: filtros → KPIs → tabla global → ficha bajo demanda. `vehiculos` mantiene ownership; `inventoryItems` se reserva para Fase 8.
-3. **Alojamientos y estadías — COMPLETADO.** `AlojamientosPage.jsx` recupera cards de alojamiento + tabla global de asignaciones. `hoteles` mantiene catálogo/habitaciones y `hotelAsig` las estadías, relacionadas con Persona y OS sin duplicación.
-4. **Credenciales de acceso — COMPLETADO.** `CredencialesPage.jsx` recupera filtros + KPIs + tabla global + ficha bajo demanda. `credenciales` mantiene número, emisión, vencimiento, zona, campamento y respaldo, relacionada con Persona y Cliente/faena.
+1. **Terceros y subcontratos — COMPLETADO.** `TercerosSubcontratosPage.jsx` reemplaza el flujo genérico y recupera **filtros → KPIs → tabla global → ficha al abrir**. `subcontratos` es la fuente de escritura. El listado muestra F30, F30-1, cotizaciones y seguro como vencimientos individuales con estado y días restantes/vencidos.
+2. **Contratos y convenios — COMPLETADO.** `ConveniosPage.jsx` reemplaza `ModuleWorkspacePage` y recupera **KPIs → filtros → tabla de empresa / contrato-convenio / órdenes de compra / vigencia**. `convenios` es canónico; información histórica de `subcontratos` se usa solo como fallback visual cuando corresponde.
+3. **Personal del contratista — COMPLETADO.** `PersonalEmpresaServiciosPage.jsx` administra `personalContratista` como relación Empresa ↔ Persona. La Persona sigue perteneciendo a `trabajadores`, incluyendo su ficha, formación, aptitudes, turnos y restricciones.
+4. **Habilitaciones y cumplimiento — COMPLETADO.** `HabilitacionesCumplimientoPage.jsx` recupera la vista HTML de **Empresa / Base documental / Pendientes / Estado / Revisión**. `habilitaciones` registra requisitos laborales, previsionales, seguridad, seguros y exigencias del cliente.
+5. **Evaluación de desempeño — COMPLETADO.** `EvaluacionDesempenoPage.jsx` recupera la matriz histórica con notas 1–5 en Cumplimiento, Seguridad y Calidad/servicio, resultado consolidado y clasificación. `evaluaciones` es la fuente especializada.
 
-**Resultado:** Fase 5 cerrada. Gestión Operacional consume Cliente–Contrato–OS–Persona ya estabilizados y deja Cumplimiento documental transversal para Fase 7.
+**Regla de ownership confirmada:** Fase 6 no crea Persona, Contrato ni cumplimiento paralelos. Las relaciones se guardan en sus módulos dueños y se consumen desde las vistas de Contratistas.
 
-### FASE 6 · Contratistas — ○ PENDIENTE
-Empresas colaboradoras, subcontratos/convenios, personas vinculadas, habilitaciones y evaluación de desempeño. No duplicar Persona o Contrato cuando pueda expresarse mediante relaciones existentes.
+**Resultado:** Fase 6 cerrada y documentada.
 
 ### FASE 7 · Cumplimiento — ○ PENDIENTE
 Cumplimiento corporativo, requisitos del cliente, documentación, incidentes y auditoría sobre Cliente–Contrato–OS–Persona.
@@ -136,7 +134,7 @@ FASE 2  Clientes                                         ✓ CERRADA
 FASE 3  Contratos                                        ✓ CERRADA
 FASE 4  Órdenes de servicio                              ✓ CERRADA
 FASE 5  Gestión Operacional                              ✓ CERRADA
-FASE 6  Contratistas                                     ○ PENDIENTE
+FASE 6  Contratistas                                     ✓ CERRADA
 FASE 7  Cumplimiento                                     ○ PENDIENTE
 FASE 8  Inventario / Activos                             ○ PENDIENTE
 FASE 9  Prospectos + operación                           ○ PENDIENTE
@@ -148,7 +146,7 @@ FASE 14 Gobierno / Administración                        ○ PENDIENTE
 FASE 15 Cierre de migración                              ○ PENDIENTE
 ```
 
-**Punto actual:** iniciar Fase 6 · Contratistas.
+**Punto actual:** iniciar Fase 7 · Cumplimiento.
 
 ## 6. Criterio de cierre por fase
 
