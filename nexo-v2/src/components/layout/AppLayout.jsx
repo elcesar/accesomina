@@ -42,6 +42,20 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/auditoria')
   ) return 'Cumplimiento y Calidad'
 
+  if (
+    pathname.startsWith('/app/modulos/activos-inventario') ||
+    pathname.startsWith('/app/modulos/maquinaria') ||
+    pathname.startsWith('/app/modulos/equipos-instrumentos') ||
+    pathname.startsWith('/app/modulos/herramientas') ||
+    pathname.startsWith('/app/modulos/epp-inventario') ||
+    pathname.startsWith('/app/modulos/materiales') ||
+    pathname.startsWith('/app/modulos/insumos') ||
+    pathname.startsWith('/app/modulos/bodegas') ||
+    pathname.startsWith('/app/modulos/movimientos-inventario') ||
+    pathname.startsWith('/app/modulos/mantenimiento') ||
+    pathname.startsWith('/app/modulos/asignaciones-prestamos')
+  ) return 'Activos, Equipos e Inventario'
+
   return ''
 }
 
