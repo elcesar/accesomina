@@ -38,6 +38,10 @@ import HerramientasPage from './pages/HerramientasPage.jsx'
 import EppInventarioPage from './pages/EppInventarioPage.jsx'
 import MaterialesPage from './pages/MaterialesPage.jsx'
 import InsumosPage from './pages/InsumosPage.jsx'
+import BodegasPage from './pages/BodegasPage.jsx'
+import MovimientosInventarioPage from './pages/MovimientosInventarioPage.jsx'
+import MantenimientoPage from './pages/MantenimientoPage.jsx'
+import AsignacionesPrestamosPage from './pages/AsignacionesPrestamosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -108,6 +112,14 @@ export default function App() {
             <Route path="modulos/materiales" element={<Navigate to="/app/materiales" replace />} />
             <Route path="insumos" element={<InsumosPage />} />
             <Route path="modulos/insumos" element={<Navigate to="/app/insumos" replace />} />
+            <Route path="bodegas" element={<BodegasPage />} />
+            <Route path="modulos/bodegas" element={<Navigate to="/app/bodegas" replace />} />
+            <Route path="movimientos-inventario" element={<MovimientosInventarioPage />} />
+            <Route path="modulos/movimientos-inventario" element={<Navigate to="/app/movimientos-inventario" replace />} />
+            <Route path="mantenimiento" element={<MantenimientoPage />} />
+            <Route path="modulos/mantenimiento" element={<Navigate to="/app/mantenimiento" replace />} />
+            <Route path="asignaciones-prestamos" element={<AsignacionesPrestamosPage />} />
+            <Route path="modulos/asignaciones-prestamos" element={<Navigate to="/app/asignaciones-prestamos" replace />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
