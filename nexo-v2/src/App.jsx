@@ -22,6 +22,7 @@ import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 import VehiculosPage from './pages/VehiculosPage.jsx'
 import AlojamientosPage from './pages/AlojamientosPage.jsx'
 import CredencialesPage from './pages/CredencialesPage.jsx'
+import TercerosSubcontratosPage from './pages/TercerosSubcontratosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="hoteleria" element={<AlojamientosPage />} />
             <Route path="credenciales" element={<CredencialesPage />} />
+            <Route path="subcontratos" element={<TercerosSubcontratosPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
