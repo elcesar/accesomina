@@ -23,6 +23,8 @@ import VehiculosPage from './pages/VehiculosPage.jsx'
 import AlojamientosPage from './pages/AlojamientosPage.jsx'
 import CredencialesPage from './pages/CredencialesPage.jsx'
 import TercerosSubcontratosPage from './pages/TercerosSubcontratosPage.jsx'
+import ConveniosPage from './pages/ConveniosPage.jsx'
+import PersonalEmpresaServiciosPage from './pages/PersonalEmpresaServiciosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -71,6 +73,8 @@ export default function App() {
             <Route path="hoteleria" element={<AlojamientosPage />} />
             <Route path="credenciales" element={<CredencialesPage />} />
             <Route path="subcontratos" element={<TercerosSubcontratosPage />} />
+            <Route path="modulos/contratos-convenios" element={<ConveniosPage />} />
+            <Route path="modulos/personal-empresa-servicios" element={<PersonalEmpresaServiciosPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
