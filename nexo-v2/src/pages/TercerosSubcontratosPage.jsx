@@ -18,10 +18,10 @@ function daysUntil(date) {
 
 function expiryState(date) {
   const days = daysUntil(date)
-  if (days === null) return { label: 'Sin fecha', cls: 'nk-badge-none', alert: true }
-  if (days < 0) return { label: 'Vencido', cls: 'nk-badge-error', alert: true }
-  if (days <= 30) return { label: 'Por vencer', cls: 'nk-badge-warn', alert: true }
-  return { label: 'Vigente', cls: 'nk-badge-ok', alert: false }
+  if (days === null) return { label: 'Sin fecha', cls: 'nk-badge-none', alert: true, days: null }
+  if (days < 0) return { label: 'Vencido', cls: 'nk-badge-error', alert: true, days }
+  if (days <= 30) return { label: 'Por vencer', cls: 'nk-badge-warn', alert: true, days }
+  return { label: 'Vigente', cls: 'nk-badge-ok', alert: false, days }
 }
 
 function complianceAlertCount(item) {
@@ -38,12 +38,31 @@ function StatusBadge({ value }) {
   return <span className={`nk-badge ${cls}`}>{label}</span>
 }
 
+function formatDate(value) {
+  if (!value) return 'Sin fecha'
+  const [year, month, day] = String(value).split('-')
+  return year && month && day ? `${day}/${month}/${String(year).slice(-2)}` : value
+}
+
 function ExpiryCell({ label, value }) {
   const state = expiryState(value)
+  const detail = state.days === null
+    ? 'Pendiente'
+    : state.days < 0
+      ? `${Math.abs(state.days)} d vencido`
+      : state.days === 0
+        ? 'Vence hoy'
+        : state.days <= 30
+          ? `${state.days} d restantes`
+          : formatDate(value)
+
   return (
-    <div className="nk-third-expiry">
-      <span>{label}</span>
-      <strong>{value || '—'}</strong>
+    <div className={`nk-third-expiry-item ${state.alert ? 'is-alert' : 'is-ok'}`}>
+      <span className={`nk-third-expiry-dot ${state.cls}`} aria-hidden="true" />
+      <div className="nk-third-expiry-copy">
+        <strong>{label}</strong>
+        <span>{detail}</span>
+      </div>
       <span className={`nk-badge ${state.cls}`}>{state.label}</span>
     </div>
   )
@@ -238,7 +257,14 @@ export default function TercerosSubcontratosPage() {
                   <td>{item.contratoId ? <button className="nk-context-link nk-third-link" type="button" onClick={() => navigate(`/app/contratos/${item.contratoId}`)}>{contractName(item.contratoId)}</button> : '—'}</td>
                   <td>{item.servicios || item.servicio || '—'}</td>
                   <td>{item.responsable || '—'}</td>
-                  <td><div className="nk-third-expiry-list"><ExpiryCell label="F30" value={item.f30} /><ExpiryCell label="F30-1" value={item.f301} /><ExpiryCell label="Cotiz." value={item.cotizaciones} /><ExpiryCell label="Seguro" value={item.seguro} /></div></td>
+                  <td>
+                    <div className="nk-third-expiry-list">
+                      <ExpiryCell label="F30" value={item.f30} />
+                      <ExpiryCell label="F30-1" value={item.f301} />
+                      <ExpiryCell label="Cotizaciones" value={item.cotizaciones} />
+                      <ExpiryCell label="Seguro" value={item.seguro} />
+                    </div>
+                  </td>
                   <td>{Number(item.personal || item.dotacion || 0)}</td>
                   <td><StatusBadge value={item.estado} /></td>
                   <td><button className="nk-button nk-button-quiet" type="button" onClick={() => openDetail(item.id)}>Abrir ficha</button></td>
