@@ -15,6 +15,7 @@
 .nk-invcat-table-card .nk-table-wrapper{width:100%;overflow-x:auto}
 .nk-invcat-table{width:100%;table-layout:fixed}
 .nk-invcat-table th:nth-child(1){width:25%}.nk-invcat-table th:nth-child(2){width:14%}.nk-invcat-table th:nth-child(3){width:9%}.nk-invcat-table th:nth-child(4){width:9%}.nk-invcat-table th:nth-child(5){width:20%}.nk-invcat-table th:nth-child(6){width:23%}
+.nk-invcat-table--machinery th:nth-child(1){width:24%}.nk-invcat-table--machinery th:nth-child(2){width:14%}.nk-invcat-table--machinery th:nth-child(3){width:20%}.nk-invcat-table--machinery th:nth-child(4){width:17%}.nk-invcat-table--machinery th:nth-child(5){width:18%}.nk-invcat-table--machinery th:nth-child(6){width:7%}
 .nk-invcat-table th,.nk-invcat-table td{padding:8px 9px;vertical-align:middle;min-width:0}
 .nk-invcat-table th{font-size:.72rem;letter-spacing:.015em;white-space:nowrap}
 .nk-invcat-table tbody tr:hover{background:color-mix(in srgb,var(--pri) 4%,transparent)}
@@ -29,5 +30,5 @@
 .nk-invcat-form label{display:flex;flex-direction:column;gap:5px;min-width:0}.nk-invcat-form label>span{font-size:.76rem;font-weight:700;color:var(--mut)}
 .nk-invcat-form .wide{grid-column:1/-1}
 .nk-invcat-editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
-@media(max-width:900px){.nk-invcat-page{padding:var(--space-1) var(--space-4) var(--space-4)}.nk-invcat-header{flex-direction:column;gap:var(--space-3)}.nk-invcat-actions{justify-content:flex-start}.nk-invcat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-invcat-table{min-width:820px}}
+@media(max-width:900px){.nk-invcat-page{padding:var(--space-1) var(--space-4) var(--space-4)}.nk-invcat-header{flex-direction:column;gap:var(--space-3)}.nk-invcat-actions{justify-content:flex-start}.nk-invcat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-invcat-table{min-width:820px}.nk-invcat-table--machinery{min-width:900px}}
 @media(max-width:640px){.nk-invcat-filters,.nk-invcat-kpis,.nk-invcat-form{grid-template-columns:1fr}.nk-invcat-form .wide{grid-column:auto}}
