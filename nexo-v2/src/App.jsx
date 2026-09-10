@@ -20,6 +20,7 @@ import ContratosPage from './pages/ContratosPage.jsx'
 import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
 import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 import VehiculosPage from './pages/VehiculosPage.jsx'
+import AlojamientosPage from './pages/AlojamientosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="llamados" element={<ComunicacionesPage />} />
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
+            <Route path="hoteleria" element={<AlojamientosPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
