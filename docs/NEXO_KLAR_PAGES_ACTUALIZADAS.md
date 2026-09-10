@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 6 cerradas.
+**Estado global:** Fases 0 a 7 cerradas.
 
 ## Estados
 
@@ -21,6 +21,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 - Las entidades con ficha propia deben ser navegables desde el contexto operacional.
 - Densidad operacional media-alta: espaciado normal `--space-3/--space-4`, KPIs compactos y toolbars que no se conviertan en formularios extensos.
 - Cuando existan muchos criterios de filtrado, mantener filtros principales visibles y secundarios bajo `Más filtros`.
+- Las grillas operacionales deben intentar caber completas en una ventana de escritorio, compactando acciones, anchos y contenido antes de recurrir a scroll horizontal.
 
 ## Pages registradas
 
@@ -49,6 +50,10 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 6 · Contratistas | `PersonalEmpresaServiciosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Usa `personalContratista` como relación Empresa ↔ Persona y mantiene `trabajadores` como dueño de la Persona. Layout con KPIs, filtros y tabla Empresa / Persona / Cargo / Habilitación / Restricción, con navegación a ficha de Persona. |
 | Fase 6 · Contratistas | `HabilitacionesCumplimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Recupera layout HTML centrado en **Empresa / Base documental / Pendientes / Estado / Revisión**. `habilitaciones` mantiene requisitos laborales, previsionales, seguridad, seguros y exigencias del cliente, con avance documental y fallback visual legacy. |
 | Fase 6 · Contratistas | `EvaluacionDesempenoPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Recupera matriz HTML por empresa con notas 1–5 para **Cumplimiento / Seguridad / Calidad-servicio**, resultado consolidado y clasificación. `evaluaciones` es la fuente especializada; datos legacy de `subcontratos` solo sirven como fallback inicial. |
+| Fase 7 · Cumplimiento | `CumplimientoCorporativoPage.jsx` | Actualizada · Revisada · Reemplazada | Recupera el layout histórico de documentación corporativa con KPIs, ficha de empresa, filtros y requisitos documentales. `empresaDocs` es fuente canónica; `documentosEmpresa` queda como fallback de lectura. Incluye evidencia local/link, vigencia, observación y estados derivados. |
+| Fase 7 · Cumplimiento | `HabilitacionClientePage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `ModuleWorkspacePage`. Recupera la habilitación por Cliente y objeto con KPIs, filtros y grilla compacta de **Entidad / Cliente / Estado / Responsable-plazo / Observación / Evidencia**. `acreditacionesMandante` es fuente especializada de escritura. Los cambios de estado usan actualización optimista para reflejar inmediatamente valores como `Corregido`. |
+| Fase 7 · Cumplimiento | `IncidentesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico y recupera layout HTML **filtros → KPIs → tabla global → seguimiento al abrir**. `incidentes` es fuente canónica. El cierre exige seguimiento y evidencia; la grilla fue compactada para mantener la acción `Abrir seguimiento` dentro del viewport. |
+| Fase 7 · Cumplimiento | `AuditoriaPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OperationalWorkspacePage`. Recupera vista de auditoría operacional sobre personas, requisitos y estado de habilitación. Es una vista derivada sobre `trabajadores[].workerItems`, relaciones y fuentes existentes; no crea un dominio documental paralelo. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
@@ -92,6 +97,18 @@ La fase queda cerrada con sus cinco módulos especializados:
 
 **Resultado:** Fase 6 cerrada sin duplicar Persona, Contrato ni datos de cumplimiento. Las relaciones se almacenan en sus módulos dueños y se presentan de forma contextual desde Contratistas.
 
+### Fase 7 · Cumplimiento — CERRADA
+**Fecha:** 10 de septiembre de 2026
+
+La fase queda cerrada con cuatro módulos especializados y contrastados con el HTML histórico:
+
+1. **Documentación de la Empresa:** `CumplimientoCorporativoPage.jsx` administra los requisitos corporativos sobre `empresaDocs`, con `documentosEmpresa` solo como fallback de lectura. Mantiene KPIs, ficha de empresa, vigencias, observaciones y evidencia.
+2. **Habilitación del Cliente:** `HabilitacionClientePage.jsx` administra el estado de habilitación por Cliente y entidad sobre `acreditacionesMandante`, con responsable, plazo, observación y evidencia. Los cambios de estado se reflejan inmediatamente mediante actualización optimista.
+3. **Incidentes y no conformidades:** `IncidentesPage.jsx` administra `incidentes`, acciones correctivas, responsable, compromiso y seguimiento. El cierre requiere verificación y evidencia y se realiza desde el seguimiento, no desde la grilla.
+4. **Auditoría:** `AuditoriaPage.jsx` consolida una vista de control sobre personas, relaciones y requisitos existentes. Se mantiene como vista derivada y no duplica documentación ni estados fuente.
+
+**Resultado:** Fase 7 cerrada manteniendo la secuencia Cliente → Contrato → OS → Persona y separando claramente documentación corporativa, habilitación del mandante, eventos de cumplimiento y auditoría.
+
 ## Correcciones transversales registradas
 
 ### Creación desde Header
@@ -99,6 +116,9 @@ Las rutas `/nuevo` de Cliente, Contrato y OS instancian explícitamente formular
 
 ### Encabezados y densidad
 `AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System. Se mantiene densidad media-alta y toolbars compactas; filtros secundarios pueden agruparse bajo `Más filtros`.
+
+### Grillas de escritorio
+Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fase 7 se aplicó explícitamente a Documentación de la Empresa e Incidentes.
 
 ### Navegación contextual
 Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderizarse como enlaces cuando aparecen como contexto de otro módulo.
@@ -115,4 +135,4 @@ Estas piezas no son fuentes funcionales de los módulos especializados.
 
 ## Próximo punto
 
-Con Fases 0–6 cerradas, el siguiente bloque es **Fase 7 · Cumplimiento**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
+Con Fases 0–7 cerradas, el siguiente bloque es **Fase 8 · Inventario / Activos**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
