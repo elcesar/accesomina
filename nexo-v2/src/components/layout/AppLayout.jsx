@@ -14,12 +14,6 @@ function pageDomain(pathname) {
   ) return 'Capital Humano'
 
   if (
-    pathname.startsWith('/app/clientes') ||
-    pathname.startsWith('/app/contratos') ||
-    pathname.startsWith('/app/servicios')
-  ) return 'Relación Comercial'
-
-  if (
     pathname.startsWith('/app/llamados') ||
     pathname.startsWith('/app/comunicaciones') ||
     pathname.startsWith('/app/vehiculos')
@@ -33,14 +27,14 @@ export default function AppLayout() {
   const domain = pageDomain(pathname)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#F4EFE3', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         <Header />
         <main
           className="nk-app-main"
           data-page-domain={domain || undefined}
-          style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
+          style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}
         >
           {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
           <Outlet />
