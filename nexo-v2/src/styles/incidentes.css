@@ -1,0 +1,30 @@
+.nk-incidents-page{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-4) var(--space-5)}
+.nk-incidents-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
+.nk-incidents-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem)}
+.nk-incidents-header p{margin:.35rem 0 0;color:var(--mut)}
+.nk-incidents-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.nk-incidents-filters{display:grid;grid-template-columns:minmax(260px,1fr) repeat(3,minmax(150px,210px));gap:var(--space-3);padding:var(--space-3)}
+.nk-incidents-filters .nk-search,.nk-incidents-filters .nk-select{width:100%;min-width:0;min-height:38px}
+.nk-incidents-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
+.nk-incidents-kpis article{display:flex;align-items:center;gap:var(--space-3);min-height:68px;padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surf)}
+.nk-incidents-kpis strong{font-family:var(--font-brand);font-size:1.4rem;color:var(--ink)}
+.nk-incidents-kpis span{font-size:var(--text-sm);color:var(--mut)}
+.nk-incidents-table-card{overflow:hidden}.nk-incidents-table{width:100%;table-layout:fixed}
+.nk-incidents-table th:nth-child(1){width:29%}.nk-incidents-table th:nth-child(2){width:15%}.nk-incidents-table th:nth-child(3){width:10%}.nk-incidents-table th:nth-child(4){width:25%}.nk-incidents-table th:nth-child(5){width:10%}.nk-incidents-table th:nth-child(6){width:11%}
+.nk-incidents-table th,.nk-incidents-table td{padding:9px 10px;vertical-align:middle}
+.nk-incident-event,.nk-incident-action{display:flex;flex-direction:column;gap:3px;min-width:0}.nk-incident-event strong,.nk-incident-action strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.nk-incident-event small,.nk-incident-action small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut);font-size:.74rem}
+.nk-incidents-empty{text-align:center;color:var(--mut);padding:var(--space-6)!important}
+.nk-incident-editor{padding:var(--space-4)}
+.nk-incident-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);margin-bottom:var(--space-3)}
+.nk-incident-editor-head span{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700}.nk-incident-editor-head h2{margin:2px 0 0;font-size:1.15rem;color:var(--ink)}
+.nk-incident-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.nk-incident-form label{display:flex;flex-direction:column;gap:5px;min-width:0}.nk-incident-form label>span,.nk-incident-evidence>span{font-size:.76rem;font-weight:700;color:var(--mut)}
+.nk-incident-form .wide{grid-column:1/-1}.nk-incident-form .nk-textarea{min-height:78px;resize:vertical}
+.nk-incident-evidence{display:flex;flex-direction:column;gap:6px}.nk-incident-evidence>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nk-incident-editor-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
+.nk-incidents-feedback{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}.nk-incidents-feedback.error{border-color:var(--state-error)}
+.nk-muted{font-size:var(--text-sm);color:var(--mut)}
+@media(max-width:1120px){.nk-incidents-filters{grid-template-columns:1fr repeat(2,minmax(150px,1fr))}.nk-incidents-filters .nk-search{grid-column:1/-1}.nk-incidents-table{min-width:980px;table-layout:auto}}
+@media(max-width:900px){.nk-incidents-page{padding:var(--space-4)}.nk-incidents-header{flex-direction:column}.nk-incidents-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.nk-incidents-filters,.nk-incidents-kpis,.nk-incident-form{grid-template-columns:1fr}.nk-incidents-filters .nk-search,.nk-incident-form .wide{grid-column:auto}}
