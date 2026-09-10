@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 9 cerradas.
+**Estado global:** Fases 0 a 10 cerradas.
 
 ## Estados
 
@@ -66,94 +66,31 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 8 · Inventario / Activos | `MantenimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Planes preventivos e historial para maquinaria, equipos y herramientas, con vencimiento, costo, indisponibilidad y próxima ejecución. |
 | Fase 8 · Inventario / Activos | `AsignacionesPrestamosPage.jsx` | Actualizada · Revisada · Reemplazada | Préstamos de maquinaria, equipos y herramientas asociados a persona/OS, bodega de origen, devolución esperada y devolución efectiva. |
 | Fase 9 · Prospectos y oportunidades | `ProspectosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el workspace genérico y recupera el flujo comercial V124: KPIs, filtros, score/temperatura, Kanban, grilla compacta, bitácora y avance de etapa. `prospectos` es la fuente canónica con `oportunidades` como fallback. Las oportunidades ganadas se convierten en Cliente (`minas`), Contrato (`contratos`) u Orden de servicio (`mantenciones`) según su tipo, preservando `createdFromLead`, `convertedId`, `convertedType` y `convertedAt`. |
+| Fase 10 · Gestión personal por proyecto | `GestionPersonalProyectoPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper genérico por una vista operacional contextual a OS. Layout: búsqueda + selector de proyecto/OS → contexto Cliente/Contrato/OS → KPIs de dotación → grilla única. `trabajadores` mantiene ownership de Persona y `asignaciones` mantiene la relación Persona ↔ OS y su estado de gestión. Flujo: Candidato → Contactado → Confirmado → Asignado → Habilitado. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
 ## Cierres de fases
 
-### Fase 1 · Capital Humano — CERRADA
+### Fases 1 a 9
+Los cierres detallados de Fases 1–9 se mantienen vigentes según las decisiones y ownership registrados en las Pages anteriores. Fase 9 conserva `prospectos` como fuente canónica, conversión a `minas`/`contratos`/`mantenciones` y trazabilidad mediante `createdFromLead` y metadatos de conversión.
+
+### Fase 10 · Gestión personal por proyecto — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-Cobertura: Personas, Turnos, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos. EPP recuperó sus tres vistas históricas; Formación y Exámenes incorporaron contexto Cliente → Contrato → OS y se mantuvieron las fuentes canónicas definidas.
+`GestionPersonalProyectoPage.jsx` deja de ser un wrapper genérico y queda como vista operacional de preparación de dotación por Orden de servicio/proyecto. La ruta activa es `/app/reclutamiento`, con alias legacy `/app/modulos/gestion-personal-proyecto`, y se clasifica bajo **Centro de Control**.
 
-### Fase 2 · Clientes — CERRADA
-**Fecha:** 10 de septiembre de 2026
+**Layout definitivo:** `Búsqueda + selector OS → contexto Cliente / Contrato / OS → KPIs de dotación → grilla operacional única`. Los KPIs muestran dotación requerida, asignados, habilitados asignados y brecha. La grilla consolida Persona, Tipo, Cargo/especialidad, Disponibilidad, Gestión OS, Habilitación y Acciones; incluye filtros rápidos para todas, asignadas, disponibles, en gestión y con observación.
 
-Layout definitivo: `Filtros → Grid de clientes → Ficha 360 al abrir`. `state.minas` sigue como fuente canónica de escritura; `state.clientes` queda como fallback.
+**Ownership:** `trabajadores` continúa siendo la fuente maestra de Persona. `asignaciones` es la fuente de la relación Persona ↔ OS (`trabId` + `mantId`) y contiene el estado de gestión específico para esa OS; no se replica ese estado en la Persona global.
 
-### Fase 3 · Contratos — CERRADA
-**Fecha:** 10 de septiembre de 2026
+**Flujo operacional:** `Candidato → Contactado → Confirmado → Asignado → Habilitado`. Candidato, Contactado y Confirmado son estados de preparación de la relación y no alteran la disponibilidad global. Al alcanzar Asignado se sincroniza la disponibilidad de Persona; Habilitado exige que la persona no esté bloqueada ni presente observaciones de habilitación. Los registros legacy con `estado: confirmado` se interpretan como asignados para mantener compatibilidad.
 
-Layout definitivo: `Filtros / KPIs → Tabla global → Ficha al abrir`. Se mantienen Cliente por `minaId`, OS por `contratoId` y documentación contractual.
+**Acciones:** desde la grilla se puede abrir la ficha de Persona, iniciar gestión para la OS seleccionada, avanzar o retroceder el estado y retirar/quitar la relación. El proyecto seleccionado funciona como contexto activo y destino inequívoco de las acciones.
 
-### Fase 4 · Órdenes de servicio — CERRADA
-**Fecha:** 10 de septiembre de 2026
+**Validación técnica:** el commit funcional `8b2c84e985cf2aed393bbf4b640615b06482c7b7` fue validado por GitHub Actions el 10 de septiembre de 2026. Los workflows **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con conclusión `success`.
 
-Layout definitivo: `Filtros → Cards de OS → Ficha operacional al abrir`. `mantenciones` continúa como fuente canónica; `proyectos` como fallback legacy; personas por `asignaciones.mantId`.
-
-### Fase 5 · Gestión Operacional — CERRADA
-**Fecha:** 10 de septiembre de 2026
-
-Comunicaciones, Flota, Alojamientos/estadías y Credenciales quedaron especializados, contrastados con su origen y alineados al Design System.
-
-### Fase 6 · Contratistas — CERRADA
-**Fecha:** 10 de septiembre de 2026
-
-La fase queda cerrada con sus cinco módulos especializados:
-
-1. **Terceros y subcontratos:** `TercerosSubcontratosPage.jsx` recupera el layout tabular del HTML, ficha bajo demanda y control visual de vencimientos F30, F30-1, cotizaciones y seguro. `subcontratos` mantiene ownership de la empresa colaboradora.
-2. **Contratos y convenios:** `ConveniosPage.jsx` administra contratos, convenios y órdenes de compra de terceros sobre `convenios`, vinculados a `subcontratoId`.
-3. **Personal del contratista:** `PersonalEmpresaServiciosPage.jsx` administra únicamente la relación Empresa ↔ Persona mediante `personalContratista`; la ficha y capacidades de la Persona permanecen en `trabajadores`.
-4. **Habilitaciones y cumplimiento:** `HabilitacionesCumplimientoPage.jsx` gestiona base documental, pendientes, requisitos y estado mediante `habilitaciones`.
-5. **Evaluación de desempeño:** `EvaluacionDesempenoPage.jsx` recupera la matriz de notas del HTML y guarda la evaluación especializada en `evaluaciones`.
-
-**Resultado:** Fase 6 cerrada sin duplicar Persona, Contrato ni datos de cumplimiento. Las relaciones se almacenan en sus módulos dueños y se presentan de forma contextual desde Contratistas.
-
-### Fase 7 · Cumplimiento — CERRADA
-**Fecha:** 10 de septiembre de 2026
-
-La fase queda cerrada con cuatro módulos especializados y contrastados con el HTML histórico:
-
-1. **Documentación de la Empresa:** `CumplimientoCorporativoPage.jsx` administra los requisitos corporativos sobre `empresaDocs`, con `documentosEmpresa` solo como fallback de lectura. Mantiene KPIs, ficha de empresa, vigencias, observaciones y evidencia.
-2. **Habilitación del Cliente:** `HabilitacionClientePage.jsx` administra el estado de habilitación por Cliente y entidad sobre `acreditacionesMandante`, con responsable, plazo, observación y evidencia. Los cambios de estado se reflejan inmediatamente mediante actualización optimista.
-3. **Incidentes y no conformidades:** `IncidentesPage.jsx` administra `incidentes`, acciones correctivas, responsable, compromiso y seguimiento. El cierre requiere verificación y evidencia y se realiza desde el seguimiento, no desde la grilla.
-4. **Auditoría:** `AuditoriaPage.jsx` consolida una vista de control sobre personas, relaciones y requisitos existentes. Se mantiene como vista derivada y no duplica documentación ni estados fuente.
-
-**Resultado:** Fase 7 cerrada manteniendo la secuencia Cliente → Contrato → OS → Persona y separando claramente documentación corporativa, habilitación del mandante, eventos de cumplimiento y auditoría.
-
-### Fase 8 · Inventario / Activos — CERRADA
-**Fecha:** 10 de septiembre de 2026
-
-La fase queda cerrada con once módulos revisados y especializados sobre un dominio común de recursos físicos:
-
-1. **Inventario y existencias:** `ActivosInventarioPage.jsx` actúa como página matriz; registra recursos con bodega y ubicación interna, conecta conteo físico y recepción/reposición y mantiene trazabilidad.
-2. **Maquinaria, Equipos, Herramientas y EPP:** usan especialización por categoría sobre `inventoryItems`, mostrando estado operativo, calibración, custodia, préstamos, vida útil y stock según corresponda.
-3. **Materiales e Insumos:** mantienen componentes especializados orientados a existencias, mínimos, reposición, consumo y último movimiento.
-4. **Bodegas y ubicaciones:** `BodegasPage.jsx` administra `warehouses`/`bodegas` e `inventoryLocations`.
-5. **Movimientos:** `MovimientosInventarioPage.jsx` administra entradas, salidas, traslados y ajustes por bodega.
-6. **Mantenimiento:** `MantenimientoPage.jsx` administra `assetMaintenancePlans` y `assetMaintenanceRecords`.
-7. **Asignaciones y préstamos:** `AsignacionesPrestamosPage.jsx` administra préstamos de maquinaria, equipos y herramientas y su devolución a la bodega de origen.
-
-**Ownership confirmado:** `inventoryItems` es el catálogo canónico común de recursos de Fase 8. `vehiculos` permanece fuera del dominio y conserva ownership en Gestión Operacional. La entrega individual de EPP permanece en Capital Humano.
-
-**Regla de stock:** `stock` representa el saldo total y debe corresponder a la suma de `stockByLocation`. `warehouseId` representa la bodega principal y `locationId` la ubicación interna principal. La capa `/api/state` normaliza registros legacy y evita que una bodega sin saldo herede stock global de otra.
-
-**Limpieza técnica:** `InventoryOperationsPage.jsx` fue eliminado después de verificar que no tenía imports ni consumidores activos. Bodegas, Movimientos, Mantenimiento y Asignaciones permanecen como Pages especializadas y no como variantes de un wrapper operacional común.
-
-**Resultado:** Fase 8 cerrada con catálogo, bodegas, ubicaciones, movimientos, conteo físico, reposición, mantenimiento y préstamos/devoluciones integrados bajo una única lógica de stock y ownership.
-
-### Fase 9 · Prospectos y oportunidades — CERRADA
-**Fecha:** 10 de septiembre de 2026
-
-`ProspectosPage.jsx` reemplaza el workspace genérico y queda contrastada con la referencia histórica V124. El layout definitivo combina **filtros principales + Más filtros → 5 KPIs → Kanban comercial → grilla operacional → ficha/bitácora bajo demanda**. La creación y edición usa una ventana de trabajo alineada al Design System, organizada en Oportunidad, Contacto, Gestión comercial e Información adicional.
-
-**Modelo comercial:** `state.prospectos` es la fuente canónica de escritura y `state.oportunidades` se mantiene como fallback de lectura. Se conservan score 0–100, temperatura, etapa, industria, origen, necesidad/dolor, monto, probabilidad, cierre estimado, próxima gestión, responsable, motivo de pérdida, historial y bitácora de seguimiento.
-
-**Conversión:** solo una oportunidad en etapa `ganada` puede convertirse. Según su tipo, la conversión crea un Cliente en `minas`, un Contrato en `contratos` o una Orden de servicio/proyecto en `mantenciones`. Contrato exige Cliente asociado y OS exige Contrato asociado. La operación evita conversiones duplicadas y conserva trazabilidad mediante `createdFromLead`, `convertedId`, `convertedType` y `convertedAt`.
-
-**Validación técnica:** el commit funcional `2f30adbf0ee173ce1f7951a519df10a73414337c` fue validado por GitHub Actions el 10 de septiembre de 2026. Los workflows **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con conclusión `success`.
-
-**Resultado:** Fase 9 cerrada con pipeline comercial completo desde prospecto hasta entidad formal, sin duplicar ownership de Cliente, Contrato u Orden de servicio y manteniendo trazabilidad de origen.
+**Resultado:** Fase 10 cerrada con una única vista de preparación y asignación de dotación por OS, recuperando el flujo histórico de gestión sin duplicar Persona ni crear una nueva fuente maestra de reclutamiento.
 
 ## Correcciones transversales registradas
 
@@ -164,7 +101,7 @@ Las rutas `/nuevo` de Cliente, Contrato y OS instancian explícitamente formular
 `AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System. Se mantiene densidad media-alta y toolbars compactas; filtros secundarios pueden agruparse bajo `Más filtros`.
 
 ### Grillas de escritorio
-Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fases 7, 8 y 9 se aplicó explícitamente a las vistas de cumplimiento, inventario y oportunidades.
+Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fases 7, 8, 9 y 10 se aplicó explícitamente a las vistas de cumplimiento, inventario, oportunidades y dotación por proyecto.
 
 ### Navegación contextual
 Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderizarse como enlaces cuando aparecen como contexto de otro módulo.
@@ -174,6 +111,9 @@ En Fase 8 se consolidó la regla `stock = suma(stockByLocation)`. Los registros 
 
 ### Conversión comercial
 En Fase 9 se consolidó la regla `Prospecto ganado → Cliente / Contrato / OS`, escribiendo siempre en el módulo dueño y conservando `createdFromLead` y metadatos de conversión en la oportunidad.
+
+### Gestión de dotación por OS
+En Fase 10 se consolidó la regla `Persona maestra en trabajadores + estado contextual en asignaciones`. La preparación, convocatoria, asignación y habilitación pertenecen a la relación con la OS y no alteran atributos maestros de Persona salvo la disponibilidad cuando efectivamente queda asignada.
 
 ## Infraestructura legacy revisada
 
@@ -188,4 +128,4 @@ Estas piezas no son fuentes funcionales de los módulos especializados.
 
 ## Próximo punto
 
-Con Fases 0–9 cerradas, el siguiente bloque es **Fase 10 · Gestión personal por proyecto**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
+Con Fases 0–10 cerradas, el siguiente bloque es **Fase 11 · Centro Operativo**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
