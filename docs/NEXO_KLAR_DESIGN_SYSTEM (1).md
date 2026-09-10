@@ -1,5 +1,5 @@
 # Nexo Klar — Design System Guide
-**Version 3.2 · Septiembre 2026**
+**Version 3.3 · Septiembre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
 > Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
@@ -95,6 +95,7 @@ La experiencia implementada en Personas, Formación, Exámenes, Salud, EPP, Turn
 
 ```text
 HEADER DEL MÓDULO
+  dominio
   título + descripción                    acciones
                                          Actualizar | Acción principal
 
@@ -114,25 +115,124 @@ ACCIÓN CONTEXTUAL
   diálogo o flujo específico cuando corresponda
 ```
 
-### 4.1 Encabezado de módulo
+### 4.1 Encabezado universal de página
+
+Todas las páginas internas deben utilizar la misma jerarquía de encabezado, independientemente del dominio funcional.
 
 En escritorio:
 
 ```text
-[Título]
-[Descripción]                         [Actualizar] [Acción principal]
+[DOMINIO / SECCIÓN]
+[Título de página]
+[Descripción funcional breve]          [Actualizar] [Acción principal]
 ```
 
-Reglas:
+#### Regla de nomenclatura
 
-- título y descripción a la izquierda;
-- acciones agrupadas mediante `.nk-actions` a la derecha;
+El `Sidebar.jsx` es la referencia visible para los dos primeros niveles del encabezado:
+
+- **Título 1 / dominio:** debe ser exactamente el nombre del grupo que contiene la página en el Sidebar.
+- **Título 2 / página:** debe ser exactamente el nombre del ítem correspondiente en el Sidebar.
+- No abreviar, reinterpretar ni agregar calificadores locales al dominio o al nombre de la página.
+- Si cambia un nombre visible en el Sidebar, el encabezado de la página debe actualizarse en el mismo cambio.
+
+Ejemplos:
+
+```text
+CAPITAL HUMANO
+Personas
+
+CAPITAL HUMANO
+Formación y certificaciones
+
+RELACIÓN COMERCIAL
+Clientes
+
+RELACIÓN COMERCIAL
+Contratos y firmas
+
+RELACIÓN COMERCIAL
+Órdenes de servicio
+
+GESTIÓN OPERACIONAL
+Comunicaciones y convocatorias
+```
+
+La transformación a mayúsculas del dominio es visual mediante CSS; el texto fuente debe conservar la escritura definida en el Sidebar.
+
+#### Jerarquía visual
+
+**Línea 1 · Dominio**
+- clase: `.nk-page-domain`;
+- tamaño: `--text-xs`;
+- peso: `--weight-bold`;
+- color: `--pri`;
+- `letter-spacing: 0.08em`;
+- presentación en mayúsculas.
+
+**Línea 2 · Título de página**
+- clase: `.nk-page-title`;
+- fuente: `--font-brand`;
+- tamaño: `--text-3xl`;
+- peso: `--weight-bold`;
+- color: `--ink`;
+- `line-height: --leading-snug`;
+- no se permiten tamaños locales distintos para el H1 de una página interna.
+
+**Línea 3 · Descripción**
+- clase: `.nk-page-description`;
+- tamaño: `--text-md`;
+- color: `--mut`;
+- ancho máximo recomendado: 760 px;
+- describir la función de la pantalla en lenguaje de usuario;
+- no exponer nombres de claves, IDs, fuentes JSON, tablas ni detalles técnicos de implementación.
+
+#### Estructura JSX de referencia
+
+```jsx
+<header className="nk-page-header">
+  <div className="nk-page-heading">
+    <p className="nk-page-domain">Capital Humano</p>
+    <h1 className="nk-page-title">Personas</h1>
+    <p className="nk-page-description">
+      Administra personas, disponibilidad y contexto operacional.
+    </p>
+  </div>
+
+  <div className="nk-page-header-actions">
+    {/* acciones contextuales */}
+  </div>
+</header>
+```
+
+Clases oficiales del patrón:
+
+```text
+.nk-page-header
+.nk-page-heading
+.nk-page-domain
+.nk-page-title
+.nk-page-description
+.nk-page-header-actions
+```
+
+No crear variantes locales como `*-kicker`, `*-page-title` o `*-module-title` cuando representan este mismo patrón.
+
+Durante la migración, la normalización global de H1 puede utilizarse como compatibilidad temporal, pero no reemplaza la obligación de adoptar la estructura completa `dominio → título → descripción` cuando una página sea intervenida.
+
+#### Acciones del encabezado
+
+- título, dominio y descripción a la izquierda;
+- acciones a la derecha;
+- acciones agrupadas mediante `.nk-actions` o `.nk-page-header-actions`;
 - acciones en `display:flex` y `flex-direction:row`;
 - separación mediante tokens de spacing;
 - botones con `white-space: nowrap` cuando sea necesario;
 - no apilar botones en escritorio por estilos locales accidentales;
 - en pantallas pequeñas se permite `flex-wrap` o apilamiento controlado;
 - la acción primaria debe ser la acción de negocio principal; `Actualizar` normalmente es secundaria.
+
+Desde Fase 5 en adelante, toda página nueva, revisada o reemplazada debe salir con este encabezado completo. Las páginas ya modernizadas deben converger al mismo patrón sin alterar su lógica funcional ni sus fuentes de datos.
 
 ### 4.2 KPIs
 
@@ -404,6 +504,7 @@ Nexo Klar se optimiza principalmente para escritorio. En pantallas pequeñas:
 ❌ Convertir un wrapper/orquestador en otro CRUD antes de construir el módulo funcional.
 ❌ Inventar nuevos colores/tokens para estados que ya existen en el Design System.
 ❌ Apilar acciones principales en escritorio cuando existe espacio horizontal suficiente.
+❌ Usar un dominio o título de página distinto al definido en el Sidebar para la misma vista.
 ```
 
 ---
@@ -443,10 +544,10 @@ Panel General y Alertas son referencias iniciales para vistas transversales. Ges
    Mostrar lo necesario para decidir, no todo lo disponible.
 
 6. Jerarquía visual clara
-   Contexto, estado y acción principal deben ser evidentes.
+   Dominio, título, descripción, contexto, estado y acción principal deben ser evidentes.
 
 7. Consistencia antes que creatividad
-   Reutilizar tokens, componentes y patrones existentes.
+   Reutilizar tokens, componentes, patrones y nomenclatura del Sidebar.
 
 8. CSS antes que styling en JSX
    JSX describe estructura/comportamiento; CSS describe presentación.
@@ -460,6 +561,6 @@ Panel General y Alertas son referencias iniciales para vistas transversales. Ges
 
 ---
 
-*Nexo Klar Design System · Guide v3.2 · tokens.css v3.0 · Septiembre 2026*  
+*Nexo Klar Design System · Guide v3.3 · tokens.css v3.0 · Septiembre 2026*  
 *Estrategia vigente: tokens.css → components.css → CSS específico → JSX.*  
-*Modelo UX vigente: people-first, módulos funcionales como fuentes de verdad y Centro de Control como capa de orquestación.*
+*Modelo UX vigente: people-first, módulos funcionales como fuentes de verdad, nomenclatura visible gobernada por Sidebar y Centro de Control como capa de orquestación.*
