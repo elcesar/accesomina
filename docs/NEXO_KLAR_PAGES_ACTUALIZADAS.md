@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 8 cerradas.
+**Estado global:** Fases 0 a 9 cerradas.
 
 ## Estados
 
@@ -65,6 +65,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 8 · Inventario / Activos | `MovimientosInventarioPage.jsx` | Actualizada · Revisada · Reemplazada | Registra ingresos/reposiciones, egresos, traslados, ajustes y trazabilidad por recurso y bodega. |
 | Fase 8 · Inventario / Activos | `MantenimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Planes preventivos e historial para maquinaria, equipos y herramientas, con vencimiento, costo, indisponibilidad y próxima ejecución. |
 | Fase 8 · Inventario / Activos | `AsignacionesPrestamosPage.jsx` | Actualizada · Revisada · Reemplazada | Préstamos de maquinaria, equipos y herramientas asociados a persona/OS, bodega de origen, devolución esperada y devolución efectiva. |
+| Fase 9 · Prospectos y oportunidades | `ProspectosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el workspace genérico y recupera el flujo comercial V124: KPIs, filtros, score/temperatura, Kanban, grilla compacta, bitácora y avance de etapa. `prospectos` es la fuente canónica con `oportunidades` como fallback. Las oportunidades ganadas se convierten en Cliente (`minas`), Contrato (`contratos`) u Orden de servicio (`mantenciones`) según su tipo, preservando `createdFromLead`, `convertedId`, `convertedType` y `convertedAt`. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
@@ -141,6 +142,19 @@ La fase queda cerrada con once módulos revisados y especializados sobre un domi
 
 **Resultado:** Fase 8 cerrada con catálogo, bodegas, ubicaciones, movimientos, conteo físico, reposición, mantenimiento y préstamos/devoluciones integrados bajo una única lógica de stock y ownership.
 
+### Fase 9 · Prospectos y oportunidades — CERRADA
+**Fecha:** 10 de septiembre de 2026
+
+`ProspectosPage.jsx` reemplaza el workspace genérico y queda contrastada con la referencia histórica V124. El layout definitivo combina **filtros principales + Más filtros → 5 KPIs → Kanban comercial → grilla operacional → ficha/bitácora bajo demanda**. La creación y edición usa una ventana de trabajo alineada al Design System, organizada en Oportunidad, Contacto, Gestión comercial e Información adicional.
+
+**Modelo comercial:** `state.prospectos` es la fuente canónica de escritura y `state.oportunidades` se mantiene como fallback de lectura. Se conservan score 0–100, temperatura, etapa, industria, origen, necesidad/dolor, monto, probabilidad, cierre estimado, próxima gestión, responsable, motivo de pérdida, historial y bitácora de seguimiento.
+
+**Conversión:** solo una oportunidad en etapa `ganada` puede convertirse. Según su tipo, la conversión crea un Cliente en `minas`, un Contrato en `contratos` o una Orden de servicio/proyecto en `mantenciones`. Contrato exige Cliente asociado y OS exige Contrato asociado. La operación evita conversiones duplicadas y conserva trazabilidad mediante `createdFromLead`, `convertedId`, `convertedType` y `convertedAt`.
+
+**Validación técnica:** el commit funcional `2f30adbf0ee173ce1f7951a519df10a73414337c` fue validado por GitHub Actions el 10 de septiembre de 2026. Los workflows **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con conclusión `success`.
+
+**Resultado:** Fase 9 cerrada con pipeline comercial completo desde prospecto hasta entidad formal, sin duplicar ownership de Cliente, Contrato u Orden de servicio y manteniendo trazabilidad de origen.
+
 ## Correcciones transversales registradas
 
 ### Creación desde Header
@@ -150,13 +164,16 @@ Las rutas `/nuevo` de Cliente, Contrato y OS instancian explícitamente formular
 `AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System. Se mantiene densidad media-alta y toolbars compactas; filtros secundarios pueden agruparse bajo `Más filtros`.
 
 ### Grillas de escritorio
-Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fases 7 y 8 se aplicó explícitamente a las vistas de cumplimiento e inventario.
+Las grillas operacionales deben priorizar `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes de introducir scroll horizontal. En Fases 7, 8 y 9 se aplicó explícitamente a las vistas de cumplimiento, inventario y oportunidades.
 
 ### Navegación contextual
 Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderizarse como enlaces cuando aparecen como contexto de otro módulo.
 
 ### Stock e inventario
 En Fase 8 se consolidó la regla `stock = suma(stockByLocation)`. Los registros legacy se normalizan desde `/api/state`, y movimientos, préstamos y devoluciones operan siempre contra la bodega correspondiente.
+
+### Conversión comercial
+En Fase 9 se consolidó la regla `Prospecto ganado → Cliente / Contrato / OS`, escribiendo siempre en el módulo dueño y conservando `createdFromLead` y metadatos de conversión en la oportunidad.
 
 ## Infraestructura legacy revisada
 
@@ -171,4 +188,4 @@ Estas piezas no son fuentes funcionales de los módulos especializados.
 
 ## Próximo punto
 
-Con Fases 0–8 cerradas, el siguiente bloque es **Fase 9 · Prospectos + operación**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
+Con Fases 0–9 cerradas, el siguiente bloque es **Fase 10 · Gestión personal por proyecto**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
