@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 5 cerradas.
+**Estado global:** Fases 0 a 6 cerradas.
 
 ## Estados
 
@@ -44,69 +44,53 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico operacional: filtros → KPIs → tabla global → ficha bajo demanda. `vehiculos` mantiene ownership. |
 | Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico: cards de alojamientos + tabla global de estadías. `hoteles` catálogo; `hotelAsig` asignaciones/estadías. |
 | Fase 5 · Gestión Operacional | `CredencialesPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico: filtros → KPIs → tabla global → ficha bajo demanda. `credenciales` relacionada con Persona (`trabId`) y Cliente/faena (`minaId`). |
+| Fase 6 · Contratistas | `TercerosSubcontratosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `TercerosSubcontratosPage → OperationalWorkspacePage`. Recupera layout HTML **filtros → KPIs → tabla global → ficha al abrir**. `subcontratos` es fuente de escritura. El listado incluye vencimientos F30, F30-1, cotizaciones y seguro como indicadores compactos con estado y días restantes/vencidos. |
+| Fase 6 · Contratistas | `ConveniosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper `ModuleWorkspacePage`. Recupera layout HTML **KPIs → filtros → tabla de empresa / contrato-convenio / OC / vigencia**. `convenios` es fuente canónica; lectura legacy desde datos históricos de `subcontratos` cuando corresponde. |
+| Fase 6 · Contratistas | `PersonalEmpresaServiciosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Usa `personalContratista` como relación Empresa ↔ Persona y mantiene `trabajadores` como dueño de la Persona. Layout con KPIs, filtros y tabla Empresa / Persona / Cargo / Habilitación / Restricción, con navegación a ficha de Persona. |
+| Fase 6 · Contratistas | `HabilitacionesCumplimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Recupera layout HTML centrado en **Empresa / Base documental / Pendientes / Estado / Revisión**. `habilitaciones` mantiene requisitos laborales, previsionales, seguridad, seguros y exigencias del cliente, con avance documental y fallback visual legacy. |
+| Fase 6 · Contratistas | `EvaluacionDesempenoPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza wrapper genérico. Recupera matriz HTML por empresa con notas 1–5 para **Cumplimiento / Seguridad / Calidad-servicio**, resultado consolidado y clasificación. `evaluaciones` es la fuente especializada; datos legacy de `subcontratos` solo sirven como fallback inicial. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
-## Cierre Fase 1 · Capital Humano
+## Cierres de fases
 
-**Estado:** CERRADA  
+### Fase 1 · Capital Humano — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-Cobertura: Personas, Turnos, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos.
+Cobertura: Personas, Turnos, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos. EPP recuperó sus tres vistas históricas; Formación y Exámenes incorporaron contexto Cliente → Contrato → OS y se mantuvieron las fuentes canónicas definidas.
 
-La revisión final contra el HTML confirmó que Personas y Turnos ya mantenían o mejoraban el patrón histórico. EPP recuperó su arquitectura de tres vistas y orientación a personas. Formación y Exámenes recuperaron el contexto comercial/operacional Cliente → Contrato → OS sin duplicar esas relaciones dentro de sus registros. Formación compactó la toolbar para respetar la densidad del Design System; Restringidos permanece con búsqueda + Estado por no requerir filtros adicionales.
-
-## Cierre Fase 2 · Clientes
-
-**Estado:** CERRADA  
+### Fase 2 · Clientes — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-La revisión final modificó el layout respecto del cierre preliminar. La vista raíz ya no usa lista lateral + ficha permanente ni selecciona automáticamente el primer registro. El patrón definitivo recuperado desde el HTML es:
+Layout definitivo: `Filtros → Grid de clientes → Ficha 360 al abrir`. `state.minas` sigue como fuente canónica de escritura; `state.clientes` queda como fallback.
 
-`Filtros → Grid de clientes → Ficha 360 al abrir`
-
-Se conservan los campos, contactos, requisitos, validaciones y relaciones modernas. `state.minas` sigue como fuente canónica de escritura; `state.clientes` permanece como fallback de lectura. Las acciones de creación globales permanecen exclusivamente en Header.
-
-## Cierre Fase 3 · Contratos
-
-**Estado:** CERRADA  
+### Fase 3 · Contratos — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-El layout definitivo recupera el patrón tabular del HTML:
+Layout definitivo: `Filtros / KPIs → Tabla global → Ficha al abrir`. Se mantienen Cliente por `minaId`, OS por `contratoId` y documentación contractual.
 
-`Filtros / KPIs → Tabla global de contratos → Ficha al abrir`
-
-Se mantienen vigencia, responsable, estado, documento contractual, Cliente mediante `minaId`, OS mediante `contratoId` y navegación entre entidades. Firma Digital/plantillas contractuales legacy no se reactivan en esta fase. `+ Contrato` permanece en Header.
-
-## Cierre Fase 4 · Órdenes de servicio
-
-**Estado:** CERRADA  
+### Fase 4 · Órdenes de servicio — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-El layout definitivo recupera:
+Layout definitivo: `Filtros → Cards de OS → Ficha operacional al abrir`. `mantenciones` continúa como fuente canónica; `proyectos` como fallback legacy; personas por `asignaciones.mantId`.
 
-`Filtros → Cards de OS → Ficha operacional al abrir`
-
-La implementación React conserva requisitos, Cliente/Contrato, preparación de personas, asignaciones, recursos, alojamientos/estadías, evidencia y cierre. La ficha extensa dispone de scroll vertical propio y encabezado sticky. `mantenciones` continúa como fuente canónica; `proyectos` como fallback legacy; personas por `asignaciones.mantId`. `+ Orden de servicio` permanece en Header.
-
-## Cierre Fase 5 · Gestión Operacional
-
-**Estado:** CERRADA  
+### Fase 5 · Gestión Operacional — CERRADA
 **Fecha:** 10 de septiembre de 2026
 
-### Comunicaciones y convocatorias
-Especialización completada con contexto OS, personas/elegibilidad, seguimiento y KPIs derivados del estado actual. El módulo no se convierte en mensajería genérica: su propósito es la coordinación operacional trazable.
+Comunicaciones, Flota, Alojamientos/estadías y Credenciales quedaron especializados, contrastados con su origen y alineados al Design System.
 
-### Flota y equipos móviles
-`VehiculosPage.jsx` trabaja con `state.vehiculos` y recupera el layout tabular original. Administra identificación, disponibilidad, propiedad/arriendo, operador, Cliente/faena y OS. `inventoryItems` no absorbe Flota en esta fase.
+### Fase 6 · Contratistas — CERRADA
+**Fecha:** 10 de septiembre de 2026
 
-### Alojamientos y estadías
-`AlojamientosPage.jsx` utiliza `state.hoteles` como catálogo y `state.hotelAsig` como dueño de las estadías. Recupera cards de alojamiento y tabla global de asignaciones; Persona, Cliente y OS son navegables y no se duplican datos en sus entidades.
+La fase queda cerrada con sus cinco módulos especializados:
 
-### Credenciales de acceso
-`CredencialesPage.jsx` reemplaza el wrapper genérico y recupera filtros, KPIs, tabla global y ficha bajo demanda. Administra número de pase, emisión, vencimiento, zona, campamento, observación y respaldo existente. La relación se mantiene con Persona mediante `trabId` y Cliente/faena mediante `minaId`.
+1. **Terceros y subcontratos:** `TercerosSubcontratosPage.jsx` recupera el layout tabular del HTML, ficha bajo demanda y control visual de vencimientos F30, F30-1, cotizaciones y seguro. `subcontratos` mantiene ownership de la empresa colaboradora.
+2. **Contratos y convenios:** `ConveniosPage.jsx` administra contratos, convenios y órdenes de compra de terceros sobre `convenios`, vinculados a `subcontratoId`.
+3. **Personal del contratista:** `PersonalEmpresaServiciosPage.jsx` administra únicamente la relación Empresa ↔ Persona mediante `personalContratista`; la ficha y capacidades de la Persona permanecen en `trabajadores`.
+4. **Habilitaciones y cumplimiento:** `HabilitacionesCumplimientoPage.jsx` gestiona base documental, pendientes, requisitos y estado mediante `habilitaciones`.
+5. **Evaluación de desempeño:** `EvaluacionDesempenoPage.jsx` recupera la matriz de notas del HTML y guarda la evaluación especializada en `evaluaciones`.
 
-**Resultado:** los cuatro submódulos de Gestión Operacional están especializados y validados. Fase 5 se considera cerrada.
+**Resultado:** Fase 6 cerrada sin duplicar Persona, Contrato ni datos de cumplimiento. Las relaciones se almacenan en sus módulos dueños y se presentan de forma contextual desde Contratistas.
 
 ## Correcciones transversales registradas
 
@@ -125,10 +109,10 @@ Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderi
 | --- | --- |
 | `ModuleWorkspacePage.jsx` | Wrapper/orquestación genérica utilizada como referencia para recuperar configuración y layout de origen. |
 | `PrivateModulePage.jsx` | CRUD genérico legacy; referencia de campos, relaciones, permisos y evidencia. |
-| `OperationalWorkspacePage.jsx` | Orquestador legacy de OS; referencia del flujo Crear → Requisitos → Recursos → Cierre. |
+| `OperationalWorkspacePage.jsx` | Orquestador legacy; referencia de flujos históricos de módulos operacionales y Terceros. |
 
 Estas piezas no son fuentes funcionales de los módulos especializados.
 
 ## Próximo punto
 
-Con Fases 0–5 cerradas, el siguiente bloque de migración es **Fase 6 · Contratistas**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
+Con Fases 0–6 cerradas, el siguiente bloque es **Fase 7 · Cumplimiento**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
