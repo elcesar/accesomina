@@ -1,4 +1,4 @@
-.nk-contract-page{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6)}
+.nk-contract-page{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6);background:var(--bg)}
 .nk-contract-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
 .nk-contract-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem);font-weight:var(--weight-bold);line-height:var(--leading-tight)}
 .nk-contract-header>div:first-child>p:last-child{max-width:760px;margin:.35rem 0 0;color:var(--mut)}
