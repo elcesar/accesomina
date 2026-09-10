@@ -64,7 +64,7 @@
 }
 
 .nk-page-title,
-.nk-app-main h1 {
+.nk-app-main[data-page-domain] h1 {
   margin-top: 0;
   font-family: var(--font-brand);
   font-size: var(--text-3xl);
@@ -73,9 +73,11 @@
   color: var(--ink);
 }
 
-/* El estándar prevalece sobre tamaños locales históricos. */
-.nk-app-main .nk-page-title,
-.nk-app-main h1 {
+/*
+ * La combinación clase + atributo tiene mayor especificidad que los
+ * selectores históricos de módulo y evita que cada CSS local cambie el H1.
+ */
+.nk-app-main[data-page-domain] h1 {
   font-size: var(--text-3xl);
   font-family: var(--font-brand);
   font-weight: var(--weight-bold);
