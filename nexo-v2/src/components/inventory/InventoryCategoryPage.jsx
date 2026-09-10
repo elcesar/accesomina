@@ -19,6 +19,14 @@ function stockState(item) {
   return Number(item.stock || 0) <= Number(item.minStock || 0) ? 'Reponer' : 'Disponible'
 }
 
+function machineryState(item, activeAssignments) {
+  const status = String(item.status || '').toLowerCase()
+  if (['mantenimiento', 'mantencion', 'fuera_servicio', 'fuera de servicio'].includes(status)) return 'Mantenimiento'
+  if (activeAssignments.length) return 'Asignada'
+  if (['inactivo', 'baja', 'no_disponible'].includes(status)) return 'No disponible'
+  return 'Disponible'
+}
+
 function emptyItem(category, type) {
   return {
     id: '', name: '', code: '', serie: '', type, category,
@@ -51,29 +59,44 @@ export default function InventoryCategoryPage({ category, title, description, si
   const versions = response?.moduleVersions || {}
   const allItems = rows(state.inventoryItems).length ? rows(state.inventoryItems) : rows(state.activos)
   const items = useMemo(() => allItems.filter(item => categoryOf(item) === category), [allItems, category])
+  const maintenancePlans = rows(state.assetMaintenancePlans)
   const maintenances = rows(state.mantenimientos)
-  const assignments = rows(state.asignacionesActivos).length ? rows(state.asignacionesActivos) : rows(state.prestamos)
+  const movementAssignments = rows(state.inventoryMovements).filter(row => row.type === 'prestamo' && !['devuelto', 'cerrado', 'cancelado'].includes(String(row.status || '').toLowerCase()))
+  const legacyAssignments = rows(state.asignacionesActivos).length ? rows(state.asignacionesActivos) : rows(state.prestamos)
+  const assignments = movementAssignments.length ? movementAssignments : legacyAssignments
   const eppDeliveries = rows(state.eppEntregas)
+
+  const assignmentFor = item => assignments.filter(row => String(row.itemId || row.assetId) === String(item.id) && !['devuelto', 'cerrado', 'cancelado'].includes(String(row.status || '').toLowerCase()))
 
   const filtered = useMemo(() => items.filter(item => {
     const term = query.trim().toLowerCase()
     const searchable = [item.name, item.code, item.serie, item.serial, item.type, item.location, item.custodian, item.certificate, item.size]
-    return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) && (!statusFilter || stockState(item) === statusFilter)
-  }), [items, query, statusFilter])
+    const activeAssignments = assignmentFor(item)
+    const stateLabel = focus === 'machinery' ? machineryState(item, activeAssignments) : stockState(item)
+    return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) && (!statusFilter || stateLabel === statusFilter)
+  }), [items, query, statusFilter, assignments, focus])
 
   const summary = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
     const low = items.filter(item => stockState(item) === 'Reponer').length
-    const assigned = assignments.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'devuelto').length
+    const assigned = assignments.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && !['devuelto', 'cerrado', 'cancelado'].includes(String(row.status || '').toLowerCase())).length
     const due = focus === 'equipment'
-      ? items.filter(item => item.calibrationDue && item.calibrationDue <= new Date().toISOString().slice(0, 10)).length
+      ? items.filter(item => item.calibrationDue && item.calibrationDue <= today).length
       : focus === 'epp'
-        ? items.filter(item => item.expiryDate && item.expiryDate <= new Date().toISOString().slice(0, 10)).length
-        : maintenances.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'completado').length
+        ? items.filter(item => item.expiryDate && item.expiryDate <= today).length
+        : focus === 'machinery'
+          ? items.filter(item => {
+              const plan = maintenancePlans.find(row => String(row.assetId || row.itemId) === String(item.id))
+              const date = plan?.nextDate || plan?.nextMaintenance || item.nextMaintenance
+              return date && date <= today
+            }).length
+          : maintenances.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'completado').length
     const delivered = focus === 'epp'
       ? eppDeliveries.filter(row => items.some(item => String(item.id) === String(row.itemId || row.eppId))).length
       : assigned
-    return { total: items.length, low, assigned: delivered, due }
-  }, [items, assignments, maintenances, eppDeliveries, focus])
+    const available = focus === 'machinery' ? items.filter(item => machineryState(item, assignmentFor(item)) === 'Disponible').length : 0
+    return { total: items.length, low, assigned: delivered, due, available }
+  }, [items, assignments, maintenancePlans, maintenances, eppDeliveries, focus])
 
   async function saveItem() {
     if (!form.name.trim()) { setError(`Ingresa el nombre de ${singular.toLowerCase()}.`); return }
@@ -104,16 +127,23 @@ export default function InventoryCategoryPage({ category, title, description, si
   const fourthKpiLabel = focus === 'equipment' ? 'Calibraciones vencidas' : focus === 'epp' ? 'Vida útil / vencidos' : 'Mantenimientos pendientes'
   const thirdKpiLabel = focus === 'epp' ? 'Entregas registradas' : 'Asignados / prestados'
   const lastColumnLabel = focus === 'equipment' ? 'Calibración / custodia' : focus === 'tools' ? 'Asignación / devolución' : focus === 'epp' ? 'Talla / vida útil' : 'Mantenimiento / estado'
+  const actionLabel = focus === 'epp' ? 'Agregar EPP' : `Agregar ${singular.toLowerCase()}`
 
-  return <div className="nk-invcat-page">
-    <header className="nk-invcat-header"><div><h1>{title}</h1><p>{description}</p></div><div className="nk-invcat-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nueva {singular.toLowerCase()}</button></div></header>
+  return <div className={`nk-invcat-page nk-invcat-page--${focus}`}>
+    <header className="nk-invcat-header"><div><h1 className="nk-page-title">{title}</h1><p className="nk-page-description">{description}</p></div><div className="nk-invcat-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> {actionLabel}</button></div></header>
     {error && <div className="nk-invcat-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
-    <section className="nk-card nk-invcat-filters"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Buscar ${singular.toLowerCase()}, código, serie o ubicación...`}/></label><select className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></select></section>
-    <section className="nk-invcat-kpis"><article><strong>{summary.total}</strong><span>Registrados</span></article><article><strong>{summary.low}</strong><span>Requieren reposición</span></article><article><strong>{summary.assigned}</strong><span>{thirdKpiLabel}</span></article><article><strong>{summary.due}</strong><span>{fourthKpiLabel}</span></article></section>
-    <section className="nk-card nk-invcat-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-invcat-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock</th><th>Mínimo</th><th>Bodega / ubicación</th><th>{lastColumnLabel}</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(item=>{
-      const activeAssignments = assignments.filter(row => String(row.itemId || row.assetId) === String(item.id) && row.status !== 'devuelto')
+    <section className="nk-card nk-invcat-filters"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Buscar ${singular.toLowerCase()}, código, serie o ubicación...`}/></label><select className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>{focus === 'machinery' ? <><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Asignada">Asignada</option><option value="Mantenimiento">Mantenimiento</option><option value="No disponible">No disponible</option></> : <><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></>}</select></section>
+    {focus === 'machinery' ? <section className="nk-invcat-kpis"><article><strong>{summary.total}</strong><span>Maquinarias registradas</span></article><article><strong>{summary.available}</strong><span>Disponibles</span></article><article><strong>{summary.assigned}</strong><span>Asignadas / prestadas</span></article><article><strong>{summary.due}</strong><span>Mantenimiento vencido</span></article></section> : <section className="nk-invcat-kpis"><article><strong>{summary.total}</strong><span>Registrados</span></article><article><strong>{summary.low}</strong><span>Requieren reposición</span></article><article><strong>{summary.assigned}</strong><span>{thirdKpiLabel}</span></article><article><strong>{summary.due}</strong><span>{fourthKpiLabel}</span></article></section>}
+    <section className="nk-card nk-invcat-table-card"><div className="nk-table-wrapper">{focus === 'machinery' ? <table className="nk-table nk-invcat-table nk-invcat-table--machinery"><thead><tr><th>Maquinaria</th><th>Estado operativo</th><th>Asignación</th><th>Bodega / ubicación</th><th>Próx. mantenimiento</th><th>Stock</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(item=>{
+      const activeAssignments = assignmentFor(item)
+      const plan = maintenancePlans.find(row => String(row.assetId || row.itemId) === String(item.id))
+      const nextMaintenance = plan?.nextDate || plan?.nextMaintenance || item.nextMaintenance
+      const stateLabel = machineryState(item, activeAssignments)
+      return <tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serie||item.serial||item.type||'Sin código'}</small></td><td><span className={`nk-badge ${stateLabel === 'Disponible' ? 'nk-badge-ok' : stateLabel === 'Mantenimiento' || stateLabel === 'No disponible' ? 'nk-badge-error' : ''}`}>{stateLabel}</span></td><td><strong>{activeAssignments.length ? `${activeAssignments.length} asignación(es)` : 'Sin asignación'}</strong><small>{activeAssignments.length ? 'Gestionar en Asignaciones y préstamos' : 'Disponible para asignar'}</small></td><td>{item.location||'Sin ubicación definida'}</td><td><strong>{nextMaintenance || 'Sin programación'}</strong><small>{nextMaintenance && nextMaintenance <= new Date().toISOString().slice(0,10) ? 'Requiere atención' : 'Plan preventivo'}</small></td><td><strong>{Number(item.stock||0)}</strong><small>unidades</small></td></tr>
+    }):<tr><td colSpan="6" className="nk-invcat-empty">No hay maquinaria registrada.</td></tr>}</tbody></table> : <table className="nk-table nk-invcat-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock</th><th>Mínimo</th><th>Bodega / ubicación</th><th>{lastColumnLabel}</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(item=>{
+      const activeAssignments = assignmentFor(item)
       return <tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serie||item.serial||'Sin código'}</small></td><td>{item.type||defaultType}</td><td>{Number(item.stock||0)}</td><td>{Number(item.minStock||0)}</td><td>{item.location||'Bodega'}</td><td><div className="nk-invcat-state">{focus==='equipment'?<><span>{item.calibrationDue ? `Calibra: ${item.calibrationDue}` : 'Sin fecha calibración'}</span><small>{item.custodian||item.certificate||'Sin custodia/certificado'}</small></>:focus==='tools'?<><span>{activeAssignments.length ? `${activeAssignments.length} asignada(s)` : 'Disponible en bodega'}</span><small>{activeAssignments.length ? 'Pendiente devolución / cierre' : <span className={`nk-badge ${stockState(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{stockState(item)}</span>}</small></>:focus==='epp'?<><span>{item.size ? `Talla: ${item.size}` : 'Sin talla definida'}</span><small>{item.expiryDate ? `Vence: ${item.expiryDate}` : item.usefulLifeMonths ? `Vida útil: ${item.usefulLifeMonths} meses` : 'Sin vida útil definida'}</small></>:<><span>{item.nextMaintenance ? `Próx.: ${item.nextMaintenance}` : 'Sin mantenimiento programado'}</span><small><span className={`nk-badge ${stockState(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{stockState(item)}</span></small></>}</div></td></tr>
-    }):<tr><td colSpan="6" className="nk-invcat-empty">No hay registros en esta categoría.</td></tr>}</tbody></table></div></section>
-    {formOpen&&<section className="nk-card nk-invcat-editor"><div className="nk-invcat-editor-head"><h2>Nueva {singular.toLowerCase()}</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setFormOpen(false)}>Cerrar</button></div><div className="nk-invcat-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e=>setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}/></label><label><span>Bodega / ubicación</span><input className="nk-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label><span>Stock</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})}/></label>{focus==='equipment'?<><label><span>Próxima calibración</span><input className="nk-input" type="date" value={form.calibrationDue} onChange={e=>setForm({...form,calibrationDue:e.target.value})}/></label><label><span>Custodio</span><input className="nk-input" value={form.custodian} onChange={e=>setForm({...form,custodian:e.target.value})}/></label><label className="wide"><span>Certificado / referencia</span><input className="nk-input" value={form.certificate} onChange={e=>setForm({...form,certificate:e.target.value})}/></label></>:focus==='epp'?<><label><span>Talla</span><input className="nk-input" value={form.size} onChange={e=>setForm({...form,size:e.target.value})}/></label><label><span>Vida útil (meses)</span><input className="nk-input" type="number" min="0" value={form.usefulLifeMonths} onChange={e=>setForm({...form,usefulLifeMonths:e.target.value})}/></label><label className="wide"><span>Fecha de vencimiento</span><input className="nk-input" type="date" value={form.expiryDate} onChange={e=>setForm({...form,expiryDate:e.target.value})}/></label></>:focus==='tools'?null:<label className="wide"><span>Próximo mantenimiento</span><input className="nk-input" type="date" value={form.nextMaintenance} onChange={e=>setForm({...form,nextMaintenance:e.target.value})}/></label>}</div><div className="nk-invcat-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving}>{saving?'Guardando…':'Guardar'}</button></div></section>}
+    }):<tr><td colSpan="6" className="nk-invcat-empty">No hay registros en esta categoría.</td></tr>}</tbody></table>}</div></section>
+    {formOpen&&<section className="nk-card nk-invcat-editor"><div className="nk-invcat-editor-head"><h2>{actionLabel}</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setFormOpen(false)}>Cerrar</button></div><div className="nk-invcat-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e=>setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}/></label><label><span>Bodega / ubicación</span><input className="nk-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label><span>Stock</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})}/></label>{focus==='equipment'?<><label><span>Próxima calibración</span><input className="nk-input" type="date" value={form.calibrationDue} onChange={e=>setForm({...form,calibrationDue:e.target.value})}/></label><label><span>Custodio</span><input className="nk-input" value={form.custodian} onChange={e=>setForm({...form,custodian:e.target.value})}/></label><label className="wide"><span>Certificado / referencia</span><input className="nk-input" value={form.certificate} onChange={e=>setForm({...form,certificate:e.target.value})}/></label></>:focus==='epp'?<><label><span>Talla</span><input className="nk-input" value={form.size} onChange={e=>setForm({...form,size:e.target.value})}/></label><label><span>Vida útil (meses)</span><input className="nk-input" type="number" min="0" value={form.usefulLifeMonths} onChange={e=>setForm({...form,usefulLifeMonths:e.target.value})}/></label><label className="wide"><span>Fecha de vencimiento</span><input className="nk-input" type="date" value={form.expiryDate} onChange={e=>setForm({...form,expiryDate:e.target.value})}/></label></>:focus==='tools'?null:<label className="wide"><span>Próximo mantenimiento</span><input className="nk-input" type="date" value={form.nextMaintenance} onChange={e=>setForm({...form,nextMaintenance:e.target.value})}/></label>}</div><div className="nk-invcat-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving}>{saving?'Guardando…':'Guardar'}</button></div></section>}
   </div>
 }
