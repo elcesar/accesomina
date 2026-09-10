@@ -74,6 +74,19 @@ La propuesta de layout se conserva como listado de contratos a la izquierda y fi
 
 No se incorporó flujo de firmas en esta fase; la gestión de firma asociada a Libro de Obra permanece despriorizada para la etapa final según la secuencia acordada.
 
+## Cierre de Fase 4 · Órdenes de servicio
+
+**Estado:** CERRADA  
+**Fecha de cierre:** 10 de septiembre de 2026
+
+La Fase 4 queda formalmente cerrada después de contrastar `OrdenesServicioPage.jsx` con su origen legacy y completar la validación funcional y visual de la pantalla especializada en producción.
+
+`state.mantenciones` se mantiene como fuente canónica de escritura para Órdenes de servicio mientras `state.proyectos` permanece únicamente como fallback legacy de lectura. Las asignaciones de personas continúan relacionadas mediante `asignaciones.mantId`, preservando las dependencias actuales con Turnos y otros módulos operacionales.
+
+La implementación especializada conserva y amplía el flujo de origen `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`, integrando Cliente mediante `minaId`, Contrato mediante `contratoId`, requisitos del cliente, preparación de personas desde Capital Humano, recursos vinculados y observación obligatoria de cierre. También se restituyó la evidencia documental contemplada por la arquitectura legacy mediante carga, descarga y reemplazo de documentos asociados a la orden.
+
+La validación final confirma que no quedan brechas relevantes para mantener abierta la fase. La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
+
 ## Corrección transversal · Creación desde Header
 
 **Fecha:** 10 de septiembre de 2026
@@ -180,15 +193,15 @@ La revisión de Fase 4 confirmó el siguiente origen:
 
 `OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `ordenes-servicio`.
 
-El orquestador legacy trabajaba conceptualmente con `proyectos`, `mantenciones` y `asignaciones`; definía las etapas `Crear orden`, `Completar requisitos`, `Asignar recursos` y `Registrar cierre`, detectaba registros pendientes y delegaba el CRUD genérico a `PrivateModulePage.jsx`. El catálogo ya definía `mantenciones` como `writeKey` del módulo. El diálogo genérico permitía registrar nombre, detalle, responsable, vínculo, estado y evidencia opcional.
+La referencia era un wrapper que delegaba en un orquestador operacional. Para Órdenes de servicio, ese orquestador utilizaba `proyectos`, `mantenciones` y `asignaciones`, exponía visión general y pendientes y definía las etapas `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`. El CRUD genérico subyacente contemplaba además evidencia opcional asociada al registro.
 
-La página especializada actual conserva y amplía ese flujo. `state.mantenciones` es la fuente canónica y clave de escritura, mientras `state.proyectos` se mantiene como fallback legacy de lectura cuando la fuente canónica no está disponible. `state.asignaciones` conserva la relación persona–orden mediante `mantId`.
+La implementación especializada actual utiliza `mantenciones` como fuente canónica de escritura y conserva `proyectos` únicamente como fallback legacy de lectura. `asignaciones` continúa siendo la fuente de relación de personas mediante `mantId`, evitando crear un modelo paralelo y preservando compatibilidad con Turnos y otros consumidores existentes.
 
 La implementación especializada administra Cliente y Contrato de forma estructurada mediante `minaId` y `contratoId`, valida que el contrato pertenezca al cliente seleccionado, incorpora responsables, fechas, estado y observación obligatoria de cierre, y consume requisitos del cliente, personas, restricciones, formación, exámenes, salud ocupacional, EPP, inventario y vehículos para construir la preparación operacional sin crear fuentes paralelas.
 
 Durante la revisión se detectó que la arquitectura legacy contemplaba evidencia y la página especializada no la exponía. Se restituyó esta capacidad mediante carga a `/api/files` como `order_document`, guardando `fileId`, `archivo`, `archivoTipo`, `archivoTamano` y `archivoFecha` en la orden. También se incorporó descarga y reemplazo de la evidencia, con validación de formatos y tamaño máximo de 25 MB.
 
-La Fase 4 permanece abierta hasta completar la validación visual/final de la pantalla especializada.
+La validación funcional y visual final fue completada satisfactoriamente, por lo que Fase 4 queda cerrada.
 
 ## Seguimiento
 
