@@ -22,6 +22,8 @@ function normalizeInventoryState(state){
   const items=Array.isArray(state?.inventoryItems)?state.inventoryItems:null;
   if(!items)return state;
   const locations=Array.isArray(state.inventoryLocations)?state.inventoryLocations:[];
+  const warehouses=Array.isArray(state.warehouses)&&state.warehouses.length?state.warehouses:Array.isArray(state.bodegas)?state.bodegas:[];
+  const warehouseIds=warehouses.map(warehouse=>String(warehouse?.id||'')).filter(Boolean);
   const locationWarehouse=new Map(locations.map(location=>[
     String(location?.id||''),
     String(location?.warehouseId||location?.bodegaId||location?.parentId||'')
@@ -38,8 +40,14 @@ function normalizeInventoryState(state){
 
     const legacyStock=Math.max(0,Number(item.stock||0));
     let warehouseId=String(item.warehouseId||'');
+    const hasMappedWarehouse=Boolean(warehouseId||Object.keys(stockByLocation).length);
     if(!Object.keys(stockByLocation).length&&warehouseId&&legacyStock>0){
       stockByLocation[warehouseId]=legacyStock;
+    }
+    if(hasMappedWarehouse){
+      for(const id of warehouseIds){
+        if(!Object.prototype.hasOwnProperty.call(stockByLocation,id))stockByLocation[id]=0;
+      }
     }
 
     const positiveWarehouses=Object.entries(stockByLocation).filter(([,qty])=>Number(qty)>0);
