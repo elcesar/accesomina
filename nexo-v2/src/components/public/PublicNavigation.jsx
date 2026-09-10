@@ -25,20 +25,6 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
           <BrandLogo claim={false} className="nk-public-logo" />
         </button>
 
-        <div className="nk-public-actions nk-public-nav-links" aria-label="Secciones del sitio">
-          {publicSections.map(([id, label]) => (
-            <button
-              key={id}
-              className={`nk-button nk-button-quiet ${active === id ? 'is-active' : ''}`}
-              type="button"
-              aria-current={active === id ? 'page' : undefined}
-              onClick={() => onNavigate?.(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
         <div className="nk-public-actions nk-public-nav-cta">
           <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.cl">
             contacto@nexoklar.cl
@@ -54,7 +40,7 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
         </div>
       </nav>
 
-      <nav className="nk-public-mobile-tabs" aria-label="Secciones del sitio">
+      <nav className="nk-public-section-tabs" aria-label="Secciones del sitio">
         {publicSections.map(([id, label]) => (
           <button
             key={id}
