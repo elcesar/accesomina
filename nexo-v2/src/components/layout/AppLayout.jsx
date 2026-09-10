@@ -35,6 +35,13 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/modulos/evaluacion-desempeno')
   ) return 'Contratistas'
 
+  if (
+    pathname.startsWith('/app/acreditacion-empresa') ||
+    pathname.startsWith('/app/acreditacion-mandante') ||
+    pathname.startsWith('/app/incidentes') ||
+    pathname.startsWith('/app/auditoria')
+  ) return 'Cumplimiento y Calidad'
+
   return ''
 }
 
