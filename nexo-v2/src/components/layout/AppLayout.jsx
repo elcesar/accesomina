@@ -7,7 +7,7 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/trabajadores') ||
     pathname.startsWith('/app/turnos') ||
     pathname.startsWith('/app/epp') ||
-    pathname.startsWith('/app/formacion') ||
+    pathname.startsWith('/app/cursos') ||
     pathname.startsWith('/app/examenes') ||
     pathname.startsWith('/app/salud') ||
     pathname.startsWith('/app/bloqueados')
@@ -18,6 +18,12 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/contratos') ||
     pathname.startsWith('/app/servicios')
   ) return 'Relación Comercial'
+
+  if (
+    pathname.startsWith('/app/llamados') ||
+    pathname.startsWith('/app/comunicaciones') ||
+    pathname.startsWith('/app/vehiculos')
+  ) return 'Gestión Operacional'
 
   return ''
 }
@@ -36,6 +42,7 @@ export default function AppLayout() {
           data-page-domain={domain || undefined}
           style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}
         >
+          {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
           <Outlet />
         </main>
       </div>
