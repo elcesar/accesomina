@@ -43,6 +43,12 @@ function pageDomain(pathname) {
   ) return 'Cumplimiento y Calidad'
 
   if (
+    pathname.startsWith('/app/oportunidades') ||
+    pathname.startsWith('/app/modulos/prospectos') ||
+    pathname.startsWith('/app/libro-obra')
+  ) return 'Gestión de Proyectos y Negocios'
+
+  if (
     pathname.startsWith('/app/activos-inventario') ||
     pathname.startsWith('/app/maquinaria') ||
     pathname.startsWith('/app/equipos-instrumentos') ||
