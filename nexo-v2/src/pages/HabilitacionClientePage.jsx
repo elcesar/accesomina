@@ -29,9 +29,40 @@ export default function HabilitacionClientePage(){
   },[clients,workers,vehicles,orders,records,state.empresa])
   const filtered=derived.filter(r=>(!clientFilter||r.minaId===clientFilter)&&(!typeFilter||r.tipo===typeFilter)&&(!statusFilter||r.rec.estado===statusFilter))
   const approved=filtered.filter(r=>['aprobado','pase_emitido'].includes(r.rec.estado)).length, pct=filtered.length?Math.round(approved/filtered.length*100):0
-  async function patch(rec,patch){
-    try{const nextRec={...rec,...patch,updatedAt:new Date().toISOString()};const next=records.some(r=>r.id===rec.id)?records.map(r=>r.id===rec.id?nextRec:r):[nextRec,...records];const result=await api.put('/state/modules',{reason:`Habilitación cliente actualizada: ${nextRec.id}`,changes:{acreditacionesMandante:{version:Number(versions.acreditacionesMandante||0),data:next}}});setResponse(cur=>({...cur,state:{...(cur?.state||state),acreditacionesMandante:next},moduleVersions:{...(cur?.moduleVersions||versions),...(result?.moduleVersions||{})}}))}catch(e){setError(e.message||'No fue posible guardar la acreditación.')}
+
+  async function patch(rec,patchData){
+    const nextRec={...rec,...patchData,updatedAt:new Date().toISOString()}
+    const previousRecords=records
+    const next=records.some(r=>r.id===rec.id)?records.map(r=>r.id===rec.id?nextRec:r):[nextRec,...records]
+
+    // Actualización optimista: la grilla refleja el cambio inmediatamente.
+    setResponse(cur=>{
+      const currentState=cur?.state||cur||{}
+      if(cur?.state){
+        return {...cur,state:{...currentState,acreditacionesMandante:next}}
+      }
+      return {...currentState,acreditacionesMandante:next}
+    })
+    setError('')
+
+    try{
+      const result=await api.put('/state/modules',{reason:`Habilitación cliente actualizada: ${nextRec.id}`,changes:{acreditacionesMandante:{version:Number(versions.acreditacionesMandante||0),data:next}}})
+      if(result?.moduleVersions){
+        setResponse(cur=>cur?.state?{...cur,moduleVersions:{...(cur.moduleVersions||versions),...result.moduleVersions}}:cur)
+      }
+    }catch(e){
+      // Si falla la persistencia, restaurar el valor previo para no mostrar un estado no guardado.
+      setResponse(cur=>{
+        const currentState=cur?.state||cur||{}
+        if(cur?.state){
+          return {...cur,state:{...currentState,acreditacionesMandante:previousRecords}}
+        }
+        return {...currentState,acreditacionesMandante:previousRecords}
+      })
+      setError(e.message||'No fue posible guardar la acreditación.')
+    }
   }
+
   function chooseFile(rec){uploadRef.current=rec;fileRef.current?.click()}
   function onFile(e){const f=e.target.files?.[0],rec=uploadRef.current;if(f&&rec)patch(rec,{evidenceName:f.name,evidenceUrl:''});e.target.value='';uploadRef.current=null}
   return <div className="nk-clientreq-page">
