@@ -93,7 +93,9 @@ export default function App() {
             <Route path="activos-inventario" element={<ActivosInventarioPage />} />
             <Route path="modulos/activos-inventario" element={<Navigate to="/app/activos-inventario" replace />} />
             <Route path="maquinaria" element={<MaquinariaPage />} />
+            <Route path="modulos/maquinaria" element={<Navigate to="/app/maquinaria" replace />} />
             <Route path="equipos-instrumentos" element={<EquiposInstrumentosPage />} />
+            <Route path="modulos/equipos-instrumentos" element={<Navigate to="/app/equipos-instrumentos" replace />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
