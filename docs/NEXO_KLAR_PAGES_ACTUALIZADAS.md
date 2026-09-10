@@ -30,7 +30,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `TurnosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `TurnosAsistenciaPage.jsx` y el flujo genérico `TurnosAsistenciaPage → ModuleWorkspacePage → PrivateModulePage`. `turnos` queda como fuente canónica y la asistencia como atributo de la jornada. |
 | Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `FormacionPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Nuevos cursos y certificaciones se consolidan en `trabajadores[].workerItems`; `state.cursos` queda como lectura legacy. |
 | Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ExamenesPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Los nuevos exámenes se consolidan en `trabajadores[].workerItems`; `state.examenes` queda como lectura legacy. Se incorporó evidencia documental asociada a la persona. |
-| Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada | Módulo especializado de salud ocupacional. |
+| Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `SaludOcupacionalPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `protocolosSalud` es la fuente canónica y se incorporó evidencia documental asociada a la persona. |
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada | Módulo especializado de personas restringidas. |
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada | Módulo especializado de protección personal / EPP. |
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada | Módulo especializado de clientes; mantiene compatibilidad con la fuente estructural actual. |
@@ -74,6 +74,18 @@ La página anterior era un wrapper hacia la experiencia genérica. La implementa
 Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `examen`; `state.examenes` se conserva como fuente legacy de solo lectura y se evita duplicar registros ya consolidados en la persona.
 
 Como parte de la revisión se identificó la ausencia de respaldo documental en la página especializada. Se incorporó carga de evidencia mediante `/api/files`, asociada como `worker_document` a la persona, guardando `fileId`, `fileName`, `fileType` y `fileSize` dentro del registro de examen. La tabla de Exámenes muestra además la evidencia registrada.
+
+## Trazabilidad específica · Salud Ocupacional
+
+La revisión del módulo de Salud Ocupacional confirmó el siguiente origen:
+
+`SaludOcupacionalPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `salud-ocupacional`.
+
+La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual separa Salud Ocupacional de los exámenes de aptitud y administra protocolos y seguimientos asociados a persona, riesgo o exposición, responsable y estado.
+
+La fuente canónica actual es `state.protocolosSalud`. Los registros se vinculan directamente con `trabajadores` mediante `workerId` y permiten navegar desde el seguimiento hacia la ficha de la persona.
+
+Como parte de la revisión se incorporó respaldo documental al flujo. La evidencia se carga mediante `/api/files`, asociada como `worker_document` a la persona, y el protocolo guarda `fileId`, `fileName`, `fileType` y `fileSize`. La tabla de Salud Ocupacional muestra además la evidencia registrada.
 
 ## Seguimiento
 
