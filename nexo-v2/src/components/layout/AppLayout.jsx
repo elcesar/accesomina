@@ -27,6 +27,14 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/credenciales')
   ) return 'Gestión Operacional'
 
+  if (
+    pathname.startsWith('/app/subcontratos') ||
+    pathname.startsWith('/app/modulos/contratos-convenios') ||
+    pathname.startsWith('/app/modulos/personal-empresa-servicios') ||
+    pathname.startsWith('/app/modulos/habilitaciones-cumplimiento') ||
+    pathname.startsWith('/app/modulos/evaluacion-desempeno')
+  ) return 'Contratistas'
+
   return ''
 }
 
