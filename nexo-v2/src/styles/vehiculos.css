@@ -1,4 +1,4 @@
-.nk-fleet-page{display:grid;gap:var(--space-6)}
+.nk-fleet-page{display:grid;gap:var(--space-6);padding:var(--space-5) var(--page-padding);background:var(--bg)}
 .nk-fleet-header,.nk-fleet-workspace-head,.nk-fleet-list-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
 .nk-fleet-header h1,.nk-fleet-workspace-head h2{margin:0;color:var(--ink)}
 .nk-fleet-header p,.nk-fleet-workspace-head p{margin:var(--space-1) 0 0;color:var(--mut)}
