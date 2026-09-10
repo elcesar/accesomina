@@ -39,6 +39,31 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
 
+## Cierre de Fase 1 · Capital Humano
+
+**Estado:** CERRADA  
+**Fecha de cierre:** 10 de septiembre de 2026
+
+La Fase 1 queda formalmente cerrada con cobertura funcional y trazabilidad de Personas, Turnos y asistencia, Protección EPP, Formación, Exámenes, Salud Ocupacional y Restringidos. Personas se documenta además mediante sus páginas especializadas de listado, alta y ficha.
+
+Durante el cierre se contrastaron las páginas especializadas con sus referencias y flujos de origen, se identificaron las fuentes canónicas y legacy relevantes y se confirmó que los wrappers genéricos no deben convertirse en nuevas fuentes de verdad. Las diferencias funcionales detectadas se resolvieron dentro del módulo dueño correspondiente, manteniendo la arquitectura React de producción y el Design System vigente.
+
+## Infraestructura legacy / origen común revisado
+
+Esta sección registra infraestructura de referencia utilizada para reconstruir el origen de páginas reemplazadas. Estos archivos **no se consideran módulos funcionales de Fase 1 ni se agregan a la tabla principal de Pages actualizadas**.
+
+| Archivo / infraestructura | Estado | Rol en la migración |
+| --- | --- | --- |
+| `ModuleWorkspacePage.jsx` | Revisado · Infraestructura legacy | Wrapper que resuelve el módulo solicitado y delega la experiencia a la infraestructura genérica. Forma parte del origen común de Turnos, Formación, Exámenes, Salud Ocupacional, EPP y Restringidos. |
+| `PrivateModulePage.jsx` | Revisado · Infraestructura legacy | Implementación CRUD genérica utilizada por los wrappers de referencia. Se revisó para recuperar campos, relaciones, permisos y comportamiento de origen, pero no se adopta como fuente funcional de los módulos especializados. |
+| `OperationalWorkspacePage.jsx` | Pendiente de revisión | Infraestructura/orquestador de referencia asociada a módulos operacionales. Se revisará cuando corresponda a la fase funcional que dependa de ella. |
+
+La cadena legacy común validada para varios módulos de Capital Humano es:
+
+`Page legacy` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración del módulo.
+
+La especialización actual reemplaza esa experiencia genérica cuando existe una página funcional dedicada, conservando únicamente las reglas y relaciones de origen que siguen siendo válidas.
+
 ## Trazabilidad específica · Turnos y asistencia
 
 La revisión del módulo de Turnos confirmó el siguiente origen:
