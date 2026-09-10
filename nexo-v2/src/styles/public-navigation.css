@@ -1,31 +1,90 @@
 /*
  * NEXO KLAR · Navegación pública responsive
- * Mantiene una sola línea en escritorio y dos niveles en mobile.
+ * Usa dos niveles en escritorio y mobile para dar aire al logo, acceso y secciones.
  */
 
 .nk-public-header {
   position: sticky;
   top: 0;
   z-index: 60;
+  background: var(--surf);
+  border-bottom: 1px solid var(--line);
 }
 
-.nk-public-mobile-tabs {
+.nk-public-topbar {
+  position: relative;
+  top: auto;
+  z-index: auto;
+  min-height: 64px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.nk-public-nav-cta {
+  margin-left: auto;
+}
+
+.nk-public-section-tabs {
+  min-height: 48px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-inline: var(--page-padding);
+  background: var(--surf);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nk-public-section-tabs::-webkit-scrollbar {
   display: none;
 }
 
-@media (max-width: 720px) {
-  .nk-public-header {
-    background: var(--surf);
-    border-bottom: 1px solid var(--line);
-  }
+.nk-public-section-tabs button {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--mut);
+  font: var(--weight-semibold) var(--text-sm)/1 var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+}
 
+.nk-public-section-tabs button:hover {
+  color: var(--pri);
+  background: var(--surf-2);
+}
+
+.nk-public-section-tabs button.is-active {
+  color: var(--pri);
+  border-bottom-color: var(--pri);
+  background: var(--pri-light);
+}
+
+.nk-public-site main {
+  min-height: calc(100vh - 112px);
+}
+
+.nk-public-section {
+  scroll-margin-top: 112px;
+}
+
+@media (max-width: 1180px) {
+  .nk-public-section-tabs {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
   .nk-public-topbar {
-    position: relative;
-    top: auto;
-    z-index: auto;
     min-height: 58px;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--line);
+    padding-inline: var(--space-3);
   }
 
   .nk-public-brand-button {
@@ -37,54 +96,21 @@
     height: 27px;
   }
 
-  .nk-public-nav-links {
-    display: none;
-  }
-
-  .nk-public-nav-cta {
-    margin-left: auto;
-  }
-
   .nk-public-nav-cta .nk-button-quiet {
     display: none;
   }
 
-  .nk-public-mobile-tabs {
+  .nk-public-section-tabs {
     min-height: 44px;
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+    justify-content: flex-start;
     padding-inline: var(--space-2);
-    background: var(--surf);
-    scrollbar-width: none;
     scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
   }
 
-  .nk-public-mobile-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .nk-public-mobile-tabs button {
-    flex: 0 0 auto;
+  .nk-public-section-tabs button {
     min-height: 44px;
     padding: 0 var(--space-3);
-    border: 0;
-    border-bottom: 3px solid transparent;
-    background: transparent;
-    color: var(--mut);
-    font: var(--weight-semibold) var(--text-sm)/1 var(--font-ui);
-    white-space: nowrap;
-    cursor: pointer;
     scroll-snap-align: start;
-  }
-
-  .nk-public-mobile-tabs button.is-active {
-    color: var(--pri);
-    border-bottom-color: var(--pri);
-    background: var(--pri-light);
   }
 
   .nk-public-site main {
@@ -97,7 +123,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nk-public-mobile-tabs {
+  .nk-public-section-tabs {
     scroll-behavior: auto;
+  }
+
+  .nk-public-section-tabs button {
+    transition: none;
   }
 }
