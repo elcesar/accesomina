@@ -1,6 +1,6 @@
 # Nexo Klar — Mapa de módulos, dependencias y migración
 
-**Estado:** Fases 0 a 6 cerradas · próxima Fase 7  
+**Estado:** Fases 0 a 7 cerradas · próxima Fase 8  
 **Actualizado:** 10 de septiembre de 2026  
 **Objetivo:** mantener una referencia única del orden de modernización de Nexo Klar, ownership de datos, dependencias, decisiones de layout y criterios de cierre.
 
@@ -17,7 +17,8 @@
 9. **Referencia antes de rediseño.** Antes de modernizar una Page se revisa su HTML/Page/wrapper de origen para recuperar layout, campos, relaciones y flujos válidos.
 10. **Acciones globales no se duplican.** `+ Cliente`, `+ Contrato` y `+ Orden de servicio` pertenecen al Header global y no deben repetirse dentro de las páginas.
 11. **Densidad operacional media-alta.** Toolbars compactas; cuando existen muchos criterios, mantener filtros primarios visibles y secundarios bajo `Más filtros`.
-12. **Libro de Obra al final.** Bitácora/firma asociadas a ese dominio permanecen postergadas.
+12. **Grillas contenidas.** Las tablas operacionales deben intentar caber completas en una ventana de escritorio mediante anchos controlados, truncamiento y acciones compactas antes de usar scroll horizontal.
+13. **Libro de Obra al final.** Bitácora/firma asociadas a ese dominio permanecen postergadas.
 
 ## 2. Fuentes canónicas confirmadas
 
@@ -39,6 +40,10 @@
 - **Personal del contratista:** `personalContratista` como relación Empresa ↔ Persona; `trabajadores` conserva ownership de Persona.
 - **Habilitaciones de contratistas:** `habilitaciones`.
 - **Evaluación de desempeño de contratistas:** `evaluaciones`.
+- **Documentación corporativa:** `empresaDocs`; `documentosEmpresa` fallback de lectura.
+- **Habilitación del Cliente / mandante:** `acreditacionesMandante`, relacionada por `minaId`, tipo de entidad y referencia de entidad.
+- **Incidentes y no conformidades:** `incidentes`, relacionados a OS por `mantId`.
+- **Auditoría:** vista derivada; consume `trabajadores[].workerItems`, relaciones Cliente–Contrato–OS y fuentes de cumplimiento existentes, sin crear ownership documental paralelo.
 
 ## 3. Dependencia funcional principal
 
@@ -58,6 +63,10 @@ Cliente
               │     └── Evaluaciones
               ├── Recursos / inventario
               └── Cumplimiento
+                    ├── Documentación corporativa
+                    ├── Habilitación del Cliente
+                    ├── Incidentes / no conformidades
+                    └── Auditoría
 ```
 
 Las relaciones se almacenan una vez en el módulo dueño y se visualizan/navegan desde ambos extremos.
@@ -98,8 +107,20 @@ La fase quedó especializada recuperando los layouts útiles del HTML histórico
 
 **Resultado:** Fase 6 cerrada y documentada.
 
-### FASE 7 · Cumplimiento — ○ PENDIENTE
-Cumplimiento corporativo, requisitos del cliente, documentación, incidentes y auditoría sobre Cliente–Contrato–OS–Persona.
+### FASE 7 · Cumplimiento — ✓ CERRADA
+
+**Fecha de cierre:** 10 de septiembre de 2026.
+
+La fase quedó especializada recuperando los layouts útiles del HTML histórico y manteniendo fuentes de escritura separadas por responsabilidad:
+
+1. **Documentación de la Empresa — COMPLETADO.** `CumplimientoCorporativoPage.jsx` reemplaza la vista genérica de acreditación corporativa y recupera KPIs, ficha de empresa, filtros y tabla de requisitos. `empresaDocs` es canónico; `documentosEmpresa` queda solo como fallback de lectura. Incluye vigencia, observación y evidencia local/link.
+2. **Habilitación del Cliente — COMPLETADO.** `HabilitacionClientePage.jsx` reemplaza `ModuleWorkspacePage` y recupera filtros, KPIs y grilla por entidad/Cliente. `acreditacionesMandante` guarda estado, responsable, plazo, observación y evidencia. Los cambios de estado usan actualización optimista para reflejar inmediatamente estados como `Corregido`.
+3. **Incidentes y no conformidades — COMPLETADO.** `IncidentesPage.jsx` reemplaza el wrapper genérico y recupera **filtros → KPIs → tabla global → seguimiento al abrir**. `incidentes` es fuente canónica. El cierre se realiza desde seguimiento y exige evidencia/verificación. La grilla se mantiene contenida dentro del viewport con anchos y acciones compactas.
+4. **Auditoría — COMPLETADO.** `AuditoriaPage.jsx` reemplaza `OperationalWorkspacePage` y recupera la vista de control sobre personas, requisitos y habilitación operacional. Es una vista derivada sobre fuentes existentes, especialmente `trabajadores[].workerItems`, y no duplica documentación ni estados.
+
+**Regla de ownership confirmada:** Fase 7 separa documentación corporativa, habilitación del mandante, eventos de cumplimiento y auditoría. Auditoría consume fuentes existentes; no se convierte en repositorio paralelo.
+
+**Resultado:** Fase 7 cerrada y documentada.
 
 ### FASE 8 · Inventario / Activos — ○ PENDIENTE
 Activos, maquinaria, equipos, herramientas, EPP de inventario, materiales, bodegas, movimientos, mantenimiento y préstamos/asignaciones. Evaluar `inventoryItems` como dominio común.
@@ -135,7 +156,7 @@ FASE 3  Contratos                                        ✓ CERRADA
 FASE 4  Órdenes de servicio                              ✓ CERRADA
 FASE 5  Gestión Operacional                              ✓ CERRADA
 FASE 6  Contratistas                                     ✓ CERRADA
-FASE 7  Cumplimiento                                     ○ PENDIENTE
+FASE 7  Cumplimiento                                     ✓ CERRADA
 FASE 8  Inventario / Activos                             ○ PENDIENTE
 FASE 9  Prospectos + operación                           ○ PENDIENTE
 FASE 10 Gestión personal por proyecto                    ○ PENDIENTE
@@ -146,7 +167,7 @@ FASE 14 Gobierno / Administración                        ○ PENDIENTE
 FASE 15 Cierre de migración                              ○ PENDIENTE
 ```
 
-**Punto actual:** iniciar Fase 7 · Cumplimiento.
+**Punto actual:** iniciar Fase 8 · Inventario / Activos.
 
 ## 6. Criterio de cierre por fase
 
@@ -164,6 +185,7 @@ Una fase se cierra cuando corresponda y se hayan completado: referencia/origen r
 - [ ] revisar Design System antes de CSS/JSX local;
 - [ ] evitar duplicar acciones globales del Header;
 - [ ] usar toolbars compactas y `Más filtros` cuando la cantidad de controles afecte jerarquía/densidad;
+- [ ] mantener grillas operacionales dentro del viewport cuando sea razonable antes de recurrir a scroll horizontal;
 - [ ] mantener navegación entre entidades con ficha propia;
 - [ ] usar `moduleVersions` real en escrituras;
 - [ ] no eliminar fallback/wrapper mientras existan consumidores;
