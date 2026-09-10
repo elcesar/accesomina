@@ -34,15 +34,33 @@
 }
 
 /*
- * Compatibilidad transversal mientras cada Page adopta nk-page-header.
- * AppLayout renderiza explícitamente esta línea; no usar pseudo-elementos
- * porque un pseudo-elemento del H1 no puede leer atributos de su padre.
+ * El dominio se resuelve una sola vez en AppLayout a partir de la ruta,
+ * usando exactamente la agrupación visible del Sidebar. Visualmente forma
+ * parte del encabezado de la página: comparte fondo, alineación y espaciado.
  */
 .nk-app-page-domain {
   flex: 0 0 auto;
   margin: 0;
-  padding: var(--space-3) var(--page-padding) 0;
-  background: var(--surf);
+  padding: var(--space-5) var(--page-padding) 0;
+  background: var(--bg);
+}
+
+/* Evita duplicar kickers legacy en páginas que ya traían el dominio local. */
+.nk-app-main[data-page-domain] .nk-client-header .nk-client-kicker,
+.nk-app-main[data-page-domain] .nk-contract-header .nk-contract-kicker,
+.nk-app-main[data-page-domain] .nk-orders-header .nk-orders-kicker {
+  display: none;
+}
+
+/* Une visualmente el dominio centralizado con los encabezados existentes. */
+.nk-app-page-domain + .nk-people-page .nk-people-header {
+  padding-top: var(--space-1);
+}
+
+.nk-app-page-domain + .nk-client-page,
+.nk-app-page-domain + .nk-contract-page,
+.nk-app-page-domain + .nk-orders-page {
+  padding-top: var(--space-1);
 }
 
 .nk-page-title,
@@ -53,6 +71,15 @@
   font-weight: var(--weight-bold);
   line-height: var(--leading-snug);
   color: var(--ink);
+}
+
+/* El estándar prevalece sobre tamaños locales históricos. */
+.nk-app-main .nk-page-title,
+.nk-app-main h1 {
+  font-size: var(--text-3xl);
+  font-family: var(--font-brand);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
 }
 
 .nk-page-title {
