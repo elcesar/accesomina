@@ -4,8 +4,11 @@
  *
  * Regla de contenido:
  * - Línea 1 (.nk-page-domain): nombre EXACTO del grupo del Sidebar.
- * - Línea 2 (.nk-page-title): nombre EXACTO del ítem del Sidebar.
+ * - Línea 2 (.nk-page-title / h1): nombre EXACTO del ítem del Sidebar.
  * - Línea 3 (.nk-page-description): descripción funcional breve, sin claves técnicas.
+ * - El dominio se renderiza una sola vez desde AppLayout; las páginas no deben repetirlo.
+ * - Todos los H1 internos comparten tipografía, tamaño, peso y eje horizontal.
+ * - En bloques de contexto, toda entidad con ficha propia debe presentarse como enlace navegable.
  */
 
 .nk-page-header {
@@ -33,11 +36,6 @@
   text-transform: uppercase;
 }
 
-/*
- * El dominio se resuelve una sola vez en AppLayout a partir de la ruta,
- * usando exactamente la agrupación visible del Sidebar. Visualmente forma
- * parte del encabezado de la página: comparte fondo, alineación y espaciado.
- */
 .nk-app-page-domain {
   flex: 0 0 auto;
   margin: 0;
@@ -45,21 +43,23 @@
   background: var(--bg);
 }
 
-/* Evita duplicar kickers legacy en páginas que ya traían el dominio local. */
+/* Evita duplicar kickers legacy cuando AppLayout ya muestra el dominio. */
 .nk-app-main[data-page-domain] .nk-client-header .nk-client-kicker,
 .nk-app-main[data-page-domain] .nk-contract-header .nk-contract-kicker,
-.nk-app-main[data-page-domain] .nk-orders-header .nk-orders-kicker {
+.nk-app-main[data-page-domain] .nk-orders-header .nk-orders-kicker,
+.nk-app-main[data-page-domain] .nk-fleet-header .nk-fleet-kicker {
   display: none;
 }
 
-/* Une visualmente el dominio centralizado con los encabezados existentes. */
+/* Une y alinea visualmente el dominio centralizado con el encabezado local. */
 .nk-app-page-domain + .nk-people-page .nk-people-header {
   padding-top: var(--space-1);
 }
 
 .nk-app-page-domain + .nk-client-page,
 .nk-app-page-domain + .nk-contract-page,
-.nk-app-page-domain + .nk-orders-page {
+.nk-app-page-domain + .nk-orders-page,
+.nk-app-page-domain + .nk-fleet-page {
   padding-top: var(--space-1);
 }
 
@@ -73,10 +73,6 @@
   color: var(--ink);
 }
 
-/*
- * La combinación clase + atributo tiene mayor especificidad que los
- * selectores históricos de módulo y evita que cada CSS local cambie el H1.
- */
 .nk-app-main[data-page-domain] h1 {
   font-size: var(--text-3xl);
   font-family: var(--font-brand);
@@ -96,6 +92,19 @@
   font-size: var(--text-md);
   font-weight: var(--weight-regular);
   line-height: var(--leading-normal);
+}
+
+/* Regla transversal para relaciones navegables dentro de contexto operacional. */
+.nk-context-link,
+.nk-app-main [class*="context"] a {
+  color: var(--pri);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.nk-context-link:hover,
+.nk-app-main [class*="context"] a:hover {
+  text-decoration: underline;
 }
 
 .nk-page-header-actions {
