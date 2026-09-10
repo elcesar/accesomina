@@ -18,10 +18,59 @@ async function ensureModules(client,tenantId,userId=null){
 function rowsToState(rows){return Object.fromEntries(rows.map(r=>[r.module_key,r.data]));}
 function rowsToVersions(rows){return Object.fromEntries(rows.map(r=>[r.module_key,Number(r.version)]));}
 
+function normalizeInventoryState(state){
+  const items=Array.isArray(state?.inventoryItems)?state.inventoryItems:null;
+  if(!items)return state;
+  const locations=Array.isArray(state.inventoryLocations)?state.inventoryLocations:[];
+  const locationWarehouse=new Map(locations.map(location=>[
+    String(location?.id||''),
+    String(location?.warehouseId||location?.bodegaId||location?.parentId||'')
+  ]));
+  const normalizedItems=items.map(item=>{
+    if(!item||typeof item!=='object'||Array.isArray(item))return item;
+    const sourceMap=item.stockByLocation&&typeof item.stockByLocation==='object'&&!Array.isArray(item.stockByLocation)?item.stockByLocation:{};
+    const stockByLocation={};
+    for(const [warehouseId,value] of Object.entries(sourceMap)){
+      const qty=Number(value);
+      if(!warehouseId||!Number.isFinite(qty))continue;
+      stockByLocation[warehouseId]=Math.max(0,qty);
+    }
+
+    const legacyStock=Math.max(0,Number(item.stock||0));
+    let warehouseId=String(item.warehouseId||'');
+    if(!Object.keys(stockByLocation).length&&warehouseId&&legacyStock>0){
+      stockByLocation[warehouseId]=legacyStock;
+    }
+
+    const positiveWarehouses=Object.entries(stockByLocation).filter(([,qty])=>Number(qty)>0);
+    if((!warehouseId||Number(stockByLocation[warehouseId]||0)<=0)&&positiveWarehouses.length){
+      warehouseId=positiveWarehouses[0][0];
+    }
+
+    const values=Object.values(stockByLocation);
+    const stock=values.length?values.reduce((sum,value)=>sum+Number(value||0),0):legacyStock;
+    let locationId=String(item.locationId||'');
+    if(locationId){
+      const ownerWarehouse=locationWarehouse.get(locationId);
+      if(ownerWarehouse&&warehouseId&&ownerWarehouse!==warehouseId)locationId='';
+    }
+
+    return {
+      ...item,
+      stock,
+      stockByLocation,
+      warehouseId,
+      locationId,
+    };
+  });
+  return {...state,inventoryItems:normalizedItems};
+}
+
 stateRouter.get('/', async (req, res) => {
   let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1 ORDER BY module_key',[req.auth.tenantId])).rows;});
   const modulePermissions=req.auth.permissions?.modules||{};rows=rows.filter(r=>modulePermissions[r.module_key]!==false);
-  res.json({state:rowsToState(rows),moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
+  const state=normalizeInventoryState(rowsToState(rows));
+  res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
 });
 
 stateRouter.put('/modules',editors,async(req,res)=>{
@@ -38,7 +87,8 @@ stateRouter.put('/modules',editors,async(req,res)=>{
     const all=(await client.query('SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id=$1',[req.auth.tenantId])).rows;
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
     for(const key of keys){const change=changes[key];if(!change||Number(change.version)!==Number(versions[key]||0))return null;proposed[key]=change.data;}
-    const clean=validateTenantState(proposed);enforceStateScope(req.auth.role,Object.fromEntries(keys.map(k=>[k,current[k]])),Object.fromEntries(keys.map(k=>[k,clean[k]])));
+    const normalized=normalizeInventoryState(proposed);
+    const clean=validateTenantState(normalized);enforceStateScope(req.auth.role,Object.fromEntries(keys.map(k=>[k,current[k]])),Object.fromEntries(keys.map(k=>[k,clean[k]]));
     const output={};
     for(const key of keys){const previous=current[key];const row=(await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
       VALUES($1,$2,$3::jsonb,1,$4) ON CONFLICT(tenant_id,module_key) DO UPDATE SET data=EXCLUDED.data,version=tenant_module_state.version+1,updated_by=EXCLUDED.updated_by,updated_at=now()
