@@ -34,7 +34,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `RestringidosPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `restricted` mantiene el detalle de restricciones y sincroniza el estado operativo de `trabajadores`. |
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
-| Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada | Módulo especializado de contratos. |
+| Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada | Módulo especializado de órdenes de servicio y preparación operacional. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
@@ -60,6 +60,19 @@ La arquitectura funcional original se conserva: listado de clientes a la izquier
 `state.minas` se mantiene como fuente canónica estructural y clave de escritura; `state.clientes` permanece únicamente como fallback compatible de lectura. Las relaciones con contratos y órdenes de servicio continúan resolviéndose mediante `minaId`, evitando crear una fuente paralela para Clientes.
 
 La revisión funcional y visual no detectó brechas relevantes que requieran cambios adicionales antes del cierre.
+
+## Cierre de Fase 3 · Contratos
+
+**Estado:** CERRADA  
+**Fecha de cierre:** 10 de septiembre de 2026
+
+La Fase 3 queda formalmente cerrada después de contrastar `ContratosPage.jsx` con su implementación especializada de referencia y validar que la versión de producción conserva la arquitectura funcional del módulo.
+
+`state.contratos` se mantiene como fuente funcional y clave de escritura. Cada contrato conserva su relación con Cliente mediante `minaId` y las órdenes relacionadas se resuelven mediante `contratoId`. La página mantiene búsqueda, filtros por estado, indicadores de contratos vigentes, clientes con contrato y contratos con documento, además de carga y descarga de documentación contractual.
+
+La propuesta de layout se conserva como listado de contratos a la izquierda y ficha del contrato seleccionado a la derecha. Como ajuste final de cierre, el estado del contrato en el listado utiliza el componente compartido `StatusBadge` y el texto técnico expuesto en la ficha fue reemplazado por lenguaje funcional orientado al usuario.
+
+No se incorporó flujo de firmas en esta fase; la gestión de firma asociada a Libro de Obra permanece despriorizada para la etapa final según la secuencia acordada.
 
 ## Infraestructura legacy / origen común revisado
 
