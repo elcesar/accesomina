@@ -1,5 +1,5 @@
 # Nexo Klar — Design System Guide
-**Version 3.2 · Septiembre 2026**
+**Version 3.3 · Septiembre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
 > Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
@@ -67,6 +67,17 @@ Layout: --sidebar-width, --header-height, --content-max-width, --page-padding
 Motion/accesibilidad: --transition-*, --focus-ring
 ```
 
+### Jerarquía de superficies
+
+Las páginas internas deben compartir una misma base visual:
+
+- **`--bg`**: fondo general de la aplicación y del lienzo principal de cada página interna. Es la superficie base común y no debe cambiar según el módulo.
+- **`--surf`**: tarjetas, paneles, formularios, tablas contenidas y superficies elevadas sobre el fondo general.
+- **`--surf-2`**: superficies secundarias o de apoyo, por ejemplo zonas de filtros o resúmenes cuando se requiere diferenciación suave.
+- **`--line`**: separación entre superficies y componentes.
+
+No utilizar `--surf` (blanco) como fondo completo de una página interna por decisión local. Un módulo puede contener encabezados, tablas o paneles blancos, pero el lienzo de página debe permanecer en `--bg`. Las excepciones deben estar justificadas como un patrón transversal y documentadas aquí, no definidas aisladamente en CSS de página.
+
 Componentes compartidos principales:
 
 ```text
@@ -95,6 +106,7 @@ La experiencia implementada en Personas, Formación, Exámenes, Salud, EPP, Turn
 
 ```text
 HEADER DEL MÓDULO
+  dominio
   título + descripción                    acciones
                                          Actualizar | Acción principal
 
@@ -114,352 +126,106 @@ ACCIÓN CONTEXTUAL
   diálogo o flujo específico cuando corresponda
 ```
 
-### 4.1 Encabezado de módulo
+### 4.1 Encabezado universal de página
+
+Todas las páginas internas deben utilizar la misma jerarquía de encabezado, independientemente del dominio funcional.
 
 En escritorio:
 
 ```text
-[Título]
-[Descripción]                         [Actualizar] [Acción principal]
+[DOMINIO / SECCIÓN]
+[Título de página]
+[Descripción funcional breve]          [Actualizar] [Acción principal]
 ```
 
-Reglas:
+#### Regla de nomenclatura
 
-- título y descripción a la izquierda;
-- acciones agrupadas mediante `.nk-actions` a la derecha;
-- acciones en `display:flex` y `flex-direction:row`;
-- separación mediante tokens de spacing;
-- botones con `white-space: nowrap` cuando sea necesario;
-- no apilar botones en escritorio por estilos locales accidentales;
-- en pantallas pequeñas se permite `flex-wrap` o apilamiento controlado;
-- la acción primaria debe ser la acción de negocio principal; `Actualizar` normalmente es secundaria.
+El `Sidebar.jsx` es la referencia visible para los dos primeros niveles del encabezado:
 
-### 4.2 KPIs
+- **Título 1 / dominio:** debe ser exactamente el nombre del grupo que contiene la página en el Sidebar.
+- **Título 2 / página:** debe ser exactamente el nombre del ítem correspondiente en el Sidebar.
+- No abreviar, reinterpretar ni agregar calificadores locales al dominio o al nombre de la página.
+- Si cambia un nombre visible en el Sidebar, el encabezado de la página debe actualizarse en el mismo cambio.
+- El dominio debe renderizarse **una sola vez**. Si una página especializada ya incluye `.nk-page-domain` o un kicker equivalente pendiente de migración, el layout no debe agregar una segunda copia.
 
-Los KPIs deben responder preguntas operacionales. Evitar gráficos o métricas sin capacidad de orientar una acción.
-
-### 4.3 Feedback
-
-Toda acción debe producir feedback perceptible:
-
-| Situación | Patrón |
-|---|---|
-| Guardado exitoso | estado semántico OK |
-| Error | estado semántico error |
-| Request activo | loading + control disabled |
-| Resultado vacío | explicación + CTA cuando exista una acción posible |
-| Filtro sin coincidencias | estado vacío contextual |
-
-No usar color como único indicador.
-
-### 4.4 Filtros progresivos en listados
-
-Los filtros deben ayudar a reducir el contenido sin competir visualmente con el listado, tabla o resultado principal.
-
-Regla general en escritorio:
-
-- mostrar **como máximo cuatro filtros principales visibles** de forma simultánea;
-- priorizar los filtros de uso más frecuente o mayor valor operacional;
-- cuando existan filtros adicionales, agruparlos bajo una acción **`Más filtros`**;
-- `Más filtros` debe indicar cuando contiene criterios activos, idealmente mediante un contador;
-- ofrecer una acción clara para limpiar filtros activos;
-- los filtros secundarios pueden ser dependientes del contexto cuando exista una relación de dominio clara (por ejemplo Cliente → Contrato → Orden de servicio);
-- evitar cards o paneles de filtros sobredimensionados que resten altura al contenido principal;
-- en pantallas pequeñas se puede reducir aún más la cantidad de filtros visibles y trasladar controles adicionales a `Más filtros`.
-
-Ejemplo recomendado:
+Ejemplos:
 
 ```text
-[ Buscar ] [ Especialidad ] [ Disponibilidad ] [ Cliente ] [ Más filtros (2) ]
+CAPITAL HUMANO
+Personas
+
+CAPITAL HUMANO
+Formación y certificaciones
+
+RELACIÓN COMERCIAL
+Clientes
+
+RELACIÓN COMERCIAL
+Contratos y firmas
+
+RELACIÓN COMERCIAL
+Órdenes de servicio
+
+GESTIÓN OPERACIONAL
+Comunicaciones y convocatorias
 ```
 
-La cantidad total de criterios disponibles no está limitada a cuatro: **el límite aplica a los filtros expuestos simultáneamente en la vista principal**.
+La transformación a mayúsculas del dominio es visual mediante CSS; el texto fuente debe conservar la escritura definida en el Sidebar.
 
----
+#### Jerarquía visual
 
-## 5. Estados semánticos
+**Línea 1 · Dominio**
+- clase: `.nk-page-domain`;
+- tamaño: `--text-xs`;
+- peso: `--weight-bold`;
+- color: `--pri`;
+- `letter-spacing: 0.08em`;
+- presentación en mayúsculas.
 
-Estados principales para personas, documentación, habilitaciones y recursos:
+**Línea 2 · Título de página**
+- clase: `.nk-page-title`;
+- fuente: `--font-brand`;
+- tamaño: `--text-3xl`;
+- peso: `--weight-bold`;
+- color: `--ink`;
+- `line-height: --leading-snug`;
+- no se permiten tamaños locales distintos para el H1 de una página interna.
 
-| Estado | Significado |
-|---|---|
-| Vigente | condición válida y al día |
-| Por vencer | requiere atención próximamente |
-| No habilitado | condición vencida, rechazada o bloqueante |
-| Sin información | dato requerido aún no disponible |
+**Línea 3 · Descripción**
+- clase: `.nk-page-description`;
+- tamaño: `--text-md`;
+- color: `--mut`;
+- ancho máximo recomendado: 760 px;
+- describir la función de la pantalla en lenguaje de usuario;
+- no exponer nombres de claves, IDs, fuentes JSON, tablas ni detalles técnicos de implementación.
 
-Usar exclusivamente los tokens/clases semánticos del Design System. **Un módulo no debe inventar colores, variables o badges propios para representar estos mismos estados.**
+#### Estructura JSX de referencia
 
-Como convención visual, un documento puede mostrarse `Por vencer` dentro de los próximos 30 días. La regla de negocio final pertenece al dominio, no al CSS.
+```jsx
+<header className="nk-page-header">
+  <div className="nk-page-heading">
+    <p className="nk-page-domain">Capital Humano</p>
+    <h1 className="nk-page-title">Personas</h1>
+    <p className="nk-page-description">
+      Administra personas, disponibilidad y contexto operacional.
+    </p>
+  </div>
 
----
+  <div className="nk-page-header-actions">
+    {/* acciones contextuales */}
+  </div>
+</header>
+```
 
-## 6. Principio people-first
-
-La entidad principal de experiencia es la **Persona**.
-
-La jerarquía rígida anterior:
+Clases oficiales del patrón:
 
 ```text
-Empresa → Oportunidad → Contrato → Persona
+.nk-page-header
+.nk-page-heading
+.nk-page-domain
+.nk-page-title
+.nk-page-description
+.nk-page-header-actions
 ```
 
-no debe utilizarse como jerarquía obligatoria de UX.
-
-Modelo conceptual:
-
-```text
-                    PERSONA
-                       │
-        ┌──────────────┼──────────────┐
-        │              │              │
- Documentación    Habilitación     Recursos
-        │              │              │
- Formación       Cliente/Proyecto    EPP
- Exámenes        Contrato            Equipos
- Salud           Empresa             Herramientas
- Credenciales                       Vehículos
-                                    Asignaciones
-```
-
-Pregunta central:
-
-> **¿Quién es esta persona, está habilitada para trabajar y qué necesita para hacerlo correctamente?**
-
-Prioridad de interfaz:
-
-1. identificación;
-2. condición/habilitación;
-3. documentación;
-4. recursos asignados;
-5. restricciones/alertas;
-6. contexto laboral/contractual.
-
-### Ficha de Persona
-
-```text
-Persona
-├── Resumen
-│   ├── identidad
-│   ├── relación laboral
-│   ├── proyecto actual
-│   ├── habilitación
-│   └── alertas críticas
-├── Documentación
-├── Formación y aptitudes
-│   ├── cursos
-│   ├── certificaciones
-│   ├── exámenes
-│   └── salud ocupacional
-├── Recursos
-│   ├── EPP y tallas
-│   ├── herramientas/equipos
-│   ├── vehículos
-│   └── credenciales
-└── Historial
-    ├── asignaciones
-    ├── proyectos/contratos
-    └── movimientos/cambios
-```
-
----
-
-## 7. Módulos funcionales y módulos orquestadores
-
-### 7.1 Módulos funcionales
-
-Son responsables de administrar información propia de un dominio y constituyen las fuentes funcionales del producto.
-
-Ejemplos actuales:
-
-- Personas;
-- Turnos y asistencia;
-- Protección personal / EPP;
-- Formación y certificaciones;
-- Exámenes y aptitudes;
-- Salud Ocupacional;
-- Restringidos;
-- futuros módulos de activos, contratos, órdenes, clientes, etc.
-
-Un módulo funcional puede crear o modificar información cuando esa información pertenece a su dominio.
-
-### 7.2 Módulos orquestadores
-
-Integran información proveniente de módulos funcionales para ayudar a decidir o ejecutar un proceso transversal.
-
-En Centro de Control:
-
-- Panel General;
-- Alertas;
-- Gestión de trabajadores por proyecto;
-- Centro Operativo.
-
-Regla:
-
-> **Un módulo orquestador debe consumir, relacionar y accionar sobre las fuentes funcionales existentes; no debe crear un modelo paralelo solo para construir su vista.**
-
-Panel General y Alertas pueden derivar información desde Personas, Formación, Exámenes, Salud, Restricciones, EPP, Turnos y operación. Gestión por Proyecto y Centro Operativo deben evolucionar como capas de coordinación sobre módulos funcionales maduros.
-
-### 7.3 Wrappers
-
-Un wrapper de navegación/composición debe permanecer liviano. Puede seleccionar un módulo, aportar contexto o montar un workspace, pero no debe transformarse prematuramente en un segundo CRUD del mismo dominio.
-
-Antes de especializar un wrapper:
-
-1. identificar los módulos funcionales que debe consumir;
-2. confirmar que esos módulos estén construidos y sus fuentes de datos sean estables;
-3. reutilizar sus datos y acciones;
-4. agregar solo lógica transversal propia de la orquestación.
-
----
-
-## 8. Una sola fuente de verdad por dato
-
-Toda información de negocio debe tener una fuente funcional primaria. Las vistas transversales pueden leerla y modificarla mediante el flujo oficial, pero no duplicarla en otra colección por conveniencia visual.
-
-Fuentes actualmente consolidadas durante la modernización:
-
-| Dominio | Fuente funcional actual |
-|---|---|
-| Persona | `trabajadores` |
-| Formación / certificaciones de Persona | `trabajador.workerItems` (`curso`, `certificacion`) |
-| Exámenes de Persona | `trabajador.workerItems` (`examen`) |
-| Entregas de EPP | `eppDeliveries` |
-| Salud Ocupacional | `protocolosSalud` |
-| Restricciones | `restricted` |
-
-Estas referencias describen la arquitectura vigente; si el modelo de dominio cambia formalmente, esta tabla debe actualizarse en el mismo cambio.
-
-### Regla de compatibilidad
-
-Los datos legacy pueden mantenerse en lectura durante una migración, pero los nuevos registros deben escribirse en la fuente funcional vigente. No perpetuar dos fuentes de verdad.
-
----
-
-## 9. Navegación por dominios
-
-### Centro de Control
-- Panel General
-- Alertas
-- Gestión de trabajadores por proyecto
-- Centro Operativo
-
-### Capital Humano
-- Personas
-- Turnos y asistencia
-- Protección personal / EPP
-- Formación y certificaciones
-- Exámenes y aptitudes
-- Salud Ocupacional
-- Restringidos
-
-Los demás dominios del Sidebar mantienen su agrupación funcional: Gestión Operacional, Contratistas, Relación Comercial, Cumplimiento y Calidad, Gestión de Proyectos y Negocios, Activos/Inventario y Gestión/Administración.
-
-La navegación no define propiedad de datos: una misma entidad puede aparecer contextualizada en varias vistas, pero conserva una fuente funcional primaria.
-
----
-
-## 10. Densidad, formularios y responsividad
-
-### Listados
-
-Mostrar información suficiente para decidir, no toda la ficha. En Personas, priorizar identidad, contexto, habilitación, cumplimiento y acción.
-
-### Formularios
-
-- máximo recomendado: 8 campos por sección/paso;
-- dividir formularios complejos;
-- máximo recomendado: 5 pasos;
-- permitir alta mínima cuando el negocio lo permita;
-- completar información progresivamente desde la ficha.
-
-### Responsividad
-
-Nexo Klar se optimiza principalmente para escritorio. En pantallas pequeñas:
-
-- formularios pasan a una columna;
-- acciones pueden hacer wrap o apilarse;
-- cards se reorganizan;
-- tablas mantienen legibilidad mediante scroll horizontal;
-- el comportamiento del Sidebar pertenece al componente de Sidebar, no a páginas individuales.
-
----
-
-## 11. Lo que nunca se debe hacer
-
-```text
-❌ Colores corporativos hardcodeados en JSX o CSS específico.
-❌ Crear tokens o sistemas visuales paralelos dentro de una página.
-❌ Definir tipografía local cuando existe --font-ui / --font-brand.
-❌ Usar JSX como hoja de estilos con grandes bloques style={{ ... }}.
-❌ Implementar hover/focus mediante handlers JS cuando corresponde a CSS.
-❌ Crear nuevos aliases --nk-*.
-❌ Duplicar assets oficiales de public/brand.
-❌ Usar emojis como iconos funcionales.
-❌ Acciones destructivas sin confirmación.
-❌ Estados vacíos sin explicación/acción cuando existe una acción posible.
-❌ Tablas que intentan representar toda la ficha de Persona.
-❌ Diseñar Persona como elemento terminal de una cadena comercial rígida.
-❌ Crear una colección paralela solo porque una vista transversal necesita el dato.
-❌ Convertir un wrapper/orquestador en otro CRUD antes de construir el módulo funcional.
-❌ Inventar nuevos colores/tokens para estados que ya existen en el Design System.
-❌ Apilar acciones principales en escritorio cuando existe espacio horizontal suficiente.
-```
-
----
-
-## 12. Implementaciones de referencia
-
-### Estructura global
-- `LoginPage.jsx` + `login.css`
-- `Sidebar.jsx` + `sidebar.css`
-- `Header.jsx` + `header.css`
-
-### Capital Humano
-Las implementaciones modernizadas de Personas, Turnos, Formación, Exámenes, Salud, Restringidos y Protección/EPP son referencias para el patrón operacional, especialmente en composición de encabezados, KPIs, filtros, tablas y diálogos.
-
-### Centro de Control
-Panel General y Alertas son referencias iniciales para vistas transversales. Gestión de trabajadores por proyecto y Centro Operativo deben permanecer como capas de orquestación hasta que los módulos funcionales que necesitan estén suficientemente consolidados.
-
----
-
-# Principios ejecutivos
-
-```text
-1. Personas primero
-   La experiencia operacional se organiza alrededor de personas, habilitación,
-   documentación y recursos cuando el proceso involucra Capital Humano.
-
-2. Una sola fuente de verdad
-   Una vista puede reutilizar un dato; no debe clonarlo para resolver su UI.
-
-3. Función antes que orquestación
-   Construir y estabilizar módulos funcionales antes de enriquecer wrappers y hubs.
-
-4. Estado operativo visible
-   Bloqueos, vencimientos, faltantes y próximas acciones deben detectarse rápido.
-
-5. Densidad controlada
-   Mostrar lo necesario para decidir, no todo lo disponible.
-
-6. Jerarquía visual clara
-   Contexto, estado y acción principal deben ser evidentes.
-
-7. Consistencia antes que creatividad
-   Reutilizar tokens, componentes y patrones existentes.
-
-8. CSS antes que styling en JSX
-   JSX describe estructura/comportamiento; CSS describe presentación.
-
-9. Feedback inmediato
-   Toda acción debe entregar una respuesta perceptible.
-
-10. Acciones destructivas confirmadas
-    Sin excepciones.
-```
-
----
-
-*Nexo Klar Design System · Guide v3.2 · tokens.css v3.0 · Septiembre 2026*  
-*Estrategia vigente: tokens.css → components.css → CSS específico → JSX.*  
-*Modelo UX vigente: people-first, módulos funcionales como fuentes de verdad y Centro de Control como capa de orquestación.*
+No crear variantes locales como `*-kicker`, `*-page-title` o `*-module-title` cuando representan este mismo patrón.

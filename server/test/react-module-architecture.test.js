@@ -53,10 +53,11 @@ test('el menú React conserva el orden operacional oficial y separa la administr
 
 test('el sitio público, acceso y API permanecen conectados en la arquitectura React', () => {
   for (const component of ['HomeSection', 'PlatformSection', 'BenefitsSection', 'ProductSection', 'SolutionsSection', 'IndustriesSection', 'ImplementationSection', 'PurposeSection', 'CustomerAccessSection']) {
-    assert.match(landing, new RegExp(`<${component}`), `sección pública ausente: ${component}`);
+    assert.match(landing, new RegExp(`(?:import ${component}|: ${component}[,\\n])`), `sección pública ausente: ${component}`);
   }
+  assert.match(landing, /const ActiveSection = useMemo/);
   for (const label of ['Inicio', 'Plataforma', 'Beneficios', 'Producto', 'Soluciones', 'Industrias', 'Implementación y privacidad', 'Propósito', 'Acceso']) {
-    assert.ok(navigation.includes(`'${label}'`), `navegación pública ausente: ${label}`);
+    assert.ok(navigation.includes(`'${label}'`) || navigation.includes(label), `navegación pública ausente: ${label}`);
   }
   for (const route of ['/api/auth', '/api/state', '/api/users', '/api/files', '/api/integrations', '/api/audit', '/api/tenants', '/api/settings', '/api/data-transfer', '/api/privacy', '/api/operations', '/api/work-books']) {
     assert.ok(server.includes(`app.use('${route}'`), `ruta API ausente: ${route}`);

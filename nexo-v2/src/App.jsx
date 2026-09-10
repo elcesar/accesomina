@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './services/auth.jsx'
+import { AuthProvider, postLoginPath, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -20,6 +20,8 @@ import ContratosPage from './pages/ContratosPage.jsx'
 import OrdenesServicioPage from './pages/OrdenesServicioPage.jsx'
 import ComunicacionesPage from './pages/ComunicacionesPage.jsx'
 import VehiculosPage from './pages/VehiculosPage.jsx'
+import AlojamientosPage from './pages/AlojamientosPage.jsx'
+import CredencialesPage from './pages/CredencialesPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
@@ -43,7 +45,7 @@ function ProtectedRoute({ children }) {
 function PublicRoute({ children }) {
   const { session, loading } = useAuth()
   if (loading) return null
-  if (session) return <Navigate to="/app" replace />
+  if (session) return <Navigate to={postLoginPath(session)} replace />
   return children
 }
 
@@ -74,15 +76,17 @@ export default function App() {
             <Route path="llamados" element={<ComunicacionesPage />} />
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
-            <Route path="clientes" element={<ClientesPage />} />
-            <Route path="clientes/nuevo" element={<ClientesPage createMode />} />
-            <Route path="clientes/:clientId" element={<ClientesPage />} />
-            <Route path="contratos" element={<ContratosPage />} />
-            <Route path="contratos/nuevo" element={<ContratosPage createMode />} />
-            <Route path="contratos/:contractId" element={<ContratosPage />} />
-            <Route path="servicios" element={<OrdenesServicioPage />} />
-            <Route path="servicios/nuevo" element={<OrdenesServicioPage createMode />} />
-            <Route path="servicios/:orderId" element={<OrdenesServicioPage />} />
+            <Route path="hoteleria" element={<AlojamientosPage />} />
+            <Route path="credenciales" element={<CredencialesPage />} />
+            <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
+            <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
+            <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
+            <Route path="contratos" element={<ContratosPage key="contratos-list" />} />
+            <Route path="contratos/nuevo" element={<ContratosPage key="contratos-new" createMode />} />
+            <Route path="contratos/:contractId" element={<ContratosPage key="contratos-detail" />} />
+            <Route path="servicios" element={<OrdenesServicioPage key="servicios-list" />} />
+            <Route path="servicios/nuevo" element={<OrdenesServicioPage key="servicios-new" createMode />} />
+            <Route path="servicios/:orderId" element={<OrdenesServicioPage key="servicios-detail" />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
             <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
             <Route path="modulos/:modulePath" element={<PrivateModuleRouter />} />

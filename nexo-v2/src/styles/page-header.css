@@ -1,0 +1,139 @@
+/**
+ * NEXO KLAR · Encabezado universal de páginas internas
+ * Design System v3.4
+ *
+ * Regla de contenido:
+ * - Línea 1 (.nk-page-domain): nombre EXACTO del grupo del Sidebar.
+ * - Línea 2 (.nk-page-title / h1): nombre EXACTO del ítem del Sidebar.
+ * - Línea 3 (.nk-page-description): descripción funcional breve, sin claves técnicas.
+ * - El dominio se renderiza una sola vez desde AppLayout; las páginas no deben repetirlo.
+ * - Todos los H1 internos comparten tipografía, tamaño, peso y eje horizontal.
+ * - En bloques de contexto, toda entidad con ficha propia debe presentarse como enlace navegable.
+ *
+ * Regla de densidad operacional:
+ * - Nexo Klar usa densidad media-alta en páginas internas.
+ * - Separación normal entre bloques principales: --space-3 / --space-4.
+ * - --space-5 / --space-6 se reserva para cambios de sección importantes, no como separación por defecto.
+ * - Workspaces y cards operacionales usan normalmente padding --space-4.
+ * - Formularios usan normalmente gap --space-3.
+ * - KPIs compactos mantienen altura cercana a 72px.
+ * - El Design System define la densidad; el CSS específico de cada módulo define la composición.
+ */
+
+.nk-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.nk-page-heading {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.nk-page-domain {
+  display: block;
+  margin: 0 0 var(--space-1);
+  color: var(--pri);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nk-app-page-domain {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: var(--space-5) var(--page-padding) 0;
+  background: var(--bg);
+}
+
+/* Evita duplicar kickers legacy cuando AppLayout ya muestra el dominio. */
+.nk-app-main[data-page-domain] .nk-client-header .nk-client-kicker,
+.nk-app-main[data-page-domain] .nk-contract-header .nk-contract-kicker,
+.nk-app-main[data-page-domain] .nk-orders-header .nk-orders-kicker,
+.nk-app-main[data-page-domain] .nk-fleet-header .nk-fleet-kicker,
+.nk-app-main[data-page-domain] .nk-lodging-header .nk-lodging-kicker {
+  display: none;
+}
+
+/* Une y alinea visualmente el dominio centralizado con el encabezado local. */
+.nk-app-page-domain + .nk-people-page .nk-people-header {
+  padding-top: var(--space-1);
+}
+
+.nk-app-page-domain + .nk-client-page,
+.nk-app-page-domain + .nk-contract-page,
+.nk-app-page-domain + .nk-orders-page,
+.nk-app-page-domain + .nk-fleet-page,
+.nk-app-page-domain + .nk-lodging-page {
+  padding-top: var(--space-1);
+}
+
+.nk-page-title,
+.nk-app-main[data-page-domain] h1 {
+  margin-top: 0;
+  font-family: var(--font-brand);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+  color: var(--ink);
+}
+
+.nk-app-main[data-page-domain] h1 {
+  font-size: var(--text-3xl);
+  font-family: var(--font-brand);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-snug);
+}
+
+.nk-page-title {
+  margin-bottom: var(--space-1);
+}
+
+.nk-page-description {
+  margin: 0;
+  max-width: 760px;
+  color: var(--mut);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+}
+
+/* Regla transversal para relaciones navegables dentro de contexto operacional. */
+.nk-context-link,
+.nk-app-main [class*="context"] a {
+  color: var(--pri);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.nk-context-link:hover,
+.nk-app-main [class*="context"] a:hover {
+  text-decoration: underline;
+}
+
+.nk-page-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .nk-page-header {
+    flex-direction: column;
+  }
+
+  .nk-page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
