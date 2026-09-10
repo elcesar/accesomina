@@ -2,251 +2,133 @@
 
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
-## Estados de seguimiento
+**Actualizado:** 10 de septiembre de 2026  
+**Estado global:** Fases 0 a 5 cerradas.
 
-- **Actualizada**: la página recibió cambios funcionales, visuales o arquitectónicos durante la migración.
-- **Revisada**: la página fue contrastada con su referencia, versión anterior o flujo de origen para validar que la funcionalidad relevante se conserve.
-- **Reemplazada**: la página actual sustituye una página o arquitectura anterior. Se registra también el origen reemplazado.
-- Una página puede tener más de un estado.
+## Estados
 
-## Regla de trabajo
+- **Actualizada:** recibió cambios funcionales, visuales o arquitectónicos.
+- **Revisada:** fue contrastada con HTML/Page/wrapper de referencia.
+- **Reemplazada:** sustituye una experiencia genérica o legacy anterior.
 
-- Registrar aquí cada `Page.jsx` que sea actualizado o revisado.
-- Mantener el nombre real del archivo del repositorio.
-- Cuando exista una versión anterior, indicar explícitamente qué página o flujo fue reemplazado.
-- Antes de rediseñar un módulo, revisar sus archivos de referencia para identificar funcionalidad, campos, reglas, relaciones y flujos existentes.
-- No incluir componentes auxiliares como páginas, aunque pueden mencionarse como parte de la trazabilidad de origen.
-- Este listado debe seguir actualizándose a medida que avancemos con nuevas fases.
+## Reglas transversales vigentes
 
-## Páginas registradas hasta ahora
+- Revisar la referencia histórica antes de rediseñar una Page.
+- Mantener una única fuente funcional de escritura por dominio y aliases legacy solo como lectura cuando corresponda.
+- Recuperar el **layout conceptual útil** del HTML sin regresar la arquitectura de datos.
+- `AppLayout` muestra el dominio/sección una sola vez; las Pages no deben repetirlo como kicker.
+- Las acciones globales `+ Cliente`, `+ Contrato` y `+ Orden de servicio` pertenecen al Header y no se duplican dentro de las Pages.
+- Las entidades con ficha propia deben ser navegables desde el contexto operacional.
+- Densidad operacional media-alta: espaciado normal `--space-3/--space-4`, KPIs compactos y toolbars que no se conviertan en formularios extensos.
+- Cuando existan muchos criterios de filtrado, mantener filtros principales visibles y secundarios bajo `Más filtros`.
 
-| Área / fase | Page JSX actual | Estado | Origen / observación |
+## Pages registradas
+
+| Área / fase | Page JSX | Estado | Actualización / decisión vigente |
 | --- | --- | --- | --- |
-| Sitio público | `LandingPage.jsx` | Actualizada | Sitio público React modernizado y navegación por vistas. |
-| Acceso | `LoginPage.jsx` | Actualizada | Pantalla de acceso alineada al Design System. |
-| Fase 1 · Capital Humano | `TrabajadoresPage.jsx` | Actualizada | Listado especializado de personas. |
-| Fase 1 · Capital Humano | `NuevoTrabajadorPage.jsx` | Actualizada · Revisada | Revisada contra archivo de referencia; se conserva la versión actual de `main` por ser funcional y arquitectónicamente más completa. |
-| Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Contrastada con archivo de referencia; conserva ficha, asignaciones, documentación, formación, EPP e historial. |
-| Fase 1 · Capital Humano | `TurnosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `TurnosAsistenciaPage.jsx` y el flujo genérico `TurnosAsistenciaPage → ModuleWorkspacePage → PrivateModulePage`. `turnos` queda como fuente canónica y la asistencia como atributo de la jornada. |
-| Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `FormacionPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Nuevos cursos y certificaciones se consolidan en `trabajadores[].workerItems`; `state.cursos` queda como lectura legacy. |
-| Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ExamenesPage.jsx → ModuleWorkspacePage → PrivateModulePage`. Los nuevos exámenes se consolidan en `trabajadores[].workerItems`; `state.examenes` queda como lectura legacy. Se incorporó evidencia documental asociada a la persona. |
-| Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `SaludOcupacionalPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `protocolosSalud` es la fuente canónica y se incorporó evidencia documental asociada a la persona. |
-| Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `RestringidosPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `restricted` mantiene el detalle de restricciones y sincroniza el estado operativo de `trabajadores`. |
-| Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
-| Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
-| Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
-| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora Cliente–Contrato, requisitos, preparación, recursos, alojamiento/estadías, cierre y evidencia documental. Las estadías se leen desde `hotelAsig` mediante `mantId`, sin duplicarlas dentro de la Orden. |
-| Fase 5 · Gestión Operacional | `ComunicacionesPage.jsx` | Actualizada · Revisada | Submódulo Comunicaciones y convocatorias completado. Centraliza comunicaciones vinculadas a personas y órdenes, incorpora navegación al contexto operacional y KPIs derivados del estado. |
-| Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada | Reemplaza el wrapper `VehiculosPage.jsx → ModuleWorkspacePage`. `state.vehiculos` se mantiene como fuente funcional. La página especializada incorpora disponibilidad, propiedad/arriendo, operador, clientes/faenas y relación con Orden de servicio mediante `mantId`. |
-| Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `AlojamientosPage.jsx → ModuleWorkspacePage`. `state.hoteles` mantiene el catálogo de alojamientos y habitaciones; `state.hotelAsig` mantiene las estadías. La página relaciona Persona, Orden y Cliente sin duplicar datos y aplica la densidad operacional del Design System. |
-| Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
-| Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
+| Sitio público | `LandingPage.jsx` | Actualizada | Sitio público React modernizado. |
+| Acceso | `LoginPage.jsx` | Actualizada | Acceso alineado al Design System. |
+| Fase 1 · Capital Humano | `TrabajadoresPage.jsx` | Actualizada · Revisada | Listado especializado de personas; mantiene tabs, filtros y grilla operacional. |
+| Fase 1 · Capital Humano | `NuevoTrabajadorPage.jsx` | Actualizada · Revisada | Alta especializada de Persona. |
+| Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Ficha con asignaciones, documentación, formación, EPP, estadías e historial. |
+| Fase 1 · Capital Humano | `TurnosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza flujo genérico. Mantiene KPIs + filtros + tabla y agrega Cobertura/Jornadas. `turnos` es canónico. |
+| Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Recupera layout histórico **Personas / Matriz por función / Historial de entregas**, segmentos y KPIs de personas. `eppDeliveries` canónico; `eppEntregas` legacy. |
+| Fase 1 · Capital Humano | `FormacionPage.jsx` | Actualizada · Revisada · Reemplazada | Formación en `trabajadores[].workerItems`; `cursos` legacy. Incorpora contexto Cliente–Contrato–OS. Toolbar compacta: búsqueda + Cliente + `Más filtros` para Contrato, OS, Tipo y Estado. |
+| Fase 1 · Capital Humano | `ExamenesPage.jsx` | Actualizada · Revisada · Reemplazada | Exámenes en `trabajadores[].workerItems`; `examenes` legacy. Incorpora contexto Cliente–Contrato–OS, vigencia y evidencia documental. |
+| Fase 1 · Capital Humano | `SaludOcupacionalPage.jsx` | Actualizada · Revisada · Reemplazada | `protocolosSalud` canónico; seguimiento y evidencia por Persona. |
+| Fase 1 · Capital Humano | `RestringidosPage.jsx` | Actualizada · Revisada · Reemplazada | `restricted` mantiene historial y sincroniza bloqueo/disponibilidad de Persona. Layout compacto con búsqueda + Estado. |
+| Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Layout restaurado desde HTML: **filtros → grid de cards → ficha al abrir**. Sin auto-selección inicial. Conserva contactos, requisitos y relaciones Contrato/OS. `minas` canónico; `clientes` fallback. |
+| Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Layout restaurado: **filtros/KPIs → tabla global → ficha al abrir**. Conserva documento contractual y relaciones Cliente/OS. |
+| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Layout restaurado: **filtros → cards operacionales → ficha al abrir**. Conserva preparación, personas, alojamientos, recursos, evidencia y cierre. Ficha con scroll vertical propio y header sticky. `mantenciones` canónico; `proyectos` fallback. |
+| Fase 5 · Gestión Operacional | `ComunicacionesPage.jsx` | Actualizada · Revisada · Reemplazada | Comunicación/convocatoria contextual a OS y personas; KPIs derivados de `callouts` y navegación operacional. |
+| Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico operacional: filtros → KPIs → tabla global → ficha bajo demanda. `vehiculos` mantiene ownership. |
+| Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico: cards de alojamientos + tabla global de estadías. `hoteles` catálogo; `hotelAsig` asignaciones/estadías. |
+| Fase 5 · Gestión Operacional | `CredencialesPage.jsx` | Actualizada · Revisada · Reemplazada | Layout histórico: filtros → KPIs → tabla global → ficha bajo demanda. `credenciales` relacionada con Persona (`trabId`) y Cliente/faena (`minaId`). |
+| Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
+| Centro operativo y control | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
 
-## Cierre de Fase 1 · Capital Humano
-
-**Estado:** CERRADA  
-**Fecha de cierre:** 10 de septiembre de 2026
-
-La Fase 1 queda formalmente cerrada con cobertura funcional y trazabilidad de Personas, Turnos y asistencia, Protección EPP, Formación, Exámenes, Salud Ocupacional y Restringidos. Personas se documenta además mediante sus páginas especializadas de listado, alta y ficha.
-
-Durante el cierre se contrastaron las páginas especializadas con sus referencias y flujos de origen, se identificaron las fuentes canónicas y legacy relevantes y se confirmó que los wrappers genéricos no deben convertirse en nuevas fuentes de verdad. Las diferencias funcionales detectadas se resolvieron dentro del módulo dueño correspondiente, manteniendo la arquitectura React de producción y el Design System vigente.
-
-## Cierre de Fase 2 · Clientes
+## Cierre Fase 1 · Capital Humano
 
 **Estado:** CERRADA  
-**Fecha de cierre:** 10 de septiembre de 2026
-
-La Fase 2 queda formalmente cerrada después de contrastar `ClientesPage.jsx` con su implementación especializada de referencia y validar visualmente la pantalla actual de producción.
-
-La arquitectura funcional original se conserva: listado de clientes a la izquierda y ficha comercial del cliente seleccionado a la derecha. La versión actual amplía esta propuesta con búsqueda y filtro por estado, navegación directa por cliente y hacia sus relaciones, validación de duplicados, confirmación de acciones destructivas y alineación con el Design System.
-
-`state.minas` se mantiene como fuente canónica estructural y clave de escritura; `state.clientes` permanece únicamente como fallback compatible de lectura. Las relaciones con contratos y órdenes de servicio continúan resolviéndose mediante `minaId`, evitando crear una fuente paralela para Clientes.
-
-La revisión funcional y visual no detectó brechas relevantes que requieran cambios adicionales antes del cierre.
-
-## Cierre de Fase 3 · Contratos
-
-**Estado:** CERRADA  
-**Fecha de cierre:** 10 de septiembre de 2026
-
-La Fase 3 queda formalmente cerrada después de contrastar `ContratosPage.jsx` con su implementación especializada de referencia y validar que la versión de producción conserva la arquitectura funcional del módulo.
-
-`state.contratos` se mantiene como fuente funcional y clave de escritura. Cada contrato conserva su relación con Cliente mediante `minaId` y las órdenes relacionadas se resuelven mediante `contratoId`. La página mantiene búsqueda, filtros por estado, indicadores de contratos vigentes, clientes con contrato y contratos con documento, además de carga y descarga de documentación contractual.
-
-La propuesta de layout se conserva como listado de contratos a la izquierda y ficha del contrato seleccionado a la derecha. Como ajuste final de cierre, el estado del contrato en el listado utiliza el componente compartido `StatusBadge` y el texto técnico expuesto en la ficha fue reemplazado por lenguaje funcional orientado al usuario.
-
-No se incorporó flujo de firmas en esta fase; la gestión de firma asociada a Libro de Obra permanece despriorizada para la etapa final según la secuencia acordada.
-
-## Cierre de Fase 4 · Órdenes de servicio
-
-**Estado:** CERRADA  
-**Fecha de cierre:** 10 de septiembre de 2026
-
-La Fase 4 queda formalmente cerrada después de contrastar `OrdenesServicioPage.jsx` con su origen legacy y completar la validación funcional y visual de la pantalla especializada en producción.
-
-`state.mantenciones` se mantiene como fuente canónica de escritura para Órdenes de servicio mientras `state.proyectos` permanece únicamente como fallback legacy de lectura. Las asignaciones de personas continúan relacionadas mediante `asignaciones.mantId`, preservando las dependencias actuales con Turnos y otros módulos operacionales.
-
-La implementación especializada conserva y amplía el flujo de origen `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`, integrando Cliente mediante `minaId`, Contrato mediante `contratoId`, requisitos del cliente, preparación de personas desde Capital Humano, recursos vinculados y observación obligatoria de cierre. También se restituyó la evidencia documental contemplada por la arquitectura legacy mediante carga, descarga y reemplazo de documentos asociados a la orden.
-
-Durante Fase 5, la ficha de la Orden se amplió como consumidor de relaciones operacionales: ahora muestra las estadías asociadas leyendo `state.hotelAsig` por `mantId`, junto con Persona, alojamiento/habitación, check-in, check-out, turno y estado. Este cambio no modifica el ownership de Fase 4 ni duplica datos dentro de `mantenciones`; únicamente hace visible desde la Orden una relación cuyo módulo dueño es Alojamientos y estadías.
-
-La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
-
-## Avance de Fase 5 · Gestión Operacional
-
-**Estado:** EN CURSO  
-**Fecha de actualización:** 10 de septiembre de 2026
-
-La Fase 5 agrupa Comunicaciones y convocatorias, Flota y equipos móviles, Alojamientos/estadías y Credenciales de acceso. La fase no se considera cerrada hasta completar y validar los cuatro submódulos.
-
-### Comunicaciones y convocatorias — COMPLETADO
-
-La página especializada administra comunicaciones y convocatorias operacionales vinculadas a personas y órdenes de servicio. El módulo permite registrar tipo, estado, mensaje, orden, persona o especialidades, turno, cupos, canal, prioridad, plazo de respuesta y responsable, además de preparar destinatarios elegibles para convocatorias.
-
-El propósito funcional queda definido como centralizar y dar trazabilidad a las comunicaciones operacionales, especialmente aquellas originadas por necesidades de dotación o coordinación de una Orden de servicio. El flujo conecta `Orden de servicio → Personas elegibles → Comunicación/convocatoria → Respuesta → Asignación`, evitando convertir el módulo en mensajería genérica sin contexto operacional.
-
-Como correcciones de cierre del submódulo, el bloque Contexto operacional incorpora navegación directa hacia la Orden de servicio asociada y los KPIs superiores se derivan del estado actual de `callouts` —Total, Pendientes, Enviadas y Confirmadas—, por lo que reaccionan inmediatamente después de guardar un cambio de estado. Las métricas de Enviados, Respondieron, Asignados y Elegibles preparados se mantienen en el detalle de cada comunicación, donde representan ejecución y respuesta.
-
-### Flota y equipos móviles — ACTUALIZADO / EN VALIDACIÓN
-
-El origen revisado era `VehiculosPage.jsx → ModuleWorkspacePage.jsx`. La versión especializada trabaja directamente con `state.vehiculos`, que se mantiene como fuente funcional del dominio durante esta etapa.
-
-La revisión contra las reglas del backend detectó capacidades ya soportadas que no estaban expuestas en la interfaz: relación con operador mediante `operadorId`, asociación con clientes/faenas mediante `minaIds`, propiedad propia o arrendada con fecha obligatoria de término para arriendos y relación operacional con Orden de servicio. También se conserva la validación de unicidad por patente o número de serie.
-
-La página fue ampliada para administrar tipo, identificación interna, patente, VIN/serie, marca, modelo, estado operacional, propiedad, vencimiento de arriendo, operador responsable, clientes/faenas habilitadas, Orden de servicio actual mediante `mantId` y observaciones. El contexto operacional permite navegar directamente hacia la Orden asociada y los indicadores superiores separan Total, Disponibles, Asignados y Mantenimiento/Fuera de servicio.
-
-`inventoryItems` no se adopta como fuente de Flota en esta fase. La consolidación de Inventario/Activos corresponde a Fase 8; por ahora se evita crear o alimentar un modelo paralelo al dominio `vehiculos`.
-
-### Alojamientos y estadías — ACTUALIZADO / EN VALIDACIÓN
-
-El origen revisado era `AlojamientosPage.jsx → ModuleWorkspacePage.jsx`, un wrapper genérico sin lógica propia de negocio. La implementación especializada utiliza dos fuentes ya existentes y validadas por backend: `state.hoteles` para el catálogo de alojamientos, habitaciones, camas y tarifas, y `state.hotelAsig` para las estadías operacionales.
-
-El módulo permite administrar nombre, ciudad, dirección, contacto, teléfono, clientes/faenas habilitadas y habitaciones. Las estadías relacionan `hotelId`, `mantId` y `trabId`, junto con habitación, turno, check-in, check-out, estado y observaciones. La persona debe estar asignada previamente a la Orden para poder recibir una estadía, conservando la secuencia operacional y las reglas de integridad existentes.
-
-La relación se almacena únicamente en `hotelAsig` y se visualiza desde ambos extremos. `FichaTrabajadorPage.jsx` ya consume las estadías de la persona, mientras `OrdenesServicioPage.jsx` ahora consume las estadías de la Orden por `mantId`. Desde Alojamientos el contexto permite navegar hacia Persona, Orden y Cliente; desde la Orden se puede navegar a Persona y al módulo de Alojamientos. No se duplica información de estadía dentro de `trabajadores` ni `mantenciones`.
-
-Visualmente, la página adopta la densidad operacional media-alta definida para las páginas internas: separación habitual `--space-3/--space-4`, `--page-padding` transversal, superficies `--surf/--surf-2` y mayor densidad de información sin perder jerarquía.
-
-**Pendiente de Fase 5:** Credenciales de acceso. Alojamientos/estadías permanece en validación visual-funcional antes de considerarse completado.
-
-## Corrección transversal · Creación desde Header
-
 **Fecha:** 10 de septiembre de 2026
 
-Se corrigió el enrutamiento de las acciones globales `+ Cliente`, `+ Contrato` y `+ Orden de servicio` para que las rutas `/nuevo` instancien explícitamente el modo creación y presenten formularios limpios, sin reutilizar el registro previamente seleccionado para edición.
+Cobertura: Personas, Turnos, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos.
 
-La corrección reside en `App.jsx` y no cambia las fuentes funcionales ni los estados de cierre de Clientes o Contratos. Se registra aquí porque afecta directamente el flujo de creación de `ClientesPage.jsx`, `ContratosPage.jsx` y `OrdenesServicioPage.jsx`.
+La revisión final contra el HTML confirmó que Personas y Turnos ya mantenían o mejoraban el patrón histórico. EPP recuperó su arquitectura de tres vistas y orientación a personas. Formación y Exámenes recuperaron el contexto comercial/operacional Cliente → Contrato → OS sin duplicar esas relaciones dentro de sus registros. Formación compactó la toolbar para respetar la densidad del Design System; Restringidos permanece con búsqueda + Estado por no requerir filtros adicionales.
 
-## Infraestructura legacy / origen común revisado
+## Cierre Fase 2 · Clientes
 
-Esta sección registra infraestructura de referencia utilizada para reconstruir el origen de páginas reemplazadas. Estos archivos **no se consideran módulos funcionales ni se agregan a la tabla principal de Pages actualizadas**.
+**Estado:** CERRADA  
+**Fecha:** 10 de septiembre de 2026
 
-| Archivo / infraestructura | Estado | Rol en la migración |
-| --- | --- | --- |
-| `ModuleWorkspacePage.jsx` | Revisado · Infraestructura legacy | Wrapper que resuelve el módulo solicitado y delega la experiencia a la infraestructura genérica. Forma parte del origen común de Turnos, Formación, Exámenes, Salud Ocupacional, EPP, Restringidos y Alojamientos. |
-| `PrivateModulePage.jsx` | Revisado · Infraestructura legacy | Implementación CRUD genérica utilizada por wrappers y por el orquestador operacional. Se revisó para recuperar campos, relaciones, permisos, creación y evidencia de origen, pero no se adopta como fuente funcional de los módulos especializados. |
-| `OperationalWorkspacePage.jsx` | Revisado · Infraestructura legacy | Orquestador legacy de Órdenes de servicio. Para `ordenes-servicio` agregaba visión general, detección genérica de pendientes, etapas `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre` y delegaba CRUD a `PrivateModulePage.jsx`. |
+La revisión final modificó el layout respecto del cierre preliminar. La vista raíz ya no usa lista lateral + ficha permanente ni selecciona automáticamente el primer registro. El patrón definitivo recuperado desde el HTML es:
 
-La cadena legacy común validada para varios módulos es:
+`Filtros → Grid de clientes → Ficha 360 al abrir`
 
-`Page legacy` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración del módulo.
+Se conservan los campos, contactos, requisitos, validaciones y relaciones modernas. `state.minas` sigue como fuente canónica de escritura; `state.clientes` permanece como fallback de lectura. Las acciones de creación globales permanecen exclusivamente en Header.
 
-Para Órdenes de servicio se validó la cadena:
+## Cierre Fase 3 · Contratos
 
-`OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `ordenes-servicio`.
+**Estado:** CERRADA  
+**Fecha:** 10 de septiembre de 2026
 
-La especialización actual reemplaza estas experiencias genéricas cuando existe una página funcional dedicada, conservando las reglas y relaciones de origen que siguen siendo válidas.
+El layout definitivo recupera el patrón tabular del HTML:
 
-## Trazabilidad específica · Turnos y asistencia
+`Filtros / KPIs → Tabla global de contratos → Ficha al abrir`
 
-La revisión del módulo de Turnos confirmó el siguiente origen:
+Se mantienen vigencia, responsable, estado, documento contractual, Cliente mediante `minaId`, OS mediante `contratoId` y navegación entre entidades. Firma Digital/plantillas contractuales legacy no se reactivan en esta fase. `+ Contrato` permanece en Header.
 
-`TurnosAsistenciaPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `turnos-asistencia`.
+## Cierre Fase 4 · Órdenes de servicio
 
-La implementación anterior era una experiencia genérica configurada para planificar turnos, vincular personas y relacionarlos con órdenes de servicio. Declaraba `turnos` y `asistencias` como fuentes visibles, pero su `writeKey` ya era `turnos`.
+**Estado:** CERRADA  
+**Fecha:** 10 de septiembre de 2026
 
-`TurnosPage.jsx` reemplaza esa experiencia genérica por una implementación especializada que trabaja con `turnos`, `trabajadores`, `mantenciones`, `minas` y `asignaciones`, e incorpora cobertura, brechas, régimen, turno, asistencia, horarios y horas hombre.
+El layout definitivo recupera:
 
-El backend actual valida explícitamente `state.turnos`, sus relaciones con persona y servicio y la unicidad por persona, fecha y turno. Por ello, `turnos` se considera la fuente canónica actual; no se mantiene una colección operacional separada de `asistencias`.
+`Filtros → Cards de OS → Ficha operacional al abrir`
 
-## Trazabilidad específica · Formación y certificaciones
+La implementación React conserva requisitos, Cliente/Contrato, preparación de personas, asignaciones, recursos, alojamientos/estadías, evidencia y cierre. La ficha extensa dispone de scroll vertical propio y encabezado sticky. `mantenciones` continúa como fuente canónica; `proyectos` como fallback legacy; personas por `asignaciones.mantId`. `+ Orden de servicio` permanece en Header.
 
-La revisión del módulo de Formación confirmó el siguiente origen:
+## Cierre Fase 5 · Gestión Operacional
 
-`FormacionPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `formacion`.
+**Estado:** CERRADA  
+**Fecha:** 10 de septiembre de 2026
 
-La página anterior era únicamente un wrapper hacia la experiencia genérica. El catálogo conceptual asociaba Formación con `cursos` y `trabajadores`, y utilizaba `cursos` como clave de escritura.
+### Comunicaciones y convocatorias
+Especialización completada con contexto OS, personas/elegibilidad, seguimiento y KPIs derivados del estado actual. El módulo no se convierte en mensajería genérica: su propósito es la coordinación operacional trazable.
 
-La implementación especializada actual conserva el propósito de administrar cursos, certificaciones y vigencias por persona, y amplía el flujo con búsqueda, filtros por tipo y estado, indicadores de vigencia, evidencia documental y navegación hacia la ficha de la persona.
+### Flota y equipos móviles
+`VehiculosPage.jsx` trabaja con `state.vehiculos` y recupera el layout tabular original. Administra identificación, disponibilidad, propiedad/arriendo, operador, Cliente/faena y OS. `inventoryItems` no absorbe Flota en esta fase.
 
-Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `curso` o `certificacion`. `state.cursos` se conserva como fuente legacy de solo lectura durante la migración, evitando duplicar registros ya presentes en la fuente canónica.
+### Alojamientos y estadías
+`AlojamientosPage.jsx` utiliza `state.hoteles` como catálogo y `state.hotelAsig` como dueño de las estadías. Recupera cards de alojamiento y tabla global de asignaciones; Persona, Cliente y OS son navegables y no se duplican datos en sus entidades.
 
-## Trazabilidad específica · Exámenes y aptitudes
+### Credenciales de acceso
+`CredencialesPage.jsx` reemplaza el wrapper genérico y recupera filtros, KPIs, tabla global y ficha bajo demanda. Administra número de pase, emisión, vencimiento, zona, campamento, observación y respaldo existente. La relación se mantiene con Persona mediante `trabId` y Cliente/faena mediante `minaId`.
 
-La revisión del módulo de Exámenes confirmó el siguiente origen:
+**Resultado:** los cuatro submódulos de Gestión Operacional están especializados y validados. Fase 5 se considera cerrada.
 
-`ExamenesPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `examenes`.
+## Correcciones transversales registradas
 
-La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual administra examen o aptitud, resultado, vencimiento, observaciones y estado por persona, con búsqueda, filtros e indicadores de vigencia.
+### Creación desde Header
+Las rutas `/nuevo` de Cliente, Contrato y OS instancian explícitamente formularios limpios. Las Pages no duplican las acciones globales del Header.
 
-Los nuevos registros se almacenan en `trabajadores[].workerItems` con tipo `examen`; `state.examenes` se conserva como fuente legacy de solo lectura y se evita duplicar registros ya consolidados en la persona.
+### Encabezados y densidad
+`AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System. Se mantiene densidad media-alta y toolbars compactas; filtros secundarios pueden agruparse bajo `Más filtros`.
 
-Como parte de la revisión se identificó la ausencia de respaldo documental en la página especializada. Se incorporó carga de evidencia mediante `/api/files`, asociada como `worker_document` a la persona, guardando `fileId`, `fileName`, `fileType` y `fileSize` dentro del registro de examen. La tabla de Exámenes muestra además la evidencia registrada.
+### Navegación contextual
+Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben renderizarse como enlaces cuando aparecen como contexto de otro módulo.
 
-## Trazabilidad específica · Salud Ocupacional
+## Infraestructura legacy revisada
 
-La revisión del módulo de Salud Ocupacional confirmó el siguiente origen:
+| Archivo | Rol |
+| --- | --- |
+| `ModuleWorkspacePage.jsx` | Wrapper/orquestación genérica utilizada como referencia para recuperar configuración y layout de origen. |
+| `PrivateModulePage.jsx` | CRUD genérico legacy; referencia de campos, relaciones, permisos y evidencia. |
+| `OperationalWorkspacePage.jsx` | Orquestador legacy de OS; referencia del flujo Crear → Requisitos → Recursos → Cierre. |
 
-`SaludOcupacionalPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `salud-ocupacional`.
+Estas piezas no son fuentes funcionales de los módulos especializados.
 
-La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual separa Salud Ocupacional de los exámenes de aptitud y administra protocolos y seguimientos asociados a persona, riesgo o exposición, responsable y estado.
+## Próximo punto
 
-La fuente canónica actual es `state.protocolosSalud`. Los registros se vinculan directamente con `trabajadores` mediante `workerId` y permiten navegar desde el seguimiento hacia la ficha de la persona.
-
-Como parte de la revisión se incorporó respaldo documental al flujo. La evidencia se carga mediante `/api/files`, asociada como `worker_document` a la persona, y el protocolo guarda `fileId`, `fileName`, `fileType` y `fileSize`. La tabla de Salud Ocupacional muestra además la evidencia registrada.
-
-## Trazabilidad específica · Protección personal / EPP
-
-La revisión del módulo de Protección personal / EPP confirmó el siguiente origen:
-
-`ProteccionEppPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `proteccion-epp`.
-
-La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual administra entregas de EPP por persona, con equipo, talla o medida, marca o modelo, certificación, fecha de entrega, fecha de reposición y observaciones.
-
-La fuente canónica actual es `state.eppDeliveries`. `state.eppEntregas` se mantiene como compatibilidad legacy durante la migración. El módulo se relaciona con `trabajadores` y, cuando existe correspondencia, con `inventoryItems` para seleccionar el EPP del inventario.
-
-La versión especializada además sugiere tallas a partir de la información registrada en la ficha de la persona y calcula el estado de reposición como vigente, próxima, vencida o sin información. No se agregó evidencia documental genérica en esta revisión, porque el registro principal representa una entrega física y un futuro respaldo debería tratarse como constancia específica de entrega o recepción.
-
-## Trazabilidad específica · Restringidos
-
-La revisión del módulo de Restringidos confirmó el siguiente origen:
-
-`RestringidosPage.jsx` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `restringidos`.
-
-La página anterior era un wrapper hacia la experiencia genérica. La implementación especializada actual administra restricciones por persona con motivo, período, alcance y observaciones, y calcula si cada restricción se encuentra vigente o finalizada.
-
-`state.restricted` mantiene el detalle e historial de las restricciones. Al registrar una nueva restricción, el módulo actualiza también `trabajadores`, marcando a la persona con `bloqueado: true` y `disponibilidad: 'bloqueado'`, de forma que el estado operacional se refleje inmediatamente en los demás módulos.
-
-Durante la transición también se detectan como restricciones implícitas las personas que ya se encuentran bloqueadas en `trabajadores` aunque todavía no exista un registro equivalente en `restricted`. No se agregó evidencia documental genérica, porque la evidencia debe permanecer en el módulo funcional que origina la restricción cuando corresponda.
-
-## Trazabilidad específica · Órdenes de servicio
-
-La revisión de Fase 4 confirmó el siguiente origen:
-
-`OrdenesServicioPage.jsx` → `OperationalWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración de `ordenes-servicio`.
-
-La referencia era un wrapper que delegaba en un orquestador operacional. Para Órdenes de servicio, ese orquestador utilizaba `proyectos`, `mantenciones` y `asignaciones`, exponía visión general y pendientes y definía las etapas `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`. El CRUD genérico subyacente contemplaba además evidencia opcional asociada al registro.
-
-La implementación especializada actual utiliza `mantenciones` como fuente canónica de escritura y conserva `proyectos` únicamente como fallback legacy de lectura. `asignaciones` continúa siendo la fuente de relación de personas mediante `mantId`, evitando crear un modelo paralelo y preservando compatibilidad con Turnos y otros consumidores existentes.
-
-La implementación especializada administra Cliente y Contrato de forma estructurada mediante `minaId` y `contratoId`, valida que el contrato pertenezca al cliente seleccionado, incorpora responsables, fechas, estado y observación obligatoria de cierre, y consume requisitos del cliente, personas, restricciones, formación, exámenes, salud ocupacional, EPP, inventario, vehículos y estadías para construir la preparación operacional sin crear fuentes paralelas.
-
-Las estadías se incorporan como lectura de `hotelAsig` filtrada por `mantId`. La Orden no se transforma en dueña del alojamiento: únicamente presenta Persona, hotel/habitación, fechas, turno y estado, y permite navegar hacia los módulos propietarios de la relación.
-
-Durante la revisión se detectó que la arquitectura legacy contemplaba evidencia y la página especializada no la exponía. Se restituyó esta capacidad mediante carga a `/api/files` como `order_document`, guardando `fileId`, `archivo`, `archivoTipo`, `archivoTamano` y `archivoFecha` en la orden. También se incorporó descarga y reemplazo de la evidencia, con validación de formatos y tamaño máximo de 25 MB.
-
-La validación funcional y visual final de Fase 4 fue completada satisfactoriamente. Las extensiones realizadas en Fase 5 son consumos de módulos operacionales posteriores y no reabren el ownership ni el cierre de la fase.
-
-## Seguimiento
-
-A partir de este punto, cada página JSX que sea modificada, revisada contra su origen o utilizada para reemplazar una página anterior debe incorporarse a este documento. Cuando corresponda, registrar también la página o arquitectura reemplazada para mantener la trazabilidad de la migración.
+Con Fases 0–5 cerradas, el siguiente bloque de migración es **Fase 6 · Contratistas**. Cada nueva Page modificada o revisada debe incorporarse a esta trazabilidad.
