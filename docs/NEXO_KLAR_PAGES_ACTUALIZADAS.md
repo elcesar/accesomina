@@ -35,9 +35,10 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 1 · Capital Humano | `ProteccionEppPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `ProteccionEppPage.jsx → ModuleWorkspacePage → PrivateModulePage`. `eppDeliveries` es la fuente canónica; `eppEntregas` se mantiene como compatibilidad legacy. La versión especializada integra persona, tallas, inventario, certificación, entrega y reposición. |
 | Fase 2 · Clientes | `ClientesPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva el layout lista + ficha, escribe en `minas`, mantiene `clientes` como fallback de lectura y preserva relaciones por `minaId` con contratos y órdenes de servicio. |
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Contrastada con la implementación especializada de referencia. Conserva `contratos` como fuente funcional, relación con clientes por `minaId`, órdenes por `contratoId`, documentación contractual y layout lista + ficha. Se alineó el estado con `StatusBadge` y se eliminó lenguaje técnico de la interfaz. |
-| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora además Cliente–Contrato, requisitos, preparación, recursos, cierre y evidencia documental. |
+| Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza `OrdenesServicioPage.jsx → OperationalWorkspacePage.jsx → PrivateModulePage.jsx`. `mantenciones` queda como fuente canónica de escritura, `proyectos` como fallback legacy de lectura y `asignaciones` conserva la relación de personas mediante `mantId`. La versión especializada incorpora Cliente–Contrato, requisitos, preparación, recursos, alojamiento/estadías, cierre y evidencia documental. Las estadías se leen desde `hotelAsig` mediante `mantId`, sin duplicarlas dentro de la Orden. |
 | Fase 5 · Gestión Operacional | `ComunicacionesPage.jsx` | Actualizada · Revisada | Submódulo Comunicaciones y convocatorias completado. Centraliza comunicaciones vinculadas a personas y órdenes, incorpora navegación al contexto operacional y KPIs derivados del estado. |
 | Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada | Reemplaza el wrapper `VehiculosPage.jsx → ModuleWorkspacePage`. `state.vehiculos` se mantiene como fuente funcional. La página especializada incorpora disponibilidad, propiedad/arriendo, operador, clientes/faenas y relación con Orden de servicio mediante `mantId`. |
+| Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | Reemplaza el wrapper `AlojamientosPage.jsx → ModuleWorkspacePage`. `state.hoteles` mantiene el catálogo de alojamientos y habitaciones; `state.hotelAsig` mantiene las estadías. La página relaciona Persona, Orden y Cliente sin duplicar datos y aplica la densidad operacional del Design System. |
 | Centro operativo y control | `DashboardPage.jsx` | Actualizada | Dashboard operacional modernizado. |
 | Centro operativo y control | `AlertasPage.jsx` | Actualizada | Gestión especializada de alertas. |
 
@@ -87,7 +88,9 @@ La Fase 4 queda formalmente cerrada después de contrastar `OrdenesServicioPage.
 
 La implementación especializada conserva y amplía el flujo de origen `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre`, integrando Cliente mediante `minaId`, Contrato mediante `contratoId`, requisitos del cliente, preparación de personas desde Capital Humano, recursos vinculados y observación obligatoria de cierre. También se restituyó la evidencia documental contemplada por la arquitectura legacy mediante carga, descarga y reemplazo de documentos asociados a la orden.
 
-La validación final confirma que no quedan brechas relevantes para mantener abierta la fase. La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
+Durante Fase 5, la ficha de la Orden se amplió como consumidor de relaciones operacionales: ahora muestra las estadías asociadas leyendo `state.hotelAsig` por `mantId`, junto con Persona, alojamiento/habitación, check-in, check-out, turno y estado. Este cambio no modifica el ownership de Fase 4 ni duplica datos dentro de `mantenciones`; únicamente hace visible desde la Orden una relación cuyo módulo dueño es Alojamientos y estadías.
+
+La migración estructural futura de `mantenciones/mantId` hacia una entidad con nomenclatura definitiva de Orden de servicio se mantiene separada de esta estabilización para evitar romper consumidores existentes.
 
 ## Avance de Fase 5 · Gestión Operacional
 
@@ -114,7 +117,17 @@ La página fue ampliada para administrar tipo, identificación interna, patente,
 
 `inventoryItems` no se adopta como fuente de Flota en esta fase. La consolidación de Inventario/Activos corresponde a Fase 8; por ahora se evita crear o alimentar un modelo paralelo al dominio `vehiculos`.
 
-**Pendientes de Fase 5:** Alojamientos/estadías y Credenciales de acceso.
+### Alojamientos y estadías — ACTUALIZADO / EN VALIDACIÓN
+
+El origen revisado era `AlojamientosPage.jsx → ModuleWorkspacePage.jsx`, un wrapper genérico sin lógica propia de negocio. La implementación especializada utiliza dos fuentes ya existentes y validadas por backend: `state.hoteles` para el catálogo de alojamientos, habitaciones, camas y tarifas, y `state.hotelAsig` para las estadías operacionales.
+
+El módulo permite administrar nombre, ciudad, dirección, contacto, teléfono, clientes/faenas habilitadas y habitaciones. Las estadías relacionan `hotelId`, `mantId` y `trabId`, junto con habitación, turno, check-in, check-out, estado y observaciones. La persona debe estar asignada previamente a la Orden para poder recibir una estadía, conservando la secuencia operacional y las reglas de integridad existentes.
+
+La relación se almacena únicamente en `hotelAsig` y se visualiza desde ambos extremos. `FichaTrabajadorPage.jsx` ya consume las estadías de la persona, mientras `OrdenesServicioPage.jsx` ahora consume las estadías de la Orden por `mantId`. Desde Alojamientos el contexto permite navegar hacia Persona, Orden y Cliente; desde la Orden se puede navegar a Persona y al módulo de Alojamientos. No se duplica información de estadía dentro de `trabajadores` ni `mantenciones`.
+
+Visualmente, la página adopta la densidad operacional media-alta definida para las páginas internas: separación habitual `--space-3/--space-4`, `--page-padding` transversal, superficies `--surf/--surf-2` y mayor densidad de información sin perder jerarquía.
+
+**Pendiente de Fase 5:** Credenciales de acceso. Alojamientos/estadías permanece en validación visual-funcional antes de considerarse completado.
 
 ## Corrección transversal · Creación desde Header
 
@@ -130,11 +143,11 @@ Esta sección registra infraestructura de referencia utilizada para reconstruir 
 
 | Archivo / infraestructura | Estado | Rol en la migración |
 | --- | --- | --- |
-| `ModuleWorkspacePage.jsx` | Revisado · Infraestructura legacy | Wrapper que resuelve el módulo solicitado y delega la experiencia a la infraestructura genérica. Forma parte del origen común de Turnos, Formación, Exámenes, Salud Ocupacional, EPP y Restringidos. |
+| `ModuleWorkspacePage.jsx` | Revisado · Infraestructura legacy | Wrapper que resuelve el módulo solicitado y delega la experiencia a la infraestructura genérica. Forma parte del origen común de Turnos, Formación, Exámenes, Salud Ocupacional, EPP, Restringidos y Alojamientos. |
 | `PrivateModulePage.jsx` | Revisado · Infraestructura legacy | Implementación CRUD genérica utilizada por wrappers y por el orquestador operacional. Se revisó para recuperar campos, relaciones, permisos, creación y evidencia de origen, pero no se adopta como fuente funcional de los módulos especializados. |
 | `OperationalWorkspacePage.jsx` | Revisado · Infraestructura legacy | Orquestador legacy de Órdenes de servicio. Para `ordenes-servicio` agregaba visión general, detección genérica de pendientes, etapas `Crear orden → Completar requisitos → Asignar recursos → Registrar cierre` y delegaba CRUD a `PrivateModulePage.jsx`. |
 
-La cadena legacy común validada para varios módulos de Capital Humano es:
+La cadena legacy común validada para varios módulos es:
 
 `Page legacy` → `ModuleWorkspacePage.jsx` → `PrivateModulePage.jsx` → configuración del módulo.
 
@@ -226,11 +239,13 @@ La referencia era un wrapper que delegaba en un orquestador operacional. Para Ó
 
 La implementación especializada actual utiliza `mantenciones` como fuente canónica de escritura y conserva `proyectos` únicamente como fallback legacy de lectura. `asignaciones` continúa siendo la fuente de relación de personas mediante `mantId`, evitando crear un modelo paralelo y preservando compatibilidad con Turnos y otros consumidores existentes.
 
-La implementación especializada administra Cliente y Contrato de forma estructurada mediante `minaId` y `contratoId`, valida que el contrato pertenezca al cliente seleccionado, incorpora responsables, fechas, estado y observación obligatoria de cierre, y consume requisitos del cliente, personas, restricciones, formación, exámenes, salud ocupacional, EPP, inventario y vehículos para construir la preparación operacional sin crear fuentes paralelas.
+La implementación especializada administra Cliente y Contrato de forma estructurada mediante `minaId` y `contratoId`, valida que el contrato pertenezca al cliente seleccionado, incorpora responsables, fechas, estado y observación obligatoria de cierre, y consume requisitos del cliente, personas, restricciones, formación, exámenes, salud ocupacional, EPP, inventario, vehículos y estadías para construir la preparación operacional sin crear fuentes paralelas.
+
+Las estadías se incorporan como lectura de `hotelAsig` filtrada por `mantId`. La Orden no se transforma en dueña del alojamiento: únicamente presenta Persona, hotel/habitación, fechas, turno y estado, y permite navegar hacia los módulos propietarios de la relación.
 
 Durante la revisión se detectó que la arquitectura legacy contemplaba evidencia y la página especializada no la exponía. Se restituyó esta capacidad mediante carga a `/api/files` como `order_document`, guardando `fileId`, `archivo`, `archivoTipo`, `archivoTamano` y `archivoFecha` en la orden. También se incorporó descarga y reemplazo de la evidencia, con validación de formatos y tamaño máximo de 25 MB.
 
-La validación funcional y visual final fue completada satisfactoriamente, por lo que Fase 4 queda cerrada.
+La validación funcional y visual final de Fase 4 fue completada satisfactoriamente. Las extensiones realizadas en Fase 5 son consumos de módulos operacionales posteriores y no reabren el ownership ni el cierre de la fase.
 
 ## Seguimiento
 
