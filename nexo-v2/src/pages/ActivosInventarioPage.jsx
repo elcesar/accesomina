@@ -3,7 +3,8 @@ import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/activos-inventario.css'
 
-function rows(value) { return Array.isArray(value) ? value : [] }
+const rows = value => Array.isArray(value) ? value : []
+const today = () => new Date().toISOString().slice(0, 10)
 
 function inventoryCategory(item) {
   const source = `${item.type || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase()
@@ -20,7 +21,7 @@ function itemStatus(item) {
 }
 
 function emptyItem() {
-  return { id: '', name: '', code: '', type: 'Equipo', category: 'equipos', stock: 0, minStock: 0, location: '' }
+  return { id: '', name: '', code: '', type: 'Equipo', category: 'equipos', stock: 0, minStock: 0, warehouseId: '', locationId: '', location: '' }
 }
 
 export default function ActivosInventarioPage() {
@@ -31,12 +32,13 @@ export default function ActivosInventarioPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [formOpen, setFormOpen] = useState(false)
+  const [editor, setEditor] = useState('')
   const [form, setForm] = useState(emptyItem())
+  const [stocktakeForm, setStocktakeForm] = useState({ itemId:'', warehouseId:'', counted:0, at:today(), notes:'' })
+  const [receiptForm, setReceiptForm] = useState({ itemId:'', warehouseId:'', qty:1, at:today(), requestId:'', notes:'' })
 
   async function load() {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try { setResponse(await api.get('/state')) }
     catch (cause) { setError(cause.message || 'No fue posible cargar el inventario.') }
     finally { setLoading(false) }
@@ -50,24 +52,37 @@ export default function ActivosInventarioPage() {
   const movements = rows(state.inventoryMovements)
   const stocktakes = rows(state.inventoryStocktakes)
   const replenishments = rows(state.replenishmentRequests)
+  const warehouses = rows(state.warehouses).length ? rows(state.warehouses) : rows(state.bodegas)
+  const locations = rows(state.inventoryLocations)
   const orders = rows(state.mantenciones).length ? rows(state.mantenciones) : rows(state.proyectos)
   const reservations = rows(state.assetReservations)
+
+  const warehouseName = id => {
+    const row = warehouses.find(entry => String(entry.id) === String(id))
+    return row?.name || row?.nombre || row?.label || ''
+  }
+  const locationName = id => {
+    const row = locations.find(entry => String(entry.id) === String(id))
+    return row?.name || row?.nombre || row?.code || row?.codigo || row?.position || row?.ubicacion || ''
+  }
+  const itemLocation = item => [warehouseName(item.warehouseId), locationName(item.locationId)].filter(Boolean).join(' · ') || item.location || 'Sin ubicación definida'
+  const formLocations = useMemo(() => locations.filter(location => String(location.warehouseId || location.bodegaId || location.parentId || '') === String(form.warehouseId || '')), [locations, form.warehouseId])
+  const pendingReplenishments = useMemo(() => replenishments.filter(row => ['pendiente','aprobada'].includes(String(row.status || '').toLowerCase())), [replenishments])
 
   const filtered = useMemo(() => items.filter(item => {
     const term = query.trim().toLowerCase()
     const cat = inventoryCategory(item)
     const status = itemStatus(item)
-    return (!term || [item.name, item.code, item.serial, item.serie, item.type, item.location].some(v => String(v || '').toLowerCase().includes(term))) &&
-      (!category || cat === category) &&
-      (!statusFilter || status === statusFilter)
-  }), [items, query, category, statusFilter])
+    return (!term || [item.name, item.code, item.serial, item.serie, item.type, itemLocation(item)].some(v => String(v || '').toLowerCase().includes(term))) &&
+      (!category || cat === category) && (!statusFilter || status === statusFilter)
+  }), [items, query, category, statusFilter, warehouses, locations])
 
   const summary = useMemo(() => ({
     total: items.length,
     low: items.filter(item => Number(item.stock || 0) <= Number(item.minStock || 0)).length,
-    pending: replenishments.filter(row => ['pendiente', 'aprobada'].includes(row.status)).length,
+    pending: pendingReplenishments.length,
     counts: stocktakes.length,
-  }), [items, replenishments, stocktakes])
+  }), [items, pendingReplenishments, stocktakes])
 
   const orderAvailability = useMemo(() => orders.slice(0, 8).map(order => {
     const current = reservations.filter(row => String(row.projectId || row.mantId) === String(order.id) && row.status !== 'cancelada')
@@ -78,64 +93,127 @@ export default function ActivosInventarioPage() {
     return { order, reserved: current.length, available }
   }), [orders, reservations, items])
 
+  function stockAtWarehouse(item, warehouseId) {
+    if (!item || !warehouseId) return 0
+    if (item.stockByLocation && Object.prototype.hasOwnProperty.call(item.stockByLocation, warehouseId)) return Number(item.stockByLocation[warehouseId] || 0)
+    if (String(item.warehouseId || '') === String(warehouseId)) return Number(item.stock || 0)
+    return 0
+  }
+
+  function totalStock(stockByLocation, fallback = 0) {
+    const values = Object.values(stockByLocation || {})
+    return values.length ? values.reduce((sum, value) => sum + Number(value || 0), 0) : Number(fallback || 0)
+  }
+
   async function saveItem() {
-    if (!form.name.trim()) { setError('Ingresa el nombre del recurso.'); return }
+    if (!form.name.trim()) return setError('Ingresa el nombre del recurso.')
+    if (!form.warehouseId) return setError('Selecciona una bodega para registrar el recurso.')
     setSaving(true); setError('')
     try {
       const id = form.id || `inv_${Date.now()}`
-      const record = { ...form, id, stock: Number(form.stock || 0), minStock: Number(form.minStock || 0), updatedAt: new Date().toISOString(), createdAt: form.createdAt || new Date().toISOString() }
+      const initialStock = Number(form.stock || 0)
+      const stockByLocation = form.stockByLocation ? { ...form.stockByLocation } : { [form.warehouseId]: initialStock }
+      if (!form.id || !Object.keys(stockByLocation).length) stockByLocation[form.warehouseId] = initialStock
+      const record = {
+        ...form, id, stock: totalStock(stockByLocation, initialStock), stockByLocation,
+        minStock: Number(form.minStock || 0),
+        location: [warehouseName(form.warehouseId), locationName(form.locationId)].filter(Boolean).join(' · '),
+        updatedAt: new Date().toISOString(), createdAt: form.createdAt || new Date().toISOString(),
+      }
       const next = items.some(item => item.id === id) ? items.map(item => item.id === id ? record : item) : [record, ...items]
       const result = await api.put('/state/modules', {
         reason: `${form.id ? 'Inventario actualizado' : 'Recurso registrado'}: ${record.name}`,
         changes: { inventoryItems: { version: Number(versions.inventoryItems || 0), data: next } },
       })
       setResponse(current => ({ ...(current || {}), state: { ...(current?.state || state), inventoryItems: next }, moduleVersions: { ...(current?.moduleVersions || versions), ...(result?.moduleVersions || {}) } }))
-      setForm(record); setFormOpen(false)
+      setEditor('')
     } catch (cause) { setError(cause.message || 'No fue posible guardar el recurso.') }
     finally { setSaving(false) }
   }
 
-  function openNew() { setForm(emptyItem()); setFormOpen(true) }
+  function openNew() { setForm(emptyItem()); setEditor('item'); setError('') }
 
   function lookupCode() {
     const value = window.prompt('Código, serie o nombre del recurso')
     if (!value) return
     const term = value.toLowerCase()
     const item = items.find(row => [row.code, row.serial, row.serie, row.name].some(field => String(field || '').toLowerCase().includes(term)))
-    if (!item) { setError('No se encontró un recurso con ese código.'); return }
+    if (!item) return setError('No se encontró un recurso con ese código.')
     setQuery(item.code || item.serial || item.serie || item.name || value)
   }
 
   function startStocktake() {
-    setError('Conteo físico quedará conectado al módulo de movimientos/bodegas en el siguiente submódulo de Fase 8.')
+    setStocktakeForm({ itemId:'', warehouseId:warehouses[0]?.id || '', counted:0, at:today(), notes:'' })
+    setEditor('stocktake'); setError('')
+  }
+
+  async function saveStocktake() {
+    const counted = Number(stocktakeForm.counted)
+    if (!stocktakeForm.itemId || !stocktakeForm.warehouseId || counted < 0) return setError('Completa recurso, bodega y cantidad contada.')
+    const item = items.find(entry => String(entry.id) === String(stocktakeForm.itemId))
+    if (!item) return setError('No se encontró el recurso seleccionado.')
+    setSaving(true); setError('')
+    try {
+      const before = stockAtWarehouse(item, stocktakeForm.warehouseId)
+      const stockByLocation = { ...(item.stockByLocation || {}) }
+      stockByLocation[stocktakeForm.warehouseId] = counted
+      const nextStock = totalStock(stockByLocation, counted)
+      const updatedItem = { ...item, stockByLocation, stock: nextStock, updatedAt:new Date().toISOString() }
+      const nextItems = items.map(entry => String(entry.id) === String(item.id) ? updatedItem : entry)
+      const stocktake = { id:`count_${Date.now()}`, itemId:item.id, warehouseId:stocktakeForm.warehouseId, counted, systemQty:before, difference:counted-before, at:`${stocktakeForm.at}T12:00:00`, notes:stocktakeForm.notes?.trim() || '', status:'registrado' }
+      const movement = { id:`mov_${Date.now()+1}`, itemId:item.id, warehouseId:stocktakeForm.warehouseId, type:'ajuste', qty:counted, stockBefore:before, stockAfter:counted, difference:counted-before, notes:`Conteo físico${stocktake.notes ? ` · ${stocktake.notes}` : ''}`, at:stocktake.at }
+      const nextStocktakes = [stocktake, ...stocktakes]
+      const nextMovements = [movement, ...movements]
+      const result = await api.put('/state/modules', { reason:`Conteo físico: ${item.name}`, changes:{ inventoryItems:{version:Number(versions.inventoryItems || 0),data:nextItems}, inventoryStocktakes:{version:Number(versions.inventoryStocktakes || 0),data:nextStocktakes}, inventoryMovements:{version:Number(versions.inventoryMovements || 0),data:nextMovements} } })
+      setResponse(current => ({ ...(current || {}), state:{...(current?.state || state),inventoryItems:nextItems,inventoryStocktakes:nextStocktakes,inventoryMovements:nextMovements}, moduleVersions:{...(current?.moduleVersions || versions),...(result?.moduleVersions || {})} }))
+      setEditor('')
+    } catch (cause) { setError(cause.message || 'No fue posible registrar el conteo físico.') }
+    finally { setSaving(false) }
   }
 
   function receiveStock() {
-    setError('Recepción de reposición quedará conectada al flujo de movimientos en el siguiente submódulo de Fase 8.')
+    const first = pendingReplenishments[0]
+    setReceiptForm({ itemId:first?.itemId || first?.assetId || '', warehouseId:first?.warehouseId || warehouses[0]?.id || '', qty:first?.qty || first?.quantity || 1, at:today(), requestId:first?.id || '', notes:'' })
+    setEditor('receipt'); setError('')
   }
 
-  return (
-    <div className="nk-assets-page">
-      <header className="nk-assets-header">
-        <div><h1>Inventario y existencias</h1><p>Catálogo central de activos, equipos y existencias con stock, mínimos, ubicación y trazabilidad.</p></div>
-        <div className="nk-assets-header-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Registrar activo o existencia</button></div>
-      </header>
+  async function saveReceipt() {
+    const qty = Number(receiptForm.qty || 0)
+    if (!receiptForm.itemId || !receiptForm.warehouseId || qty <= 0) return setError('Completa recurso, bodega y cantidad recibida.')
+    const item = items.find(entry => String(entry.id) === String(receiptForm.itemId))
+    if (!item) return setError('No se encontró el recurso seleccionado.')
+    setSaving(true); setError('')
+    try {
+      const before = stockAtWarehouse(item, receiptForm.warehouseId)
+      const stockByLocation = { ...(item.stockByLocation || {}) }
+      stockByLocation[receiptForm.warehouseId] = before + qty
+      const nextStock = totalStock(stockByLocation, Number(item.stock || 0) + qty)
+      const updatedItem = { ...item, warehouseId:item.warehouseId || receiptForm.warehouseId, stockByLocation, stock:nextStock, updatedAt:new Date().toISOString() }
+      const nextItems = items.map(entry => String(entry.id) === String(item.id) ? updatedItem : entry)
+      const movement = { id:`mov_${Date.now()}`, itemId:item.id, warehouseId:receiptForm.warehouseId, type:'reposicion', qty, stockBefore:before, stockAfter:before+qty, requestId:receiptForm.requestId || '', notes:receiptForm.notes?.trim() || '', at:`${receiptForm.at}T12:00:00` }
+      const nextMovements = [movement, ...movements]
+      const nextReplenishments = receiptForm.requestId ? replenishments.map(row => String(row.id) === String(receiptForm.requestId) ? { ...row, status:'recibida', receivedAt:new Date().toISOString(), receivedQty:qty, warehouseId:receiptForm.warehouseId } : row) : replenishments
+      const changes = { inventoryItems:{version:Number(versions.inventoryItems || 0),data:nextItems}, inventoryMovements:{version:Number(versions.inventoryMovements || 0),data:nextMovements} }
+      if (receiptForm.requestId) changes.replenishmentRequests = { version:Number(versions.replenishmentRequests || 0), data:nextReplenishments }
+      const result = await api.put('/state/modules', { reason:`Reposición recibida: ${item.name}`, changes })
+      setResponse(current => ({ ...(current || {}), state:{...(current?.state || state),inventoryItems:nextItems,inventoryMovements:nextMovements,replenishmentRequests:nextReplenishments}, moduleVersions:{...(current?.moduleVersions || versions),...(result?.moduleVersions || {})} }))
+      setEditor('')
+    } catch (cause) { setError(cause.message || 'No fue posible recibir la reposición.') }
+    finally { setSaving(false) }
+  }
 
-      {error && <div className="nk-assets-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
+  return <div className="nk-assets-page">
+    <header className="nk-assets-header"><div><h1>Inventario y existencias</h1><p>Catálogo central de activos, equipos y existencias con stock, mínimos, ubicación y trazabilidad.</p></div><div className="nk-assets-header-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Registrar activo o existencia</button></div></header>
+    {error && <div className="nk-assets-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
+    <section className="nk-card nk-assets-filters"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar recurso, código, serie o ubicación..."/></label><select className="nk-select" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todas las categorías</option><option value="maquinaria">Maquinaria</option><option value="equipos">Equipos e instrumentos</option><option value="herramientas">Herramientas</option><option value="epp">EPP</option><option value="materiales">Materiales</option><option value="insumos">Insumos</option></select><select className="nk-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></select></section>
+    <section className="nk-assets-kpis"><article><strong>{summary.total}</strong><span>Recursos controlados</span></article><article><strong>{summary.low}</strong><span>Bajo mínimo</span></article><article><strong>{summary.pending}</strong><span>Recepciones pendientes</span></article><article><strong>{summary.counts}</strong><span>Conteos registrados</span></article></section>
+    <section className="nk-card nk-assets-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-assets-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock total</th><th>Mínimo</th><th>Bodega / ubicación</th><th>Estado</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando inventario…</td></tr>:filtered.length?filtered.map(item=><tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serial||item.serie||'Sin código'}</small></td><td>{item.type||'Recurso'}</td><td>{Number(item.stock||0)}</td><td>{Number(item.minStock||0)}</td><td>{itemLocation(item)}</td><td><span className={`nk-badge ${itemStatus(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{itemStatus(item)}</span></td></tr>):<tr><td colSpan="6" className="nk-assets-empty">No hay registros para este filtro.</td></tr>}</tbody></table></div></section>
+    <section className="nk-card nk-assets-control"><div className="nk-assets-control-head"><div><h2>Control de existencias</h2><p>Consulta recursos por código, registra conteos físicos y recibe reposiciones con actualización automática de stock y trazabilidad.</p></div><div><button className="nk-button nk-button-secondary nk-button-sm" onClick={lookupCode}>Buscar código</button><button className="nk-button nk-button-secondary nk-button-sm" onClick={startStocktake} disabled={!warehouses.length}>Conteo físico</button><button className="nk-button nk-button-primary nk-button-sm" onClick={receiveStock} disabled={!warehouses.length}>Recibir reposición</button></div></div><div className="nk-table-wrapper"><table className="nk-table nk-assets-orders"><thead><tr><th>Orden de servicio</th><th>Recursos reservados</th><th>Disponibilidad</th></tr></thead><tbody>{orderAvailability.length?orderAvailability.map(({order,reserved,available})=><tr key={order.id}><td><strong>{order.codigo||order.nombre||order.name||order.id}</strong></td><td>{reserved}</td><td><span className={`nk-badge ${reserved===available?'nk-badge-ok':'nk-badge-warn'}`}>{reserved===available?'Recursos disponibles':'Revisar disponibilidad'}</span></td></tr>):<tr><td colSpan="3">Sin órdenes de servicio registradas.</td></tr>}</tbody></table></div></section>
 
-      <section className="nk-card nk-assets-filters">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar recurso, código, serie o ubicación..."/></label>
-        <select className="nk-select" value={category} onChange={e => setCategory(e.target.value)}><option value="">Todas las categorías</option><option value="maquinaria">Maquinaria</option><option value="equipos">Equipos e instrumentos</option><option value="herramientas">Herramientas</option><option value="epp">EPP</option><option value="materiales">Materiales</option><option value="insumos">Insumos</option></select>
-        <select className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></select>
-      </section>
+    {editor==='item'&&<section className="nk-card nk-assets-editor"><div className="nk-assets-editor-head"><h2>Registrar activo o existencia</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setEditor('')}>Cerrar</button></div>{!warehouses.length&&<div className="nk-assets-feedback"><span>No hay bodegas creadas. Crea una en Bodegas y almacenes antes de registrar recursos.</span></div>}<div className="nk-assets-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e=>setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}/></label><label><span>Categoría</span><select className="nk-select" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option value="maquinaria">Maquinaria</option><option value="equipos">Equipos</option><option value="herramientas">Herramientas</option><option value="epp">EPP</option><option value="materiales">Materiales</option><option value="insumos">Insumos</option></select></label><label><span>Bodega</span><select className="nk-select" value={form.warehouseId} onChange={e=>setForm({...form,warehouseId:e.target.value,locationId:''})}><option value="">Seleccionar bodega</option>{warehouses.map(w=><option key={w.id} value={w.id}>{w.name||w.nombre||w.label||'Bodega'}</option>)}</select></label><label><span>Ubicación interna</span><select className="nk-select" value={form.locationId} onChange={e=>setForm({...form,locationId:e.target.value})} disabled={!form.warehouseId||!formLocations.length}><option value="">{formLocations.length?'Sin ubicación interna':'No hay ubicaciones internas'}</option>{formLocations.map(loc=><option key={loc.id} value={loc.id}>{locationName(loc.id)||'Ubicación'}</option>)}</select></label><label><span>Stock inicial</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})}/></label></div><div className="nk-assets-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setEditor('')}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving||!warehouses.length}>{saving?'Guardando…':'Guardar recurso'}</button></div></section>}
 
-      <section className="nk-assets-kpis"><article><strong>{summary.total}</strong><span>Recursos controlados</span></article><article><strong>{summary.low}</strong><span>Bajo mínimo</span></article><article><strong>{summary.pending}</strong><span>Recepciones pendientes</span></article><article><strong>{summary.counts}</strong><span>Conteos registrados</span></article></section>
+    {editor==='stocktake'&&<section className="nk-card nk-assets-editor"><div className="nk-assets-editor-head"><h2>Conteo físico</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setEditor('')}>Cerrar</button></div><div className="nk-assets-form"><label><span>Recurso</span><select className="nk-select" value={stocktakeForm.itemId} onChange={e=>setStocktakeForm({...stocktakeForm,itemId:e.target.value})}><option value="">Seleccionar recurso</option>{items.map(item=><option key={item.id} value={item.id}>{item.name} · stock {Number(item.stock||0)}</option>)}</select></label><label><span>Bodega</span><select className="nk-select" value={stocktakeForm.warehouseId} onChange={e=>setStocktakeForm({...stocktakeForm,warehouseId:e.target.value})}><option value="">Seleccionar bodega</option>{warehouses.map(w=><option key={w.id} value={w.id}>{w.name||w.nombre||'Bodega'}</option>)}</select></label><label><span>Cantidad contada</span><input className="nk-input" type="number" min="0" value={stocktakeForm.counted} onChange={e=>setStocktakeForm({...stocktakeForm,counted:e.target.value})}/></label><label><span>Fecha</span><input className="nk-input" type="date" value={stocktakeForm.at} onChange={e=>setStocktakeForm({...stocktakeForm,at:e.target.value})}/></label><label className="wide"><span>Observaciones</span><textarea className="nk-input" rows="3" value={stocktakeForm.notes} onChange={e=>setStocktakeForm({...stocktakeForm,notes:e.target.value})}/></label></div><div className="nk-assets-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setEditor('')}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveStocktake} disabled={saving}>{saving?'Guardando…':'Registrar conteo'}</button></div></section>}
 
-      <section className="nk-card nk-assets-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-assets-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock total</th><th>Mínimo</th><th>Bodega / ubicación</th><th>Estado</th></tr></thead><tbody>{loading ? <tr><td colSpan="6">Cargando inventario…</td></tr> : filtered.length ? filtered.map(item => <tr key={item.id}><td><strong>{item.name || 'Sin nombre'}</strong><small>{item.code || item.serial || item.serie || 'Sin código'}</small></td><td>{item.type || 'Recurso'}</td><td>{Number(item.stock || 0)}</td><td>{Number(item.minStock || 0)}</td><td>{item.location || 'Bodega'}</td><td><span className={`nk-badge ${itemStatus(item) === 'Reponer' ? 'nk-badge-error' : 'nk-badge-ok'}`}>{itemStatus(item)}</span></td></tr>) : <tr><td colSpan="6" className="nk-assets-empty">No hay registros para este filtro.</td></tr>}</tbody></table></div></section>
-
-      <section className="nk-card nk-assets-control"><div className="nk-assets-control-head"><div><h2>Control de existencias</h2><p>Consulta recursos por código, registra conteos físicos y prepara recepciones sin perder trazabilidad.</p></div><div><button className="nk-button nk-button-secondary nk-button-sm" onClick={lookupCode}>Buscar código</button><button className="nk-button nk-button-secondary nk-button-sm" onClick={startStocktake}>Conteo físico</button><button className="nk-button nk-button-primary nk-button-sm" onClick={receiveStock}>Recibir reposición</button></div></div><div className="nk-table-wrapper"><table className="nk-table nk-assets-orders"><thead><tr><th>Orden de servicio</th><th>Recursos reservados</th><th>Disponibilidad</th></tr></thead><tbody>{orderAvailability.length ? orderAvailability.map(({order,reserved,available}) => <tr key={order.id}><td><strong>{order.codigo || order.nombre || order.name || order.id}</strong></td><td>{reserved}</td><td><span className={`nk-badge ${reserved === available ? 'nk-badge-ok' : 'nk-badge-warn'}`}>{reserved === available ? 'Recursos disponibles' : 'Revisar disponibilidad'}</span></td></tr>) : <tr><td colSpan="3">Sin órdenes de servicio registradas.</td></tr>}</tbody></table></div></section>
-
-      {formOpen && <section className="nk-card nk-assets-editor"><div className="nk-assets-editor-head"><h2>Registrar activo o existencia</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setFormOpen(false)}>Cerrar</button></div><div className="nk-assets-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e => setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e => setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e => setForm({...form,type:e.target.value})}/></label><label><span>Categoría</span><select className="nk-select" value={form.category} onChange={e => setForm({...form,category:e.target.value})}><option value="maquinaria">Maquinaria</option><option value="equipos">Equipos</option><option value="herramientas">Herramientas</option><option value="epp">EPP</option><option value="materiales">Materiales</option><option value="insumos">Insumos</option></select></label><label><span>Stock</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e => setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e => setForm({...form,minStock:e.target.value})}/></label><label className="wide"><span>Bodega / ubicación</span><input className="nk-input" value={form.location} onChange={e => setForm({...form,location:e.target.value})}/></label></div><div className="nk-assets-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving}>{saving ? 'Guardando…' : 'Guardar recurso'}</button></div></section>}
-    </div>
-  )
+    {editor==='receipt'&&<section className="nk-card nk-assets-editor"><div className="nk-assets-editor-head"><h2>Recibir reposición</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setEditor('')}>Cerrar</button></div><div className="nk-assets-form">{pendingReplenishments.length>0&&<label className="wide"><span>Solicitud de reposición</span><select className="nk-select" value={receiptForm.requestId} onChange={e=>{const request=pendingReplenishments.find(row=>String(row.id)===String(e.target.value));setReceiptForm({...receiptForm,requestId:e.target.value,itemId:request?.itemId||request?.assetId||receiptForm.itemId,warehouseId:request?.warehouseId||receiptForm.warehouseId,qty:request?.qty||request?.quantity||receiptForm.qty})}}><option value="">Recepción sin solicitud</option>{pendingReplenishments.map(request=><option key={request.id} value={request.id}>{request.code||request.reference||request.id}</option>)}</select></label>}<label><span>Recurso</span><select className="nk-select" value={receiptForm.itemId} onChange={e=>setReceiptForm({...receiptForm,itemId:e.target.value})}><option value="">Seleccionar recurso</option>{items.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span>Bodega destino</span><select className="nk-select" value={receiptForm.warehouseId} onChange={e=>setReceiptForm({...receiptForm,warehouseId:e.target.value})}><option value="">Seleccionar bodega</option>{warehouses.map(w=><option key={w.id} value={w.id}>{w.name||w.nombre||'Bodega'}</option>)}</select></label><label><span>Cantidad recibida</span><input className="nk-input" type="number" min="1" value={receiptForm.qty} onChange={e=>setReceiptForm({...receiptForm,qty:e.target.value})}/></label><label><span>Fecha recepción</span><input className="nk-input" type="date" value={receiptForm.at} onChange={e=>setReceiptForm({...receiptForm,at:e.target.value})}/></label><label className="wide"><span>Observaciones</span><textarea className="nk-input" rows="3" value={receiptForm.notes} onChange={e=>setReceiptForm({...receiptForm,notes:e.target.value})}/></label></div><div className="nk-assets-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setEditor('')}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveReceipt} disabled={saving}>{saving?'Guardando…':'Registrar recepción'}</button></div></section>}
+  </div>
 }
