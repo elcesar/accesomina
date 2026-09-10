@@ -16,195 +16,52 @@ function inventoryCategory(item) {
   return 'equipos'
 }
 
-function itemStatus(item) {
-  return Number(item.stock || 0) <= Number(item.minStock || 0) ? 'Reponer' : 'Disponible'
-}
-
-function emptyItem() {
-  return { id: '', name: '', code: '', type: 'Equipo', category: 'equipos', stock: 0, minStock: 0, warehouseId: '', locationId: '', location: '' }
-}
+const itemStatus = item => Number(item.stock || 0) <= Number(item.minStock || 0) ? 'Reponer' : 'Disponible'
+const emptyItem = () => ({ id:'', name:'', code:'', type:'Equipo', category:'equipos', stock:0, minStock:0, warehouseId:'', locationId:'', location:'' })
 
 export default function ActivosInventarioPage() {
-  const [response, setResponse] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [editor, setEditor] = useState('')
-  const [form, setForm] = useState(emptyItem())
-  const [stocktakeForm, setStocktakeForm] = useState({ itemId:'', warehouseId:'', counted:0, at:today(), notes:'' })
-  const [receiptForm, setReceiptForm] = useState({ itemId:'', warehouseId:'', qty:1, at:today(), requestId:'', notes:'' })
+  const [response,setResponse]=useState(null),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[query,setQuery]=useState(''),[category,setCategory]=useState(''),[statusFilter,setStatusFilter]=useState(''),[editor,setEditor]=useState(''),[form,setForm]=useState(emptyItem()),[stocktakeForm,setStocktakeForm]=useState({itemId:'',warehouseId:'',counted:0,at:today(),notes:''}),[receiptForm,setReceiptForm]=useState({itemId:'',warehouseId:'',qty:1,at:today(),requestId:'',notes:''})
 
-  async function load() {
-    setLoading(true); setError('')
-    try { setResponse(await api.get('/state')) }
-    catch (cause) { setError(cause.message || 'No fue posible cargar el inventario.') }
-    finally { setLoading(false) }
+  async function load(){setLoading(true);setError('');try{setResponse(await api.get('/state'))}catch(cause){setError(cause.message||'No fue posible cargar el inventario.')}finally{setLoading(false)}}
+  useEffect(()=>{load()},[])
+
+  const state=response?.state||response||{},versions=response?.moduleVersions||{}
+  const items=rows(state.inventoryItems).length?rows(state.inventoryItems):rows(state.activos),movements=rows(state.inventoryMovements),stocktakes=rows(state.inventoryStocktakes),replenishments=rows(state.replenishmentRequests),warehouses=rows(state.warehouses).length?rows(state.warehouses):rows(state.bodegas),locations=rows(state.inventoryLocations),orders=rows(state.mantenciones).length?rows(state.mantenciones):rows(state.proyectos),reservations=rows(state.assetReservations)
+
+  const warehouseName=id=>{const row=warehouses.find(entry=>String(entry.id)===String(id));return row?.name||row?.nombre||row?.label||''}
+  const locationName=id=>{const row=locations.find(entry=>String(entry.id)===String(id));return row?.name||row?.nombre||row?.code||row?.codigo||row?.position||row?.ubicacion||''}
+  const itemLocation=item=>[warehouseName(item.warehouseId),locationName(item.locationId)].filter(Boolean).join(' · ')||item.location||'Sin ubicación definida'
+  const formLocations=useMemo(()=>locations.filter(location=>String(location.warehouseId||location.bodegaId||location.parentId||'')===String(form.warehouseId||'')),[locations,form.warehouseId])
+  const pendingReplenishments=useMemo(()=>replenishments.filter(row=>['pendiente','aprobada'].includes(String(row.status||'').toLowerCase())),[replenishments])
+
+  function normalizedStockMap(item, fallbackWarehouseId='') {
+    const current={...(item?.stockByLocation||{})}
+    if (Object.keys(current).length) return current
+    const legacyStock=Number(item?.stock||0)
+    const legacyWarehouse=item?.warehouseId||fallbackWarehouseId
+    if (legacyWarehouse && legacyStock) current[legacyWarehouse]=legacyStock
+    return current
   }
+  function stockAtWarehouse(item,warehouseId){const map=normalizedStockMap(item,warehouseId);return Number(map[warehouseId]||0)}
+  function totalStock(map,fallback=0){const values=Object.values(map||{});return values.length?values.reduce((sum,value)=>sum+Number(value||0),0):Number(fallback||0)}
 
-  useEffect(() => { load() }, [])
+  const filtered=useMemo(()=>items.filter(item=>{const term=query.trim().toLowerCase(),cat=inventoryCategory(item),status=itemStatus(item);return(!term||[item.name,item.code,item.serial,item.serie,item.type,itemLocation(item)].some(v=>String(v||'').toLowerCase().includes(term)))&&(!category||cat===category)&&(!statusFilter||status===statusFilter)}),[items,query,category,statusFilter,warehouses,locations])
+  const summary=useMemo(()=>({total:items.length,low:items.filter(item=>Number(item.stock||0)<=Number(item.minStock||0)).length,pending:pendingReplenishments.length,counts:stocktakes.length}),[items,pendingReplenishments,stocktakes])
+  const orderAvailability=useMemo(()=>orders.slice(0,8).map(order=>{const current=reservations.filter(row=>String(row.projectId||row.mantId)===String(order.id)&&row.status!=='cancelada'),available=current.filter(row=>{const item=items.find(entry=>String(entry.id)===String(row.itemId));return item&&String(item.status||itemStatus(item))==='Disponible'}).length;return{order,reserved:current.length,available}}),[orders,reservations,items])
 
-  const state = response?.state || response || {}
-  const versions = response?.moduleVersions || {}
-  const items = rows(state.inventoryItems).length ? rows(state.inventoryItems) : rows(state.activos)
-  const movements = rows(state.inventoryMovements)
-  const stocktakes = rows(state.inventoryStocktakes)
-  const replenishments = rows(state.replenishmentRequests)
-  const warehouses = rows(state.warehouses).length ? rows(state.warehouses) : rows(state.bodegas)
-  const locations = rows(state.inventoryLocations)
-  const orders = rows(state.mantenciones).length ? rows(state.mantenciones) : rows(state.proyectos)
-  const reservations = rows(state.assetReservations)
+  async function saveItem(){if(!form.name.trim())return setError('Ingresa el nombre del recurso.');if(!form.warehouseId)return setError('Selecciona una bodega para registrar el recurso.');setSaving(true);setError('');try{const id=form.id||`inv_${Date.now()}`,initialStock=Number(form.stock||0),stockByLocation=form.id?normalizedStockMap(form,form.warehouseId):{[form.warehouseId]:initialStock};if(!form.id)stockByLocation[form.warehouseId]=initialStock;const record={...form,id,stock:totalStock(stockByLocation,initialStock),stockByLocation,minStock:Number(form.minStock||0),location:[warehouseName(form.warehouseId),locationName(form.locationId)].filter(Boolean).join(' · '),updatedAt:new Date().toISOString(),createdAt:form.createdAt||new Date().toISOString()},next=items.some(item=>item.id===id)?items.map(item=>item.id===id?record:item):[record,...items],result=await api.put('/state/modules',{reason:`${form.id?'Inventario actualizado':'Recurso registrado'}: ${record.name}`,changes:{inventoryItems:{version:Number(versions.inventoryItems||0),data:next}}});setResponse(current=>({...current,state:{...(current?.state||state),inventoryItems:next},moduleVersions:{...(current?.moduleVersions||versions),...(result?.moduleVersions||{})}}));setEditor('')}catch(cause){setError(cause.message||'No fue posible guardar el recurso.')}finally{setSaving(false)}}
+  function openNew(){setForm(emptyItem());setEditor('item');setError('')}
+  function lookupCode(){const value=window.prompt('Código, serie o nombre del recurso');if(!value)return;const term=value.toLowerCase(),item=items.find(row=>[row.code,row.serial,row.serie,row.name].some(field=>String(field||'').toLowerCase().includes(term)));if(!item)return setError('No se encontró un recurso con ese código.');setQuery(item.code||item.serial||item.serie||item.name||value)}
+  function startStocktake(){setStocktakeForm({itemId:'',warehouseId:warehouses[0]?.id||'',counted:0,at:today(),notes:''});setEditor('stocktake');setError('')}
 
-  const warehouseName = id => {
-    const row = warehouses.find(entry => String(entry.id) === String(id))
-    return row?.name || row?.nombre || row?.label || ''
-  }
-  const locationName = id => {
-    const row = locations.find(entry => String(entry.id) === String(id))
-    return row?.name || row?.nombre || row?.code || row?.codigo || row?.position || row?.ubicacion || ''
-  }
-  const itemLocation = item => [warehouseName(item.warehouseId), locationName(item.locationId)].filter(Boolean).join(' · ') || item.location || 'Sin ubicación definida'
-  const formLocations = useMemo(() => locations.filter(location => String(location.warehouseId || location.bodegaId || location.parentId || '') === String(form.warehouseId || '')), [locations, form.warehouseId])
-  const pendingReplenishments = useMemo(() => replenishments.filter(row => ['pendiente','aprobada'].includes(String(row.status || '').toLowerCase())), [replenishments])
+  async function saveStocktake(){const counted=Number(stocktakeForm.counted);if(!stocktakeForm.itemId||!stocktakeForm.warehouseId||counted<0)return setError('Completa recurso, bodega y cantidad contada.');const item=items.find(entry=>String(entry.id)===String(stocktakeForm.itemId));if(!item)return setError('No se encontró el recurso seleccionado.');setSaving(true);setError('');try{const stockByLocation=normalizedStockMap(item,stocktakeForm.warehouseId),before=Number(stockByLocation[stocktakeForm.warehouseId]||0);stockByLocation[stocktakeForm.warehouseId]=counted;const nextStock=totalStock(stockByLocation,counted),updatedItem={...item,stockByLocation,stock:nextStock,warehouseId:item.warehouseId||stocktakeForm.warehouseId,updatedAt:new Date().toISOString()},nextItems=items.map(entry=>String(entry.id)===String(item.id)?updatedItem:entry),at=`${stocktakeForm.at}T12:00:00`,stocktake={id:`count_${Date.now()}`,itemId:item.id,warehouseId:stocktakeForm.warehouseId,counted,systemQty:before,difference:counted-before,at,notes:stocktakeForm.notes?.trim()||'',status:'registrado'},movement={id:`mov_${Date.now()+1}`,itemId:item.id,warehouseId:stocktakeForm.warehouseId,type:'ajuste',qty:counted,stockBefore:before,stockAfter:counted,difference:counted-before,notes:`Conteo físico${stocktake.notes?` · ${stocktake.notes}`:''}`,at},nextStocktakes=[stocktake,...stocktakes],nextMovements=[movement,...movements],result=await api.put('/state/modules',{reason:`Conteo físico: ${item.name}`,changes:{inventoryItems:{version:Number(versions.inventoryItems||0),data:nextItems},inventoryStocktakes:{version:Number(versions.inventoryStocktakes||0),data:nextStocktakes},inventoryMovements:{version:Number(versions.inventoryMovements||0),data:nextMovements}}});setResponse(current=>({...current,state:{...(current?.state||state),inventoryItems:nextItems,inventoryStocktakes:nextStocktakes,inventoryMovements:nextMovements},moduleVersions:{...(current?.moduleVersions||versions),...(result?.moduleVersions||{})}}));setEditor('')}catch(cause){setError(cause.message||'No fue posible registrar el conteo físico.')}finally{setSaving(false)}}
 
-  const filtered = useMemo(() => items.filter(item => {
-    const term = query.trim().toLowerCase()
-    const cat = inventoryCategory(item)
-    const status = itemStatus(item)
-    return (!term || [item.name, item.code, item.serial, item.serie, item.type, itemLocation(item)].some(v => String(v || '').toLowerCase().includes(term))) &&
-      (!category || cat === category) && (!statusFilter || status === statusFilter)
-  }), [items, query, category, statusFilter, warehouses, locations])
-
-  const summary = useMemo(() => ({
-    total: items.length,
-    low: items.filter(item => Number(item.stock || 0) <= Number(item.minStock || 0)).length,
-    pending: pendingReplenishments.length,
-    counts: stocktakes.length,
-  }), [items, pendingReplenishments, stocktakes])
-
-  const orderAvailability = useMemo(() => orders.slice(0, 8).map(order => {
-    const current = reservations.filter(row => String(row.projectId || row.mantId) === String(order.id) && row.status !== 'cancelada')
-    const available = current.filter(row => {
-      const item = items.find(entry => String(entry.id) === String(row.itemId))
-      return item && String(item.status || itemStatus(item)) === 'Disponible'
-    }).length
-    return { order, reserved: current.length, available }
-  }), [orders, reservations, items])
-
-  function stockAtWarehouse(item, warehouseId) {
-    if (!item || !warehouseId) return 0
-    if (item.stockByLocation && Object.prototype.hasOwnProperty.call(item.stockByLocation, warehouseId)) return Number(item.stockByLocation[warehouseId] || 0)
-    if (String(item.warehouseId || '') === String(warehouseId)) return Number(item.stock || 0)
-    return 0
-  }
-
-  function totalStock(stockByLocation, fallback = 0) {
-    const values = Object.values(stockByLocation || {})
-    return values.length ? values.reduce((sum, value) => sum + Number(value || 0), 0) : Number(fallback || 0)
-  }
-
-  async function saveItem() {
-    if (!form.name.trim()) return setError('Ingresa el nombre del recurso.')
-    if (!form.warehouseId) return setError('Selecciona una bodega para registrar el recurso.')
-    setSaving(true); setError('')
-    try {
-      const id = form.id || `inv_${Date.now()}`
-      const initialStock = Number(form.stock || 0)
-      const stockByLocation = form.stockByLocation ? { ...form.stockByLocation } : { [form.warehouseId]: initialStock }
-      if (!form.id || !Object.keys(stockByLocation).length) stockByLocation[form.warehouseId] = initialStock
-      const record = {
-        ...form, id, stock: totalStock(stockByLocation, initialStock), stockByLocation,
-        minStock: Number(form.minStock || 0),
-        location: [warehouseName(form.warehouseId), locationName(form.locationId)].filter(Boolean).join(' · '),
-        updatedAt: new Date().toISOString(), createdAt: form.createdAt || new Date().toISOString(),
-      }
-      const next = items.some(item => item.id === id) ? items.map(item => item.id === id ? record : item) : [record, ...items]
-      const result = await api.put('/state/modules', {
-        reason: `${form.id ? 'Inventario actualizado' : 'Recurso registrado'}: ${record.name}`,
-        changes: { inventoryItems: { version: Number(versions.inventoryItems || 0), data: next } },
-      })
-      setResponse(current => ({ ...(current || {}), state: { ...(current?.state || state), inventoryItems: next }, moduleVersions: { ...(current?.moduleVersions || versions), ...(result?.moduleVersions || {}) } }))
-      setEditor('')
-    } catch (cause) { setError(cause.message || 'No fue posible guardar el recurso.') }
-    finally { setSaving(false) }
-  }
-
-  function openNew() { setForm(emptyItem()); setEditor('item'); setError('') }
-
-  function lookupCode() {
-    const value = window.prompt('Código, serie o nombre del recurso')
-    if (!value) return
-    const term = value.toLowerCase()
-    const item = items.find(row => [row.code, row.serial, row.serie, row.name].some(field => String(field || '').toLowerCase().includes(term)))
-    if (!item) return setError('No se encontró un recurso con ese código.')
-    setQuery(item.code || item.serial || item.serie || item.name || value)
-  }
-
-  function startStocktake() {
-    setStocktakeForm({ itemId:'', warehouseId:warehouses[0]?.id || '', counted:0, at:today(), notes:'' })
-    setEditor('stocktake'); setError('')
-  }
-
-  async function saveStocktake() {
-    const counted = Number(stocktakeForm.counted)
-    if (!stocktakeForm.itemId || !stocktakeForm.warehouseId || counted < 0) return setError('Completa recurso, bodega y cantidad contada.')
-    const item = items.find(entry => String(entry.id) === String(stocktakeForm.itemId))
-    if (!item) return setError('No se encontró el recurso seleccionado.')
-    setSaving(true); setError('')
-    try {
-      const before = stockAtWarehouse(item, stocktakeForm.warehouseId)
-      const stockByLocation = { ...(item.stockByLocation || {}) }
-      stockByLocation[stocktakeForm.warehouseId] = counted
-      const nextStock = totalStock(stockByLocation, counted)
-      const updatedItem = { ...item, stockByLocation, stock: nextStock, updatedAt:new Date().toISOString() }
-      const nextItems = items.map(entry => String(entry.id) === String(item.id) ? updatedItem : entry)
-      const stocktake = { id:`count_${Date.now()}`, itemId:item.id, warehouseId:stocktakeForm.warehouseId, counted, systemQty:before, difference:counted-before, at:`${stocktakeForm.at}T12:00:00`, notes:stocktakeForm.notes?.trim() || '', status:'registrado' }
-      const movement = { id:`mov_${Date.now()+1}`, itemId:item.id, warehouseId:stocktakeForm.warehouseId, type:'ajuste', qty:counted, stockBefore:before, stockAfter:counted, difference:counted-before, notes:`Conteo físico${stocktake.notes ? ` · ${stocktake.notes}` : ''}`, at:stocktake.at }
-      const nextStocktakes = [stocktake, ...stocktakes]
-      const nextMovements = [movement, ...movements]
-      const result = await api.put('/state/modules', { reason:`Conteo físico: ${item.name}`, changes:{ inventoryItems:{version:Number(versions.inventoryItems || 0),data:nextItems}, inventoryStocktakes:{version:Number(versions.inventoryStocktakes || 0),data:nextStocktakes}, inventoryMovements:{version:Number(versions.inventoryMovements || 0),data:nextMovements} } })
-      setResponse(current => ({ ...(current || {}), state:{...(current?.state || state),inventoryItems:nextItems,inventoryStocktakes:nextStocktakes,inventoryMovements:nextMovements}, moduleVersions:{...(current?.moduleVersions || versions),...(result?.moduleVersions || {})} }))
-      setEditor('')
-    } catch (cause) { setError(cause.message || 'No fue posible registrar el conteo físico.') }
-    finally { setSaving(false) }
-  }
-
-  function receiveStock() {
-    const first = pendingReplenishments[0]
-    setReceiptForm({ itemId:first?.itemId || first?.assetId || '', warehouseId:first?.warehouseId || warehouses[0]?.id || '', qty:first?.qty || first?.quantity || 1, at:today(), requestId:first?.id || '', notes:'' })
-    setEditor('receipt'); setError('')
-  }
-
-  async function saveReceipt() {
-    const qty = Number(receiptForm.qty || 0)
-    if (!receiptForm.itemId || !receiptForm.warehouseId || qty <= 0) return setError('Completa recurso, bodega y cantidad recibida.')
-    const item = items.find(entry => String(entry.id) === String(receiptForm.itemId))
-    if (!item) return setError('No se encontró el recurso seleccionado.')
-    setSaving(true); setError('')
-    try {
-      const before = stockAtWarehouse(item, receiptForm.warehouseId)
-      const stockByLocation = { ...(item.stockByLocation || {}) }
-      stockByLocation[receiptForm.warehouseId] = before + qty
-      const nextStock = totalStock(stockByLocation, Number(item.stock || 0) + qty)
-      const updatedItem = { ...item, warehouseId:item.warehouseId || receiptForm.warehouseId, stockByLocation, stock:nextStock, updatedAt:new Date().toISOString() }
-      const nextItems = items.map(entry => String(entry.id) === String(item.id) ? updatedItem : entry)
-      const movement = { id:`mov_${Date.now()}`, itemId:item.id, warehouseId:receiptForm.warehouseId, type:'reposicion', qty, stockBefore:before, stockAfter:before+qty, requestId:receiptForm.requestId || '', notes:receiptForm.notes?.trim() || '', at:`${receiptForm.at}T12:00:00` }
-      const nextMovements = [movement, ...movements]
-      const nextReplenishments = receiptForm.requestId ? replenishments.map(row => String(row.id) === String(receiptForm.requestId) ? { ...row, status:'recibida', receivedAt:new Date().toISOString(), receivedQty:qty, warehouseId:receiptForm.warehouseId } : row) : replenishments
-      const changes = { inventoryItems:{version:Number(versions.inventoryItems || 0),data:nextItems}, inventoryMovements:{version:Number(versions.inventoryMovements || 0),data:nextMovements} }
-      if (receiptForm.requestId) changes.replenishmentRequests = { version:Number(versions.replenishmentRequests || 0), data:nextReplenishments }
-      const result = await api.put('/state/modules', { reason:`Reposición recibida: ${item.name}`, changes })
-      setResponse(current => ({ ...(current || {}), state:{...(current?.state || state),inventoryItems:nextItems,inventoryMovements:nextMovements,replenishmentRequests:nextReplenishments}, moduleVersions:{...(current?.moduleVersions || versions),...(result?.moduleVersions || {})} }))
-      setEditor('')
-    } catch (cause) { setError(cause.message || 'No fue posible recibir la reposición.') }
-    finally { setSaving(false) }
-  }
+  function receiveStock(){const first=pendingReplenishments[0];setReceiptForm({itemId:first?.itemId||first?.assetId||'',warehouseId:first?.warehouseId||warehouses[0]?.id||'',qty:first?.qty||first?.quantity||1,at:today(),requestId:first?.id||'',notes:''});setEditor('receipt');setError('')}
+  async function saveReceipt(){const qty=Number(receiptForm.qty||0);if(!receiptForm.itemId||!receiptForm.warehouseId||qty<=0)return setError('Completa recurso, bodega y cantidad recibida.');const item=items.find(entry=>String(entry.id)===String(receiptForm.itemId));if(!item)return setError('No se encontró el recurso seleccionado.');setSaving(true);setError('');try{const stockByLocation=normalizedStockMap(item,receiptForm.warehouseId),before=Number(stockByLocation[receiptForm.warehouseId]||0);stockByLocation[receiptForm.warehouseId]=before+qty;const nextStock=totalStock(stockByLocation,Number(item.stock||0)+qty),updatedItem={...item,warehouseId:item.warehouseId||receiptForm.warehouseId,stockByLocation,stock:nextStock,updatedAt:new Date().toISOString()},nextItems=items.map(entry=>String(entry.id)===String(item.id)?updatedItem:entry),movement={id:`mov_${Date.now()}`,itemId:item.id,warehouseId:receiptForm.warehouseId,type:'reposicion',qty,stockBefore:before,stockAfter:before+qty,requestId:receiptForm.requestId||'',notes:receiptForm.notes?.trim()||'',at:`${receiptForm.at}T12:00:00`},nextMovements=[movement,...movements],nextReplenishments=receiptForm.requestId?replenishments.map(row=>String(row.id)===String(receiptForm.requestId)?{...row,status:'recibida',receivedAt:new Date().toISOString(),receivedQty:qty,warehouseId:receiptForm.warehouseId}:row):replenishments,changes={inventoryItems:{version:Number(versions.inventoryItems||0),data:nextItems},inventoryMovements:{version:Number(versions.inventoryMovements||0),data:nextMovements}};if(receiptForm.requestId)changes.replenishmentRequests={version:Number(versions.replenishmentRequests||0),data:nextReplenishments};const result=await api.put('/state/modules',{reason:`Reposición recibida: ${item.name}`,changes});setResponse(current=>({...current,state:{...(current?.state||state),inventoryItems:nextItems,inventoryMovements:nextMovements,replenishmentRequests:nextReplenishments},moduleVersions:{...(current?.moduleVersions||versions),...(result?.moduleVersions||{})}}));setEditor('')}catch(cause){setError(cause.message||'No fue posible recibir la reposición.')}finally{setSaving(false)}}
 
   return <div className="nk-assets-page">
     <header className="nk-assets-header"><div><h1>Inventario y existencias</h1><p>Catálogo central de activos, equipos y existencias con stock, mínimos, ubicación y trazabilidad.</p></div><div className="nk-assets-header-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Registrar activo o existencia</button></div></header>
-    {error && <div className="nk-assets-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
+    {error&&<div className="nk-assets-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setError('')}>Cerrar</button></div>}
     <section className="nk-card nk-assets-filters"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar recurso, código, serie o ubicación..."/></label><select className="nk-select" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Todas las categorías</option><option value="maquinaria">Maquinaria</option><option value="equipos">Equipos e instrumentos</option><option value="herramientas">Herramientas</option><option value="epp">EPP</option><option value="materiales">Materiales</option><option value="insumos">Insumos</option></select><select className="nk-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></select></section>
     <section className="nk-assets-kpis"><article><strong>{summary.total}</strong><span>Recursos controlados</span></article><article><strong>{summary.low}</strong><span>Bajo mínimo</span></article><article><strong>{summary.pending}</strong><span>Recepciones pendientes</span></article><article><strong>{summary.counts}</strong><span>Conteos registrados</span></article></section>
     <section className="nk-card nk-assets-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-assets-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock total</th><th>Mínimo</th><th>Bodega / ubicación</th><th>Estado</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando inventario…</td></tr>:filtered.length?filtered.map(item=><tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serial||item.serie||'Sin código'}</small></td><td>{item.type||'Recurso'}</td><td>{Number(item.stock||0)}</td><td>{Number(item.minStock||0)}</td><td>{itemLocation(item)}</td><td><span className={`nk-badge ${itemStatus(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{itemStatus(item)}</span></td></tr>):<tr><td colSpan="6" className="nk-assets-empty">No hay registros para este filtro.</td></tr>}</tbody></table></div></section>
