@@ -20,7 +20,12 @@ function stockState(item) {
 }
 
 function emptyItem(category, type) {
-  return { id: '', name: '', code: '', serie: '', type, category, stock: 0, minStock: 0, location: '', status: 'disponible', nextMaintenance: '', calibrationDue: '', certificate: '', custodian: '' }
+  return {
+    id: '', name: '', code: '', serie: '', type, category,
+    stock: 0, minStock: 0, location: '', status: 'disponible',
+    nextMaintenance: '', calibrationDue: '', certificate: '', custodian: '',
+    size: '', usefulLifeMonths: '', expiryDate: '',
+  }
 }
 
 export default function InventoryCategoryPage({ category, title, description, singular, defaultType, focus = 'stock' }) {
@@ -48,10 +53,11 @@ export default function InventoryCategoryPage({ category, title, description, si
   const items = useMemo(() => allItems.filter(item => categoryOf(item) === category), [allItems, category])
   const maintenances = rows(state.mantenimientos)
   const assignments = rows(state.asignacionesActivos).length ? rows(state.asignacionesActivos) : rows(state.prestamos)
+  const eppDeliveries = rows(state.eppEntregas)
 
   const filtered = useMemo(() => items.filter(item => {
     const term = query.trim().toLowerCase()
-    const searchable = [item.name, item.code, item.serie, item.serial, item.type, item.location, item.custodian, item.certificate]
+    const searchable = [item.name, item.code, item.serie, item.serial, item.type, item.location, item.custodian, item.certificate, item.size]
     return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) && (!statusFilter || stockState(item) === statusFilter)
   }), [items, query, statusFilter])
 
@@ -60,18 +66,33 @@ export default function InventoryCategoryPage({ category, title, description, si
     const assigned = assignments.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'devuelto').length
     const due = focus === 'equipment'
       ? items.filter(item => item.calibrationDue && item.calibrationDue <= new Date().toISOString().slice(0, 10)).length
-      : maintenances.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'completado').length
-    return { total: items.length, low, assigned, due }
-  }, [items, assignments, maintenances, focus])
+      : focus === 'epp'
+        ? items.filter(item => item.expiryDate && item.expiryDate <= new Date().toISOString().slice(0, 10)).length
+        : maintenances.filter(row => items.some(item => String(item.id) === String(row.itemId || row.assetId)) && row.status !== 'completado').length
+    const delivered = focus === 'epp'
+      ? eppDeliveries.filter(row => items.some(item => String(item.id) === String(row.itemId || row.eppId))).length
+      : assigned
+    return { total: items.length, low, assigned: delivered, due }
+  }, [items, assignments, maintenances, eppDeliveries, focus])
 
   async function saveItem() {
     if (!form.name.trim()) { setError(`Ingresa el nombre de ${singular.toLowerCase()}.`); return }
     setSaving(true); setError('')
     try {
       const id = form.id || `inv_${Date.now()}`
-      const record = { ...form, id, category, stock: Number(form.stock || 0), minStock: Number(form.minStock || 0), updatedAt: new Date().toISOString(), createdAt: form.createdAt || new Date().toISOString() }
+      const record = {
+        ...form, id, category,
+        stock: Number(form.stock || 0),
+        minStock: Number(form.minStock || 0),
+        usefulLifeMonths: form.usefulLifeMonths === '' ? '' : Number(form.usefulLifeMonths || 0),
+        updatedAt: new Date().toISOString(),
+        createdAt: form.createdAt || new Date().toISOString(),
+      }
       const next = allItems.some(item => item.id === id) ? allItems.map(item => item.id === id ? record : item) : [record, ...allItems]
-      const result = await api.put('/state/modules', { reason: `${singular} ${form.id ? 'actualizada' : 'registrada'}: ${record.name}`, changes: { inventoryItems: { version: Number(versions.inventoryItems || 0), data: next } } })
+      const result = await api.put('/state/modules', {
+        reason: `${singular} ${form.id ? 'actualizada' : 'registrada'}: ${record.name}`,
+        changes: { inventoryItems: { version: Number(versions.inventoryItems || 0), data: next } },
+      })
       setResponse(current => ({ ...(current || {}), state: { ...(current?.state || state), inventoryItems: next }, moduleVersions: { ...(current?.moduleVersions || versions), ...(result?.moduleVersions || {}) } }))
       setFormOpen(false)
     } catch (cause) { setError(cause.message || `No fue posible guardar ${singular.toLowerCase()}.`) }
@@ -80,12 +101,19 @@ export default function InventoryCategoryPage({ category, title, description, si
 
   function openNew() { setForm(emptyItem(category, defaultType)); setFormOpen(true) }
 
+  const fourthKpiLabel = focus === 'equipment' ? 'Calibraciones vencidas' : focus === 'epp' ? 'Vida útil / vencidos' : 'Mantenimientos pendientes'
+  const thirdKpiLabel = focus === 'epp' ? 'Entregas registradas' : 'Asignados / prestados'
+  const lastColumnLabel = focus === 'equipment' ? 'Calibración / custodia' : focus === 'tools' ? 'Asignación / devolución' : focus === 'epp' ? 'Talla / vida útil' : 'Mantenimiento / estado'
+
   return <div className="nk-invcat-page">
     <header className="nk-invcat-header"><div><h1>{title}</h1><p>{description}</p></div><div className="nk-invcat-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nueva {singular.toLowerCase()}</button></div></header>
     {error && <div className="nk-invcat-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
     <section className="nk-card nk-invcat-filters"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Buscar ${singular.toLowerCase()}, código, serie o ubicación...`}/></label><select className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option><option value="Disponible">Disponible</option><option value="Reponer">Reponer</option></select></section>
-    <section className="nk-invcat-kpis"><article><strong>{summary.total}</strong><span>Registrados</span></article><article><strong>{summary.low}</strong><span>Requieren reposición</span></article><article><strong>{summary.assigned}</strong><span>Asignados / prestados</span></article><article><strong>{summary.due}</strong><span>{focus === 'equipment' ? 'Calibraciones vencidas' : 'Mantenimientos pendientes'}</span></article></section>
-    <section className="nk-card nk-invcat-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-invcat-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock</th><th>Mínimo</th><th>Bodega / ubicación</th><th>{focus === 'equipment' ? 'Calibración / custodia' : 'Mantenimiento / estado'}</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(item=><tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serie||item.serial||'Sin código'}</small></td><td>{item.type||defaultType}</td><td>{Number(item.stock||0)}</td><td>{Number(item.minStock||0)}</td><td>{item.location||'Bodega'}</td><td><div className="nk-invcat-state">{focus==='equipment'?<><span>{item.calibrationDue ? `Calibra: ${item.calibrationDue}` : 'Sin fecha calibración'}</span><small>{item.custodian||item.certificate||'Sin custodia/certificado'}</small></>:<><span>{item.nextMaintenance ? `Próx.: ${item.nextMaintenance}` : 'Sin mantenimiento programado'}</span><small><span className={`nk-badge ${stockState(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{stockState(item)}</span></small></>}</div></td></tr>):<tr><td colSpan="6" className="nk-invcat-empty">No hay registros en esta categoría.</td></tr>}</tbody></table></div></section>
-    {formOpen&&<section className="nk-card nk-invcat-editor"><div className="nk-invcat-editor-head"><h2>Nueva {singular.toLowerCase()}</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setFormOpen(false)}>Cerrar</button></div><div className="nk-invcat-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e=>setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}/></label><label><span>Bodega / ubicación</span><input className="nk-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label><span>Stock</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})}/></label>{focus==='equipment'?<><label><span>Próxima calibración</span><input className="nk-input" type="date" value={form.calibrationDue} onChange={e=>setForm({...form,calibrationDue:e.target.value})}/></label><label><span>Custodio</span><input className="nk-input" value={form.custodian} onChange={e=>setForm({...form,custodian:e.target.value})}/></label><label className="wide"><span>Certificado / referencia</span><input className="nk-input" value={form.certificate} onChange={e=>setForm({...form,certificate:e.target.value})}/></label></>:<label className="wide"><span>Próximo mantenimiento</span><input className="nk-input" type="date" value={form.nextMaintenance} onChange={e=>setForm({...form,nextMaintenance:e.target.value})}/></label>}</div><div className="nk-invcat-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving}>{saving?'Guardando…':'Guardar'}</button></div></section>}
+    <section className="nk-invcat-kpis"><article><strong>{summary.total}</strong><span>Registrados</span></article><article><strong>{summary.low}</strong><span>Requieren reposición</span></article><article><strong>{summary.assigned}</strong><span>{thirdKpiLabel}</span></article><article><strong>{summary.due}</strong><span>{fourthKpiLabel}</span></article></section>
+    <section className="nk-card nk-invcat-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-invcat-table"><thead><tr><th>Recurso</th><th>Tipo</th><th>Stock</th><th>Mínimo</th><th>Bodega / ubicación</th><th>{lastColumnLabel}</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(item=>{
+      const activeAssignments = assignments.filter(row => String(row.itemId || row.assetId) === String(item.id) && row.status !== 'devuelto')
+      return <tr key={item.id}><td><strong>{item.name||'Sin nombre'}</strong><small>{item.code||item.serie||item.serial||'Sin código'}</small></td><td>{item.type||defaultType}</td><td>{Number(item.stock||0)}</td><td>{Number(item.minStock||0)}</td><td>{item.location||'Bodega'}</td><td><div className="nk-invcat-state">{focus==='equipment'?<><span>{item.calibrationDue ? `Calibra: ${item.calibrationDue}` : 'Sin fecha calibración'}</span><small>{item.custodian||item.certificate||'Sin custodia/certificado'}</small></>:focus==='tools'?<><span>{activeAssignments.length ? `${activeAssignments.length} asignada(s)` : 'Disponible en bodega'}</span><small>{activeAssignments.length ? 'Pendiente devolución / cierre' : <span className={`nk-badge ${stockState(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{stockState(item)}</span>}</small></>:focus==='epp'?<><span>{item.size ? `Talla: ${item.size}` : 'Sin talla definida'}</span><small>{item.expiryDate ? `Vence: ${item.expiryDate}` : item.usefulLifeMonths ? `Vida útil: ${item.usefulLifeMonths} meses` : 'Sin vida útil definida'}</small></>:<><span>{item.nextMaintenance ? `Próx.: ${item.nextMaintenance}` : 'Sin mantenimiento programado'}</span><small><span className={`nk-badge ${stockState(item)==='Reponer'?'nk-badge-error':'nk-badge-ok'}`}>{stockState(item)}</span></small></>}</div></td></tr>
+    }):<tr><td colSpan="6" className="nk-invcat-empty">No hay registros en esta categoría.</td></tr>}</tbody></table></div></section>
+    {formOpen&&<section className="nk-card nk-invcat-editor"><div className="nk-invcat-editor-head"><h2>Nueva {singular.toLowerCase()}</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>setFormOpen(false)}>Cerrar</button></div><div className="nk-invcat-form"><label><span>Nombre</span><input className="nk-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label><span>Código / serie</span><input className="nk-input" value={form.code} onChange={e=>setForm({...form,code:e.target.value})}/></label><label><span>Tipo</span><input className="nk-input" value={form.type} onChange={e=>setForm({...form,type:e.target.value})}/></label><label><span>Bodega / ubicación</span><input className="nk-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})}/></label><label><span>Stock</span><input className="nk-input" type="number" min="0" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label><label><span>Stock mínimo</span><input className="nk-input" type="number" min="0" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value})}/></label>{focus==='equipment'?<><label><span>Próxima calibración</span><input className="nk-input" type="date" value={form.calibrationDue} onChange={e=>setForm({...form,calibrationDue:e.target.value})}/></label><label><span>Custodio</span><input className="nk-input" value={form.custodian} onChange={e=>setForm({...form,custodian:e.target.value})}/></label><label className="wide"><span>Certificado / referencia</span><input className="nk-input" value={form.certificate} onChange={e=>setForm({...form,certificate:e.target.value})}/></label></>:focus==='epp'?<><label><span>Talla</span><input className="nk-input" value={form.size} onChange={e=>setForm({...form,size:e.target.value})}/></label><label><span>Vida útil (meses)</span><input className="nk-input" type="number" min="0" value={form.usefulLifeMonths} onChange={e=>setForm({...form,usefulLifeMonths:e.target.value})}/></label><label className="wide"><span>Fecha de vencimiento</span><input className="nk-input" type="date" value={form.expiryDate} onChange={e=>setForm({...form,expiryDate:e.target.value})}/></label></>:focus==='tools'?null:<label className="wide"><span>Próximo mantenimiento</span><input className="nk-input" type="date" value={form.nextMaintenance} onChange={e=>setForm({...form,nextMaintenance:e.target.value})}/></label>}</div><div className="nk-invcat-editor-actions"><button className="nk-button nk-button-secondary" onClick={()=>setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveItem} disabled={saving}>{saving?'Guardando…':'Guardar'}</button></div></section>}
   </div>
 }
