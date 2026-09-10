@@ -21,6 +21,12 @@ function habilitationFor(worker) {
   return { label: 'Disponible', cls: 'nk-badge-ok', key: 'ok' }
 }
 
+function workerType(worker) {
+  const raw = String(worker.tipoTrabajador || worker.tipoContrato || worker.modalidad || '').toLowerCase()
+  if (raw.includes('proyecto') || raw.includes('plazo') || raw.includes('temporal')) return 'Por proyecto'
+  return 'Fijo'
+}
+
 export default function GestionPersonalProyectoPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -29,6 +35,7 @@ export default function GestionPersonalProyectoPage() {
   const [error, setError] = useState('')
   const [ok, setOk] = useState('')
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [savingId, setSavingId] = useState('')
 
   async function load() {
@@ -55,13 +62,16 @@ export default function GestionPersonalProyectoPage() {
 
   const assignedIds = useMemo(() => new Set(assignments.filter(item => item.mantId === selectedId).map(item => item.trabId)), [assignments, selectedId])
   const assigned = workers.filter(worker => assignedIds.has(worker.id))
-  const candidates = useMemo(() => {
+  const roster = useMemo(() => {
     const term = query.trim().toLowerCase()
-    return workers.filter(worker => !assignedIds.has(worker.id)).filter(worker => {
+    return workers.map(worker => ({ worker, assigned: assignedIds.has(worker.id), habilitation: habilitationFor(worker) })).filter(item => {
+      if (statusFilter === 'assigned' && !item.assigned) return false
+      if (statusFilter === 'available' && item.assigned) return false
+      if (statusFilter === 'review' && item.habilitation.key === 'ok') return false
       if (!term) return true
-      return [worker.nombre, worker.rut, worker.cargo, worker.especialidad].some(value => String(value || '').toLowerCase().includes(term))
+      return [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(value => String(value || '').toLowerCase().includes(term))
     })
-  }, [workers, assignedIds, query])
+  }, [workers, assignedIds, query, statusFilter])
 
   async function assign(worker) {
     if (!project || savingId) return
@@ -75,13 +85,7 @@ export default function GestionPersonalProyectoPage() {
       if (currentAssignments.some(item => item.mantId === project.id && item.trabId === worker.id)) throw new Error('La persona ya está asignada a este proyecto.')
       const nextAssignments = [...currentAssignments, { id: `asig_${Date.now()}`, mantId: project.id, trabId: worker.id, turno: 'día', estado: 'confirmado' }]
       const nextWorkers = rows(current.trabajadores).map(item => item.id === worker.id ? { ...item, disponibilidad: 'asignado' } : item)
-      await api.put('/state/modules', {
-        reason: `Asignación de ${worker.nombre} a ${project.nombre}`,
-        changes: {
-          asignaciones: { version: versionA, data: nextAssignments },
-          trabajadores: { version: versionT, data: nextWorkers },
-        },
-      })
+      await api.put('/state/modules', { reason: `Asignación de ${worker.nombre} a ${project.nombre}`, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: nextWorkers } } })
       setOk(`${worker.nombre} quedó asignado a ${project.nombre}.`)
       await load()
     } catch (cause) { setError(cause.message || 'No fue posible asignar la persona.') }
@@ -99,13 +103,7 @@ export default function GestionPersonalProyectoPage() {
       const nextAssignments = rows(current.asignaciones).filter(item => !(item.mantId === project.id && item.trabId === worker.id))
       const stillAssigned = nextAssignments.some(item => item.trabId === worker.id)
       const nextWorkers = rows(current.trabajadores).map(item => item.id === worker.id ? { ...item, disponibilidad: stillAssigned ? 'asignado' : 'disponible' } : item)
-      await api.put('/state/modules', {
-        reason: `Retiro de ${worker.nombre} de ${project.nombre}`,
-        changes: {
-          asignaciones: { version: versionA, data: nextAssignments },
-          trabajadores: { version: versionT, data: nextWorkers },
-        },
-      })
+      await api.put('/state/modules', { reason: `Retiro de ${worker.nombre} de ${project.nombre}`, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: nextWorkers } } })
       setOk(`${worker.nombre} fue retirado de ${project.nombre}.`)
       await load()
     } catch (cause) { setError(cause.message || 'No fue posible retirar la persona.') }
@@ -116,16 +114,23 @@ export default function GestionPersonalProyectoPage() {
   const contract = contracts.find(item => item.id === project?.contratoId)
   const required = Number(project?.personalReq || 0)
   const gap = Math.max(0, required - assigned.length)
+  const enabledAssigned = assigned.filter(worker => habilitationFor(worker).key === 'ok').length
 
-  return <div className="nk-control-workspace">
-    <header className="nk-control-workspace-header"><div><h1>Gestión de trabajadores por proyecto</h1><p>Selecciona un proyecto o servicio, revisa su dotación y asigna personas disponibles con su condición de habilitación visible.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
+  return <div className="nk-control-workspace nk-staffing-workspace">
+    <header className="nk-control-workspace-header"><div><h1>Gestión de trabajadores por proyecto</h1><p>Controla la dotación de cada servicio desde una sola vista: disponibilidad, asignación y condición de habilitación.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
     {(error || ok) && <div className={`nk-control-feedback ${error ? 'error' : 'ok'}`}><span>{error || ok}</span><button className="nk-icon-button" type="button" onClick={() => { setError(''); setOk('') }} aria-label="Cerrar"><IconX size={15}/></button></div>}
-    <section className="nk-card"><div className="nk-control-toolbar"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, RUT o especialidad"/></label><div className="nk-field"><label className="nk-label">Proyecto / servicio</label><select className="nk-select" value={selectedId} onChange={event => setSearchParams({ proyecto: event.target.value })}><option value="">Seleccionar</option>{projects.map(item => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></div></div></section>
+
+    <section className="nk-card nk-staffing-context">
+      <div className="nk-control-toolbar"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, RUT, cargo o especialidad"/></label><div className="nk-field"><label className="nk-label">Proyecto / servicio</label><select className="nk-select" value={selectedId} onChange={event => setSearchParams({ proyecto: event.target.value })}><option value="">Seleccionar</option>{projects.map(item => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></div></div>
+      {project && <div className="nk-staffing-project-line"><span><strong>{client?.nombre || 'Sin cliente'}</strong> · {contract?.nombre || 'Sin contrato'}</span><span>{project.nombre}</span></div>}
+    </section>
+
     {project ? <>
-      <section className="nk-control-project-summary"><div><span>Cliente</span><strong>{client?.nombre || 'Sin información'}</strong></div><div><span>Contrato</span><strong>{contract?.nombre || 'Sin información'}</strong></div><div><span>Dotación asignada</span><strong>{assigned.length}{required ? ` / ${required}` : ''}</strong></div><div><span>Brecha</span><strong>{required ? gap : 'Sin objetivo definido'}</strong></div></section>
-      <section className="nk-control-columns">
-        <article className="nk-card nk-control-list-card"><header className="nk-control-list-head"><div><h2>Personas asignadas</h2><p>{assigned.length} persona{assigned.length === 1 ? '' : 's'} en este servicio.</p></div></header>{assigned.length ? <div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Persona</th><th>Estado</th><th /></tr></thead><tbody>{assigned.map(worker => { const st = habilitationFor(worker); return <tr key={worker.id}><td><div className="nk-control-person"><strong>{worker.nombre}</strong><span>{worker.rut || 'Sin RUT'} · {worker.cargo || worker.especialidad || 'Sin cargo'}</span></div></td><td><span className={`nk-badge ${st.cls}`}>{st.label}</span></td><td><div className="nk-actions"><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${worker.id}`)}>Ver ficha</button><button className="nk-button nk-button-secondary" type="button" disabled={savingId === worker.id} onClick={() => remove(worker)}>Retirar</button></div></td></tr>})}</tbody></table></div> : <div className="nk-empty"><IconUsers size={28}/><p className="nk-empty-title">Sin personas asignadas</p></div>}</article>
-        <article className="nk-card nk-control-list-card"><header className="nk-control-list-head"><div><h2>Personas disponibles</h2><p>La habilitación se muestra antes de asignar.</p></div></header>{candidates.length ? <div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Persona</th><th>Condición</th><th /></tr></thead><tbody>{candidates.map(worker => { const st = habilitationFor(worker); return <tr key={worker.id}><td><div className="nk-control-person"><strong>{worker.nombre}</strong><span>{worker.rut || 'Sin RUT'} · {worker.especialidad || worker.cargo || 'Sin especialidad'}</span></div></td><td><span className={`nk-badge ${st.cls}`}>{st.label}</span></td><td><button className="nk-button nk-button-primary" type="button" disabled={savingId === worker.id || st.key === 'blocked'} onClick={() => assign(worker)}><IconPlus size={14}/>Asignar</button></td></tr>})}</tbody></table></div> : <div className="nk-empty"><IconUsers size={28}/><p className="nk-empty-title">Sin candidatos para mostrar</p></div>}</article>
+      <section className="nk-control-kpis nk-staffing-kpis"><div className="nk-control-kpi"><strong>{required || '—'}</strong><span>Dotación requerida</span></div><div className="nk-control-kpi"><strong>{assigned.length}</strong><span>Asignados</span></div><div className="nk-control-kpi"><strong>{enabledAssigned}</strong><span>Habilitados asignados</span></div><div className={`nk-control-kpi ${gap > 0 ? 'nk-staffing-kpi-alert' : ''}`}><strong>{required ? gap : '—'}</strong><span>Brecha de dotación</span></div></section>
+
+      <section className="nk-card nk-staffing-roster-card">
+        <header className="nk-control-list-head nk-staffing-roster-head"><div><h2>Dotación del proyecto</h2><p>{roster.length} persona{roster.length === 1 ? '' : 's'} visibles para gestión.</p></div><div className="nk-staffing-filters"><button type="button" className={`nk-button ${statusFilter === 'all' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('all')}>Todas</button><button type="button" className={`nk-button ${statusFilter === 'assigned' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('assigned')}>Asignadas</button><button type="button" className={`nk-button ${statusFilter === 'available' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('available')}>Disponibles</button><button type="button" className={`nk-button ${statusFilter === 'review' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('review')}>Con observación</button></div></header>
+        {roster.length ? <div className="nk-table-wrapper"><table className="nk-table nk-staffing-table"><thead><tr><th>Persona</th><th>Tipo</th><th>Cargo / especialidad</th><th>Disponibilidad</th><th>Asignación</th><th>Habilitación</th><th>Acciones</th></tr></thead><tbody>{roster.map(({ worker, assigned: isAssigned, habilitation }) => <tr key={worker.id}><td><div className="nk-control-person"><strong>{worker.nombre}</strong><span>{worker.rut || 'Sin RUT'}</span></div></td><td>{workerType(worker)}</td><td><div className="nk-control-person"><strong>{worker.cargo || 'Sin cargo'}</strong><span>{worker.especialidad || 'Sin especialidad'}</span></div></td><td><span className={`nk-badge ${worker.disponibilidad === 'bloqueado' ? 'nk-badge-error' : isAssigned ? 'nk-badge-neutral' : 'nk-badge-ok'}`}>{worker.disponibilidad === 'bloqueado' ? 'Bloqueado' : isAssigned ? 'Asignado' : 'Disponible'}</span></td><td><span className={`nk-badge ${isAssigned ? 'nk-badge-ok' : 'nk-badge-neutral'}`}>{isAssigned ? 'Asignado a OS' : 'Sin asignar'}</span></td><td><span className={`nk-badge ${habilitation.cls}`}>{habilitation.label}</span></td><td><div className="nk-actions nk-staffing-actions"><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${worker.id}`)}>Ver ficha</button>{isAssigned ? <button className="nk-button nk-button-secondary" type="button" disabled={savingId === worker.id} onClick={() => remove(worker)}>Retirar</button> : <button className="nk-button nk-button-primary" type="button" disabled={savingId === worker.id || habilitation.key === 'blocked'} onClick={() => assign(worker)}><IconPlus size={14}/>Asignar</button>}</div></td></tr>)}</tbody></table></div> : <div className="nk-empty"><IconUsers size={28}/><p className="nk-empty-title">Sin personas para mostrar</p><p>Ajusta la búsqueda o el filtro seleccionado.</p></div>}
       </section>
     </> : <div className="nk-empty"><IconUsers size={30}/><p className="nk-empty-title">No hay proyectos o servicios activos</p></div>}
   </div>
