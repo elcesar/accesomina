@@ -14,6 +14,10 @@ import {
 } from '@tabler/icons-react'
 import '../../styles/sidebar.css'
 
+const PRIMARY_NAV = [
+  { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },
+]
+
 const NAV = [
   {
     key: 'centro-control',
@@ -107,7 +111,6 @@ const NAV = [
     key: 'gestion-administracion',
     label: 'Gestión y Administración',
     items: [
-      { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },
       { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
       { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
       { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
@@ -179,6 +182,16 @@ export default function Sidebar() {
       </div>
 
       <nav className="nk-sidebar-nav" aria-label="Navegación principal">
+        <div className="nk-side-group-items">
+          {PRIMARY_NAV.map(item => (
+            <NavItem
+              key={item.to}
+              {...item}
+              badgeCount={badges[item.to] || 0}
+            />
+          ))}
+        </div>
+
         {NAV.map(group => (
           <NavGroup
             key={group.key}
