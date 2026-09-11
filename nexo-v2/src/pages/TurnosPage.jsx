@@ -54,10 +54,11 @@ function Field({ label, children, wide = false }) {
   )
 }
 
-function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }) {
+function ModalNuevoTurno({ trabajadores, mantenciones, clientes, saving, onSave, onClose }) {
   const [form, setForm] = useState({
     trabId: trabajadores[0]?.id || '',
-    mantId: mantenciones[0]?.id || '',
+    clienteId: '',
+    mantId: '',
     regimen: '5x2',
     regimenOtro: '',
     turno: 'día',
@@ -69,7 +70,8 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }
   })
 
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }))
-  const canSave = form.trabId && form.mantId && form.fecha && (form.regimen !== 'otro' || form.regimenOtro.trim())
+  const mantencionesCliente = form.clienteId ? mantenciones.filter(m => String(m.minaId) === String(form.clienteId)) : []
+  const canSave = form.trabId && form.clienteId && form.mantId && form.fecha && (form.regimen !== 'otro' || form.regimenOtro.trim())
 
   return (
     <div className="nk-dialog-backdrop" role="presentation" onMouseDown={e => e.target === e.currentTarget && onClose()}>
@@ -90,9 +92,16 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
+          <Field label="Cliente" wide>
+            <select className="nk-select" value={form.clienteId} onChange={e => setForm(current => ({ ...current, clienteId: e.target.value, mantId: '' }))}>
+              <option value="">Seleccionar cliente</option>
+              {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+          </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} onChange={e => set('mantId', e.target.value)}>
-              {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            <select className="nk-select" value={form.mantId} disabled={!form.clienteId} onChange={e => set('mantId', e.target.value)}>
+              <option value="">Seleccionar orden de servicio</option>
+              {mantencionesCliente.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </Field>
           <Field label="Régimen">
@@ -315,7 +324,7 @@ export default function TurnosPage() {
         )}
       </div>
 
-      {showModal && <ModalNuevoTurno trabajadores={trabajadores} mantenciones={mantenciones} saving={saving} onSave={handleSave} onClose={() => setShowModal(false)} />}
+      {showModal && <ModalNuevoTurno trabajadores={trabajadores} mantenciones={mantenciones} clientes={minas} saving={saving} onSave={handleSave} onClose={() => setShowModal(false)} />}
     </div>
   )
 }

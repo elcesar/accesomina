@@ -137,19 +137,22 @@ function SaveButton({ saving, onClick }) {
 }
 
 function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving, onChange, onSave, onAsignar, onRetirar }) {
+  const [clienteId, setClienteId] = useState('')
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
   const activeAssignments = asignaciones.filter(a => a.trabId === worker.id)
+  const contratosFiltrados = clienteId ? contratos.filter(c => String(c.minaId) === String(clienteId)) : []
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
 
   return <>
-    <CardSection title="Asignación operacional" subtitle="Relaciona la persona con contrato, proyecto/servicio y turno sin perder su documentación.">
+    <CardSection title="Asignación operacional" subtitle="Selecciona cliente, contrato y orden de servicio en ese orden para mantener la relación correcta.">
       <div className="nk-person-assignment-form">
-        <Field label="Contrato"><select className="nk-select" value={contratoId} onChange={e => { setContratoId(e.target.value); setProyectoId('') }}><option value="">Seleccionar contrato</option>{contratos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
+        <Field label="Cliente"><select className="nk-select" value={clienteId} onChange={e => { setClienteId(e.target.value); setContratoId(''); setProyectoId('') }}><option value="">Seleccionar cliente</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
+        <Field label="Contrato"><select className="nk-select" value={contratoId} onChange={e => { setContratoId(e.target.value); setProyectoId('') }} disabled={!clienteId}><option value="">Seleccionar contrato</option>{contratosFiltrados.map(c => <option key={c.id} value={c.id}>{c.numero || c.nombre}</option>)}</select></Field>
         <Field label="Proyecto / servicio"><select className="nk-select" value={proyectoId} onChange={e => setProyectoId(e.target.value)} disabled={!contratoId}><option value="">Seleccionar proyecto</option>{proyectosFiltrados.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></Field>
         <Field label="Turno"><select className="nk-select" value={turno} onChange={e => setTurno(e.target.value)}><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select></Field>
         <button className="nk-button nk-button-action" type="button" disabled={!proyectoId} onClick={() => onAsignar(proyectoId, turno)}><IconPlus size={15} strokeWidth={1.7} /> Asignar</button>

@@ -11047,6 +11047,35 @@ function exportNomina(){
   exportCSV([headers,...rows],`nomina_nexo_klar_${hoy()}.csv`);
   toast('Nómina exportada');
 }
+function installTurnoClientDependencyV171(){
+  const project=document.getElementById('tj-mant');
+  if(!project)return;
+  let client=document.getElementById('tj-client');
+  if(!client){
+    const group=project.closest('.form-group');
+    group?.insertAdjacentHTML('beforebegin','<div class="form-group"><label class="form-label">Cliente</label><select class="form-select" id="tj-client"><option value="">Seleccionar cliente</option></select></div>');
+    client=document.getElementById('tj-client');
+  }
+  if(!client)return;
+  client.innerHTML='<option value="">Seleccionar cliente</option>'+(S.minas||[]).map(item=>`<option value="${eppEsc(item.id)}">${eppEsc(item.nombre)}</option>`).join('');
+  const refresh=()=>{
+    const clientId=client.value;
+    project.disabled=!clientId;
+    project.innerHTML='<option value="">Seleccionar orden de servicio</option>'+(S.mantenciones||[]).filter(item=>String(item.minaId)===String(clientId)).map(item=>`<option value="${eppEsc(item.id)}">${eppEsc(item.nombre)}</option>`).join('');
+  };
+  if(!client.dataset.clientDependencyV171){client.dataset.clientDependencyV171='1';client.addEventListener('change',refresh);}
+  refresh();
+}
+const openModalV171Base=openModal;
+openModal=function(id){openModalV171Base(id);if(id==='modal-nuevo-turno')installTurnoClientDependencyV171();};
+const saveNuevoTurnoV171Base=saveNuevoTurno;
+saveNuevoTurno=function(){
+  const clientId=document.getElementById('tj-client')?.value||'',projectId=document.getElementById('tj-mant')?.value||'';
+  const project=(S.mantenciones||[]).find(item=>String(item.id)===String(projectId));
+  if(!clientId||!projectId)return toast('Selecciona cliente y orden de servicio para registrar la jornada','err');
+  if(String(project?.minaId)!==String(clientId))return toast('La orden de servicio no corresponde al cliente seleccionado','err');
+  saveNuevoTurnoV171Base();
+};
 </script>
 </body>
 </html>
