@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 11 de septiembre de 2026  
-**Estado global:** Fases 0 a 12 cerradas.
+**Estado global:** Fases 0 a 13 cerradas.
 
 ## Estados
 
@@ -21,6 +21,8 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 - Las entidades con ficha propia deben ser navegables desde el contexto operacional.
 - Las vistas consolidadas leen señales de los módulos dueños y navegan hacia ellos para resolver brechas; no duplican ownership.
 - Alertas es una **vista derivada y priorizada**: combina alertas persistidas con señales calculadas desde los módulos dueños; no reemplaza esos módulos ni crea una fuente maestra paralela.
+- Dashboard es una **vista ejecutiva derivada**: no mantiene ownership propio y reutiliza las fuentes canónicas de los módulos dueños.
+- Dashboard y Alertas comparten un único motor de alertas operacionales (`services/operational-alerts.js`) para evitar métricas divergentes.
 - Densidad operacional media-alta: espaciado normal `--space-3/--space-4`, KPIs compactos y toolbars que no se conviertan en formularios extensos.
 - Cuando existan muchos criterios de filtrado, mantener filtros principales visibles y secundarios bajo `Más filtros`.
 - Las grillas operacionales deben intentar caber completas en una ventana de escritorio, compactando acciones, anchos y contenido antes de recurrir a scroll horizontal.
@@ -70,8 +72,8 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 9 · Prospectos y oportunidades | `ProspectosPage.jsx` | Actualizada · Revisada · Reemplazada | `prospectos` canónico, `oportunidades` fallback; conversión ganada a Cliente/Contrato/OS con trazabilidad. |
 | Fase 10 · Gestión personal por proyecto | `GestionPersonalProyectoPage.jsx` | Actualizada · Revisada · Reemplazada | `trabajadores` conserva Persona; `asignaciones` conserva Persona ↔ OS y `estadoGestion`: Candidato → Contactado → Confirmado → Asignado → Habilitado. |
 | Fase 11 · Centro Operativo | `CentroOperativoPage.jsx` | Actualizada · Revisada · Reemplazada | Vista consolidada guiada por OS: estado operativo, brechas, Libro diario, CAPA, Alertas y Bitácora. Solo `dailyLogs` y `capaActions` son registros propios. |
-| Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada. Combina `state.alertas` con señales calculadas desde Personas, Contratos y OS; clasifica Críticas/vencidas, Próximas a vencer y Operacionales; agrupa por contexto y navega al módulo dueño. |
-| Fase 13 · Dashboard | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
+| Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada; usa el motor compartido `operational-alerts.js`, agrupa por contexto y navega al módulo dueño. |
+| Fase 13 · Dashboard | `DashboardPage.jsx` | Actualizada · Revisada · Reemplazada | Vista ejecutiva derivada bajo Centro de Control; KPIs y prioridades usan fuentes canónicas de Personas, Turnos, Asignaciones, OS, EPP y Alertas. |
 
 ## Cierres de fases
 
@@ -119,55 +121,41 @@ Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantien
 - `mantenciones` (con fallback `proyectos`): OS sin contrato o sin cliente asociado.
 - `state.alertas`: alertas persistidas siguen siendo visibles y se mezclan con las derivadas.
 
-**Decisión sobre `callouts`:** las convocatorias/comunicaciones no se incorporan automáticamente como alertas. El HTML histórico las trata como una capacidad distinta y el módulo de Comunicaciones conserva su ownership.
+**Decisión sobre `callouts`:** las convocatorias/comunicaciones no se incorporan automáticamente como alertas. El módulo de Comunicaciones conserva su ownership.
 
-**Contexto y navegación:** las alertas se agrupan por Persona, OS, Contrato u otro registro relacionado. Desde el detalle se navega a `/app/trabajadores/:id`, `/app/servicios/:id`, `/app/contratos/:id`, `/app/clientes/:id` o al módulo de activos según corresponda. La evidencia adjunta utiliza `entityType: alerta` y no modifica el ownership de la entidad origen.
+**Contexto y navegación:** las alertas se agrupan por Persona, OS, Contrato u otro registro relacionado. Desde el detalle se navega a la entidad o módulo responsable. La evidencia adjunta utiliza `entityType: alerta` y no modifica el ownership de la entidad origen.
 
-**Commits principales:** `617c89fced9294304dd1f9b1387b3ccd0b371f27` reconstruye la funcionalidad; `dd50724a92062f2b85716c8c2dca3dace00797d9` incorpora la UX/estilos; `3cd5eab3e1e1f548053c246589d8a6a40a8bd973` clasifica `/app/alertas` bajo Centro de Control.
+**Commits principales:** `617c89fc` (reconstrucción funcional), `dd50724a` (estilos) y `3cd5eab3` (clasificación bajo Centro de Control).
 
-**Validación CI:** para el commit final `3cd5eab3e1e1f548053c246589d8a6a40a8bd973`, **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success`.
+**Validación técnica:** los workflows **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success` para el commit final de la fase.
 
-**Resultado:** Fase 12 cerrada con Alertas como una vista de control transversal, priorizada y derivada, sin duplicar Persona, Contrato, OS, Comunicaciones ni Activos.
+### Fase 13 · Dashboard — CERRADA
+**Fecha:** 11 de septiembre de 2026
 
-## Correcciones transversales registradas
+`DashboardPage.jsx` queda como **vista ejecutiva derivada** y puerta de entrada de Centro de Control. No crea ownership ni colecciones propias: resume el estado de los módulos ya cerrados y dirige al usuario al contexto donde debe actuar.
 
-### Creación desde Header
-Las rutas `/nuevo` de Cliente, Contrato y OS instancian formularios limpios. Las Pages no duplican las acciones globales del Header.
+**Compatibilidad consolidada con fases anteriores:**
 
-### Encabezados y densidad
-`AppLayout` muestra una sola vez el dominio de Sidebar. Los títulos internos se alinean mediante el Design System.
+- Personas desde `state.trabajadores`.
+- Restricciones contabilizadas por Persona única a partir del estado vigente y registros de restricción.
+- Asistencia del día desde `state.turnos`, reemplazando la lectura legacy de `state.asistencias`.
+- Dotación efectiva desde `state.asignaciones[].estadoGestion`; solo `asignado` y `habilitado` cuentan como personas asignadas.
+- OS desde `state.mantenciones`, considerando activas y manteniendo fallback legacy cuando corresponde.
+- EPP desde `state.eppDeliveries`.
+- Alertas desde `state.alertas` más las señales derivadas por el motor compartido; `callouts` no se cuenta automáticamente como alerta.
 
-### Grillas de escritorio
-Las grillas operacionales priorizan `width: 100%`, `table-layout: fixed`, anchos controlados, truncamiento y acciones compactas antes del scroll horizontal.
+**Motor compartido de alertas:** se crea `nexo-v2/src/services/operational-alerts.js` como única lógica de derivación para Dashboard y Alertas. Esto evita diferencias entre el KPI ejecutivo y el detalle de `/app/alertas`.
 
-### Navegación contextual
-Cliente, Contrato, OS, Persona y demás entidades con ficha propia deben ser navegables cuando aparecen como contexto de otro módulo.
+**KPIs ejecutivos definitivos:** `Personas registradas · Personas restringidas · OS activas · Alertas pendientes`. Debajo se mantienen las prioridades operativas y accesos hacia los módulos dueños.
 
-### Stock e inventario
-Fase 8 mantiene `stock = suma(stockByLocation)` y ownership especializado de inventario.
+**Navegación vigente:** se eliminan rutas legacy de la referencia React y se usan rutas actuales como `/app/trabajadores`, `/app/operaciones`, `/app/alertas` y módulos especializados de cumplimiento/habilitación. `/app` queda clasificado bajo **Centro de Control** en `AppLayout`.
 
-### Conversión comercial
-Fase 9 mantiene `Prospecto ganado → Cliente / Contrato / OS`, escribiendo siempre en el módulo dueño.
+**Commits principales:** `bf0ec0b2` (motor compartido de alertas), `d30940a1` (Alertas consume helper compartido), `726480a2` (alineación funcional del Dashboard) y `bded9250` (clasificación de Dashboard bajo Centro de Control).
 
-### Gestión de dotación por OS
-Fase 10 mantiene `Persona maestra en trabajadores + estado contextual en asignaciones`.
+**Validación técnica:** para el commit final `bded92507233c429906c2a7589c314826e3adc56`, **Build and Push to ECR** y **Build and Deploy Nexo v2** finalizaron con `success`.
 
-### Orquestación operacional
-Fase 11 mantiene `Centro Operativo = lectura consolidada + navegación al módulo dueño`.
+## Próximo bloque
 
-### Alertas derivadas
-Fase 12 mantiene `Alertas = señales persistidas + cálculo derivado desde módulos dueños + navegación al contexto`. `callouts` no se convierte automáticamente en alerta.
+**Fase 14 · Gobierno / Administración**
 
-## Infraestructura legacy revisada
-
-| Archivo | Rol |
-| --- | --- |
-| `ModuleWorkspacePage.jsx` | Wrapper/orquestación genérica utilizada como referencia para recuperar configuración y layout de origen. |
-| `PrivateModulePage.jsx` | CRUD genérico legacy; referencia de campos, relaciones, permisos y evidencia. |
-| `OperationalWorkspacePage.jsx` | Orquestador legacy y referencia funcional principal para Centro Operativo. |
-| `InventoryOperationsPage.jsx` | Genérico de Fase 8 retirado; reemplazado por Pages especializadas. |
-| `AccesoMina_v6.html` | Referencia histórica de evolución funcional y layout conceptual, incluida la lógica histórica de cálculo de alertas; no es fuente de ownership React. |
-
-## Próximo punto
-
-Con Fases 0–12 cerradas, el siguiente bloque es **Fase 13 · Dashboard**.
+Objetivo: revisar y consolidar las Pages administrativas y de gobierno, sus permisos, configuración y ownership, manteniendo separados los datos operacionales de la configuración transversal de la plataforma.
