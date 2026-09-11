@@ -88,7 +88,6 @@ export default function ImportarExportarPage() {
     <section className="nk-module-page nk-transfer-page">
       <header className="nk-module-header">
         <div>
-          <p className="nk-module-kicker">Gestión y administración</p>
           <h1>Importar y exportar</h1>
           <p>Transfiere datos mediante plantillas controladas o genera respaldos completos sin alterar el ownership de cada módulo.</p>
         </div>
