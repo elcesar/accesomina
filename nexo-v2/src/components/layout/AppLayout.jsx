@@ -72,6 +72,14 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/modulos/activos-inventario')
   ) return 'Activos, Equipos e Inventario'
 
+  if (
+    pathname.startsWith('/app/reportes') ||
+    pathname.startsWith('/app/transferencia') ||
+    pathname.startsWith('/app/usuarios') ||
+    pathname.startsWith('/app/bitacora') ||
+    pathname.startsWith('/app/privacidad')
+  ) return 'Gestión y Administración'
+
   return ''
 }
 
