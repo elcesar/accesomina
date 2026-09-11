@@ -2,70 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconAlertTriangle, IconPaperclip, IconRefresh, IconUser } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
+import { alertKind, operationalAlerts, rows } from '../services/operational-alerts.js'
 import '../styles/control-center.css'
 
-const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
-const normalize = value => String(value || '').trim().toLowerCase()
-const today = () => new Date().toISOString().slice(0, 10)
-const daysUntil = value => {
-  if (!value) return null
-  const target = new Date(`${String(value).slice(0, 10)}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
 const titleFor = item => item.nombre || item.title || item.tipo || item.descripcion || item.msg || 'Pendiente operativo'
 const messageFor = item => item.msg || item.mensaje || item.descripcion || item.estado || 'Requiere revisión y regularización.'
 const relatedId = item => item.trabajadorId || item.personaId || item.workerId || item.trabId || item.contratoId || item.activoId || item.mantId || item.entityId || item.id
-const alertKind = item => {
-  const urgency = normalize(item.urgencia || item.estado)
-  if (['vencido', 'critico', 'crítico', 'falta', 'bloqueado', 'restringido'].includes(urgency)) return 'critical'
-  if (['proximo', 'próximo', 'upcoming'].includes(urgency)) return 'upcoming'
-  const body = normalize(JSON.stringify(item))
-  if (/vencid|restring|bloque|no habil|faltante|rechazad/.test(body)) return 'critical'
-  if (/próxim|proxim|vence/.test(body)) return 'upcoming'
-  return 'operation'
-}
 const CATEGORY = {
   critical: ['Críticas y vencidas', 'Requieren regularización antes de operar'],
   upcoming: ['Próximas a vencer', 'Anticípate a renovaciones y vencimientos'],
   operation: ['Operacionales', 'Pendientes de contratos, recursos u órdenes'],
 }
 const priority = { critical: 0, upcoming: 1, operation: 2 }
-
-function deriveAlerts(state) {
-  const derived = []
-  const people = rows(state.trabajadores)
-  const contracts = rows(state.contratos)
-  const orders = rows(state.mantenciones).length || state.mantenciones ? rows(state.mantenciones) : rows(state.proyectos)
-
-  people.forEach(person => {
-    rows(person.workerItems).forEach(item => {
-      const left = daysUntil(item.vence)
-      const rejected = normalize(item.estado) === 'rechazado'
-      if (rejected) derived.push({ id: `derived-person-rejected-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} rechazado`, derived: true })
-      if (left !== null && left < 0) derived.push({ id: `derived-person-expired-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'vencido', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vencido`, derived: true })
-      else if (left !== null && left <= 7) derived.push({ id: `derived-person-critical-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
-      else if (left !== null && left <= 30) derived.push({ id: `derived-person-upcoming-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'proximo', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
-    })
-    if (person.bloqueado || normalize(person.disponibilidad) === 'bloqueado' || normalize(person.operationalStatus) === 'bloqueado') {
-      derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona restringida para operar`, derived: true })
-    }
-  })
-
-  contracts.forEach(contract => {
-    const end = contract.fechaTermino || contract.termino
-    const left = daysUntil(end)
-    if (left !== null && left < 0) derived.push({ id: `derived-contract-expired-${contract.id}`, tipo: 'contrato', urgencia: 'vencido', contratoId: contract.id, minaId: contract.minaId, contratoNombre: contract.nombre || contract.numero, msg: `Contrato ${contract.numero || contract.nombre || contract.id} vencido`, derived: true })
-    else if (left !== null && left <= 30) derived.push({ id: `derived-contract-upcoming-${contract.id}`, tipo: 'contrato', urgencia: left <= 7 ? 'critico' : 'proximo', contratoId: contract.id, minaId: contract.minaId, contratoNombre: contract.nombre || contract.numero, msg: `Contrato ${contract.numero || contract.nombre || contract.id} vence en ${left}d`, derived: true })
-  })
-
-  orders.forEach(order => {
-    if (!order.contratoId) derived.push({ id: `derived-order-contract-${order.id}`, tipo: 'orden', urgencia: 'critico', mantId: order.id, minaId: order.minaId, entidad: order.nombre || order.codigo, msg: `${order.nombre || 'Orden de servicio'}: falta contrato asociado`, derived: true })
-    if (!order.minaId) derived.push({ id: `derived-order-client-${order.id}`, tipo: 'orden', urgencia: 'critico', mantId: order.id, entidad: order.nombre || order.codigo, msg: `${order.nombre || 'Orden de servicio'}: falta cliente asociado`, derived: true })
-  })
-
-  return derived
-}
 
 async function uploadAlertFile(entityId, file) {
   const formData = new FormData()
@@ -110,7 +58,7 @@ export default function AlertasPage() {
 
   const state = response?.state || response || {}
   const people = rows(state.trabajadores)
-  const allAlerts = useMemo(() => [...rows(state.alertas), ...deriveAlerts(state)], [state])
+  const allAlerts = useMemo(() => operationalAlerts(state), [state])
 
   const groups = useMemo(() => Object.values(allAlerts.reduce((out, item, index) => {
     const id = relatedId(item) || `unrelated-${index}`
