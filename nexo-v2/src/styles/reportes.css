@@ -1,4 +1,4 @@
-.nk-reports-page{gap:var(--space-3)}
+.nk-reports-page{display:flex;flex-direction:column;gap:var(--space-3);min-width:0;padding:var(--page-padding)}
 .nk-reports-header{align-items:flex-start}
 .nk-report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
 .nk-report-summary .nk-dashboard-metric{min-height:72px;padding:var(--space-3) var(--space-4)}
