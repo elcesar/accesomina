@@ -49,9 +49,9 @@ const ESPECIALIDADES = [
 
 const TABS = [
   { key: 'datos', label: 'Resumen', icon: IconUser },
-  { key: 'docs', label: 'Documentación', icon: IconFileText },
-  { key: 'cursos', label: 'Formación y aptitudes', icon: IconBook },
-  { key: 'epp', label: 'EPP y recursos', icon: IconShield },
+  { key: 'docs', label: 'Documentos', icon: IconFileText },
+  { key: 'cursos', label: 'Formación', icon: IconBook },
+  { key: 'epp', label: 'Operación y EPP', icon: IconShield },
   { key: 'historial', label: 'Historial', icon: IconHistory },
 ]
 
@@ -136,7 +136,7 @@ function SaveButton({ saving, onClick }) {
   return <button className="nk-button nk-button-primary" type="button" onClick={onClick} disabled={saving}>{saving ? <IconLoader2 size={15} className="animate-spin" /> : <IconDeviceFloppy size={15} strokeWidth={1.7} />}{saving ? 'Guardando…' : 'Guardar cambios'}</button>
 }
 
-function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving, onChange, onSave, onAsignar, onRetirar }) {
+function DataTab({ worker, clientes, proyectos, contratos, asignaciones, deliveries, saving, onChange, onSave, onAsignar, onRetirar }) {
   const [clienteId, setClienteId] = useState('')
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
@@ -146,10 +146,16 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
   const requirements = getRequiredItems(worker)
   const pendingRequirements = requirements.filter(requirement => !reqStatus(worker, requirement).ok)
-  const readiness = pendingRequirements.length === 0 ? { label: 'Lista para trabajar', tone: 'ok', detail: 'No hay requisitos críticos pendientes.' } : { label: `${pendingRequirements.length} requisito${pendingRequirements.length === 1 ? '' : 's'} pendiente${pendingRequirements.length === 1 ? '' : 's'}`, tone: pendingRequirements.some(requirement => reqStatus(worker, requirement).src === 'vencido/rechazado') ? 'error' : 'warn', detail: pendingRequirements.slice(0, 3).map(requirement => requirement.name).join(' · ') }
+  const hasCriticalPending = pendingRequirements.some(requirement => reqStatus(worker, requirement).src === 'vencido/rechazado')
+  const readiness = pendingRequirements.length === 0
+    ? { label: 'Lista para asignar', tone: 'ok', detail: 'No hay requisitos críticos pendientes.' }
+    : { label: hasCriticalPending ? `Bloqueada por ${pendingRequirements.length} requisito${pendingRequirements.length === 1 ? '' : 's'}` : 'Requiere revisión', tone: hasCriticalPending ? 'error' : 'warn', detail: pendingRequirements.slice(0, 3).map(requirement => requirement.name).join(' · ') }
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
+  const currentAssignment = activeAssignments[0]
+  const currentLodging = (worker._hotelAsig || []).find(item => !item.checkout || new Date(`${item.checkout}T23:59:59`) >= new Date())
+  const eppDeliveries = deliveries.filter(delivery => delivery.workerId === worker.id)
 
   return <>
     <CardSection title="Estado y próximo paso" subtitle="Una vista breve para decidir qué hacer con esta persona.">
@@ -159,6 +165,12 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
         <article><span>Próximo paso</span><strong>{pendingRequirements.length ? 'Regularizar antecedentes' : activeAssignments.length ? 'Registrar jornada' : 'Asignar a una orden'}</strong><small>{pendingRequirements.length ? 'Abre Documentación para cargar o renovar.' : activeAssignments.length ? 'Continúa en Turnos y asistencia.' : 'Usa el flujo guiado de asignación.'}</small></article>
       </div>
     </CardSection>
+    <section className="nk-person-operation-snapshot" aria-label="Situación operacional actual">
+      <span><b>Orden actual</b>{currentAssignment ? projectName(currentAssignment.mantId) : 'Sin asignación'}</span>
+      <span><b>Turno</b>{currentAssignment?.turno || 'Sin turno'}</span>
+      <span><b>Alojamiento</b>{currentLodging ? `${currentLodging.hotelNombre || 'Asignado'} · ${currentLodging.pieza || 'Sin habitación'}` : 'No requiere o sin asignar'}</span>
+      <span><b>Entregas EPP</b>{eppDeliveries.length ? `${eppDeliveries.length} registradas` : 'Sin entregas registradas'}</span>
+    </section>
     <details className="nk-person-workflow" open={activeAssignments.length === 0}>
       <summary>
         <span>Asignación operacional</span>
@@ -326,11 +338,17 @@ function EppTab({ worker, saving, onChange, onSave, deliveries }) {
   </>
 }
 
-function HistoryTab({ worker, proyectos, clientes }) {
+function HistoryTab({ worker, proyectos, clientes, deliveries }) {
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
-  const rows = worker._asignaciones || []
-  return <CardSection title="Historial operacional" subtitle="Proyectos y servicios asociados a la persona.">{rows.length === 0 ? <div className="nk-empty"><IconHistory size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin proyectos en el historial</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Turno</th><th>Estado</th></tr></thead><tbody>{rows.map((a, i) => <tr key={a.id || i}><td className="nk-person-text-strong">{projectName(a.mantId)}</td><td>{clientName(a.mantId)}</td><td>{a.turno || '—'}</td><td><span className="nk-badge nk-badge-none">{a.estado || 'activo'}</span></td></tr>)}</tbody></table></div>}</CardSection>
+  const timeline = [
+    ...(worker._asignaciones || []).map(item => ({ id: `assignment-${item.id}`, date: item.startedAt || item.createdAt, title: `Asignación a ${projectName(item.mantId)}`, detail: `${clientName(item.mantId)} · Turno ${item.turno || 'sin definir'}`, kind: 'Asignación' })),
+    ...(worker.workerItems || []).map(item => ({ id: `document-${item.id}`, date: item.cargado || item.created || item.emision, title: item.name, detail: `${ITEM_TYPES[item.type] || item.type} · ${item.vence ? `vence ${item.vence}` : 'sin vencimiento informado'}`, kind: 'Antecedente' })),
+    ...deliveries.filter(item => item.workerId === worker.id).map(item => ({ id: `epp-${item.id}`, date: item.deliveredAt || item.createdAt, title: `Entrega de ${item.itemName || 'EPP'}`, detail: `${item.size ? `Talla ${item.size} · ` : ''}${item.replaceAt ? `reposición ${item.replaceAt}` : 'sin reposición programada'}`, kind: 'EPP' })),
+    ...(worker._hotelAsig || []).map(item => ({ id: `lodging-${item.id}`, date: item.checkin || item.createdAt, title: `Estadía en ${item.hotelNombre || 'alojamiento'}`, detail: `${item.mantNombre || 'Sin orden asociada'} · ${item.checkin || 'sin fecha'} a ${item.checkout || 'vigente'}`, kind: 'Alojamiento' })),
+  ].filter(item => item.date).sort((a, b) => String(b.date).localeCompare(String(a.date)))
+
+  return <CardSection title="Historial de la persona" subtitle="Cambios y registros relevantes en una sola línea de tiempo.">{timeline.length === 0 ? <div className="nk-empty"><IconHistory size={30} strokeWidth={1.3} /><p className="nk-empty-title">Aún no hay movimientos registrados</p></div> : <ol className="nk-person-timeline">{timeline.map(item => <li key={item.id}><time>{item.date}</time><div><span className="nk-badge nk-badge-none">{item.kind}</span><strong>{item.title}</strong><small>{item.detail}</small></div></li>)}</ol>}</CardSection>
 }
 
 export default function FichaTrabajadorPage() {
@@ -358,14 +376,15 @@ export default function FichaTrabajadorPage() {
   async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
   async function handleAsignar(mantId, turno) { if (!mantId || assignments.some(a => a.trabId === id && a.mantId === mantId)) { if (mantId) setError('La persona ya está asignada a ese proyecto'); return } try { const next = [...assignments, { id: `asig_${Date.now()}`, mantId, trabId: id, turno, estado: 'confirmado' }]; await persistAssignments(next, 'asignado', `Asignación operacional de ${worker.nombre}`); setOk('Asignación guardada') } catch (e) { setError(e.message || 'Error al guardar asignación') } }
   async function handleRetirar(mantId) { try { const next = assignments.filter(a => !(a.trabId === id && a.mantId === mantId)); const availability = next.some(a => a.trabId === id) ? 'asignado' : 'disponible'; await persistAssignments(next, availability, `Retiro de asignación de ${worker.nombre}`); setOk('Asignación actualizada') } catch (e) { setError(e.message || 'Error al retirar asignación') } }
+  function openQuickAction(tabKey, selector) { setTab(tabKey); window.setTimeout(() => { const target = document.querySelector(selector); if (target?.tagName === 'DETAILS') target.open = true; target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }) }, 0) }
 
   if (!stateData) return <div className="nk-person-state"><IconLoader2 size={28} className="animate-spin" /><span>Cargando ficha…</span></div>
   if (!worker) return <div className="nk-person-state">Persona no encontrada.</div>
   const pct = acreditacionPct(worker); const clientes = stateData?.minas || []; const proyectos = stateData?.mantenciones || []; const contratos = stateData?.contratos || []; const deliveries = stateData?.eppDeliveries || []
 
   return <div className="nk-person-page">
-    <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={worker.disponibilidad} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
+    <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={worker.disponibilidad} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-quick-actions"><span>Acciones rápidas</span><button className="nk-button nk-button-quiet" type="button" onClick={() => openQuickAction('datos', '.nk-person-workflow')}><IconPlus size={14} /> Asignar</button><button className="nk-button nk-button-quiet" type="button" onClick={() => openQuickAction('docs', '.nk-person-card')}><IconPaperclip size={14} /> Cargar documento</button><button className="nk-button nk-button-quiet" type="button" onClick={() => openQuickAction('epp', '.nk-person-card')}><IconShield size={14} /> Revisar EPP</button></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
     {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
-    <main className="nk-person-content">{tab === 'datos' && <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} />}{tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}{tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}{tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}{tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}</main>
+    <main className="nk-person-content">{tab === 'datos' && <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} deliveries={deliveries} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} />}{tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}{tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}{tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}{tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} deliveries={deliveries} />}</main>
   </div>
 }
