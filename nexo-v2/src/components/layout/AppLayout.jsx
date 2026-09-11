@@ -4,6 +4,7 @@ import Header from './Header.jsx'
 
 function pageDomain(pathname) {
   if (
+    pathname === '/app' ||
     pathname.startsWith('/app/alertas') ||
     pathname.startsWith('/app/reclutamiento') ||
     pathname.startsWith('/app/modulos/gestion-personal-proyecto') ||
