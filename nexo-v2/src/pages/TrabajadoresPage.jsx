@@ -22,11 +22,8 @@ function diasHasta(fecha) {
 const REQUIRED_ITEMS = [
   { type: 'documento', name: 'Cédula de identidad' },
   { type: 'contrato', name: 'Contrato de trabajo' },
-  { type: 'documento', name: 'Certificado AFP' },
-  { type: 'documento', name: 'Certificado Fonasa/Isapre' },
   { type: 'examen', name: 'Examen preocupacional' },
   { type: 'curso', name: 'ODI / Derecho a Saber' },
-  { type: 'curso', name: 'Reglamento Interno' },
 ]
 
 function acreditacionPct(persona) {

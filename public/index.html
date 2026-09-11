@@ -11140,5 +11140,47 @@ function injectFichaExperienceV174(workerId){
 const openFichaV174Base=openFicha;
 openFicha=function(id){openFichaV174Base(id);injectFichaExperienceV174(id);};
 </script>
+<script>
+// V17.5 · Datos personales claros y requisitos mínimos separados de los archivos adicionales.
+const MINIMUM_WORKER_REQUIREMENTS_V175=Object.freeze([
+  {type:'documento',name:'Cédula de identidad'},
+  {type:'contrato',name:'Contrato de trabajo'},
+  {type:'examen',name:'Examen preocupacional'},
+  {type:'curso',name:'ODI / Derecho a Saber'}
+]);
+const getRequiredItemsForWorkerV175Base=getRequiredItemsForWorker;
+getRequiredItemsForWorker=function(worker){
+  const active=(S.asignaciones||[]).some(item=>String(item.trabId)===String(worker?.id)&&!['baja','cerrado','cancelado'].includes(String(item.estado||'').toLowerCase()));
+  const contextual=[...(REQUIRED_BY_SPECIALTY[worker?.especialidad]||[]),...(typeof rulesForWorkerV90==='function'?rulesForWorkerV90(worker):[])];
+  if(active)contextual.push({type:'contrato',name:'Anexo asociado al servicio'});
+  const unique=new Set();
+  return [...MINIMUM_WORKER_REQUIREMENTS_V175,...contextual].filter(item=>{const key=`${item.type}|${String(item.name).toLowerCase()}`;if(unique.has(key))return false;unique.add(key);return true;});
+};
+function saveFichaPersonalV175(workerId){
+  const worker=(S.trabajadores||[]).find(item=>String(item.id)===String(workerId));if(!worker)return;
+  worker.tel=document.getElementById('v175-tel')?.value.trim()||'';
+  worker.email=document.getElementById('v175-email')?.value.trim()||'';
+  worker.ciudad=document.getElementById('v175-ciudad')?.value.trim()||'';
+  worker.region=document.getElementById('v175-region')?.value.trim()||'';
+  worker.contactoEmergencia=document.getElementById('v175-emergency-name')?.value.trim()||'';
+  worker.telefonoEmergencia=document.getElementById('v175-emergency-phone')?.value.trim()||'';
+  persistTenant();toast('Datos personales actualizados');openFicha(workerId);
+}
+function injectFichaPersonalV175(workerId){
+  const worker=(S.trabajadores||[]).find(item=>String(item.id)===String(workerId)),operation=document.getElementById('ficha-operation-v174'),docs=document.getElementById('ficha-tab-docs'),courses=document.getElementById('ficha-tab-cur');
+  if(!worker)return;
+  document.getElementById('ficha-personal-v175')?.remove();
+  const personal=`<div class="card" id="ficha-personal-v175" style="margin-bottom:16px;"><div class="card-header"><div><div class="card-title">Datos personales</div><div class="card-subtitle">Solo la información necesaria para contacto, coordinación y emergencia.</div></div><button class="btn btn-primary btn-sm" type="button" onclick="saveFichaPersonalV175('${eppEsc(worker.id)}')">Guardar datos</button></div><div class="form-grid"><div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="v175-tel" value="${eppEsc(worker.tel||'')}"></div><div class="form-group"><label class="form-label">Correo electrónico</label><input class="form-input" id="v175-email" type="email" value="${eppEsc(worker.email||'')}"></div><div class="form-group"><label class="form-label">Ciudad / comuna</label><input class="form-input" id="v175-ciudad" value="${eppEsc(worker.ciudad||worker.comuna||'')}"></div><div class="form-group"><label class="form-label">Región</label><input class="form-input" id="v175-region" value="${eppEsc(worker.region||'')}"></div><div class="form-group"><label class="form-label">Contacto de emergencia</label><input class="form-input" id="v175-emergency-name" placeholder="Nombre y relación" value="${eppEsc(worker.contactoEmergencia||'')}"></div><div class="form-group"><label class="form-label">Teléfono de emergencia</label><input class="form-input" id="v175-emergency-phone" value="${eppEsc(worker.telefonoEmergencia||'')}"></div></div></div>`;
+  if(operation)operation.insertAdjacentHTML('afterend',personal);
+  [[docs,'Documentos, exámenes y aptitudes','Agrega archivos adicionales con nombre, vigencia, archivo y observación.'],[courses,'Formación y certificaciones','Registra cursos y certificaciones requeridos por función.']].forEach(([host,title,subtitle])=>{
+    if(!host)return;
+    const first=host.querySelector('.card-title');if(first){first.textContent=title;const sub=first.parentElement?.querySelector('.card-subtitle');if(sub)sub.textContent=subtitle;}
+    const name=document.getElementById('wi-name');
+    if(name){name.placeholder='Nombre del documento o archivo';name.closest('.form-group')?.querySelector('.form-label')?.replaceChildren('Nombre del documento');}
+  });
+}
+const openFichaV175Base=openFicha;
+openFicha=function(id){openFichaV175Base(id);injectFichaPersonalV175(id);};
+</script>
 </body>
 </html>
