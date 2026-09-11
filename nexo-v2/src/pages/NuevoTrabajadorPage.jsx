@@ -167,10 +167,14 @@ function StepContrato({ data, onChange }) {
           <option value="5x2">5x2</option>
           <option value="4x3">4x3</option>
           <option value="7x7">7x7</option>
-          <option value="6x1">6x1</option>
-          <option value="turno_especial">Turno especial</option>
+          <option value="10x10">10x10</option>
+          <option value="14x14">14x14</option>
+          <option value="otro">Otro tipo de turno</option>
         </Select>
       </Field>
+      {data.regimen === 'otro' && <Field label="Describe el tipo de turno" required>
+        <Input value={data.regimenOtro} onChange={e => onChange('regimenOtro', e.target.value)} placeholder="Ej: 4x4, jornada parcial o turno personalizado" />
+      </Field>}
       <Field label="Cargo" required>
         <Input value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej: Mecánico mantenedor" />
       </Field>
@@ -212,11 +216,6 @@ function StepSalud({ data, onChange }) {
       <Field label="Previsión de salud">
         <Input value={data.salud} onChange={e => onChange('salud', e.target.value)} placeholder="Fonasa / Isapre…" />
       </Field>
-      <div style={{ gridColumn:'1/-1' }}>
-        <Field label="Mutual de seguridad">
-          <Input value={data.mutual} onChange={e => onChange('mutual', e.target.value)} placeholder="Mutual / ACHS / IST" />
-        </Field>
-      </div>
     </div>
   )
 }
@@ -254,13 +253,12 @@ function StepResumen({ data }) {
     ['Región',       data.region],
     ['Ciudad',       data.ciudad],
     ['Tipo contrato',data.tipo === 'permanente' ? 'Permanente / Planta' : 'Esporádico'],
-    ['Turno',        data.regimen],
+    ['Turno',        data.regimen === 'otro' ? data.regimenOtro : data.regimen],
     ['Cargo',        data.cargo],
     ['Especialidad', data.especialidad],
     ['Calificación', data.calificacion],
     ['AFP',          data.afp],
     ['Salud',        data.salud],
-    ['Mutual',       data.mutual],
   ].filter(([, v]) => v)
 
   return (
@@ -288,8 +286,8 @@ function StepResumen({ data }) {
 
 const INITIAL = {
   nombre:'', rut:'', nacimiento:'', tel:'', email:'', region:'', ciudad:'',
-  tipo:'permanente', regimen:'5x2', cargo:'', rol:'', especialidad:'', calificacion:'7',
-  afp:'', salud:'', mutual:'',
+  tipo:'permanente', regimen:'5x2', regimenOtro:'', cargo:'', rol:'', especialidad:'', calificacion:'7',
+  afp:'', salud:'',
   eppCasco:'', eppPolera:'', eppPantalon:'', eppZapato:'',
 }
 
@@ -307,7 +305,7 @@ export default function NuevoTrabajadorPage() {
 
   function canNext() {
     if (step === 0) return data.nombre.trim() && data.rut.trim()
-    if (step === 1) return data.cargo.trim() && data.especialidad
+    if (step === 1) return data.cargo.trim() && data.especialidad && (data.regimen !== 'otro' || data.regimenOtro.trim())
     return true
   }
 
@@ -325,6 +323,7 @@ export default function NuevoTrabajadorPage() {
         ciudad:       data.ciudad     || undefined,
         tipo:         data.tipo,
         regimen:      data.regimen,
+        regimenOtro:  data.regimen === 'otro' ? data.regimenOtro.trim() || undefined : undefined,
         cargo:        data.cargo,
         rol:          data.rol        || undefined,
         especialidad: data.especialidad,
@@ -332,7 +331,6 @@ export default function NuevoTrabajadorPage() {
         disponibilidad: 'disponible',
         afp:          data.afp        || undefined,
         salud:        data.salud      || undefined,
-        mutual:       data.mutual     || undefined,
         epp: {
           casco:    data.eppCasco    || undefined,
           polera:   data.eppPolera   || undefined,

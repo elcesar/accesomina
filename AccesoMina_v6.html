@@ -1583,7 +1583,7 @@ td { padding:12px 14px; }
       <label class="filter-label" for="filt-turno-fecha-v139">Fecha operativa</label>
       <input class="filter-select" id="filt-turno-fecha-v139" type="date" onchange="renderTurnos()">
       <select class="filter-select" id="filt-turno-mant" onchange="renderTurnos()"><option value="">Todos los proyectos</option></select>
-      <select class="filter-select" id="filt-turno-regimen" onchange="renderTurnos()"><option value="">Todos los regímenes</option><option value="7x7">7x7</option><option value="4x3">4x3</option><option value="5x2">5x2</option><option value="turno_especial">Turno especial</option></select>
+      <select class="filter-select" id="filt-turno-regimen" onchange="renderTurnos()"><option value="">Todos los regímenes</option><option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="10x10">10x10</option><option value="14x14">14x14</option><option value="otro">Otro tipo de turno</option></select>
       <select class="filter-select" id="filt-turno-dia" onchange="renderTurnos()"><option value="">Todos los turnos</option><option value="día">Día</option><option value="noche">Noche</option></select>
     </div>
     <div id="turnos-coordination-v139"></div>
@@ -1804,8 +1804,9 @@ td { padding:12px 14px; }
           <select class="form-select" id="nt-tipo"><option value="permanente">🏭 Trabajador fijo</option><option value="esporadico">⚡ Trabajador por proyecto</option><option value="disponible">🟢 Trabajador disponible</option></select>
         </div>
         <div class="form-group"><label class="form-label">Turno / jornada habitual</label>
-          <select class="form-select" id="nt-regimen"><option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="6x1">6x1</option><option value="turno_especial">Turno especial</option></select>
+          <select class="form-select" id="nt-regimen"><option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="10x10">10x10</option><option value="14x14">14x14</option><option value="otro">Otro tipo de turno</option></select>
         </div>
+        <div class="form-group"><label class="form-label">Describe el tipo de turno</label><input class="form-input" id="nt-regimen-otro" placeholder="Ej: 4x4, jornada parcial o turno personalizado"></div>
         <div class="form-group"><label class="form-label">Cargo</label><input class="form-input" id="nt-cargo" placeholder="Ej: Mecánico mantenedor"></div>
         <div class="form-group"><label class="form-label">Rol operacional</label><input class="form-input" id="nt-rol" placeholder="Ej: Rigger / Supervisor / Maestro"></div>
         <div class="form-group"><label class="form-label">Especialidad</label>
@@ -1820,7 +1821,7 @@ td { padding:12px 14px; }
         </div>
         <div class="form-group"><label class="form-label">AFP</label><input class="form-input" id="nt-afp" placeholder="AFP Habitat"></div>
         <div class="form-group"><label class="form-label">Salud</label><input class="form-input" id="nt-salud" placeholder="Fonasa / Isapre"></div>
-        <div class="form-group"><label class="form-label">Mutual de Seguridad</label><input class="form-input" id="nt-mutual" placeholder="Mutual / ACHS / IST"></div>
+        <input type="hidden" id="nt-mutual" value="">
         <div class="form-group full"><div class="card-title" style="margin-top:8px;">Tallas de EPP</div></div>
         <div class="form-group"><label class="form-label">Casco</label><input class="form-input" id="nt-epp-helmet" placeholder="Ej: M o 56 cm"></div>
         <div class="form-group"><label class="form-label">Polera</label><input class="form-input" id="nt-epp-shirt" placeholder="Ej: L"></div>
@@ -2202,7 +2203,7 @@ td { padding:12px 14px; }
 <div class="modal-overlay" id="modal-nuevo-subcontrato"><div class="modal modal-wide"><div class="modal-header"><div class="modal-title">+ Subcontratista</div><button class="modal-close" onclick="closeModal('modal-nuevo-subcontrato')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Nombre empresa / razón social</label><input class="form-input" id="subc-razon"></div><div class="form-group"><label class="form-label">RUT</label><input class="form-input" id="subc-rut" onblur="this.value=formatRut(this.value)"></div><div class="form-group"><label class="form-label">Contrato asociado</label><select class="form-select" id="subc-contrato"></select></div><div class="form-group"><label class="form-label">Contrato subcontratista / referencia</label><input class="form-input" id="subc-contrato-ref" placeholder="N° contrato o acuerdo"></div><div class="form-group full"><label class="form-label">Órdenes de compra (OC)</label><input class="form-input" id="subc-ocs" placeholder="OC-001, OC-002, OC-003"></div><div class="form-group full"><label class="form-label">Servicios que presta</label><input class="form-input" id="subc-servicios" placeholder="Ej: andamios, transporte, soldadura, alimentación"></div><div class="form-group"><label class="form-label">Responsable</label><input class="form-input" id="subc-responsable"></div><div class="form-group"><label class="form-label">Contacto / teléfono</label><input class="form-input" id="subc-contacto" value="+569"></div><div class="form-group"><label class="form-label">Personal asociado</label><input class="form-input" type="number" id="subc-personal" value="0"></div><div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="subc-estado"><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div><div class="form-group"><label class="form-label">F30</label><input class="form-input" type="date" id="subc-f30"></div><div class="form-group"><label class="form-label">F30-1</label><input class="form-input" type="date" id="subc-f301"></div><div class="form-group"><label class="form-label">Cotizaciones</label><input class="form-input" type="date" id="subc-cotizaciones"></div><div class="form-group"><label class="form-label">Seguro / póliza</label><input class="form-input" type="date" id="subc-seguro"></div><div class="form-group full"><label class="form-label">Observación</label><input class="form-input" id="subc-observacion"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-subcontrato')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoSubcontrato()">Guardar subcontratista</button></div></div></div>
 
 <!-- Modal: Jornada / Turno -->
-<div class="modal-overlay" id="modal-nuevo-turno"><div class="modal"><div class="modal-header"><div class="modal-title">+ Turno y Jornada</div><button class="modal-close" onclick="closeModal('modal-nuevo-turno')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Trabajador</label><select class="form-select" id="tj-trab"></select></div><div class="form-group full"><label class="form-label">Proyecto / mantención</label><select class="form-select" id="tj-mant"></select></div><div class="form-group"><label class="form-label">Tipo de jornada</label><select class="form-select" id="tj-regimen"><option value="7x7">7x7</option><option value="4x3">4x3</option><option value="5x2">5x2</option><option value="6x1">6x1</option><option value="turno_especial">Turno especial</option></select></div><div class="form-group"><label class="form-label">Turno</label><select class="form-select" id="tj-turno"><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select></div><div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="tj-fecha"></div><div class="form-group"><label class="form-label">Asistencia</label><select class="form-select" id="tj-asistencia"><option value="presente">Presente</option><option value="ausente">Ausente</option><option value="licencia">Licencia</option><option value="permiso">Permiso</option><option value="observado">Observado</option></select></div><div class="form-group"><label class="form-label">Ingreso</label><input class="form-input" id="tj-ingreso" placeholder="08:00"></div><div class="form-group"><label class="form-label">Salida</label><input class="form-input" id="tj-salida" placeholder="20:00"></div><div class="form-group"><label class="form-label">HH reales</label><input class="form-input" type="number" id="tj-hh" value="12"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-turno')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoTurno()">Guardar jornada</button></div></div></div>
+<div class="modal-overlay" id="modal-nuevo-turno"><div class="modal"><div class="modal-header"><div class="modal-title">+ Turno y Jornada</div><button class="modal-close" onclick="closeModal('modal-nuevo-turno')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Trabajador</label><select class="form-select" id="tj-trab"></select></div><div class="form-group full"><label class="form-label">Proyecto / mantención</label><select class="form-select" id="tj-mant"></select></div><div class="form-group"><label class="form-label">Tipo de jornada</label><select class="form-select" id="tj-regimen"><option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="10x10">10x10</option><option value="14x14">14x14</option><option value="otro">Otro tipo de turno</option></select></div><div class="form-group"><label class="form-label">Describe el tipo de turno</label><input class="form-input" id="tj-regimen-otro" placeholder="Ej: 4x4 o jornada parcial"></div><div class="form-group"><label class="form-label">Turno</label><select class="form-select" id="tj-turno"><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select></div><div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="tj-fecha"></div><div class="form-group"><label class="form-label">Asistencia</label><select class="form-select" id="tj-asistencia"><option value="presente">Presente</option><option value="ausente">Ausente</option><option value="licencia">Licencia</option><option value="permiso">Permiso</option><option value="observado">Observado</option></select></div><div class="form-group"><label class="form-label">Ingreso</label><input class="form-input" id="tj-ingreso" placeholder="08:00"></div><div class="form-group"><label class="form-label">Salida</label><input class="form-input" id="tj-salida" placeholder="20:00"></div><div class="form-group"><label class="form-label">HH reales</label><input class="form-input" type="number" id="tj-hh" value="12"></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nuevo-turno')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevoTurno()">Guardar jornada</button></div></div></div>
 
 <!-- Modal: Credencial -->
 <div class="modal-overlay" id="modal-nueva-credencial"><div class="modal"><div class="modal-header"><div class="modal-title">+ Credencial / Pase Mina</div><button class="modal-close" onclick="closeModal('modal-nueva-credencial')">✕</button></div><div class="modal-body"><div class="form-grid"><div class="form-group full"><label class="form-label">Trabajador</label><select class="form-select" id="cr-trab"></select></div><div class="form-group"><label class="form-label">Cliente</label><select class="form-select" id="cr-mina"></select></div><div class="form-group"><label class="form-label">Tipo pase</label><select class="form-select" id="cr-tipo"><option value="digital">Digital</option><option value="fisico">Físico</option><option value="qr">QR</option><option value="temporal">Temporal</option><option value="vehicular">Vehicular</option></select></div><div class="form-group"><label class="form-label">Número / QR</label><input class="form-input" id="cr-numero"></div><div class="form-group"><label class="form-label">Emisión</label><input class="form-input" type="date" id="cr-emision"></div><div class="form-group"><label class="form-label">Vencimiento</label><input class="form-input" type="date" id="cr-vence"></div><div class="form-group full"><label class="form-label">Zona autorizada</label><input class="form-input" id="cr-zona" placeholder="Portería, planta, casino, campamento"></div><div class="form-group"><label class="form-label">Campamento</label><select class="form-select" id="cr-campamento"><option value="no">No</option><option value="si">Sí</option></select></div><div class="form-group"><label class="form-label">Estado</label><select class="form-select" id="cr-estado"><option value="pendiente">Pendiente</option><option value="aprobado">Aprobado</option><option value="pase_emitido">Pase emitido</option><option value="observado">Observado</option><option value="rechazado">Rechazado</option></select></div><div class="form-group full"><label class="form-label">Respaldo de credencial / pase</label><input class="form-input" id="cr-file" type="file" accept=".pdf,.jpg,.jpeg,.png"><span class="field-help">PDF, JPG o PNG. Recomendado: pase emitido, QR o autorización del cliente.</span></div></div></div><div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-nueva-credencial')">Cancelar</button><button class="btn btn-primary" onclick="saveNuevaCredencial()">Guardar credencial</button></div></div></div>
@@ -10960,5 +10961,92 @@ window.NexoKlarRuntime={get state(){return S;},get user(){return currentTenantUs
 </script>
 <script src="assets/workbook-governance-v168.js"></script>
 <script src="assets/tenant-control-plane-v169.js"></script>
+<script>
+// V17.0 · Jornadas neutrales y datos previsionales por empresa.
+const TURNOS_REGIMENES_V170 = Object.freeze(['5x2','4x3','7x7','10x10','14x14','otro']);
+function turnoRegimenLabelV170(regimen, detalle=''){
+  return regimen==='otro' ? (String(detalle||'').trim() || 'Otro tipo de turno') : (regimen||'—');
+}
+function updateRegimenSelectV170(select, selected, detalle=''){
+  if(!select)return;
+  const selectedValue=TURNOS_REGIMENES_V170.includes(selected)?selected:'otro';
+  select.innerHTML=TURNOS_REGIMENES_V170.map(value=>`<option value="${value}" ${value===selectedValue?'selected':''}>${value==='otro'?'Otro tipo de turno':value}</option>`).join('');
+  if(selectedValue==='otro'&&detalle)select.dataset.regimenDetalle=detalle;
+}
+function removeWorkerMutualV170(){
+  document.querySelectorAll('#ficha-tab-datos .form-group').forEach(group=>{
+    if(group.querySelector('.form-label')?.textContent.trim().toLowerCase().includes('mutual'))group.remove();
+  });
+  document.querySelectorAll('#ficha-tab-datos .info-row').forEach(row=>{
+    if(row.querySelector('.info-label')?.textContent.trim().toLowerCase().startsWith('mutual'))row.remove();
+  });
+}
+const saveNuevoTrabV170Base=saveNuevoTrab;
+saveNuevoTrab=function(){
+  const regimen=document.getElementById('nt-regimen')?.value||'5x2';
+  const regimenOtro=document.getElementById('nt-regimen-otro')?.value.trim()||'';
+  if(regimen==='otro'&&!regimenOtro)return toast('Describe el otro tipo de turno para continuar','err');
+  const before=new Set((S.trabajadores||[]).map(worker=>worker.id));
+  saveNuevoTrabV170Base();
+  const worker=(S.trabajadores||[]).find(item=>!before.has(item.id));
+  if(!worker)return;
+  worker.regimen=regimen;
+  worker.regimenOtro=regimen==='otro'?regimenOtro:'';
+  delete worker.mutual;
+  persistTenant();
+};
+const saveNuevoTurnoV170Base=saveNuevoTurno;
+saveNuevoTurno=function(){
+  const regimen=document.getElementById('tj-regimen')?.value||'5x2';
+  const regimenOtro=document.getElementById('tj-regimen-otro')?.value.trim()||'';
+  if(regimen==='otro'&&!regimenOtro)return toast('Describe el otro tipo de turno para continuar','err');
+  const before=new Set((S.turnos||[]).map(turno=>turno.id));
+  saveNuevoTurnoV170Base();
+  const turno=(S.turnos||[]).find(item=>!before.has(item.id));
+  if(!turno)return;
+  turno.regimen=regimen;
+  turno.regimenOtro=regimen==='otro'?regimenOtro:'';
+  persistTenant();
+  renderTurnos();
+};
+const openFichaV170Base=openFicha;
+openFicha=function(id){
+  openFichaV170Base(id);
+  const worker=(S.trabajadores||[]).find(item=>item.id===id);
+  const select=document.getElementById('fd-regimen');
+  updateRegimenSelectV170(select,worker?.regimen||'5x2',worker?.regimenOtro||'');
+  if(select&&!document.getElementById('fd-regimen-otro'))select.insertAdjacentHTML('afterend','<input class="form-input" id="fd-regimen-otro" placeholder="Describe el otro tipo de turno" style="margin-top:8px;display:none;">');
+  const detail=document.getElementById('fd-regimen-otro');
+  if(detail){detail.value=worker?.regimenOtro||'';detail.style.display=select?.value==='otro'?'block':'none';select?.addEventListener('change',()=>{detail.style.display=select.value==='otro'?'block':'none';});}
+  removeWorkerMutualV170();
+};
+const saveFichaDatosV170Base=saveFichaDatos;
+saveFichaDatos=function(){
+  if(currentFichaTrab){
+    const regimen=document.getElementById('fd-regimen')?.value||currentFichaTrab.regimen||'5x2';
+    const detalle=document.getElementById('fd-regimen-otro')?.value.trim()||'';
+    if(regimen==='otro'&&!detalle)return toast('Describe el otro tipo de turno para guardar','err');
+    currentFichaTrab.regimen=regimen;
+    currentFichaTrab.regimenOtro=regimen==='otro'?detalle:'';
+    delete currentFichaTrab.mutual;
+  }
+  saveFichaDatosV170Base();
+};
+const renderTurnosV170Base=renderTurnos;
+renderTurnos=function(){
+  renderTurnosV170Base();
+  document.querySelectorAll('#turnos-table .worker-rut').forEach(cell=>{
+    const [regimen, turno]=cell.textContent.split(' · ');
+    const record=(S.turnos||[]).find(item=>String(item.regimen)===String(regimen)&&String(item.turno)===String(turno));
+    if(record)cell.textContent=`${turnoRegimenLabelV170(record.regimen,record.regimenOtro)} · ${record.turno||'—'}`;
+  });
+};
+function exportNomina(){
+  const headers=['ID','Nombre','RUT','Cargo','Especialidad','Tipo','Régimen','Región','Comuna','Ciudad','Disponibilidad','Calificación','AFP','Salud','Clientes habilitados','Teléfono','Correo','Acreditación %'];
+  const rows=(S.trabajadores||[]).map(worker=>[worker.id,worker.nombre,worker.rut,worker.cargo||'',worker.especialidad||'',worker.tipo||'',turnoRegimenLabelV170(worker.regimen,worker.regimenOtro),worker.region||'',worker.comuna||worker.ciudad||'',worker.ciudad||'',worker.disponibilidad||'',calLetra(worker.calificacion),worker.afp||'',worker.salud||'',(worker.mineras||[]).map(id=>minaNombre(id)).join(' / '),worker.tel||'',worker.email||'',acreditacion(worker)+'%']);
+  exportCSV([headers,...rows],`nomina_nexo_klar_${hoy()}.csv`);
+  toast('Nómina exportada');
+}
+</script>
 </body>
 </html>
