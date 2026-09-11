@@ -11,7 +11,7 @@ export const moduleExperience = {
     workflow: 'Registra el activo, define su ubicación y mantiene su custodia y mantenimiento al día.',
     formFields: [
       { key: 'codigo', label: 'Código interno', placeholder: 'Ej.: ACT-001' },
-      { key: 'categoria', label: 'Categoría', type: 'select', options: [option('', 'Selecciona una categoría'), option('maquinaria', 'Maquinaria'), option('equipo', 'Equipo o instrumento'), option('herramienta', 'Herramienta'), option('epp', 'Protección personal / EPP'), option('material', 'Material o insumo')] },
+      { key: 'categoria', label: 'Categoría', type: 'select', options: [option('', 'Selecciona una categoría'), option('maquinaria', 'Maquinaria'), option('equipo', 'Equipo o instrumento'), option('herramienta', 'Herramienta'), option('epp', 'Protección personal / EPP'), option('material', 'Material o insumo'), option('otro', 'Otro tipo de activo')] },
       { key: 'ubicacion', label: 'Ubicación o bodega', placeholder: 'Ej.: Bodega central' },
     ],
     relations: [
@@ -23,6 +23,7 @@ export const moduleExperience = {
   'terceros-subcontratos': {
     workflow: 'Registra la empresa colaboradora, valida sus antecedentes y habilítala antes de asignarla a un servicio.',
     formFields: [
+      { key: 'tipoRelacion', label: 'Tipo de relación', type: 'select', options: [option('', 'Selecciona una relación'), option('contratista', 'Contratista'), option('subcontratista', 'Subcontratista'), option('proveedor', 'Proveedor'), option('otro', 'Otro tipo de relación')] },
       { key: 'rut', label: 'RUT de la empresa', placeholder: 'Ej.: 76.123.456-7' },
       { key: 'especialidad', label: 'Especialidad o servicio', placeholder: 'Ej.: Mantención industrial' },
       { key: 'contacto', label: 'Contacto principal', placeholder: 'Nombre, correo o teléfono' },
@@ -39,7 +40,7 @@ export const moduleExperience = {
     formFields: [
       { key: 'alcance', label: 'Alcance de la revisión', placeholder: 'Ej.: Revisión documental de servicio' },
       { key: 'fechaRevision', label: 'Fecha de revisión', type: 'date' },
-      { key: 'tipoAuditoria', label: 'Tipo de revisión', type: 'select', options: [option('', 'Selecciona un tipo'), option('interna', 'Interna'), option('cliente', 'Cliente'), option('cumplimiento', 'Cumplimiento'), option('operacional', 'Operacional')] },
+      { key: 'tipoAuditoria', label: 'Tipo de revisión', type: 'select', options: [option('', 'Selecciona un tipo'), option('interna', 'Interna'), option('cliente', 'Cliente'), option('cumplimiento', 'Cumplimiento'), option('operacional', 'Operacional'), option('otro', 'Otro tipo de revisión')] },
     ],
     relations: [
       { label: 'Cumplimiento corporativo', to: 'cumplimiento-corporativo' },
@@ -63,7 +64,7 @@ export const moduleExperience = {
   'libro-obra': {
     workflow: 'Registra una anotación con contexto, responsable y plazo; luego conserva la evidencia y la firma correspondiente.',
     formFields: [
-      { key: 'tipoAnotacion', label: 'Tipo de anotación', type: 'select', options: [option('', 'Selecciona un tipo'), option('avance', 'Avance'), option('instruccion', 'Instrucción'), option('acuerdo', 'Acuerdo'), option('observacion', 'Observación'), option('incidente', 'Incidente')] },
+      { key: 'tipoAnotacion', label: 'Tipo de anotación', type: 'select', options: [option('', 'Selecciona un tipo'), option('avance', 'Avance'), option('instruccion', 'Instrucción'), option('acuerdo', 'Acuerdo'), option('consulta', 'Consulta'), option('respuesta', 'Respuesta'), option('observacion', 'Observación'), option('incidente', 'Incidente'), option('otro', 'Otro tipo de registro')] },
       { key: 'fechaAnotacion', label: 'Fecha de la anotación', type: 'date' },
       { key: 'fechaCompromiso', label: 'Fecha de compromiso', type: 'date' },
     ],
