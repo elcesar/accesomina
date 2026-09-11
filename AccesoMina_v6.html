@@ -11089,5 +11089,35 @@ function injectFichaResumenV172(workerId){
 const openFichaV172Base=openFicha;
 openFicha=function(id){openFichaV172Base(id);injectFichaResumenV172(id);};
 </script>
+<script>
+// V17.3 · Ficha breve: muestra lo operativo primero y pliega los datos secundarios.
+function collapseFichaCardV173(card,title,detail,open=false){
+  if(!card||card.dataset.compactFichaV173==='1')return;
+  const content=card.innerHTML;
+  card.dataset.compactFichaV173='1';
+  card.classList.add('ficha-compact-section-v173');
+  card.innerHTML=`<details ${open?'open':''}><summary><span>${eppEsc(title)}</span><small>${eppEsc(detail)}</small></summary><div class="ficha-compact-body-v173">${content}</div></details>`;
+}
+function simplifyFichaV173(workerId){
+  const worker=(S.trabajadores||[]).find(item=>String(item.id)===String(workerId));
+  const host=document.getElementById('ficha-tab-datos');
+  if(!worker||!host)return;
+  const assignments=(S.asignaciones||[]).filter(item=>String(item.trabId)===String(worker.id));
+  host.querySelectorAll('.card').forEach(card=>{
+    const title=card.querySelector('.card-title')?.textContent.trim()||'';
+    if(title==='Editar rol, cargo y relación operacional')collapseFichaCardV173(card,'Perfil operacional y clientes habilitados','Editar solo cuando cambie el rol o la disponibilidad');
+    if(title==='Datos personales')collapseFichaCardV173(card,'Información personal y previsional','Datos de contacto y previsión');
+    if(title==='Asignaciones activas')collapseFichaCardV173(card,'Asignaciones activas',assignments.length?`${assignments.length} asignación${assignments.length===1?'':'es'} activa${assignments.length===1?'':'s'}`:'Sin asignación activa',!assignments.length);
+    if(title==='Asignación a contrato y proyecto')collapseFichaCardV173(card,'Gestionar asignación','Cliente, contrato y orden de servicio',!assignments.length);
+    if(title==='Alojamiento y habitación')collapseFichaCardV173(card,'Alojamiento y estadías',`${(S.hotelAsig||[]).filter(item=>String(item.trabId)===String(worker.id)).length} registro(s)`);
+  });
+}
+const openFichaV173Base=openFicha;
+openFicha=function(id){openFichaV173Base(id);simplifyFichaV173(id);};
+</script>
+<style>
+/* Ficha breve V17.3: los detalles administrativos no compiten con el resumen operativo. */
+.ficha-compact-section-v173{margin-bottom:16px;overflow:visible}.ficha-compact-section-v173 details>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:700;color:var(--text);list-style:none}.ficha-compact-section-v173 details>summary::-webkit-details-marker{display:none}.ficha-compact-section-v173 details>summary::before{content:'+';display:inline-grid;place-items:center;width:20px;height:20px;margin-right:8px;border:1px solid var(--border);border-radius:50%;color:var(--primary);font-size:16px;line-height:1}.ficha-compact-section-v173 details[open]>summary::before{content:'−'}.ficha-compact-section-v173 details>summary span{margin-right:auto}.ficha-compact-section-v173 details>summary small{font-size:12px;font-weight:500;color:var(--text-muted);text-align:right}.ficha-compact-body-v173{margin-top:14px}.ficha-compact-body-v173>.card-header{padding-top:0}.ficha-compact-body-v173>.card-title{display:none}@media(max-width:680px){.ficha-compact-section-v173 details>summary{align-items:flex-start;flex-wrap:wrap}.ficha-compact-section-v173 details>summary small{padding-left:28px;text-align:left}}
+</style>
 </body>
 </html>
