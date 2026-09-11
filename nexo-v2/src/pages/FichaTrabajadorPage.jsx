@@ -48,7 +48,7 @@ const ESPECIALIDADES = [
 ]
 
 const TABS = [
-  { key: 'datos', label: 'Perfil y asignación', icon: IconUser },
+  { key: 'datos', label: 'Resumen', icon: IconUser },
   { key: 'docs', label: 'Documentación', icon: IconFileText },
   { key: 'cursos', label: 'Formación y aptitudes', icon: IconBook },
   { key: 'epp', label: 'EPP y recursos', icon: IconShield },
@@ -144,11 +144,21 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
   const activeAssignments = asignaciones.filter(a => a.trabId === worker.id)
   const contratosFiltrados = clienteId ? contratos.filter(c => String(c.minaId) === String(clienteId)) : []
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
+  const requirements = getRequiredItems(worker)
+  const pendingRequirements = requirements.filter(requirement => !reqStatus(worker, requirement).ok)
+  const readiness = pendingRequirements.length === 0 ? { label: 'Lista para trabajar', tone: 'ok', detail: 'No hay requisitos críticos pendientes.' } : { label: `${pendingRequirements.length} requisito${pendingRequirements.length === 1 ? '' : 's'} pendiente${pendingRequirements.length === 1 ? '' : 's'}`, tone: pendingRequirements.some(requirement => reqStatus(worker, requirement).src === 'vencido/rechazado') ? 'error' : 'warn', detail: pendingRequirements.slice(0, 3).map(requirement => requirement.name).join(' · ') }
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
 
   return <>
+    <CardSection title="Estado de la persona" subtitle="Lo esencial para decidir si puede asignarse y qué debe regularizar.">
+      <div className="nk-person-summary-grid">
+        <article><span>Preparación</span><strong className={readiness.tone}>{readiness.label}</strong><small>{readiness.detail}</small></article>
+        <article><span>Asignación actual</span><strong>{activeAssignments.length ? `${activeAssignments.length} activa${activeAssignments.length === 1 ? '' : 's'}` : 'Sin asignación'}</strong><small>{activeAssignments.length ? 'Revisa contrato, orden y turno más abajo.' : 'Asigna la persona cuando esté preparada.'}</small></article>
+        <article><span>Próximo paso</span><strong>{pendingRequirements.length ? 'Regularizar antecedentes' : activeAssignments.length ? 'Registrar jornada' : 'Asignar a una orden'}</strong><small>{pendingRequirements.length ? 'Abre Documentación para cargar o renovar.' : activeAssignments.length ? 'Continúa en Turnos y asistencia.' : 'Usa el flujo guiado de asignación.'}</small></article>
+      </div>
+    </CardSection>
     <CardSection title="Asignación operacional" subtitle="Selecciona cliente, contrato y orden de servicio en ese orden para mantener la relación correcta.">
       <div className="nk-person-assignment-form">
         <Field label="Cliente"><select className="nk-select" value={clienteId} onChange={e => { setClienteId(e.target.value); setContratoId(''); setProyectoId('') }}><option value="">Seleccionar cliente</option>{clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
@@ -160,15 +170,18 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
       {activeAssignments.length === 0 ? <p className="nk-person-text-sub">Sin asignaciones activas.</p> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Cliente</th><th>Contrato</th><th>Proyecto</th><th>Turno</th><th /></tr></thead><tbody>{activeAssignments.map((a, i) => <tr key={a.id || i}><td>{clientName(a.mantId)}</td><td className="nk-person-text-muted">{contractName(a.mantId)}</td><td className="nk-person-text-strong">{projectName(a.mantId)}</td><td>{a.turno || '—'}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => onRetirar(a.mantId)}>Retirar</button></td></tr>)}</tbody></table></div>}
     </CardSection>
 
-    <CardSection title="Datos personales" subtitle="Identificación, contacto y previsión."><div className="nk-person-grid">
-      <Field label="Teléfono"><input className="nk-input" value={worker.tel || ''} onChange={e => onChange('tel', e.target.value)} /></Field>
-      <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
-      <Field label="Ciudad / comuna"><input className="nk-input" value={worker.ciudad || ''} onChange={e => onChange('ciudad', e.target.value)} /></Field>
-      <Field label="Región"><input className="nk-input" value={worker.region || ''} onChange={e => onChange('region', e.target.value)} /></Field>
-      <Field label="Fecha de nacimiento"><input className="nk-input" type="date" value={worker.nacimiento || ''} onChange={e => onChange('nacimiento', e.target.value)} /></Field>
-      <Field label="AFP"><input className="nk-input" value={worker.afp || ''} onChange={e => onChange('afp', e.target.value)} /></Field>
-      <Field label="Previsión de salud"><input className="nk-input" value={worker.salud || ''} onChange={e => onChange('salud', e.target.value)} /></Field>
-    </div></CardSection>
+    <details className="nk-person-details">
+      <summary>Ver información personal y previsional</summary>
+      <div className="nk-person-grid">
+        <Field label="Teléfono"><input className="nk-input" value={worker.tel || ''} onChange={e => onChange('tel', e.target.value)} /></Field>
+        <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
+        <Field label="Ciudad / comuna"><input className="nk-input" value={worker.ciudad || ''} onChange={e => onChange('ciudad', e.target.value)} /></Field>
+        <Field label="Región"><input className="nk-input" value={worker.region || ''} onChange={e => onChange('region', e.target.value)} /></Field>
+        <Field label="Fecha de nacimiento"><input className="nk-input" type="date" value={worker.nacimiento || ''} onChange={e => onChange('nacimiento', e.target.value)} /></Field>
+        <Field label="AFP"><input className="nk-input" value={worker.afp || ''} onChange={e => onChange('afp', e.target.value)} /></Field>
+        <Field label="Previsión de salud"><input className="nk-input" value={worker.salud || ''} onChange={e => onChange('salud', e.target.value)} /></Field>
+      </div>
+    </details>
 
     <CardSection title="Perfil operacional" subtitle="Cargo, especialidad, disponibilidad y contexto habilitado."><div className="nk-person-grid">
       <Field label="Cargo"><input className="nk-input" value={worker.cargo || ''} onChange={e => onChange('cargo', e.target.value)} /></Field>
@@ -178,7 +191,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
       <Field label="Tipo de vínculo"><select className="nk-select" value={worker.tipo || 'permanente'} onChange={e => onChange('tipo', e.target.value)}><option value="permanente">Permanente</option><option value="esporadico">Por proyecto</option></select></Field>
       <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{[['5x2','5x2'], ['4x3','4x3'], ['7x7','7x7'], ['10x10','10x10'], ['14x14','14x14'], ['otro','Otro tipo de turno']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
       {worker.regimen === 'otro' && <Field label="Describe el tipo de turno"><input className="nk-input" value={worker.regimenOtro || ''} placeholder="Ej: 4x4 o jornada parcial" onChange={e => onChange('regimenOtro', e.target.value)} /></Field>}
-      <div className="nk-person-grid-wide"><Field label="Clientes habilitados"><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></Field></div>
+      <div className="nk-person-grid-wide"><details className="nk-person-inline-details"><summary>Clientes habilitados ({(worker.mineras || []).length})</summary><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></details></div>
     </div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
 
     <CardSection title="Alojamiento" subtitle="Estadías activas vinculadas a la operación.">{(worker._hotelAsig || []).length === 0 ? <p className="nk-person-text-sub">Sin alojamiento asignado actualmente.</p> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Hotel</th><th>Proyecto</th><th>Pieza</th><th>Turno</th><th>Check-in</th><th>Check-out</th></tr></thead><tbody>{worker._hotelAsig.map((h, i) => <tr key={h.id || i}><td>{h.hotelNombre || h.hotelId || '—'}</td><td>{h.mantNombre || h.mantId || '—'}</td><td>{h.pieza || '—'}</td><td>{h.turno || '—'}</td><td>{h.checkin || '—'}</td><td>{h.checkout || '—'}</td></tr>)}</tbody></table></div>}</CardSection>

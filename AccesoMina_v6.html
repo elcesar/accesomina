@@ -11076,6 +11076,18 @@ saveNuevoTurno=function(){
   if(String(project?.minaId)!==String(clientId))return toast('La orden de servicio no corresponde al cliente seleccionado','err');
   saveNuevoTurnoV171Base();
 };
+function injectFichaResumenV172(workerId){
+  const worker=(S.trabajadores||[]).find(item=>String(item.id)===String(workerId)),host=document.getElementById('ficha-tab-datos');
+  if(!worker||!host)return;
+  document.getElementById('ficha-resumen-v172')?.remove();
+  const requirements=getRequiredItemsForWorker(worker),pending=requirements.filter(requirement=>!reqStatus(worker,requirement).ok),assignments=(S.asignaciones||[]).filter(item=>String(item.trabId)===String(worker.id));
+  const hasExpired=pending.some(requirement=>reqStatus(worker,requirement).src==='vencido/rechazado');
+  const readiness=!pending.length?'Lista para trabajar':`${pending.length} requisito${pending.length===1?'':'s'} pendiente${pending.length===1?'':'s'}`;
+  const action=pending.length?'Regularizar antecedentes':assignments.length?'Registrar jornada':'Asignar a una orden';
+  host.insertAdjacentHTML('afterbegin',`<div class="card" id="ficha-resumen-v172" style="margin-bottom:16px;"><div class="card-header"><div><div class="card-title">Resumen operativo</div><div class="card-subtitle">Lo esencial para decidir si la persona puede trabajar y cuál es la próxima acción.</div></div></div><div class="kpi-grid" style="margin-top:12px;"><div class="kpi kpi-${hasExpired?'red':pending.length?'orange':'green'}"><div class="kpi-value" style="font-size:18px;">${eppEsc(readiness)}</div><div class="kpi-label">Preparación</div></div><div class="kpi kpi-blue"><div class="kpi-value">${assignments.length}</div><div class="kpi-label">Asignaciones activas</div></div><div class="kpi kpi-blue"><div class="kpi-value" style="font-size:18px;">${eppEsc(action)}</div><div class="kpi-label">Siguiente paso</div></div></div>${pending.length?`<div class="cloud-note" style="margin-top:12px;"><b>Por regularizar:</b> ${eppEsc(pending.slice(0,3).map(item=>item.name).join(' · '))}${pending.length>3?` y ${pending.length-3} más`:''}</div>`:''}</div>`);
+}
+const openFichaV172Base=openFicha;
+openFicha=function(id){openFichaV172Base(id);injectFichaResumenV172(id);};
 </script>
 </body>
 </html>
