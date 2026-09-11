@@ -2,8 +2,8 @@
 
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
-**Actualizado:** 10 de septiembre de 2026  
-**Estado global:** Fases 0 a 11 cerradas.
+**Actualizado:** 11 de septiembre de 2026  
+**Estado global:** Fases 0 a 12 cerradas.
 
 ## Estados
 
@@ -19,7 +19,8 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 - `AppLayout` muestra el dominio/sección una sola vez; las Pages no deben repetirlo como kicker.
 - Las acciones globales `+ Cliente`, `+ Contrato` y `+ Orden de servicio` pertenecen al Header y no se duplican dentro de las Pages.
 - Las entidades con ficha propia deben ser navegables desde el contexto operacional.
-- Las vistas consolidadas, como Centro Operativo, **leen señales de los módulos dueños y navegan hacia ellos para resolver brechas**; no duplican su ownership.
+- Las vistas consolidadas leen señales de los módulos dueños y navegan hacia ellos para resolver brechas; no duplican ownership.
+- Alertas es una **vista derivada y priorizada**: combina alertas persistidas con señales calculadas desde los módulos dueños; no reemplaza esos módulos ni crea una fuente maestra paralela.
 - Densidad operacional media-alta: espaciado normal `--space-3/--space-4`, KPIs compactos y toolbars que no se conviertan en formularios extensos.
 - Cuando existan muchos criterios de filtrado, mantener filtros principales visibles y secundarios bajo `Más filtros`.
 - Las grillas operacionales deben intentar caber completas en una ventana de escritorio, compactando acciones, anchos y contenido antes de recurrir a scroll horizontal.
@@ -43,7 +44,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 3 · Contratos | `ContratosPage.jsx` | Actualizada · Revisada | Tabla global → ficha; documento contractual y relaciones Cliente/OS. |
 | Fase 4 · Órdenes de servicio | `OrdenesServicioPage.jsx` | Actualizada · Revisada · Reemplazada | Cards → ficha; preparación, personas, alojamientos, recursos, evidencia y cierre. `mantenciones` canónico; `proyectos` fallback. |
 | Fase 5 · Gestión Operacional | `ComunicacionesPage.jsx` | Actualizada · Revisada · Reemplazada | Comunicación/convocatoria contextual a OS y personas; `callouts`. |
-| Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada · Reemplazada | `vehiculos` mantiene ownership; soporta relación directa con OS mediante `mantId` y habilitación por cliente/faena mediante `minaIds`. |
+| Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada · Reemplazada | `vehiculos` mantiene ownership; relación directa con OS mediante `mantId` y contexto de cliente/faena mediante `minaIds`. |
 | Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | `hoteles` catálogo; `hotelAsig` mantiene estadías y relación con OS/persona. |
 | Fase 5 · Gestión Operacional | `CredencialesPage.jsx` | Actualizada · Revisada · Reemplazada | `credenciales` relacionada con Persona (`trabId`) y Cliente/faena (`minaId`). |
 | Fase 6 · Contratistas | `TercerosSubcontratosPage.jsx` | Actualizada · Revisada · Reemplazada | `subcontratos` es fuente de escritura; vencimientos y seguimiento. |
@@ -68,9 +69,9 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 8 · Inventario / Activos | `AsignacionesPrestamosPage.jsx` | Actualizada · Revisada · Reemplazada | Préstamos asociados a persona/OS y devolución. |
 | Fase 9 · Prospectos y oportunidades | `ProspectosPage.jsx` | Actualizada · Revisada · Reemplazada | `prospectos` canónico, `oportunidades` fallback; conversión ganada a Cliente/Contrato/OS con trazabilidad. |
 | Fase 10 · Gestión personal por proyecto | `GestionPersonalProyectoPage.jsx` | Actualizada · Revisada · Reemplazada | `trabajadores` conserva Persona; `asignaciones` conserva Persona ↔ OS y `estadoGestion`: Candidato → Contactado → Confirmado → Asignado → Habilitado. |
-| Fase 11 · Centro Operativo | `CentroOperativoPage.jsx` | Actualizada · Revisada · Reemplazada | Vista consolidada guiada por OS: estado operativo, brechas, Libro diario, CAPA, Alertas y Bitácora. Lee ownership de Fases 1/4/5/8/10 y navega al módulo dueño para resolver; solo `dailyLogs` y `capaActions` son registros propios del Centro Operativo. |
-| Centro de Control · Fase 12 | `AlertasPage.jsx` | Actualizada | Alertas existentes; cierre formal corresponde a Fase 12. |
-| Centro de Control · Fase 13 | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
+| Fase 11 · Centro Operativo | `CentroOperativoPage.jsx` | Actualizada · Revisada · Reemplazada | Vista consolidada guiada por OS: estado operativo, brechas, Libro diario, CAPA, Alertas y Bitácora. Solo `dailyLogs` y `capaActions` son registros propios. |
+| Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada. Combina `state.alertas` con señales calculadas desde Personas, Contratos y OS; clasifica Críticas/vencidas, Próximas a vencer y Operacionales; agrupa por contexto y navega al módulo dueño. |
+| Fase 13 · Dashboard | `DashboardPage.jsx` | Actualizada | Dashboard existente; cierre formal corresponde a Fase 13. |
 
 ## Cierres de fases
 
@@ -95,24 +96,38 @@ Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantien
 
 **Layout definitivo:** `KPIs de preparación → Estado operativo por OS → Libro diario / CAPA / Alertas / Bitácora`. El estado consolidado de cada OS es `Lista para ejecutar`, `Pendiente` o `Restringida`.
 
-**Integración y ownership validado:**
+**Ownership consolidado:** `mantenciones` mantiene OS; `trabajadores` mantiene Persona; `asignaciones` mantiene Persona ↔ OS; `hotelAsig`, `vehiculos` y `eppDeliveries` continúan bajo sus módulos dueños. Centro Operativo solo mantiene `dailyLogs` y `capaActions` como registros especializados propios y navega al módulo dueño para resolver brechas.
 
-- **OS:** `mantenciones` es la fuente canónica del servicio; Centro Operativo no crea ni modifica la OS.
-- **Personas:** `trabajadores` mantiene Persona y `asignaciones` mantiene la relación con OS. Centro Operativo interpreta `estadoGestion` y compatibilidad legacy para considerar solo `Asignado/Habilitado` como dotación efectiva.
-- **Alojamiento:** la preparación se deriva de `hotelAsig.mantId`; el catálogo `hoteles` continúa bajo Alojamientos.
-- **Flota:** se prioriza la relación directa `vehiculos.mantId`; `minaIds` se utiliza como habilitación/contexto de cliente-faena cuando corresponde. Centro Operativo no escribe en `vehiculos`.
-- **EPP:** la entrega individual se deriva de `eppDeliveries.workerId` con compatibilidad `trabId`; el inventario físico continúa en Fase 8 y la entrega en Capital Humano.
-- **Alertas:** se leen `alertas` y `callouts`. Una alerta relacionada con OS/persona se presenta como **Alerta pendiente**, no como supuesto documento faltante. La resolución se deriva a `/app/alertas`.
-- **Firma:** se retiró como brecha automática porque la implementación React actual de Contratos no mantiene una colección canónica `firmas` asociada a OS. No se inventa ownership solo para replicar el HTML histórico.
-- **Libro diario:** `dailyLogs` es registro propio del Centro Operativo, relacionado mediante `mantId`.
-- **CAPA:** `capaActions` es registro propio del Centro Operativo para causa raíz, acción correctiva/preventiva, responsable, plazo y cierre.
-- **Bitácora:** es una vista consolidada sobre `dailyLogs`, `capaActions` y seguimientos existentes; no crea una fuente paralela de trazabilidad.
+**Correcciones de validación cruzada:** commit `504f0a673db10669a0fe4e87018bcae01348b6bb`, que alinea `estadoGestion`, `workerId`, `mantId`, elimina la dependencia inexistente de `firmas` y evita exigir alojamiento antes de existir dotación efectiva.
 
-**Correcciones de validación cruzada:** el commit `504f0a673db10669a0fe4e87018bcae01348b6bb` alinea Centro Operativo con los contratos reales de datos de Gestión de personal, Alojamientos, Flota, EPP y Alertas. Corrige la lectura de `estadoGestion`, `workerId`, `mantId`, elimina la dependencia inexistente de `firmas` y evita exigir alojamiento antes de existir dotación efectiva.
+**Validación CI:** **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success` para el commit `504f0a673db10669a0fe4e87018bcae01348b6bb`.
 
-**Principio consolidado:** Centro Operativo es un **orquestador/visor operacional**, no un nuevo dueño de Personas, Flota, Alojamientos, EPP, Alertas ni Inventario. Sus únicas escrituras especializadas son `dailyLogs` y `capaActions`.
+### Fase 12 · Alertas — CERRADA
+**Fecha:** 11 de septiembre de 2026
 
-**Validación CI:** los workflows correspondientes al commit de alineación funcional `504f0a673db10669a0fe4e87018bcae01348b6bb` fueron iniciados al cierre de esta revisión. La conclusión final debe verificarse antes de considerar validado el despliegue, aunque la fase funcional y de ownership queda cerrada.
+`AlertasPage.jsx` fue reconstruida usando como referencia conjunta la Page React propuesta y la lógica histórica de `AccesoMina_v6.html`. La ruta `/app/alertas` queda bajo **Centro de Control** y la Page no repite el dominio como kicker.
+
+**Layout definitivo:** `3 categorías de prioridad → contextos agrupados → expandir/contraer → detalle de alertas → abrir contexto / adjuntar evidencia`. Las categorías son `Críticas y vencidas`, `Próximas a vencer` y `Operacionales`.
+
+**Fuentes y ownership:** Alertas no crea un dominio maestro nuevo. La vista combina `state.alertas` persistidas con alertas derivadas en tiempo de lectura desde los módulos dueños. Se recupera del HTML el concepto de cálculo automático de alertas y se mantiene la navegación a la entidad responsable de la resolución.
+
+**Derivación automática vigente:**
+
+- `trabajadores[].workerItems`: antecedente rechazado, vencido, crítico ≤7 días y próximo ≤30 días.
+- `trabajadores`: persona bloqueada/restringida.
+- `contratos`: vencido o próximo a vencer ≤30 días.
+- `mantenciones` (con fallback `proyectos`): OS sin contrato o sin cliente asociado.
+- `state.alertas`: alertas persistidas siguen siendo visibles y se mezclan con las derivadas.
+
+**Decisión sobre `callouts`:** las convocatorias/comunicaciones no se incorporan automáticamente como alertas. El HTML histórico las trata como una capacidad distinta y el módulo de Comunicaciones conserva su ownership.
+
+**Contexto y navegación:** las alertas se agrupan por Persona, OS, Contrato u otro registro relacionado. Desde el detalle se navega a `/app/trabajadores/:id`, `/app/servicios/:id`, `/app/contratos/:id`, `/app/clientes/:id` o al módulo de activos según corresponda. La evidencia adjunta utiliza `entityType: alerta` y no modifica el ownership de la entidad origen.
+
+**Commits principales:** `617c89fced9294304dd1f9b1387b3ccd0b371f27` reconstruye la funcionalidad; `dd50724a92062f2b85716c8c2dca3dace00797d9` incorpora la UX/estilos; `3cd5eab3e1e1f548053c246589d8a6a40a8bd973` clasifica `/app/alertas` bajo Centro de Control.
+
+**Validación CI:** para el commit final `3cd5eab3e1e1f548053c246589d8a6a40a8bd973`, **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success`.
+
+**Resultado:** Fase 12 cerrada con Alertas como una vista de control transversal, priorizada y derivada, sin duplicar Persona, Contrato, OS, Comunicaciones ni Activos.
 
 ## Correcciones transversales registradas
 
@@ -138,7 +153,10 @@ Fase 9 mantiene `Prospecto ganado → Cliente / Contrato / OS`, escribiendo siem
 Fase 10 mantiene `Persona maestra en trabajadores + estado contextual en asignaciones`.
 
 ### Orquestación operacional
-Fase 11 mantiene `Centro Operativo = lectura consolidada + navegación al módulo dueño`. No debe recrear datos maestros que ya pertenecen a otros módulos.
+Fase 11 mantiene `Centro Operativo = lectura consolidada + navegación al módulo dueño`.
+
+### Alertas derivadas
+Fase 12 mantiene `Alertas = señales persistidas + cálculo derivado desde módulos dueños + navegación al contexto`. `callouts` no se convierte automáticamente en alerta.
 
 ## Infraestructura legacy revisada
 
@@ -148,8 +166,8 @@ Fase 11 mantiene `Centro Operativo = lectura consolidada + navegación al módul
 | `PrivateModulePage.jsx` | CRUD genérico legacy; referencia de campos, relaciones, permisos y evidencia. |
 | `OperationalWorkspacePage.jsx` | Orquestador legacy y referencia funcional principal para Centro Operativo. |
 | `InventoryOperationsPage.jsx` | Genérico de Fase 8 retirado; reemplazado por Pages especializadas. |
-| `AccesoMina_v6.html` | Referencia histórica de evolución funcional y layout conceptual; no es fuente de ownership React. |
+| `AccesoMina_v6.html` | Referencia histórica de evolución funcional y layout conceptual, incluida la lógica histórica de cálculo de alertas; no es fuente de ownership React. |
 
 ## Próximo punto
 
-Con Fases 0–11 cerradas, el siguiente bloque es **Fase 12 · Alertas**. Antes de iniciar cambios de Fase 12, verificar la conclusión final de CI del commit `504f0a673db10669a0fe4e87018bcae01348b6bb`.
+Con Fases 0–12 cerradas, el siguiente bloque es **Fase 13 · Dashboard**.
