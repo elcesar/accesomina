@@ -1,4 +1,4 @@
-:root[data-theme='dark'] {
+.nk-app-shell[data-theme='dark'] {
   --bg: #171A1F;
   --surf: #20242A;
   --surf-2: #282D34;
@@ -27,10 +27,7 @@
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.34);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.40);
-}
 
-:root[data-theme='dark'] body,
-:root[data-theme='dark'] #root {
   background: var(--bg);
   color: var(--ink);
 }
