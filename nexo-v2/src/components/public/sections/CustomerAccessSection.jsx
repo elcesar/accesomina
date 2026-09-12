@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import BrandLogo from '../BrandLogo.jsx'
 import { api } from '../../../services/api.js'
-import { useAuth } from '../../../services/auth.jsx'
 
 const initialRegistration = { companyName: '', rut: '', phone: '', adminName: '', email: '', password: '', inviteCode: '' }
 
@@ -15,43 +13,18 @@ function formatRut(value) {
   return `${formattedBody}-${dv}`
 }
 
-export function CustomerAccessPanel({ initialTab = 'login' }) {
-  const navigate = useNavigate()
-  const { login } = useAuth()
-  const [tab, setTab] = useState(initialTab === 'register' ? 'register' : 'login')
+export function CustomerAccessPanel() {
   const [config, setConfig] = useState({ registrationEnabled: false })
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
-  const [loginData, setLoginData] = useState({ rut: '', email: '', password: '' })
   const [registration, setRegistration] = useState(initialRegistration)
 
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    setTab(initialTab === 'register' ? 'register' : 'login')
-    setMessage('')
-  }, [initialTab])
-
-  const update = set => key => event => set(current => ({ ...current, [key]: event.target.value }))
-  const formatFieldRut = set => key => () => set(current => ({ ...current, [key]: formatRut(current[key]) }))
-
-  const submitLogin = async event => {
-    event.preventDefault()
-    setBusy(true)
-    setMessage('')
-    try {
-      const data = await login(loginData)
-      if (data.user?.mustChangePassword) navigate('/cambiar-password')
-      else if (data.user?.mfaEnrollmentRequired) navigate('/configurar-mfa')
-      else navigate('/app')
-    } catch (error) {
-      setMessage(error.message || 'No fue posible ingresar. Revisa tus datos.')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const update = key => event => setRegistration(current => ({ ...current, [key]: event.target.value }))
+  const formatFieldRut = () => setRegistration(current => ({ ...current, rut: formatRut(current.rut) }))
 
   const submitRegistration = async event => {
     event.preventDefault()
@@ -71,96 +44,73 @@ export function CustomerAccessPanel({ initialTab = 'login' }) {
     }
   }
 
-  const switchTab = nextTab => {
-    setTab(nextTab)
-    setMessage('')
-  }
-
   return (
     <article className="nk-access-card">
       <BrandLogo className="nk-access-logo" />
-      <div className="nk-access-tabs">
-        <button className={tab === 'login' ? 'active' : ''} onClick={() => switchTab('login')}>Acceso</button>
-        <button className={tab === 'register' ? 'active' : ''} onClick={() => switchTab('register')}>Nuevo cliente</button>
+      <div className="nk-access-heading">
+        <p className="nk-eyebrow">Nuevo cliente</p>
+        <h2>Crear empresa</h2>
+        <p className="nk-access-note">Crea el espacio privado inicial de tu empresa. El alta requiere una invitación de Nexo Klar.</p>
       </div>
 
-      {tab === 'login' ? (
-        <form className="nk-access-form" onSubmit={submitLogin}>
+      <form className="nk-access-form" onSubmit={submitRegistration}>
+        <label>
+          Nombre empresa
+          <input required value={registration.companyName} onChange={update('companyName')} placeholder="Ej: Servicios Mineros Norte SpA" />
+        </label>
+
+        <div className="nk-access-form-row">
           <label>
-            Empresa / RUT
-            <input required value={loginData.rut} onChange={update(setLoginData)('rut')} onBlur={formatFieldRut(setLoginData)('rut')} placeholder="76.123.456-7" autoComplete="organization" />
+            RUT empresa
+            <input required value={registration.rut} onChange={update('rut')} onBlur={formatFieldRut} placeholder="76.123.456-7" />
           </label>
           <label>
-            Correo personal autorizado
-            <input required type="email" value={loginData.email} onChange={update(setLoginData)('email')} placeholder="persona@empresa.cl" autoComplete="username" />
+            Teléfono
+            <input value={registration.phone} onChange={update('phone')} placeholder="+56 9..." autoComplete="tel" />
           </label>
+        </div>
+
+        <label>
+          Nombre administrador
+          <input required value={registration.adminName} onChange={update('adminName')} placeholder="Nombre y apellido" autoComplete="name" />
+        </label>
+        <label>
+          Correo administrador
+          <input required type="email" value={registration.email} onChange={update('email')} placeholder="admin@empresa.cl" autoComplete="email" />
+        </label>
+
+        <div className="nk-access-form-row">
           <label>
             Contraseña
-            <input required type="password" value={loginData.password} onChange={update(setLoginData)('password')} placeholder="Contraseña segura" autoComplete="current-password" />
-          </label>
-          <button className="nk-button nk-button-primary" disabled={busy}>{busy ? 'Ingresando…' : 'Ingresar al sitio privado'}</button>
-          <p className="nk-access-note">En la nube, la sesión utiliza una conexión segura y los datos se consultan exclusivamente desde la empresa autenticada.</p>
-        </form>
-      ) : (
-        <form className="nk-access-form" onSubmit={submitRegistration}>
-          <label>
-            Nombre empresa
-            <input required value={registration.companyName} onChange={update(setRegistration)('companyName')} placeholder="Ej: Servicios Mineros Norte SpA" />
-          </label>
-
-          <div className="nk-access-form-row">
-            <label>
-              RUT empresa
-              <input required value={registration.rut} onChange={update(setRegistration)('rut')} onBlur={formatFieldRut(setRegistration)('rut')} placeholder="76.123.456-7" />
-            </label>
-            <label>
-              Teléfono
-              <input value={registration.phone} onChange={update(setRegistration)('phone')} placeholder="+56 9..." autoComplete="tel" />
-            </label>
-          </div>
-
-          <label>
-            Nombre administrador
-            <input required value={registration.adminName} onChange={update(setRegistration)('adminName')} placeholder="Nombre y apellido" autoComplete="name" />
+            <input required type="password" minLength="12" value={registration.password} onChange={update('password')} placeholder="12+ caracteres" autoComplete="new-password" />
           </label>
           <label>
-            Correo administrador
-            <input required type="email" value={registration.email} onChange={update(setRegistration)('email')} placeholder="admin@empresa.cl" autoComplete="email" />
+            Código de invitación
+            <input required type="password" value={registration.inviteCode} onChange={update('inviteCode')} placeholder="Entregado por Nexo Klar" />
           </label>
+        </div>
 
-          <div className="nk-access-form-row">
-            <label>
-              Contraseña
-              <input required type="password" minLength="12" value={registration.password} onChange={update(setRegistration)('password')} placeholder="12+ caracteres" autoComplete="new-password" />
-            </label>
-            <label>
-              Código de invitación
-              <input required type="password" value={registration.inviteCode} onChange={update(setRegistration)('inviteCode')} placeholder="Entregado por Nexo Klar" />
-            </label>
-          </div>
-
-          <button className="nk-button nk-button-primary" disabled={busy || !config.registrationEnabled}>
-            {busy ? 'Creando…' : config.registrationEnabled ? 'Crear sitio privado vacío' : 'Registro mediante invitación'}
-          </button>
-          <p className="nk-access-note">El alta requiere invitación de Nexo Klar. Cada empresa parte con una base independiente y un administrador propio.</p>
-        </form>
-      )}
+        <button className="nk-button nk-button-primary" disabled={busy || !config.registrationEnabled}>
+          {busy ? 'Creando…' : config.registrationEnabled ? 'Crear sitio privado vacío' : 'Registro mediante invitación'}
+        </button>
+        <p className="nk-access-note">Cada empresa parte con una base independiente y un administrador propio. El acceso de usuarios existentes se realiza únicamente desde el botón Acceso del sitio.</p>
+      </form>
 
       {message && <p className="nk-form-message">{message}</p>}
     </article>
   )
 }
 
-export default function CustomerAccessSection({ initialTab = 'login' }) {
+export default function CustomerAccessSection() {
   return (
     <section id="clientes-access" className="nk-public-section">
       <div className="nk-access-layout">
         <div>
-          <p className="nk-eyebrow">Clientes Nexo Klar</p>
-          <h2>Un espacio privado para cada empresa.</h2>
-          <p className="nk-lead">Cada integrante accede con su cuenta autorizada y trabaja únicamente con la información, permisos y configuración de su empresa.</p>
+          <p className="nk-eyebrow">Nuevo cliente</p>
+          <h2>Crea el espacio privado de tu empresa.</h2>
+          <p className="nk-lead">Registra la empresa y su administrador inicial para comenzar el proceso de habilitación en Nexo Klar.</p>
         </div>
-        <CustomerAccessPanel initialTab={initialTab} />
+        <CustomerAccessPanel />
       </div>
     </section>
   )
