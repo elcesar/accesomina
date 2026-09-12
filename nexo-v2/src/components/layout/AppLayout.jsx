@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
+import { api } from '../../services/api.js'
+import { applyTenantBranding } from '../../services/theme.js'
 
 function pageDomain(pathname) {
   if (
@@ -87,6 +90,28 @@ function pageDomain(pathname) {
 export default function AppLayout() {
   const { pathname } = useLocation()
   const domain = pageDomain(pathname)
+
+  useEffect(() => {
+    let active = true
+
+    const loadBranding = async () => {
+      try {
+        const data = await api.get('/settings')
+        if (active) applyTenantBranding(data?.settings?.branding || {})
+      } catch {
+        if (active) applyTenantBranding({ theme: 'light' })
+      }
+    }
+
+    const onBrandingChanged = event => applyTenantBranding(event.detail || {})
+
+    loadBranding()
+    window.addEventListener('nexo:branding-changed', onBrandingChanged)
+    return () => {
+      active = false
+      window.removeEventListener('nexo:branding-changed', onBrandingChanged)
+    }
+  }, [])
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
