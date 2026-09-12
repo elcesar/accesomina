@@ -21,6 +21,7 @@ const MODULE_OPTIONS = [
 ]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }
+const normalizeTheme = value => value === 'dark' ? 'dark' : 'light'
 
 function lineList(value) {
   return String(value || '').split(/\n|,/).map(item => item.trim()).filter(Boolean)
@@ -53,7 +54,7 @@ export default function ConfiguracionPage() {
       const nextSettings = {
         branding: {
           displayName: current.branding?.displayName || '',
-          theme: current.branding?.theme || 'light',
+          theme: normalizeTheme(current.branding?.theme),
           accent: current.branding?.accent || '#2a2a8c',
           logoUrl: current.branding?.logoUrl || '',
         },
@@ -74,6 +75,7 @@ export default function ConfiguracionPage() {
         signature: { ...emptyIntegration, ...byProvider.signature, publicConfig: byProvider.signature?.public_config || byProvider.signature?.publicConfig || {}, secret: {} },
       })
     } catch (error) {
+      applyTenantBranding({ theme: 'light' })
       setMessage(error.message || 'No fue posible cargar la configuración.')
     } finally {
       setLoading(false)
@@ -91,7 +93,7 @@ export default function ConfiguracionPage() {
     setMessage('')
     try {
       const result = await api.put('/settings', settings)
-      const nextBranding = result?.branding || settings.branding
+      const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       setSettings(current => ({ ...current, ...result, branding: nextBranding }))
       applyTenantBranding(nextBranding)
       window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
@@ -121,7 +123,7 @@ export default function ConfiguracionPage() {
 
   const setBranding = (key, value) => {
     setSettings(current => {
-      const branding = { ...current.branding, [key]: value }
+      const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
       if (key === 'theme' || key === 'accent') applyTenantBranding(branding)
       return { ...current, branding }
     })
