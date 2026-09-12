@@ -77,7 +77,8 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/transferencia') ||
     pathname.startsWith('/app/usuarios') ||
     pathname.startsWith('/app/bitacora') ||
-    pathname.startsWith('/app/privacidad')
+    pathname.startsWith('/app/privacidad') ||
+    pathname.startsWith('/app/configuracion')
   ) return 'Gestión y Administración'
 
   return ''
