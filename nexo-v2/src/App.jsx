@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
@@ -79,6 +79,11 @@ function PublicRoute({ children }) {
   return children
 }
 
+function LegacyOrderServiceRedirect() {
+  const { orderId } = useParams()
+  return <Navigate to={`/app/servicios/${orderId}`} replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -147,7 +152,7 @@ export default function App() {
             <Route path="servicios/nuevo" element={<OrdenesServicioPage key="servicios-new" createMode />} />
             <Route path="servicios/:orderId" element={<OrdenesServicioPage key="servicios-detail" />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
-            <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
+            <Route path="ordenes-servicio/:orderId" element={<LegacyOrderServiceRedirect />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
