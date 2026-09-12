@@ -120,7 +120,6 @@ export default function LibroObraPage() {
     <section className="nk-book-page">
       <header className="nk-book-page-header">
         <div>
-          <p className="nk-book-kicker">Gestión de proyectos y negocios</p>
           <h1>Libro de obra</h1>
           <p>Registro formal, correlativo y trazable por cliente, contrato y servicio.</p>
         </div>
@@ -197,18 +196,21 @@ export default function LibroObraPage() {
       </section>
 
       {showForm && <div className="nk-book-modal" onMouseDown={() => setShowForm(false)}><form onSubmit={submit} onMouseDown={event => event.stopPropagation()}>
-        <header><div><h2>Nueva anotación</h2><p>El sistema creará o reutilizará el libro asociado al cliente, contrato y orden.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
+        <header><div><h2>Nueva anotación del Libro de obra</h2><p>El sistema creará o reutilizará el libro asociado al cliente, contrato y orden.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
         <div className="nk-book-form">
-          {[['mineRef','Cliente'],['contractRef','Contrato'],['projectRef','Orden de servicio']].map(([key,label]) => <label key={key}><span>{label}</span><select required={key !== 'contractRef'} value={form[key]} onChange={event => setForm(current => ({ ...current, [key]:event.target.value }))}><option value="">Selecciona</option>{(key === 'mineRef' ? clients : key === 'contractRef' ? scopedContracts : scopedOrders).map(row => <option value={row.id} key={row.id}>{row.nombre || row.razon || row.title || row.codigo || row.id}</option>)}</select></label>)}
-          <label><span>Tipo de libro</span><select value={form.bookType} onChange={event => setForm(current => ({ ...current, bookType:event.target.value }))}>{[['maestro','Maestro'],['seguridad_hsec','Seguridad y salud'],['calidad','Calidad'],['terreno_avance','Terreno y avance'],['comunicaciones','Comunicaciones']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+          <label><span>Cliente *</span><select required value={form.mineRef} onChange={event => setForm(current => ({ ...current, mineRef:event.target.value, contractRef:'', projectRef:'' }))}><option value="">Selecciona</option>{clients.map(row => <option value={row.id} key={row.id}>{row.nombre || row.razon || row.name || row.id}</option>)}</select></label>
+          <label><span>Contrato</span><select value={form.contractRef} onChange={event => setForm(current => ({ ...current, contractRef:event.target.value }))}><option value="">Selecciona</option>{scopedContracts.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.numero || row.id}</option>)}</select></label>
+          <label className="wide"><span>Proyecto / servicio / mantención *</span><select required value={form.projectRef} onChange={event => setForm(current => ({ ...current, projectRef:event.target.value }))}><option value="">Selecciona</option>{scopedOrders.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.id}</option>)}</select></label>
+          <label><span>Libro</span><select value={form.bookType} onChange={event => setForm(current => ({ ...current, bookType:event.target.value }))}>{[['maestro','Maestro'],['seguridad_hsec','Seguridad y salud'],['calidad','Calidad'],['terreno_avance','Terreno y avance'],['comunicaciones','Comunicaciones']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label><span>Tipo de anotación</span><select value={form.entryType} onChange={event => setForm(current => ({ ...current, entryType:event.target.value }))}>{['instruccion','consulta','respuesta','avance','incidente','acuerdo','observacion','recepcion','otro'].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label><span>Responsable</span><input value={form.responsible} onChange={event => setForm(current => ({ ...current, responsible:event.target.value }))}/></label>
-          <label className="wide"><span>Asunto</span><input required minLength="3" value={form.subject} onChange={event => setForm(current => ({ ...current, subject:event.target.value }))}/></label>
-          <label className="wide"><span>Detalle</span><textarea required minLength="3" rows="4" value={form.body} onChange={event => setForm(current => ({ ...current, body:event.target.value }))}/></label>
-          <label><span>Fecha de compromiso</span><input type="date" value={form.dueAt} onChange={event => setForm(current => ({ ...current, dueAt:event.target.value }))}/></label>
-          <label><span>Estado inicial</span><select value={form.status} onChange={event => setForm(current => ({ ...current, status:event.target.value }))}><option value="borrador">Borrador</option><option value="pendiente_firma">Pendiente de firma</option></select></label>
+          <label><span>Fecha y hora *</span><input type="datetime-local" required value={String(form.occurredAt || '').slice(0, 16)} onChange={event => setForm(current => ({ ...current, occurredAt:`${event.target.value}:00.000Z` }))}/></label>
+          <label><span>Estado inicial</span><select value={form.status} onChange={event => setForm(current => ({ ...current, status:event.target.value }))}><option value="borrador">Borrador</option><option value="pendiente_firma">Enviar a firma</option></select></label>
+          <label className="wide"><span>Asunto *</span><input required minLength="3" value={form.subject} onChange={event => setForm(current => ({ ...current, subject:event.target.value }))}/></label>
+          <label className="wide"><span>Detalle de la anotación *</span><textarea required minLength="3" rows="5" placeholder="Hecho, instrucción, acuerdo, respuesta o avance que debe quedar formalmente registrado..." value={form.body} onChange={event => setForm(current => ({ ...current, body:event.target.value }))}/></label>
+          <label><span>Responsable / contraparte</span><input value={form.responsible} onChange={event => setForm(current => ({ ...current, responsible:event.target.value }))}/></label>
+          <label><span>Fecha compromiso</span><input type="date" value={form.dueAt} onChange={event => setForm(current => ({ ...current, dueAt:event.target.value }))}/></label>
         </div>
-        <footer><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowForm(false)}>Cancelar</button><button className="nk-button nk-button-primary">Registrar anotación</button></footer>
+        <footer><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowForm(false)}>Cancelar</button><button className="nk-button nk-button-primary">Guardar anotación</button></footer>
       </form></div>}
 
       {selected && <div className="nk-book-modal" onMouseDown={() => setSelected(null)}><div className="nk-book-detail" onMouseDown={event => event.stopPropagation()}>
