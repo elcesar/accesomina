@@ -41,6 +41,10 @@ function pageDomain(pathname) {
 
   if (
     pathname.startsWith('/app/subcontratos') ||
+    pathname.startsWith('/app/convenios') ||
+    pathname.startsWith('/app/personal-contratista') ||
+    pathname.startsWith('/app/habilitaciones-contratistas') ||
+    pathname.startsWith('/app/evaluacion-desempeno') ||
     pathname.startsWith('/app/modulos/contratos-convenios') ||
     pathname.startsWith('/app/modulos/personal-empresa-servicios') ||
     pathname.startsWith('/app/modulos/habilitaciones-cumplimiento') ||
