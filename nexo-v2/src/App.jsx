@@ -93,9 +93,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="reclutamiento" element={<GestionPersonalProyectoPage />} />
-            <Route path="modulos/gestion-personal-proyecto" element={<Navigate to="/app/reclutamiento" replace />} />
             <Route path="operaciones" element={<CentroOperativoPage />} />
-            <Route path="modulos/centro-operativo" element={<Navigate to="/app/operaciones" replace />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
@@ -115,38 +113,22 @@ export default function App() {
             <Route path="personal-contratista" element={<PersonalEmpresaServiciosPage />} />
             <Route path="habilitaciones-contratistas" element={<HabilitacionesCumplimientoPage />} />
             <Route path="evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
-            <Route path="modulos/contratos-convenios" element={<Navigate to="/app/convenios" replace />} />
-            <Route path="modulos/personal-empresa-servicios" element={<Navigate to="/app/personal-contratista" replace />} />
-            <Route path="modulos/habilitaciones-cumplimiento" element={<Navigate to="/app/habilitaciones-contratistas" replace />} />
-            <Route path="modulos/evaluacion-desempeno" element={<Navigate to="/app/evaluacion-desempeno" replace />} />
             <Route path="acreditacion-empresa" element={<CumplimientoCorporativoPage />} />
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
             <Route path="oportunidades" element={<ProspectosPage />} />
-            <Route path="modulos/prospectos" element={<Navigate to="/app/oportunidades" replace />} />
             <Route path="activos-inventario" element={<ActivosInventarioPage />} />
-            <Route path="modulos/activos-inventario" element={<Navigate to="/app/activos-inventario" replace />} />
             <Route path="maquinaria" element={<MaquinariaPage />} />
-            <Route path="modulos/maquinaria" element={<Navigate to="/app/maquinaria" replace />} />
             <Route path="equipos-instrumentos" element={<EquiposInstrumentosPage />} />
-            <Route path="modulos/equipos-instrumentos" element={<Navigate to="/app/equipos-instrumentos" replace />} />
             <Route path="herramientas" element={<HerramientasPage />} />
-            <Route path="modulos/herramientas" element={<Navigate to="/app/herramientas" replace />} />
             <Route path="epp-inventario" element={<EppInventarioPage />} />
-            <Route path="modulos/epp-inventario" element={<Navigate to="/app/epp-inventario" replace />} />
             <Route path="materiales" element={<MaterialesPage />} />
-            <Route path="modulos/materiales" element={<Navigate to="/app/materiales" replace />} />
             <Route path="insumos" element={<InsumosPage />} />
-            <Route path="modulos/insumos" element={<Navigate to="/app/insumos" replace />} />
             <Route path="bodegas" element={<BodegasPage />} />
-            <Route path="modulos/bodegas" element={<Navigate to="/app/bodegas" replace />} />
             <Route path="movimientos-inventario" element={<MovimientosInventarioPage />} />
-            <Route path="modulos/movimientos-inventario" element={<Navigate to="/app/movimientos-inventario" replace />} />
             <Route path="mantenimiento" element={<MantenimientoPage />} />
-            <Route path="modulos/mantenimiento" element={<Navigate to="/app/mantenimiento" replace />} />
             <Route path="asignaciones-prestamos" element={<AsignacionesPrestamosPage />} />
-            <Route path="modulos/asignaciones-prestamos" element={<Navigate to="/app/asignaciones-prestamos" replace />} />
             <Route path="reportes" element={<ReportesPage />} />
             <Route path="transferencia" element={<ImportarExportarPage />} />
             <Route path="usuarios" element={<UsuariosPermisosPage />} />
