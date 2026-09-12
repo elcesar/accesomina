@@ -57,10 +57,10 @@ const NAV = [
     label: 'Contratistas',
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
-      { to: '/app/modulos/contratos-convenios', label: 'Contratos y convenios', icon: IconFileText },
-      { to: '/app/modulos/personal-empresa-servicios', label: 'Personal del contratista', icon: IconUsers },
-      { to: '/app/modulos/habilitaciones-cumplimiento', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
-      { to: '/app/modulos/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
+      { to: '/app/convenios', label: 'Contratos y convenios', icon: IconFileText },
+      { to: '/app/personal-contratista', label: 'Personal del contratista', icon: IconUsers },
+      { to: '/app/habilitaciones-contratistas', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
+      { to: '/app/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
     ],
   },
   {
