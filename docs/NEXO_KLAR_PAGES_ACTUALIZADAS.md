@@ -3,7 +3,7 @@
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
 **Actualizado:** 11 de septiembre de 2026  
-**Estado global:** Fases 0 a 13 cerradas.
+**Estado global:** Fases 0 a 14 cerradas.
 
 ## Estados
 
@@ -74,6 +74,12 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 11 · Centro Operativo | `CentroOperativoPage.jsx` | Actualizada · Revisada · Reemplazada | Vista consolidada guiada por OS: estado operativo, brechas, Libro diario, CAPA, Alertas y Bitácora. Solo `dailyLogs` y `capaActions` son registros propios. |
 | Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada; usa el motor compartido `operational-alerts.js`, agrupa por contexto y navega al módulo dueño. |
 | Fase 13 · Dashboard | `DashboardPage.jsx` | Actualizada · Revisada · Reemplazada | Vista ejecutiva derivada bajo Centro de Control; KPIs y prioridades usan fuentes canónicas de Personas, Turnos, Asignaciones, OS, EPP y Alertas. |
+| Fase 14 · Gestión y Administración | `ReportesPage.jsx` | Actualizada · Revisada · Reemplazada | Vista analítica derivada, sin ownership propio; extracción y análisis por familias operacionales. |
+| Fase 14 · Gestión y Administración | `ImportarExportarPage.jsx` | Actualizada · Revisada · Reemplazada | Layout HTML recuperado; exportación, importación y respaldo sobre `/api/data-transfer`. |
+| Fase 14 · Gestión y Administración | `UsuariosPermisosPage.jsx` | Actualizada · Revisada · Reemplazada | Usuarios del tenant, roles, estado, alta y restablecimiento de acceso sobre `/api/users`. |
+| Fase 14 · Gestión y Administración | `BitacoraCambiosPage.jsx` | Actualizada · Revisada · Reemplazada | Bitácora inmutable de solo lectura sobre `/api/audit`. |
+| Fase 14 · Gestión y Administración | `PrivacidadDatosPage.jsx` | Actualizada · Revisada · Reemplazada | Gobierno de datos: tratamientos, derechos, consentimientos e incidentes sobre `/api/privacy`. |
+| Fase 14 · Gestión y Administración | `ConfiguracionPage.jsx` | Actualizada · Revisada · Reemplazada | Configuración por tenant: identidad, alertas, módulos, catálogos e integraciones privadas sobre `/api/settings`. |
 
 ## Cierres de fases
 
@@ -154,8 +160,32 @@ Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantien
 
 **Validación técnica:** para el commit final `bded92507233c429906c2a7589c314826e3adc56`, **Build and Push to ECR** y **Build and Deploy Nexo v2** finalizaron con `success`.
 
+### Fase 14 · Gestión y Administración — CERRADA
+**Fecha:** 11 de septiembre de 2026
+
+La fase consolida las capacidades transversales de administración, gobierno, trazabilidad y configuración del tenant sin crear fuentes operacionales paralelas. El HTML histórico se mantiene como referencia primaria de layout y jerarquía visual; React conserva la arquitectura cloud y las APIs actuales.
+
+**Módulos cerrados:**
+
+- `ReportesPage.jsx`: vista derivada de análisis y exportación; no mantiene ownership propio.
+- `ImportarExportarPage.jsx`: respaldo, exportación e importación masiva mediante `/api/data-transfer`.
+- `UsuariosPermisosPage.jsx`: administración de usuarios, roles y estado mediante `/api/users`.
+- `BitacoraCambiosPage.jsx`: lectura inmutable de auditoría mediante `/api/audit`.
+- `PrivacidadDatosPage.jsx`: tratamientos, solicitudes de titulares, consentimientos e incidentes mediante `/api/privacy`.
+- `ConfiguracionPage.jsx`: identidad, alertas, catálogos, módulos declarativos e integraciones privadas mediante `/api/settings`.
+
+**Layout y navegación:** `Reportes y analítica` permanece como acceso directo de primer nivel. Importar/exportar, Usuarios, Bitácora y Privacidad permanecen en **Gestión y Administración**; Configuración permanece como acción inferior del Sidebar, pero `/app/configuracion` se clasifica bajo el mismo dominio en `AppLayout`.
+
+**Seguridad y ownership:** usuarios, auditoría, privacidad, configuración e integraciones están aislados por tenant en backend. Las claves de integración se almacenan cifradas y no se vuelven a mostrar. Bitácora es de solo lectura desde frontend. Configuración y privacidad requieren rol administrador según sus rutas backend.
+
+**Referencia de layout:** Importar/exportar, Usuarios, Bitácora, Privacidad y Configuración fueron contrastados contra `AccesoMina_v6.html`; se preservó la estructura útil de cards, KPIs, tablas y acciones, aplicando el Design System React vigente.
+
+**Commits principales de cierre:** `43a36d2c` / `8503a1c3` (Importar/exportar), `f1e6ee78` / `73eaa111` (Usuarios), `e816cf25` / `f7c94619` (Bitácora), `65749dba` / `6c54de74` (Privacidad), `8b41808b` / `816822f0` / `e75ee935` / `edd0fbb9` (Configuración y navegación).
+
+**Validación técnica:** revisión de rutas, ownership y contratos API completada. La validación CI del commit final debe comprobarse en GitHub Actions antes de considerar desplegado el cierre.
+
 ## Próximo bloque
 
-**Fase 14 · Gobierno / Administración**
+**Fase 15 · Cierre de migración / retiro de aliases legacy**
 
-Objetivo: revisar y consolidar las Pages administrativas y de gobierno, sus permisos, configuración y ownership, manteniendo separados los datos operacionales de la configuración transversal de la plataforma.
+Objetivo: revisar rutas y aliases heredados, wrappers genéricos remanentes, Pages no alcanzables y referencias legacy que ya no deban mantenerse antes de declarar finalizada la migración React.
