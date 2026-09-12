@@ -50,6 +50,7 @@ import ImportarExportarPage from './pages/ImportarExportarPage.jsx'
 import UsuariosPermisosPage from './pages/UsuariosPermisosPage.jsx'
 import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
+import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -139,6 +140,7 @@ export default function App() {
             <Route path="usuarios" element={<UsuariosPermisosPage />} />
             <Route path="bitacora" element={<BitacoraCambiosPage />} />
             <Route path="privacidad" element={<PrivacidadDatosPage />} />
+            <Route path="configuracion" element={<ConfiguracionPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
