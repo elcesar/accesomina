@@ -1,32 +1,28 @@
+import { CustomerAccessPanel } from './CustomerAccessSection.jsx'
+
 const points = [
-  ['Una fuente común', 'Tu equipo trabaja con información ordenada, conectada y disponible.'],
-  ['Órdenes de servicio preparadas', 'Detecta vencimientos, faltantes y restricciones antes de iniciar el trabajo.'],
-  ['Historial que permanece', 'El conocimiento queda en la empresa, no disperso en planillas o correos.'],
+  ['Menos tareas manuales', 'La información operativa queda ordenada y disponible para las áreas autorizadas.'],
+  ['Alertas a tiempo', 'Identifica vencimientos, faltantes y observaciones antes de que afecten el servicio.'],
+  ['Decisiones con respaldo', 'Consulta estados, documentos e historial desde una única fuente de información.'],
 ]
 
-export default function HomeSection({ openPreview, openDemo, onNavigate }) {
+export default function HomeSection({ openDemo, onNavigate, accessTab = 'login' }) {
   return <section id="inicio" className="nk-hero nk-public-section">
     <div className="nk-hero-copy">
       <p className="nk-eyebrow">Gestión operativa para empresas de servicios</p>
-      <h1>Convierte información dispersa en una <span>operación que avanza</span>.</h1>
-      <p className="nk-lead">Nexo Klar conecta clientes, contratos, órdenes de servicio, personas, documentos y recursos para que tu equipo sepa qué está listo, qué falta y quién debe actuar.</p>
+      <h1>Toda tu operación, conectada y <span>bajo control</span>.</h1>
+      <p className="nk-lead">Nexo Klar reúne clientes, contratos, órdenes de servicio, personas, documentos y recursos en una plataforma privada para que tu equipo sepa qué está vigente, qué falta y qué requiere atención.</p>
       <div className="nk-actions">
-        <button className="nk-button nk-button-primary" type="button" onClick={openDemo}>Solicitar demostración</button>
-        <button className="nk-button nk-button-secondary" type="button" onClick={() => onNavigate?.('solucion')}>Ver cómo funciona</button>
+        <button className="nk-button nk-button-primary" type="button" onClick={() => onNavigate?.('solucion')}>Conocer la plataforma</button>
+        <button className="nk-button nk-button-secondary" type="button" onClick={openDemo}>Solicitar demostración</button>
       </div>
       <div className="nk-card-grid nk-hero-points">
         {points.map(([title, body]) => <article key={title}><b>{title}</b><span>{body}</span></article>)}
       </div>
     </div>
-    <div className="nk-hero-product" aria-label="Vista real de Nexo Klar">
-      <button className="nk-image-button" type="button" onClick={openPreview} aria-label="Ampliar vista de Nexo Klar"><img src="/assets/dashboard-demo.png" alt="Panel de control de Nexo Klar" /></button>
-      <div className="nk-product-notes">
-        {[
-          ['Estado operativo', 'Identifica qué servicios están listos y cuáles tienen brechas.'],
-          ['Alertas prioritarias', 'Concentra pendientes y vencimientos que requieren acción.'],
-          ['Información conectada', 'Accede desde el cliente hasta cada persona, recurso y documento.'],
-        ].map(([title, body]) => <article key={title}><b>{title}</b><span>{body}</span></article>)}
-      </div>
+
+    <div id="clientes-access" className="nk-hero-access" aria-label="Acceso y creación de empresa">
+      <CustomerAccessPanel initialTab={accessTab} />
     </div>
   </section>
 }
