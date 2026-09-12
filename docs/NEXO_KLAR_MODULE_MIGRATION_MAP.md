@@ -1,16 +1,16 @@
 # Nexo Klar — Mapa de módulos, dependencias y migración
 
-**Estado:** Fases 0 a 7 cerradas · próxima Fase 8  
-**Actualizado:** 10 de septiembre de 2026  
+**Estado:** Fases 0 a 15 cerradas · migración React finalizada  
+**Actualizado:** 12 de septiembre de 2026  
 **Objetivo:** mantener una referencia única del orden de modernización de Nexo Klar, ownership de datos, dependencias, decisiones de layout y criterios de cierre.
 
 ## 1. Principios obligatorios
 
 1. **Fuente funcional antes que wrapper.** Cada dato de negocio tiene un módulo dueño; wrappers y orquestadores consumen y relacionan, no crean modelos paralelos.
-2. **Una fuente de verdad por dominio.** Se permiten aliases/fallbacks legacy de lectura durante la migración, pero una única fuente de escritura.
+2. **Una fuente de verdad por dominio.** Los aliases/fallbacks legacy que deban mantenerse son únicamente de compatibilidad y no constituyen una segunda fuente de escritura.
 3. **No renombrar legacy sin mapear consumidores.** Especialmente `minas/minaId`, `mantenciones/mantId`, `proyectos`, `cursos`, `examenes` y `eppEntregas`.
-4. **Especialización progresiva.** `PrivateModulePage`, `ModuleWorkspacePage` y `OperationalWorkspacePage` son infraestructura legacy/transitoria y referencia de reglas, no fuentes funcionales.
-5. **Orquestadores al final.** Gestión de personal por proyecto, Centro Operativo, Alertas y Dashboard se estabilizan después de sus módulos fuente.
+4. **Pages especializadas como arquitectura vigente.** Los wrappers genéricos utilizados durante la migración fueron sustituidos en los módulos modernizados; adaptadores pequeños de dominio, como los de inventario, pueden permanecer cuando delegan intencionalmente en componentes compartidos.
+5. **Orquestadores consumen módulos dueños.** Gestión de personal por proyecto, Centro Operativo, Alertas y Dashboard no crean ownership operacional paralelo.
 6. **Sin refactor global incidental.** Cada cambio se limita al módulo objetivo y dependencias directas.
 7. **Design System transversal.** `tokens.css → components.css → CSS específico → JSX`.
 8. **Producción React actual primero.** El HTML histórico es referencia funcional/visual, no una arquitectura paralela.
@@ -18,7 +18,7 @@
 10. **Acciones globales no se duplican.** `+ Cliente`, `+ Contrato` y `+ Orden de servicio` pertenecen al Header global y no deben repetirse dentro de las páginas.
 11. **Densidad operacional media-alta.** Toolbars compactas; cuando existen muchos criterios, mantener filtros primarios visibles y secundarios bajo `Más filtros`.
 12. **Grillas contenidas.** Las tablas operacionales deben intentar caber completas en una ventana de escritorio mediante anchos controlados, truncamiento y acciones compactas antes de usar scroll horizontal.
-13. **Libro de Obra al final.** Bitácora/firma asociadas a ese dominio permanecen postergadas.
+13. **Compatibilidad legacy controlada.** Las rutas antiguas que aún se conservan deben redirigir a una ruta canónica; no deben renderizar una segunda experiencia funcional.
 
 ## 2. Fuentes canónicas confirmadas
 
@@ -32,7 +32,7 @@
 - **EPP:** `eppDeliveries`; `eppEntregas` compatibilidad legacy.
 - **Restricciones:** `restricted`, sincronizado con estado operacional de `trabajadores`.
 - **Comunicaciones:** `callouts`.
-- **Flota:** `vehiculos`; no se migra a `inventoryItems` en Fase 5.
+- **Flota:** `vehiculos`.
 - **Alojamientos:** `hoteles` para catálogo/habitaciones y `hotelAsig` para estadías.
 - **Credenciales:** `credenciales`; Persona por `trabId` y Cliente/faena por `minaId`.
 - **Terceros:** `subcontratos` para empresa colaboradora.
@@ -43,7 +43,7 @@
 - **Documentación corporativa:** `empresaDocs`; `documentosEmpresa` fallback de lectura.
 - **Habilitación del Cliente / mandante:** `acreditacionesMandante`, relacionada por `minaId`, tipo de entidad y referencia de entidad.
 - **Incidentes y no conformidades:** `incidentes`, relacionados a OS por `mantId`.
-- **Auditoría:** vista derivada; consume `trabajadores[].workerItems`, relaciones Cliente–Contrato–OS y fuentes de cumplimiento existentes, sin crear ownership documental paralelo.
+- **Auditoría:** vista derivada sobre fuentes de cumplimiento existentes.
 
 ## 3. Dependencia funcional principal
 
@@ -80,71 +80,63 @@ Mapa de ownership, persistencia, aliases legacy, rutas y dependencias establecid
 Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos especializados y documentados.
 
 ### FASE 2 · Clientes — ✓ CERRADA
-`ClientesPage.jsx` recupera **filtros → grid de clientes → ficha al abrir**. `minas` permanece como fuente canónica y `clientes` como fallback.
+`ClientesPage.jsx` recupera filtros, grilla y ficha; `minas` permanece como fuente canónica.
 
 ### FASE 3 · Contratos — ✓ CERRADA
-`ContratosPage.jsx` recupera **filtros/KPIs → tabla global → ficha al abrir**, con Cliente, OS y documentación contractual.
+`ContratosPage.jsx` recupera filtros/KPIs, tabla global y ficha con Cliente, OS y documentación contractual.
 
 ### FASE 4 · Órdenes de servicio — ✓ CERRADA
-`OrdenesServicioPage.jsx` recupera **filtros → cards operacionales → ficha al abrir**. `mantenciones` es canónico; `proyectos` fallback; personas por `asignaciones.mantId`.
+`OrdenesServicioPage.jsx` recupera filtros, cards operacionales y ficha. `mantenciones` es canónico.
 
 ### FASE 5 · Gestión Operacional — ✓ CERRADA
-Comunicaciones, Flota, Alojamientos/estadías y Credenciales especializados y contrastados con su origen HTML/wrapper.
+Comunicaciones, Flota, Alojamientos/estadías y Credenciales especializados.
 
 ### FASE 6 · Contratistas — ✓ CERRADA
-
-**Fecha de cierre:** 10 de septiembre de 2026.
-
-La fase quedó especializada recuperando los layouts útiles del HTML histórico y separando ownership por dominio:
-
-1. **Terceros y subcontratos — COMPLETADO.** `TercerosSubcontratosPage.jsx` reemplaza el flujo genérico y recupera **filtros → KPIs → tabla global → ficha al abrir**. `subcontratos` es la fuente de escritura. El listado muestra F30, F30-1, cotizaciones y seguro como vencimientos individuales con estado y días restantes/vencidos.
-2. **Contratos y convenios — COMPLETADO.** `ConveniosPage.jsx` reemplaza `ModuleWorkspacePage` y recupera **KPIs → filtros → tabla de empresa / contrato-convenio / órdenes de compra / vigencia**. `convenios` es canónico; información histórica de `subcontratos` se usa solo como fallback visual cuando corresponde.
-3. **Personal del contratista — COMPLETADO.** `PersonalEmpresaServiciosPage.jsx` administra `personalContratista` como relación Empresa ↔ Persona. La Persona sigue perteneciendo a `trabajadores`, incluyendo su ficha, formación, aptitudes, turnos y restricciones.
-4. **Habilitaciones y cumplimiento — COMPLETADO.** `HabilitacionesCumplimientoPage.jsx` recupera la vista HTML de **Empresa / Base documental / Pendientes / Estado / Revisión**. `habilitaciones` registra requisitos laborales, previsionales, seguridad, seguros y exigencias del cliente.
-5. **Evaluación de desempeño — COMPLETADO.** `EvaluacionDesempenoPage.jsx` recupera la matriz histórica con notas 1–5 en Cumplimiento, Seguridad y Calidad/servicio, resultado consolidado y clasificación. `evaluaciones` es la fuente especializada.
-
-**Regla de ownership confirmada:** Fase 6 no crea Persona, Contrato ni cumplimiento paralelos. Las relaciones se guardan en sus módulos dueños y se consumen desde las vistas de Contratistas.
-
-**Resultado:** Fase 6 cerrada y documentada.
+Terceros, convenios, personal del contratista, habilitaciones y evaluación de desempeño especializados con ownership separado.
 
 ### FASE 7 · Cumplimiento — ✓ CERRADA
+Documentación corporativa, habilitación del Cliente, incidentes/no conformidades y Auditoría especializados sin ownership paralelo.
 
-**Fecha de cierre:** 10 de septiembre de 2026.
+### FASE 8 · Inventario / Activos — ✓ CERRADA
+Activos, maquinaria, equipos, herramientas, EPP de inventario, materiales, insumos, bodegas, movimientos, mantenimiento y préstamos/asignaciones especializados sobre componentes compartidos cuando corresponde.
 
-La fase quedó especializada recuperando los layouts útiles del HTML histórico y manteniendo fuentes de escritura separadas por responsabilidad:
+### FASE 9 · Prospectos y oportunidades — ✓ CERRADA
+`prospectos` canónico, `oportunidades` fallback y conversión trazable a Cliente/Contrato/OS.
 
-1. **Documentación de la Empresa — COMPLETADO.** `CumplimientoCorporativoPage.jsx` reemplaza la vista genérica de acreditación corporativa y recupera KPIs, ficha de empresa, filtros y tabla de requisitos. `empresaDocs` es canónico; `documentosEmpresa` queda solo como fallback de lectura. Incluye vigencia, observación y evidencia local/link.
-2. **Habilitación del Cliente — COMPLETADO.** `HabilitacionClientePage.jsx` reemplaza `ModuleWorkspacePage` y recupera filtros, KPIs y grilla por entidad/Cliente. `acreditacionesMandante` guarda estado, responsable, plazo, observación y evidencia. Los cambios de estado usan actualización optimista para reflejar inmediatamente estados como `Corregido`.
-3. **Incidentes y no conformidades — COMPLETADO.** `IncidentesPage.jsx` reemplaza el wrapper genérico y recupera **filtros → KPIs → tabla global → seguimiento al abrir**. `incidentes` es fuente canónica. El cierre se realiza desde seguimiento y exige evidencia/verificación. La grilla se mantiene contenida dentro del viewport con anchos y acciones compactas.
-4. **Auditoría — COMPLETADO.** `AuditoriaPage.jsx` reemplaza `OperationalWorkspacePage` y recupera la vista de control sobre personas, requisitos y habilitación operacional. Es una vista derivada sobre fuentes existentes, especialmente `trabajadores[].workerItems`, y no duplica documentación ni estados.
+### FASE 10 · Gestión personal por proyecto — ✓ CERRADA
+Orquestador sobre `trabajadores`, OS y `asignaciones`; Persona mantiene ownership en `trabajadores`.
 
-**Regla de ownership confirmada:** Fase 7 separa documentación corporativa, habilitación del mandante, eventos de cumplimiento y auditoría. Auditoría consume fuentes existentes; no se convierte en repositorio paralelo.
+### FASE 11 · Centro Operativo — ✓ CERRADA
+Orquestador transversal de ejecución sobre OS y módulos dueños; solo `dailyLogs` y `capaActions` son registros especializados propios.
 
-**Resultado:** Fase 7 cerrada y documentada.
+### FASE 12 · Alertas — ✓ CERRADA
+Vista derivada de vencimientos, bloqueos, faltantes y riesgos mediante motor operacional compartido; no duplica el estado fuente.
 
-### FASE 8 · Inventario / Activos — ○ PENDIENTE
-Activos, maquinaria, equipos, herramientas, EPP de inventario, materiales, bodegas, movimientos, mantenimiento y préstamos/asignaciones. Evaluar `inventoryItems` como dominio común.
+### FASE 13 · Dashboard — ✓ CERRADA
+Vista ejecutiva derivada y de solo lectura sobre fuentes consolidadas.
 
-### FASE 9 · Prospectos + operación — ○ PENDIENTE
-Prospectos/oportunidades y seguimiento comercial previo a Cliente/Contrato. Libro de Obra permanece fuera de esta fase.
+### FASE 14 · Gobierno / Administración — ✓ CERRADA
+Reportes, importar/exportar, usuarios/permisos, bitácora, privacidad y configuración especializados y conectados a sus APIs vigentes.
 
-### FASE 10 · Gestión personal por proyecto — ○ PENDIENTE
-Orquestador sobre `trabajadores`, OS, `asignaciones`, Turnos y preparación. No es dueño de Persona.
+### FASE 15 · Cierre de migración — ✓ CERRADA
 
-### FASE 11 · Centro Operativo — ○ PENDIENTE
-Orquestador transversal de ejecución sobre OS, personas, comunicaciones, flota, alojamientos, credenciales y recursos.
+**Fecha de cierre:** 12 de septiembre de 2026.
 
-### FASE 12 · Alertas — ○ PENDIENTE
-Alertas derivadas de vencimientos, bloqueos, faltantes y riesgos; referencian el dato fuente y no duplican su estado.
+Se realizó la revisión final de Router, Pages y referencias legacy antes de declarar cerrada la migración React.
 
-### FASE 13 · Dashboard — ○ PENDIENTE
-KPIs ejecutivos/operacionales derivados de fuentes consolidadas. Solo lectura, resumen y navegación.
+1. **Rutas canónicas verificadas.** La navegación funcional utiliza las rutas React vigentes. No permanecen rutas activas bajo `/app/modulos/...`.
+2. **Aliases de compatibilidad acotados.** Se mantienen únicamente redirects deliberados para URLs históricas que pueden existir en marcadores o enlaces externos:
+   - `/app/comunicaciones` → `/app/llamados`.
+   - `/app/ordenes-servicio` → `/app/servicios`.
+   - `/app/ordenes-servicio/:orderId` → `/app/servicios/:orderId`.
+3. **Sin renderizado paralelo en aliases.** El detalle legacy de Orden de servicio fue normalizado para redirigir a la URL canónica mediante `LegacyOrderServiceRedirect`; no renderiza una segunda instancia funcional de `OrdenesServicioPage`.
+4. **Wrappers genéricos legacy retirados del flujo activo.** No se detectan referencias activas a `ModuleWorkspacePage` en el código vigente. Los wrappers pequeños de Inventario se consideran adaptadores intencionales porque parametrizan componentes especializados compartidos y no mantienen lógica legacy paralela.
+5. **Pages alcanzables.** La revisión del Router confirma que las Pages funcionales vigentes están conectadas a rutas activas; no se identificaron Pages de negocio huérfanas que requieran retiro como parte del cierre.
+6. **Fallbacks de datos.** Los fallbacks de lectura documentados (`clientes`, `proyectos`, `cursos`, `examenes`, `eppEntregas`, `documentosEmpresa`, entre otros) no se eliminan automáticamente en esta fase: su retiro físico queda condicionado a comprobar que no existen datos productivos históricos que dependan de ellos. No son fuentes de escritura nuevas.
 
-### FASE 14 · Gobierno / Administración — ○ PENDIENTE
-Usuarios, roles, permisos, tenant, configuración, privacidad, auditoría administrativa, importar/exportar y gobierno de datos.
+**Commit de normalización de rutas:** `9031bcb34cec1338b5320ff5f1809dd2f52f1fcd`.
 
-### FASE 15 · Cierre de migración — ○ PENDIENTE
-Retiro seguro de aliases, fallbacks, wrappers y claves legacy cuando no existan consumidores productivos.
+**Resultado:** la migración funcional a React queda cerrada. A partir de este punto, nuevas intervenciones se consideran evolución normal del producto, deuda técnica o retiro controlado de compatibilidad; ya no forman parte del plan de migración 0–15.
 
 ## 5. Estado ejecutivo
 
@@ -157,40 +149,37 @@ FASE 4  Órdenes de servicio                              ✓ CERRADA
 FASE 5  Gestión Operacional                              ✓ CERRADA
 FASE 6  Contratistas                                     ✓ CERRADA
 FASE 7  Cumplimiento                                     ✓ CERRADA
-FASE 8  Inventario / Activos                             ○ PENDIENTE
-FASE 9  Prospectos + operación                           ○ PENDIENTE
-FASE 10 Gestión personal por proyecto                    ○ PENDIENTE
-FASE 11 Centro Operativo                                 ○ PENDIENTE
-FASE 12 Alertas                                          ○ PENDIENTE
-FASE 13 Dashboard                                        ○ PENDIENTE
-FASE 14 Gobierno / Administración                        ○ PENDIENTE
-FASE 15 Cierre de migración                              ○ PENDIENTE
+FASE 8  Inventario / Activos                             ✓ CERRADA
+FASE 9  Prospectos y oportunidades                       ✓ CERRADA
+FASE 10 Gestión personal por proyecto                    ✓ CERRADA
+FASE 11 Centro Operativo                                 ✓ CERRADA
+FASE 12 Alertas                                          ✓ CERRADA
+FASE 13 Dashboard                                        ✓ CERRADA
+FASE 14 Gobierno / Administración                        ✓ CERRADA
+FASE 15 Cierre de migración                              ✓ CERRADA
 ```
 
-**Punto actual:** iniciar Fase 8 · Inventario / Activos.
+**Punto actual:** migración React finalizada. Próximo trabajo: evolución funcional, estabilización, QA y deuda técnica priorizada sobre la plataforma vigente.
 
 ## 6. Criterio de cierre por fase
 
 Una fase se cierra cuando corresponda y se hayan completado: referencia/origen revisado; campos, reglas y relaciones contrastados; ownership y fuentes canónicas/legacy identificadas; dependencias verificadas; Page especializada alineada al Design System; navegación y creación validadas; versionado real en escrituras; validación funcional/visual; y trazabilidad actualizada.
 
-## 7. Checklist obligatorio por módulo
+## 7. Checklist obligatorio para evolución posterior
 
 - [ ] identificar Page/ruta activa;
-- [ ] revisar HTML/Page/wrapper de referencia;
 - [ ] identificar fuentes de lectura y escritura;
 - [ ] mapear IDs y relaciones;
-- [ ] clasificar legacy vs canónico;
-- [ ] definir módulo dueño;
+- [ ] respetar módulo dueño;
 - [ ] revisar dependencias y permisos;
 - [ ] revisar Design System antes de CSS/JSX local;
 - [ ] evitar duplicar acciones globales del Header;
-- [ ] usar toolbars compactas y `Más filtros` cuando la cantidad de controles afecte jerarquía/densidad;
-- [ ] mantener grillas operacionales dentro del viewport cuando sea razonable antes de recurrir a scroll horizontal;
 - [ ] mantener navegación entre entidades con ficha propia;
 - [ ] usar `moduleVersions` real en escrituras;
-- [ ] no eliminar fallback/wrapper mientras existan consumidores;
-- [ ] validar visual y funcionalmente antes del cierre.
+- [ ] mantener aliases solo como redirects cuando exista una necesidad de compatibilidad;
+- [ ] retirar fallbacks de datos únicamente después de validar datos productivos;
+- [ ] validar visual y funcionalmente antes de publicar.
 
-## 8. Libro de Obra
+## 8. Estado post-migración
 
-Libro de Obra, su bitácora, firma y capacidades relacionadas permanecen postergados hasta finalizar las fases funcionales y de gobierno prioritarias.
+`AccesoMina_v6.html` permanece como referencia histórica funcional y visual. La aplicación React bajo `nexo-v2` es la implementación vigente y la única base para evolución del producto. Los aliases y fallbacks documentados son compatibilidad controlada y deben reducirse progresivamente cuando la evidencia productiva permita retirarlos.
