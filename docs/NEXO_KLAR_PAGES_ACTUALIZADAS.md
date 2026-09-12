@@ -2,7 +2,7 @@
 
 Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
-**Actualizado:** 11 de septiembre de 2026  
+**Actualizado:** 12 de septiembre de 2026  
 **Estado global:** Fases 0 a 14 cerradas.
 
 ## Estados
@@ -21,18 +21,20 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 - Las entidades con ficha propia deben ser navegables desde el contexto operacional.
 - Las vistas consolidadas leen señales de los módulos dueños y navegan hacia ellos para resolver brechas; no duplican ownership.
 - Alertas es una **vista derivada y priorizada**: combina alertas persistidas con señales calculadas desde los módulos dueños; no reemplaza esos módulos ni crea una fuente maestra paralela.
+- `callouts` corresponde a comunicaciones/convocatorias y **no se mezcla automáticamente con Alertas**.
 - Dashboard es una **vista ejecutiva derivada**: no mantiene ownership propio y reutiliza las fuentes canónicas de los módulos dueños.
 - Dashboard y Alertas comparten un único motor de alertas operacionales (`services/operational-alerts.js`) para evitar métricas divergentes.
 - Densidad operacional media-alta: espaciado normal `--space-3/--space-4`, KPIs compactos y toolbars que no se conviertan en formularios extensos.
 - Cuando existan muchos criterios de filtrado, mantener filtros principales visibles y secundarios bajo `Más filtros`.
 - Las grillas operacionales deben intentar caber completas en una ventana de escritorio, compactando acciones, anchos y contenido antes de recurrir a scroll horizontal.
+- En el sitio público, **Acceso** es el único punto de autenticación y navega a `/login`; el landing no duplica formularios de login.
 
 ## Pages registradas
 
 | Área / fase | Page JSX | Estado | Actualización / decisión vigente |
 | --- | --- | --- | --- |
-| Sitio público | `LandingPage.jsx` | Actualizada | Sitio público React modernizado. |
-| Acceso | `LoginPage.jsx` | Actualizada | Acceso alineado al Design System. |
+| Sitio público | `LandingPage.jsx` | Actualizada · Revisada | Landing vertical continuo recuperando el flujo del HTML: Hero + registro de nueva empresa → Plataforma → Beneficios → Producto → Soluciones → Industrias → Implementación/Privacidad → Propósito → CTA → Footer. |
+| Acceso | `LoginPage.jsx` | Actualizada | Único formulario de autenticación para clientes existentes; accesible desde el botón `Acceso` del header público. |
 | Fase 1 · Capital Humano | `TrabajadoresPage.jsx` | Actualizada · Revisada | Listado especializado de personas. |
 | Fase 1 · Capital Humano | `NuevoTrabajadorPage.jsx` | Actualizada · Revisada | Alta especializada de Persona. |
 | Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Ficha con asignaciones, documentación, formación, EPP, estadías e historial. |
@@ -72,7 +74,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 9 · Prospectos y oportunidades | `ProspectosPage.jsx` | Actualizada · Revisada · Reemplazada | `prospectos` canónico, `oportunidades` fallback; conversión ganada a Cliente/Contrato/OS con trazabilidad. |
 | Fase 10 · Gestión personal por proyecto | `GestionPersonalProyectoPage.jsx` | Actualizada · Revisada · Reemplazada | `trabajadores` conserva Persona; `asignaciones` conserva Persona ↔ OS y `estadoGestion`: Candidato → Contactado → Confirmado → Asignado → Habilitado. |
 | Fase 11 · Centro Operativo | `CentroOperativoPage.jsx` | Actualizada · Revisada · Reemplazada | Vista consolidada guiada por OS: estado operativo, brechas, Libro diario, CAPA, Alertas y Bitácora. Solo `dailyLogs` y `capaActions` son registros propios. |
-| Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada; usa el motor compartido `operational-alerts.js`, agrupa por contexto y navega al módulo dueño. |
+| Fase 12 · Alertas | `AlertasPage.jsx` | Actualizada · Revisada · Reemplazada | Vista priorizada y derivada; usa `operational-alerts.js`, agrupa por contexto, filtra por criticidad, expande/contrae grupos, muestra resumen de Persona/OS y navega al módulo dueño. |
 | Fase 13 · Dashboard | `DashboardPage.jsx` | Actualizada · Revisada · Reemplazada | Vista ejecutiva derivada bajo Centro de Control; KPIs y prioridades usan fuentes canónicas de Personas, Turnos, Asignaciones, OS, EPP y Alertas. |
 | Fase 14 · Gestión y Administración | `ReportesPage.jsx` | Actualizada · Revisada · Reemplazada | Vista analítica derivada, sin ownership propio; extracción y análisis por familias operacionales. |
 | Fase 14 · Gestión y Administración | `ImportarExportarPage.jsx` | Actualizada · Revisada · Reemplazada | Layout HTML recuperado; exportación, importación y respaldo sobre `/api/data-transfer`. |
@@ -82,6 +84,22 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 14 · Gestión y Administración | `ConfiguracionPage.jsx` | Actualizada · Revisada · Reemplazada | Sustituye el wrapper `ModuleWorkspacePage(forcedModule="configuracion")`; conserva el layout del HTML y lo conecta a `/api/settings`: identidad y alertas → módulos habilitados → integraciones privadas. |
 
 ## Cierres de fases
+
+### Sitio público y acceso — actualización 12 de septiembre de 2026
+
+El landing público fue normalizado nuevamente contra `AccesoMina_v6.html` como referencia principal de estructura comercial. La experiencia React conserva los componentes modernos, pero vuelve a un **flujo vertical continuo** en lugar de comportarse como mini-sitio por vistas aisladas.
+
+**Flujo vigente:** `Header → Hero + registro de nueva empresa → Plataforma → Beneficios → Producto real → Soluciones → Industrias → Implementación/Privacidad → Propósito → CTA final → Footer`.
+
+**Hero y conversión:** el hero recupera la jerarquía del HTML con propuesta de valor a la izquierda y registro de nuevo cliente a la derecha. Se recuperan los mensajes `Menos tareas manuales`, `Alertas a tiempo` y `Decisiones con respaldo`.
+
+**Acceso único:** se elimina el formulario de login duplicado del landing. El botón `Acceso` del header es el único punto de autenticación y navega a `/login`. El panel público del hero queda exclusivamente para **Nuevo cliente / Crear empresa**. El CTA final mantiene `Solicitar demostración` y `Crear empresa`.
+
+**Footer y cierre comercial:** el landing incorpora CTA final y footer persistente con identidad Nexo Klar y contacto.
+
+**Commits principales:** `9022524b`, `4479cd91`, `98663d86` (normalización one-page y hero), `599465f9`, `42440f37`, `2c7a8861` (separación definitiva entre Acceso y registro público).
+
+**Validación técnica:** estos cambios fueron aplicados directamente sobre `main`; no se declara CI exitoso para estos commits mientras no exista un check asociado confirmado.
 
 ### Fases 1 a 9
 Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantienen vigentes. Fase 9 conserva `prospectos` como fuente canónica y la conversión a `minas` / `contratos` / `mantenciones` con `createdFromLead` y metadatos de conversión.
@@ -111,13 +129,13 @@ Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantien
 **Validación CI:** **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success` para el commit `504f0a673db10669a0fe4e87018bcae01348b6bb`.
 
 ### Fase 12 · Alertas — CERRADA
-**Fecha:** 11 de septiembre de 2026
+**Fecha:** 12 de septiembre de 2026
 
 `AlertasPage.jsx` fue reconstruida usando como referencia conjunta la Page React propuesta y la lógica histórica de `AccesoMina_v6.html`. La ruta `/app/alertas` queda bajo **Centro de Control** y la Page no repite el dominio como kicker.
 
 **Layout definitivo:** `3 categorías de prioridad → contextos agrupados → expandir/contraer → detalle de alertas → abrir contexto / adjuntar evidencia`. Las categorías son `Críticas y vencidas`, `Próximas a vencer` y `Operacionales`.
 
-**Fuentes y ownership:** Alertas no crea un dominio maestro nuevo. La vista combina `state.alertas` persistidas con alertas derivadas en tiempo de lectura desde los módulos dueños. Se recupera del HTML el concepto de cálculo automático de alertas y se mantiene la navegación a la entidad responsable de la resolución.
+**Fuentes y ownership:** Alertas no crea un dominio maestro nuevo. La vista combina `state.alertas` persistidas con alertas derivadas en tiempo de lectura desde los módulos dueños mediante `services/operational-alerts.js`. Se recupera del HTML el concepto de cálculo automático de alertas y se mantiene la navegación a la entidad responsable de la resolución.
 
 **Derivación automática vigente:**
 
@@ -127,13 +145,15 @@ Los cierres y decisiones de ownership registrados durante Fases 1–9 se mantien
 - `mantenciones` (con fallback `proyectos`): OS sin contrato o sin cliente asociado.
 - `state.alertas`: alertas persistidas siguen siendo visibles y se mezclan con las derivadas.
 
-**Decisión sobre `callouts`:** las convocatorias/comunicaciones no se incorporan automáticamente como alertas. El módulo de Comunicaciones conserva su ownership.
+**Decisión sobre `callouts`:** las convocatorias/comunicaciones no se incorporan automáticamente como alertas. El módulo de Comunicaciones conserva su ownership. Esta decisión se mantiene incluso frente a la propuesta externa revisada, que mezclaba `state.alertas` y `state.callouts`.
 
-**Contexto y navegación:** las alertas se agrupan por Persona, OS, Contrato u otro registro relacionado. Desde el detalle se navega a la entidad o módulo responsable. La evidencia adjunta utiliza `entityType: alerta` y no modifica el ownership de la entidad origen.
+**UX consolidada tras revisión de propuesta de Ricardo (PR #6):** se conservó la arquitectura actual y solo se absorbieron mejoras de experiencia faltantes. La Page mantiene KPIs filtrables por criticidad, grupos colapsables, `Expandir todo / Contraer todo`, resumen `críticas · próximas · operativas`, badges de severidad, `Ver ficha`, `Adjuntar evidencia` y `Abrir contexto`. Además, el encabezado de cada Persona muestra `RUT · cargo/especialidad · OS asociada`; si existen varias OS muestra hasta dos y resume el resto, y si no existe asignación indica `Sin orden asignada`. Se agregaron atributos de accesibilidad (`aria-expanded`, `aria-controls`, `aria-label`, `aria-pressed`) sin alterar ownership ni derivación.
 
-**Commits principales:** `617c89fc` (reconstrucción funcional), `dd50724a` (estilos) y `3cd5eab3` (clasificación bajo Centro de Control).
+**Contexto y navegación:** las alertas se agrupan por Persona, OS, Contrato u otro registro relacionado. Desde el detalle se navega a la entidad o módulo responsable. La navegación utiliza rutas contextuales directas cuando existe identificador. La evidencia adjunta utiliza `entityType: alerta` y no modifica el ownership de la entidad origen.
 
-**Validación técnica:** los workflows **Build and Deploy Nexo v2** y **Build and Push to ECR** finalizaron con `success` para el commit final de la fase.
+**Commits principales:** `617c89fc` (reconstrucción funcional), `dd50724a` (estilos), `3cd5eab3` (clasificación bajo Centro de Control), `85699177` (absorción selectiva de mejoras UX de PR #6 manteniendo arquitectura canónica).
+
+**Validación técnica:** los workflows de cierre original de Fase 12 finalizaron con `success`. El ajuste UX `85699177` queda documentado como posterior; no se declara CI exitoso para ese commit mientras no exista un check asociado confirmado.
 
 ### Fase 13 · Dashboard — CERRADA
 **Fecha:** 11 de septiembre de 2026
