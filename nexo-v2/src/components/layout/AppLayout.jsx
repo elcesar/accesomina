@@ -4,84 +4,8 @@ import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
 import { api } from '../../services/api.js'
 import { applyTenantBranding } from '../../services/theme.js'
-
-function pageDomain(pathname) {
-  if (
-    pathname === '/app' ||
-    pathname.startsWith('/app/alertas') ||
-    pathname.startsWith('/app/reclutamiento') ||
-    pathname.startsWith('/app/operaciones')
-  ) return 'Centro de Control'
-
-  if (
-    pathname.startsWith('/app/trabajadores') ||
-    pathname.startsWith('/app/turnos') ||
-    pathname.startsWith('/app/epp') ||
-    pathname.startsWith('/app/cursos') ||
-    pathname.startsWith('/app/examenes') ||
-    pathname.startsWith('/app/salud') ||
-    pathname.startsWith('/app/bloqueados')
-  ) return 'Capital Humano'
-
-  if (
-    pathname.startsWith('/app/clientes') ||
-    pathname.startsWith('/app/contratos') ||
-    pathname.startsWith('/app/servicios')
-  ) return 'Relación Comercial'
-
-  if (
-    pathname.startsWith('/app/llamados') ||
-    pathname.startsWith('/app/comunicaciones') ||
-    pathname.startsWith('/app/vehiculos') ||
-    pathname.startsWith('/app/hoteleria') ||
-    pathname.startsWith('/app/credenciales')
-  ) return 'Gestión Operacional'
-
-  if (
-    pathname.startsWith('/app/subcontratos') ||
-    pathname.startsWith('/app/convenios') ||
-    pathname.startsWith('/app/personal-contratista') ||
-    pathname.startsWith('/app/habilitaciones-contratistas') ||
-    pathname.startsWith('/app/evaluacion-desempeno')
-  ) return 'Contratistas'
-
-  if (
-    pathname.startsWith('/app/acreditacion-empresa') ||
-    pathname.startsWith('/app/acreditacion-mandante') ||
-    pathname.startsWith('/app/incidentes') ||
-    pathname.startsWith('/app/auditoria')
-  ) return 'Cumplimiento y Calidad'
-
-  if (
-    pathname.startsWith('/app/oportunidades') ||
-    pathname.startsWith('/app/libro-obra')
-  ) return 'Gestión de Proyectos y Negocios'
-
-  if (
-    pathname.startsWith('/app/activos-inventario') ||
-    pathname.startsWith('/app/maquinaria') ||
-    pathname.startsWith('/app/equipos-instrumentos') ||
-    pathname.startsWith('/app/herramientas') ||
-    pathname.startsWith('/app/epp-inventario') ||
-    pathname.startsWith('/app/materiales') ||
-    pathname.startsWith('/app/insumos') ||
-    pathname.startsWith('/app/bodegas') ||
-    pathname.startsWith('/app/movimientos-inventario') ||
-    pathname.startsWith('/app/mantenimiento') ||
-    pathname.startsWith('/app/asignaciones-prestamos')
-  ) return 'Activos, Equipos e Inventario'
-
-  if (
-    pathname.startsWith('/app/reportes') ||
-    pathname.startsWith('/app/transferencia') ||
-    pathname.startsWith('/app/usuarios') ||
-    pathname.startsWith('/app/bitacora') ||
-    pathname.startsWith('/app/privacidad') ||
-    pathname.startsWith('/app/configuracion')
-  ) return 'Gestión y Administración'
-
-  return ''
-}
+import { pageDomain } from '../../config/page-domains.js'
+import '../../styles/app-layout.css'
 
 export default function AppLayout() {
   const { pathname } = useLocation()
@@ -91,31 +15,28 @@ export default function AppLayout() {
   useEffect(() => {
     let active = true
 
-    const loadBranding = async () => {
-      try {
-        const data = await api.get('/settings')
-        const nextBranding = data?.settings?.branding || {}
-        if (active) {
-          setBranding(nextBranding)
-          applyTenantBranding(nextBranding)
-        }
-      } catch {
-        if (active) {
-          const fallback = { theme: 'light' }
-          setBranding(fallback)
-          applyTenantBranding(fallback)
-        }
-      }
-    }
-
-    const onBrandingChanged = event => {
-      const nextBranding = event.detail || {}
+    const applyBranding = nextBranding => {
+      if (!active) return
       setBranding(nextBranding)
       applyTenantBranding(nextBranding)
     }
 
+    const loadBranding = async () => {
+      try {
+        const data = await api.get('/settings')
+        applyBranding(data?.settings?.branding || {})
+      } catch {
+        applyBranding({ theme: 'light' })
+      }
+    }
+
+    const onBrandingChanged = event => {
+      applyBranding(event.detail || {})
+    }
+
     loadBranding()
     window.addEventListener('nexo:branding-changed', onBrandingChanged)
+
     return () => {
       active = false
       window.removeEventListener('nexo:branding-changed', onBrandingChanged)
@@ -123,15 +44,11 @@ export default function AppLayout() {
   }, [])
 
   return (
-    <div className="nk-app-shell" style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div className="nk-app-shell">
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+      <div className="nk-app-content">
         <Header branding={branding} />
-        <main
-          className="nk-app-main"
-          data-page-domain={domain || undefined}
-          style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}
-        >
+        <main className="nk-app-main" data-page-domain={domain || undefined}>
           {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
           <Outlet />
         </main>
