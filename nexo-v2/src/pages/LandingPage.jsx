@@ -9,10 +9,9 @@ import SolutionsSection from '../components/public/sections/SolutionsSection.jsx
 import IndustriesSection from '../components/public/sections/IndustriesSection.jsx'
 import ImplementationSection from '../components/public/sections/ImplementationSection.jsx'
 import PurposeSection from '../components/public/sections/PurposeSection.jsx'
-import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
 import { DemoRequestDialog, InformationDialog } from '../components/public/PublicDialogs.jsx'
 
-const trackedSections = ['inicio', 'clientes-access', 'solucion', 'resultados', 'producto', 'capacidades', 'industrias', 'implementacion', 'proposito']
+const trackedSections = ['inicio', 'solucion', 'resultados', 'producto', 'capacidades', 'industrias', 'implementacion', 'proposito', 'contacto']
 
 export default function LandingPage() {
   const [active, setActive] = useState('inicio')
@@ -27,9 +26,12 @@ export default function LandingPage() {
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
-    if (!trackedSections.includes(hash)) return
-    if (hash === 'clientes-access') setAccessTab('register')
-    requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: 'start' }))
+    if (hash === 'clientes-access') {
+      setAccessTab('register')
+      requestAnimationFrame(() => document.getElementById('clientes-access')?.scrollIntoView({ block: 'center' }))
+      return
+    }
+    if (trackedSections.includes(hash)) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: 'start' }))
   }, [])
 
   useEffect(() => {
@@ -58,15 +60,20 @@ export default function LandingPage() {
   const openCompanyRegistration = () => {
     setAccessTab('register')
     window.history.replaceState(null, '', '#clientes-access')
-    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const openPrivateAccess = () => {
+    setAccessTab('login')
+    window.history.replaceState(null, '', '#clientes-access')
+    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   return <div className="nk-public-site" data-public-page={active}>
     <PublicNavigation active={active} onNavigate={goTo} onCreateCompany={openCompanyRegistration} />
 
     <main>
-      <HomeSection openPreview={() => setPreview(true)} openDemo={() => setDialog('demo')} onNavigate={goTo} />
-      <CustomerAccessSection initialTab={accessTab} />
+      <HomeSection openDemo={() => setDialog('demo')} onNavigate={goTo} accessTab={accessTab} />
       <PlatformSection />
       <BenefitsSection />
       <ProductSection openPreview={() => setPreview(true)} />
@@ -75,14 +82,14 @@ export default function LandingPage() {
       <ImplementationSection />
       <PurposeSection />
 
-      <section className="nk-public-section nk-centered" id="contacto">
+      <section className="nk-public-section nk-centered nk-final-cta" id="contacto">
         <div>
           <p className="nk-eyebrow">Conversemos</p>
           <h2>Descubre cómo Nexo Klar puede ordenar tu operación.</h2>
           <p className="nk-lead">Revisamos contigo tus procesos, tipos de personal, contratos y órdenes de servicio para definir la configuración que realmente necesita tu empresa.</p>
           <div className="nk-actions">
             <button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('demo')}>Solicitar demostración</button>
-            <button className="nk-button nk-button-secondary" type="button" onClick={() => goTo('clientes-access')}>Ingresar al sitio privado</button>
+            <button className="nk-button nk-button-secondary" type="button" onClick={openPrivateAccess}>Ingresar al sitio privado</button>
           </div>
         </div>
       </section>
