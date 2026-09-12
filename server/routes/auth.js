@@ -6,9 +6,17 @@ import { loginSchema, registerSchema } from '../validation.js';
 import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotpSecret, hashPassword, hashRecoveryCode, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256, timingSafeEqualString, validatePassword, verifyPassword, verifyTotp } from '../security.js';
 import { appendAudit } from '../audit.js';
 import { authenticate, clearSessionCookie, requireCsrf, setSessionCookie } from '../middleware.js';
+import { createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation } from '../password-reset.js';
 
 export const authRouter = Router();
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Espera unos minutos antes de solicitar otro enlace.' },
+});
 
 authRouter.get('/config',(req,res)=>res.json({registrationEnabled:config.registrationEnabled,mfaRequired:config.mfaRequired}));
 
@@ -70,6 +78,87 @@ authRouter.post('/login', limiter, async (req, res) => {
   });
   setSessionCookie(res, token);
   res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password,mfaEnabled:user.mfa_enabled,mfaEnrollmentRequired }, tenant: { id: tenant.id, name: tenant.company_name } });
+});
+
+authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
+  const startedAt = Date.now();
+  const email = normalizeEmail(req.body?.email);
+  const rutKey = normalizeRut(req.body?.rut);
+  const generic = { message: 'Si los datos corresponden a una cuenta activa, recibirás un enlace para restablecer tu contraseña.' };
+  const reply = async extra => {
+    const wait = Math.max(0, 300 - (Date.now() - startedAt));
+    if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+    return res.json({ ...generic, ...(extra || {}) });
+  };
+
+  if (!email || !rutKey) return reply();
+  const tenant = (await query("SELECT id,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1", [rutKey])).rows[0];
+  if (!tenant || tenant.status !== 'active') return reply();
+
+  const user = await withTenant(tenant.id, async client => (
+    await client.query('SELECT id,email,full_name,active FROM app_users WHERE tenant_id=$1 AND lower(email)=$2', [tenant.id, email])
+  ).rows[0]);
+  if (!user?.active) return reply();
+
+  const request = await createPasswordReset({ tenantId: tenant.id, user, ip: clientIp(req) });
+  const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url })
+    .catch(() => ({ delivered: false, reason: 'DELIVERY_FAILED' }));
+
+  if (config.env !== 'production' && !delivery.delivered) return reply({ previewUrl: request.url });
+  return reply();
+});
+
+authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
+  const token = String(req.body?.token || '');
+  const tenantId = String(req.body?.tenant || '');
+  const newPassword = String(req.body?.newPassword || '');
+  const confirmation = String(req.body?.confirmation || '');
+
+  if (!/^[0-9a-f-]{36}$/i.test(tenantId) || !token || newPassword !== confirmation || !validatePassword(newPassword)) {
+    return res.status(400).json({ error: 'INVALID_RESET_REQUEST', message: 'El enlace o la nueva contraseña no son válidos.' });
+  }
+
+  const reset = await withTenant(tenantId, async client => (
+    await client.query(`SELECT r.id,r.user_id,u.email,u.full_name
+      FROM password_reset_tokens r
+      JOIN app_users u ON u.id=r.user_id AND u.tenant_id=r.tenant_id
+      WHERE r.tenant_id=$1 AND r.token_hash=$2 AND r.used_at IS NULL AND r.expires_at>now() AND u.active
+      LIMIT 1`, [tenantId, sha256(token)])
+  ).rows[0]);
+
+  if (!reset) return res.status(400).json({ error: 'RESET_TOKEN_INVALID', message: 'El enlace no es válido o ya venció. Solicita uno nuevo.' });
+
+  const credentials = await hashPassword(newPassword);
+  const changed = await withTenant(tenantId, async client => {
+    const used = (await client.query(
+      'UPDATE password_reset_tokens SET used_at=now() WHERE id=$1 AND tenant_id=$2 AND used_at IS NULL AND expires_at>now() RETURNING id',
+      [reset.id, tenantId],
+    )).rows[0];
+    if (!used) return false;
+
+    await client.query(
+      'UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,failed_login_count=0,locked_until=NULL,updated_at=now() WHERE id=$3 AND tenant_id=$4',
+      [credentials.hash, credentials.salt, reset.user_id, tenantId],
+    );
+    await client.query(
+      'UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND tenant_id=$2 AND revoked_at IS NULL',
+      [reset.user_id, tenantId],
+    );
+    await appendAudit(client, {
+      tenantId,
+      userId: reset.user_id,
+      entityType: 'user',
+      entityId: reset.user_id,
+      action: 'user.password_reset_completed',
+      newValue: { sessionsRevoked: true },
+    });
+    return true;
+  });
+
+  if (!changed) return res.status(400).json({ error: 'RESET_TOKEN_INVALID', message: 'El enlace no es válido o ya venció. Solicita uno nuevo.' });
+
+  void deliverPasswordResetConfirmation({ email: reset.email, fullName: reset.full_name }).catch(() => {});
+  return res.status(204).end();
 });
 
 authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0]||{};res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password||false,mfaEnabled:user.mfa_enabled||false,mfaEnrollmentRequired:config.mfaRequired&&!user.mfa_enabled }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
