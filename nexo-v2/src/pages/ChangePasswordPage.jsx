@@ -16,7 +16,7 @@ export default function ChangePasswordPage() {
 
   useEffect(() => {
     if (session && !session.user?.mustChangePassword) {
-      navigate(session.user?.mfaEnrollmentRequired ? '/configurar-mfa' : '/app', { replace: true })
+      navigate('/app', { replace: true })
     }
   }, [navigate, session])
 
@@ -39,8 +39,8 @@ export default function ChangePasswordPage() {
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       })
-      const nextSession = await reload()
-      navigate(nextSession?.user?.mfaEnrollmentRequired ? '/configurar-mfa' : '/app', { replace: true })
+      await reload()
+      navigate('/app', { replace: true })
     } catch (error) {
       setMessage(
         error.code === 'INVALID_CREDENTIALS'
