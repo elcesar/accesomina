@@ -1,6 +1,5 @@
 /* Centro de Control · homologación visual con Gestión Operacional */
 
-/* Contenedor principal: mismo eje, respiración y fondo */
 body .nk-dashboard,
 body .nk-alerts-page,
 body .nk-operations-page,
@@ -12,13 +11,12 @@ body .nk-control-workspace {
   background: var(--bg);
 }
 
-/* Cabeceras de módulo: mismo patrón de Gestión Operacional */
 body .nk-module-header,
 body .nk-control-workspace-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4) !important;
+  gap: var(--space-3) !important;
 }
 
 body .nk-module-header > div:first-child,
@@ -26,14 +24,16 @@ body .nk-control-workspace-header > div:first-child {
   min-width: 0;
 }
 
+/* Exactamente el patrón tipográfico usado en Gestión Operacional */
 body .nk-module-header h1,
 body .nk-control-workspace-header h1 {
   margin: 0 !important;
-  color: var(--ink);
-  font-family: var(--font-brand);
-  font-size: inherit !important;
-  font-weight: var(--weight-bold);
-  line-height: var(--leading-tight);
+  color: var(--ink) !important;
+  font: inherit !important;
+  font-family: inherit !important;
+  font-size: 2em !important;
+  font-weight: var(--weight-bold) !important;
+  line-height: normal !important;
 }
 
 body .nk-module-header > div > p:last-child,
@@ -41,9 +41,9 @@ body .nk-control-workspace-header > div > p:last-child,
 body .nk-control-workspace-header p {
   max-width: 780px;
   margin: var(--space-1) 0 0 !important;
-  color: var(--mut);
-  font-size: inherit !important;
-  line-height: var(--leading-normal);
+  color: var(--mut) !important;
+  font: inherit !important;
+  line-height: normal !important;
 }
 
 body .nk-module-header > .nk-button,
@@ -61,7 +61,6 @@ body .nk-control-workspace-header .nk-actions {
   flex-wrap: wrap;
 }
 
-/* Tarjetas y superficies: densidad equivalente a Gestión Operacional */
 body .nk-module-card,
 body .nk-role-focus,
 body .nk-control-kpi {
@@ -89,7 +88,6 @@ body .nk-alert-summary b {
   font-size: 1.35rem !important;
 }
 
-/* Encabezados internos de tarjetas */
 body .nk-module-card h2,
 body .nk-control-list-head h2,
 body .nk-ops-card-head h2 {
@@ -105,41 +103,17 @@ body .nk-ops-card-head p {
   color: var(--mut);
 }
 
-/* Gestión trabajadores por proyecto */
-body .nk-staffing-workspace {
-  gap: var(--space-4) !important;
-}
-
-body .nk-staffing-context {
-  padding: var(--space-3) var(--space-4) !important;
-}
-
-body .nk-staffing-kpis .nk-control-kpi {
-  min-height: 72px;
-  padding: var(--space-3) var(--space-4) !important;
-}
-
-/* Alertas */
-body .nk-alert-summary button {
-  box-shadow: none;
-}
-
-body .nk-alert-group {
-  border-radius: var(--radius-md) !important;
-  box-shadow: none;
-}
-
-/* Centro Operativo */
+body .nk-staffing-workspace { gap: var(--space-4) !important; }
+body .nk-staffing-context { padding: var(--space-3) var(--space-4) !important; }
+body .nk-staffing-kpis .nk-control-kpi { min-height: 72px; padding: var(--space-3) var(--space-4) !important; }
+body .nk-alert-summary button { box-shadow: none; }
+body .nk-alert-group { border-radius: var(--radius-md) !important; box-shadow: none; }
 body .nk-ops-service-card,
-body .nk-ops-guide {
-  border-radius: var(--radius-md) !important;
-}
+body .nk-ops-guide { border-radius: var(--radius-md) !important; }
 
 @media (max-width: 720px) {
   body .nk-module-header,
-  body .nk-control-workspace-header {
-    flex-direction: column;
-  }
+  body .nk-control-workspace-header { flex-direction: column; }
 
   body .nk-module-header > .nk-button,
   body .nk-module-header .nk-actions,
