@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
@@ -90,6 +90,7 @@ function pageDomain(pathname) {
 export default function AppLayout() {
   const { pathname } = useLocation()
   const domain = pageDomain(pathname)
+  const [branding, setBranding] = useState({})
 
   useEffect(() => {
     let active = true
@@ -97,13 +98,25 @@ export default function AppLayout() {
     const loadBranding = async () => {
       try {
         const data = await api.get('/settings')
-        if (active) applyTenantBranding(data?.settings?.branding || {})
+        const nextBranding = data?.settings?.branding || {}
+        if (active) {
+          setBranding(nextBranding)
+          applyTenantBranding(nextBranding)
+        }
       } catch {
-        if (active) applyTenantBranding({ theme: 'light' })
+        if (active) {
+          const fallback = { theme: 'light' }
+          setBranding(fallback)
+          applyTenantBranding(fallback)
+        }
       }
     }
 
-    const onBrandingChanged = event => applyTenantBranding(event.detail || {})
+    const onBrandingChanged = event => {
+      const nextBranding = event.detail || {}
+      setBranding(nextBranding)
+      applyTenantBranding(nextBranding)
+    }
 
     loadBranding()
     window.addEventListener('nexo:branding-changed', onBrandingChanged)
@@ -117,7 +130,7 @@ export default function AppLayout() {
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg)', overflow: 'hidden' }}>
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <Header />
+        <Header branding={branding} />
         <main
           className="nk-app-main"
           data-page-domain={domain || undefined}
