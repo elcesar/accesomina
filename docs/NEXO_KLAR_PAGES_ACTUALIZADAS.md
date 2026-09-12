@@ -15,7 +15,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 
 - Revisar la referencia histórica antes de rediseñar una Page.
 - Mantener una única fuente funcional de escritura por dominio y aliases legacy solo como lectura cuando corresponda.
-- Recuperar el **layout conceptual útil** del HTML sin regresar la arquitectura de datos.
+- El HTML histórico es la **referencia primaria de layout, distribución y jerarquía funcional**. React moderniza estilos y componentes sin inventar otra estructura cuando el HTML ya define una lógica útil.
 - `AppLayout` muestra el dominio/sección una sola vez; las Pages no deben repetirlo como kicker.
 - Las acciones globales `+ Cliente`, `+ Contrato` y `+ Orden de servicio` pertenecen al Header y no se duplican dentro de las Pages.
 - Las entidades con ficha propia deben ser navegables desde el contexto operacional.
@@ -79,7 +79,7 @@ Este documento mantiene la trazabilidad de las páginas React (`src/pages/*.jsx`
 | Fase 14 · Gestión y Administración | `UsuariosPermisosPage.jsx` | Actualizada · Revisada · Reemplazada | Usuarios del tenant, roles, estado, alta y restablecimiento de acceso sobre `/api/users`. |
 | Fase 14 · Gestión y Administración | `BitacoraCambiosPage.jsx` | Actualizada · Revisada · Reemplazada | Bitácora inmutable de solo lectura sobre `/api/audit`. |
 | Fase 14 · Gestión y Administración | `PrivacidadDatosPage.jsx` | Actualizada · Revisada · Reemplazada | Gobierno de datos: tratamientos, derechos, consentimientos e incidentes sobre `/api/privacy`. |
-| Fase 14 · Gestión y Administración | `ConfiguracionPage.jsx` | Actualizada · Revisada · Reemplazada | Configuración por tenant: identidad, alertas, módulos, catálogos e integraciones privadas sobre `/api/settings`. |
+| Fase 14 · Gestión y Administración | `ConfiguracionPage.jsx` | Actualizada · Revisada · Reemplazada | Sustituye el wrapper `ModuleWorkspacePage(forcedModule="configuracion")`; conserva el layout del HTML y lo conecta a `/api/settings`: identidad y alertas → módulos habilitados → integraciones privadas. |
 
 ## Cierres de fases
 
@@ -172,17 +172,17 @@ La fase consolida las capacidades transversales de administración, gobierno, tr
 - `UsuariosPermisosPage.jsx`: administración de usuarios, roles y estado mediante `/api/users`.
 - `BitacoraCambiosPage.jsx`: lectura inmutable de auditoría mediante `/api/audit`.
 - `PrivacidadDatosPage.jsx`: tratamientos, solicitudes de titulares, consentimientos e incidentes mediante `/api/privacy`.
-- `ConfiguracionPage.jsx`: identidad, alertas, catálogos, módulos declarativos e integraciones privadas mediante `/api/settings`.
+- `ConfiguracionPage.jsx`: reemplaza el wrapper genérico original y mantiene como layout definitivo del HTML `Identidad y alertas → Módulos habilitados → Integraciones privadas`, conectado a `/api/settings`.
 
 **Layout y navegación:** `Reportes y analítica` permanece como acceso directo de primer nivel. Importar/exportar, Usuarios, Bitácora y Privacidad permanecen en **Gestión y Administración**; Configuración permanece como acción inferior del Sidebar, pero `/app/configuracion` se clasifica bajo el mismo dominio en `AppLayout`.
 
 **Seguridad y ownership:** usuarios, auditoría, privacidad, configuración e integraciones están aislados por tenant en backend. Las claves de integración se almacenan cifradas y no se vuelven a mostrar. Bitácora es de solo lectura desde frontend. Configuración y privacidad requieren rol administrador según sus rutas backend.
 
-**Referencia de layout:** Importar/exportar, Usuarios, Bitácora, Privacidad y Configuración fueron contrastados contra `AccesoMina_v6.html`; se preservó la estructura útil de cards, KPIs, tablas y acciones, aplicando el Design System React vigente.
+**Referencia de layout:** Importar/exportar, Usuarios, Bitácora, Privacidad y Configuración fueron contrastados contra `AccesoMina_v6.html`; se preservó la estructura útil de cards, KPIs, tablas y acciones, aplicando el Design System React vigente. Para Configuración, el Page React previo era únicamente un wrapper de `ModuleWorkspacePage`; la implementación final conserva deliberadamente la estructura del HTML en lugar de reutilizar el layout genérico.
 
 **Commits principales de cierre:** `43a36d2c` / `8503a1c3` (Importar/exportar), `f1e6ee78` / `73eaa111` (Usuarios), `e816cf25` / `f7c94619` (Bitácora), `65749dba` / `6c54de74` (Privacidad), `8b41808b` / `816822f0` / `e75ee935` / `edd0fbb9` (Configuración y navegación).
 
-**Validación técnica:** revisión de rutas, ownership y contratos API completada. La validación CI del commit final debe comprobarse en GitHub Actions antes de considerar desplegado el cierre.
+**Validación técnica:** revisión de rutas, ownership y contratos API completada. El workflow **Build and Push to ECR** del commit de cierre `75af76d8d249d576418bbfcb602db567988cc923` finalizó con `success`.
 
 ## Próximo bloque
 
