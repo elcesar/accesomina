@@ -24,14 +24,16 @@ const activeModuleForPath = pathname => {
   return null
 }
 
-export default function Header() {
+export default function Header({ branding = {} }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { session, logout } = useAuth()
   const role = session?.user?.role
   const canCreateGeneral = role !== 'consulta'
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
-  const tenantName = session?.tenant?.name || 'Nexo Klar'
+  const legalTenantName = session?.tenant?.name || 'Nexo Klar'
+  const tenantName = String(branding?.displayName || '').trim() || legalTenantName
+  const tenantLogo = String(branding?.logoUrl || '').trim()
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
   const activeModule = activeModuleForPath(location.pathname)
   const createClass = module => `nk-button ${activeModule === module ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
@@ -44,7 +46,18 @@ export default function Header() {
   return (
     <header className="nk-global-header">
       <div className="nk-global-context" aria-label="Contexto de sesión">
-        <strong className="nk-global-tenant" title={tenantName}>{tenantName}</strong>
+        <div className="nk-global-tenant-brand">
+          {tenantLogo && (
+            <img
+              className="nk-global-tenant-logo"
+              src={tenantLogo}
+              alt=""
+              aria-hidden="true"
+              onError={event => { event.currentTarget.style.display = 'none' }}
+            />
+          )}
+          <strong className="nk-global-tenant" title={legalTenantName}>{tenantName}</strong>
+        </div>
         <span className="nk-global-user" title={`${userName} · ${roleLabel(role)}`}>
           {userName} <small>· {roleLabel(role)}</small>
         </span>
