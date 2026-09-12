@@ -15,10 +15,10 @@ function formatRut(value) {
   return `${formattedBody}-${dv}`
 }
 
-export default function CustomerAccessSection() {
+export default function CustomerAccessSection({ initialTab = 'login' }) {
   const navigate = useNavigate()
   const { login } = useAuth()
-  const [tab, setTab] = useState('login')
+  const [tab, setTab] = useState(initialTab === 'register' ? 'register' : 'login')
   const [config, setConfig] = useState({ registrationEnabled: false })
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,6 +28,11 @@ export default function CustomerAccessSection() {
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    setTab(initialTab === 'register' ? 'register' : 'login')
+    setMessage('')
+  }, [initialTab])
 
   const update = set => key => event => set(current => ({ ...current, [key]: event.target.value }))
   const formatFieldRut = set => key => () => set(current => ({ ...current, [key]: formatRut(current[key]) }))
