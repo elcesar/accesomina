@@ -15,7 +15,6 @@ const trackedSections = ['inicio', 'solucion', 'resultados', 'producto', 'capaci
 
 export default function LandingPage() {
   const [active, setActive] = useState('inicio')
-  const [accessTab, setAccessTab] = useState('login')
   const [preview, setPreview] = useState(false)
   const [dialog, setDialog] = useState(null)
 
@@ -27,7 +26,6 @@ export default function LandingPage() {
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
     if (hash === 'clientes-access') {
-      setAccessTab('register')
       requestAnimationFrame(() => document.getElementById('clientes-access')?.scrollIntoView({ block: 'center' }))
       return
     }
@@ -58,13 +56,6 @@ export default function LandingPage() {
   }
 
   const openCompanyRegistration = () => {
-    setAccessTab('register')
-    window.history.replaceState(null, '', '#clientes-access')
-    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
-
-  const openPrivateAccess = () => {
-    setAccessTab('login')
     window.history.replaceState(null, '', '#clientes-access')
     document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
@@ -73,7 +64,7 @@ export default function LandingPage() {
     <PublicNavigation active={active} onNavigate={goTo} onCreateCompany={openCompanyRegistration} />
 
     <main>
-      <HomeSection openDemo={() => setDialog('demo')} onNavigate={goTo} accessTab={accessTab} />
+      <HomeSection openDemo={() => setDialog('demo')} onNavigate={goTo} />
       <PlatformSection />
       <BenefitsSection />
       <ProductSection openPreview={() => setPreview(true)} />
@@ -89,7 +80,7 @@ export default function LandingPage() {
           <p className="nk-lead">Revisamos contigo tus procesos, tipos de personal, contratos y órdenes de servicio para definir la configuración que realmente necesita tu empresa.</p>
           <div className="nk-actions">
             <button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('demo')}>Solicitar demostración</button>
-            <button className="nk-button nk-button-secondary" type="button" onClick={openPrivateAccess}>Ingresar al sitio privado</button>
+            <button className="nk-button nk-button-secondary" type="button" onClick={openCompanyRegistration}>Crear empresa</button>
           </div>
         </div>
       </section>
