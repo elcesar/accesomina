@@ -48,6 +48,7 @@ import CentroOperativoPage from './pages/CentroOperativoPage.jsx'
 import ReportesPage from './pages/ReportesPage.jsx'
 import ImportarExportarPage from './pages/ImportarExportarPage.jsx'
 import UsuariosPermisosPage from './pages/UsuariosPermisosPage.jsx'
+import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -135,6 +136,7 @@ export default function App() {
             <Route path="reportes" element={<ReportesPage />} />
             <Route path="transferencia" element={<ImportarExportarPage />} />
             <Route path="usuarios" element={<UsuariosPermisosPage />} />
+            <Route path="bitacora" element={<BitacoraCambiosPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
