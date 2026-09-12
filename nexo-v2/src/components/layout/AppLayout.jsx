@@ -10,9 +10,7 @@ function pageDomain(pathname) {
     pathname === '/app' ||
     pathname.startsWith('/app/alertas') ||
     pathname.startsWith('/app/reclutamiento') ||
-    pathname.startsWith('/app/modulos/gestion-personal-proyecto') ||
-    pathname.startsWith('/app/operaciones') ||
-    pathname.startsWith('/app/modulos/centro-operativo')
+    pathname.startsWith('/app/operaciones')
   ) return 'Centro de Control'
 
   if (
@@ -44,11 +42,7 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/convenios') ||
     pathname.startsWith('/app/personal-contratista') ||
     pathname.startsWith('/app/habilitaciones-contratistas') ||
-    pathname.startsWith('/app/evaluacion-desempeno') ||
-    pathname.startsWith('/app/modulos/contratos-convenios') ||
-    pathname.startsWith('/app/modulos/personal-empresa-servicios') ||
-    pathname.startsWith('/app/modulos/habilitaciones-cumplimiento') ||
-    pathname.startsWith('/app/modulos/evaluacion-desempeno')
+    pathname.startsWith('/app/evaluacion-desempeno')
   ) return 'Contratistas'
 
   if (
@@ -60,7 +54,6 @@ function pageDomain(pathname) {
 
   if (
     pathname.startsWith('/app/oportunidades') ||
-    pathname.startsWith('/app/modulos/prospectos') ||
     pathname.startsWith('/app/libro-obra')
   ) return 'Gestión de Proyectos y Negocios'
 
@@ -75,8 +68,7 @@ function pageDomain(pathname) {
     pathname.startsWith('/app/bodegas') ||
     pathname.startsWith('/app/movimientos-inventario') ||
     pathname.startsWith('/app/mantenimiento') ||
-    pathname.startsWith('/app/asignaciones-prestamos') ||
-    pathname.startsWith('/app/modulos/activos-inventario')
+    pathname.startsWith('/app/asignaciones-prestamos')
   ) return 'Activos, Equipos e Inventario'
 
   if (
