@@ -111,10 +111,14 @@ export default function App() {
             <Route path="hoteleria" element={<AlojamientosPage />} />
             <Route path="credenciales" element={<CredencialesPage />} />
             <Route path="subcontratos" element={<TercerosSubcontratosPage />} />
-            <Route path="modulos/contratos-convenios" element={<ConveniosPage />} />
-            <Route path="modulos/personal-empresa-servicios" element={<PersonalEmpresaServiciosPage />} />
-            <Route path="modulos/habilitaciones-cumplimiento" element={<HabilitacionesCumplimientoPage />} />
-            <Route path="modulos/evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
+            <Route path="convenios" element={<ConveniosPage />} />
+            <Route path="personal-contratista" element={<PersonalEmpresaServiciosPage />} />
+            <Route path="habilitaciones-contratistas" element={<HabilitacionesCumplimientoPage />} />
+            <Route path="evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
+            <Route path="modulos/contratos-convenios" element={<Navigate to="/app/convenios" replace />} />
+            <Route path="modulos/personal-empresa-servicios" element={<Navigate to="/app/personal-contratista" replace />} />
+            <Route path="modulos/habilitaciones-cumplimiento" element={<Navigate to="/app/habilitaciones-contratistas" replace />} />
+            <Route path="modulos/evaluacion-desempeno" element={<Navigate to="/app/evaluacion-desempeno" replace />} />
             <Route path="acreditacion-empresa" element={<CumplimientoCorporativoPage />} />
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
