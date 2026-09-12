@@ -12,8 +12,10 @@ export function AuthProvider({ children }) {
       const data = await api.get('/auth/me')
       setCsrf(data.csrfToken)
       setSession(data)
+      return data
     } catch {
       setSession(null)
+      return null
     } finally {
       setLoading(false)
     }
