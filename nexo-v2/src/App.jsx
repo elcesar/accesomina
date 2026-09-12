@@ -46,6 +46,7 @@ import MovimientosInventarioPage from './pages/MovimientosInventarioPage.jsx'
 import MantenimientoPage from './pages/MantenimientoPage.jsx'
 import AsignacionesPrestamosPage from './pages/AsignacionesPrestamosPage.jsx'
 import ProspectosPage from './pages/ProspectosPage.jsx'
+import LibroObraPage from './pages/LibroObraPage.jsx'
 import GestionPersonalProyectoPage from './pages/GestionPersonalProyectoPage.jsx'
 import CentroOperativoPage from './pages/CentroOperativoPage.jsx'
 import ReportesPage from './pages/ReportesPage.jsx'
@@ -117,6 +118,7 @@ export default function App() {
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
+            <Route path="libro-obra" element={<LibroObraPage />} />
             <Route path="oportunidades" element={<ProspectosPage />} />
             <Route path="activos-inventario" element={<ActivosInventarioPage />} />
             <Route path="maquinaria" element={<MaquinariaPage />} />
