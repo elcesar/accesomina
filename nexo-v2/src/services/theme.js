@@ -1,15 +1,27 @@
-export function applyTenantBranding(branding = {}) {
+function clearLegacyRootBranding() {
   const root = document.documentElement
+  delete root.dataset.theme
+  root.style.removeProperty('color-scheme')
+  root.style.removeProperty('--pri')
+  root.style.removeProperty('--action')
+}
+
+export function applyTenantBranding(branding = {}) {
+  clearLegacyRootBranding()
+
+  const shell = document.querySelector('.nk-app-shell')
+  if (!shell) return
+
   const theme = branding.theme === 'dark' ? 'dark' : 'light'
-  root.dataset.theme = theme
-  root.style.colorScheme = theme
+  shell.dataset.theme = theme
+  shell.style.colorScheme = theme
 
   const accent = String(branding.accent || '').trim()
   if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
-    root.style.setProperty('--pri', accent)
-    root.style.setProperty('--action', accent)
+    shell.style.setProperty('--pri', accent)
+    shell.style.setProperty('--action', accent)
   } else {
-    root.style.removeProperty('--pri')
-    root.style.removeProperty('--action')
+    shell.style.removeProperty('--pri')
+    shell.style.removeProperty('--action')
   }
 }
