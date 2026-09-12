@@ -322,11 +322,12 @@
 .nk-access-tabs button { padding: var(--space-3) var(--space-4); border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--mut); font-weight: var(--weight-semibold); cursor: pointer; }
 .nk-access-tabs button.active { color: var(--pri); border-bottom-color: var(--pri); }
 .nk-access-form { display: grid; gap: var(--space-4); }
+.nk-access-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .nk-access-form label { display: grid; gap: var(--space-2); color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
 .nk-access-form input { width: 100%; box-sizing: border-box; min-height: 42px; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surf); color: var(--ink); font: var(--text-md) var(--font-ui); }
 .nk-access-form input:focus { outline: none; border-color: var(--action); box-shadow: var(--focus-ring); }
 .nk-form-message { margin: var(--space-4) 0 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surf-2); color: var(--ink); font-size: var(--text-sm); }
-.nk-access-note { margin: var(--space-5) 0 0; color: var(--sub); font-size: var(--text-xs); line-height: var(--leading-normal); }
+.nk-access-note { margin: 0; color: var(--sub); font-size: var(--text-xs); line-height: var(--leading-normal); }
 
 /* Footer */
 .nk-public-footer {
@@ -418,13 +419,11 @@
   .nk-product-mock > div { grid-template-columns: 1fr; }
   .nk-product-mock aside { display: none; }
   .nk-mini-kpis { grid-template-columns: 1fr; }
-  .nk-mock-row { grid-template-columns: 1fr; gap: 2px; }
-  .nk-access-layout { grid-template-columns: 1fr; }
-  .nk-access-card { padding: var(--space-5); }
-  .nk-public-footer { flex-direction: column; align-items: flex-start; }
-  .nk-public-footer > div { flex-wrap: wrap; }
+  .nk-access-form-row { grid-template-columns: 1fr; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .nk-public-nav-links .nk-button, .nk-public-mobile-tabs button, .nk-image-button, .nk-lightbox { scroll-behavior: auto; transition: none; }
+@media (max-width: 520px) {
+  .nk-public-section { padding-block: 52px; }
+  .nk-access-card { padding: var(--space-4); }
+  .nk-public-footer { flex-direction: column; align-items: flex-start; }
 }
