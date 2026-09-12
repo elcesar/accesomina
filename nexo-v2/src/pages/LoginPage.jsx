@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
@@ -16,12 +16,14 @@ function Field({ label, children }) {
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [form, setForm] = useState({ rut: '', email: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
+  const passwordReset = location.state?.passwordReset === true
 
   const handleChange = (e) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -116,6 +118,12 @@ export default function LoginPage() {
             </div>
           )}
 
+          {passwordReset && !mfaRequired && (
+            <div className="nk-login-success" role="status">
+              <p>Contraseña actualizada correctamente. Ya puedes iniciar sesión.</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="nk-login-form">
             {!mfaRequired ? (
               <>
@@ -166,6 +174,10 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </Field>
+
+                <div className="nk-login-recovery-link">
+                  <Link className="nk-link" to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+                </div>
               </>
             ) : (
               <Field label="Código de autenticación">
