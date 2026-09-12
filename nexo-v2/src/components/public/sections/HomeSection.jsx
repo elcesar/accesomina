@@ -6,7 +6,7 @@ const points = [
   ['Decisiones con respaldo', 'Consulta estados, documentos e historial desde una única fuente de información.'],
 ]
 
-export default function HomeSection({ openDemo, onNavigate, accessTab = 'login' }) {
+export default function HomeSection({ openDemo, onNavigate }) {
   return <section id="inicio" className="nk-hero nk-public-section">
     <div className="nk-hero-copy">
       <p className="nk-eyebrow">Gestión operativa para empresas de servicios</p>
@@ -21,8 +21,8 @@ export default function HomeSection({ openDemo, onNavigate, accessTab = 'login' 
       </div>
     </div>
 
-    <div id="clientes-access" className="nk-hero-access" aria-label="Acceso y creación de empresa">
-      <CustomerAccessPanel initialTab={accessTab} />
+    <div id="clientes-access" className="nk-hero-access" aria-label="Registro de nueva empresa">
+      <CustomerAccessPanel />
     </div>
   </section>
 }
