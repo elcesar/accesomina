@@ -55,8 +55,10 @@ import UsuariosPermisosPage from './pages/UsuariosPermisosPage.jsx'
 import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
+import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
+import MfaSetupPage from './pages/MfaSetupPage.jsx'
 
-function ProtectedRoute({ children, allowPasswordChange = false }) {
+function ProtectedRoute({ children, allowPasswordChange = false, allowMfaSetup = false }) {
   const { session, loading } = useAuth()
   if (loading) return (
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4EFE3' }}>
@@ -68,6 +70,7 @@ function ProtectedRoute({ children, allowPasswordChange = false }) {
   )
   if (!session) return <Navigate to="/login" replace />
   if (session.user?.mustChangePassword && !allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+  if (session.user?.mfaEnrollmentRequired && !allowMfaSetup && !allowPasswordChange) return <Navigate to="/configurar-mfa" replace />
   return children
 }
 
@@ -75,6 +78,7 @@ function PublicRoute({ children }) {
   const { session, loading } = useAuth()
   if (loading) return null
   if (session?.user?.mustChangePassword) return <Navigate to="/cambiar-password" replace />
+  if (session?.user?.mfaEnrollmentRequired) return <Navigate to="/configurar-mfa" replace />
   if (session) return <Navigate to="/app" replace />
   return children
 }
@@ -95,6 +99,7 @@ export default function App() {
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           <Route path="/cambiar-password" element={<ProtectedRoute allowPasswordChange><ChangePasswordPage /></ProtectedRoute>} />
+          <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaSetup><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
@@ -142,6 +147,7 @@ export default function App() {
             <Route path="bitacora" element={<BitacoraCambiosPage />} />
             <Route path="privacidad" element={<PrivacidadDatosPage />} />
             <Route path="configuracion" element={<ConfiguracionPage />} />
+            <Route path="administracion-clientes" element={<AdministracionClientesPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />

@@ -203,6 +203,15 @@ export default function Sidebar() {
       </nav>
 
       <div className="nk-sidebar-bottom">
+        {session?.user?.role === 'domian_admin' && (
+          <NavLink
+            to="/app/administracion-clientes"
+            className={({ isActive }) => `nk-sidebar-action ${isActive ? 'active' : ''}`}
+          >
+            <IconBuilding size={15} strokeWidth={1.7} />
+            <span>Administración de clientes</span>
+          </NavLink>
+        )}
         <NavLink
           to="/app/configuracion"
           className={({ isActive }) => `nk-sidebar-action ${isActive ? 'active' : ''}`}

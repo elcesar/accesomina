@@ -34,6 +34,8 @@ Este documento mantiene la trazabilidad canónica de las páginas React (`nexo-v
 | --- | --- | --- | --- |
 | Sitio público | `LandingPage.jsx` | Actualizada · Revisada | Landing vertical continuo y registro de nueva empresa. |
 | Acceso | `LoginPage.jsx` | Actualizada | Único formulario de autenticación. |
+| Acceso | `ForgotPasswordPage.jsx`, `ResetPasswordPage.jsx`, `ChangePasswordPage.jsx` | Actualizada | Recuperación, restablecimiento y cambio obligatorio de contraseña. |
+| Acceso | `MfaSetupPage.jsx` | Actualizada | Configuración de doble autenticación cuando la política de la empresa la exige. |
 | Fase 1 · Capital Humano | `TrabajadoresPage.jsx` | Actualizada · Revisada | Listado especializado de personas. |
 | Fase 1 · Capital Humano | `NuevoTrabajadorPage.jsx` | Actualizada · Revisada | Alta especializada de Persona. |
 | Fase 1 · Capital Humano | `FichaTrabajadorPage.jsx` | Actualizada · Revisada | Ficha integral de Persona. |
@@ -81,6 +83,15 @@ Este documento mantiene la trazabilidad canónica de las páginas React (`nexo-v
 | Fase 14 · Gestión y Administración | `BitacoraCambiosPage.jsx` | Actualizada · Revisada · Reemplazada | `/api/audit`, solo lectura. |
 | Fase 14 · Gestión y Administración | `PrivacidadDatosPage.jsx` | Actualizada · Revisada · Reemplazada | `/api/privacy`. |
 | Fase 14 · Gestión y Administración | `ConfiguracionPage.jsx` | Actualizada · Revisada · Reemplazada | `/api/settings`; wrapper genérico retirado. |
+| Administración Nexo Klar | `AdministracionClientesPage.jsx` | Actualizada | Vista exclusiva para administrar empresas usuarias y restablecer accesos autorizados. |
+
+## Evolución posterior a la Fase 15
+
+La base React `v3.0.0` conserva la arquitectura y rutas canónicas de la Fase 15. Sobre ella se incorporan las mejoras visuales y de experiencia validadas en la referencia local:
+
+- Ficha de persona simplificada con acciones rápidas, contacto de emergencia, próximo paso y separación entre documentos, aptitudes y formación.
+- Capas visuales compartidas para mantener la apariencia de Nexo Klar en sitio público y privado.
+- Acceso a configuración MFA y Administración de clientes sin crear rutas paralelas ni reemplazar los módulos especializados.
 
 ## Cierre Fase 15 · Migración React — CERRADA
 

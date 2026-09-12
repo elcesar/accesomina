@@ -134,6 +134,22 @@
 .nk-person-tabs { overflow-x: auto; }
 .nk-person-tabs .nk-tabs { min-width: max-content; border-bottom: 0; }
 
+.nk-person-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-3);
+}
+
+.nk-person-quick-actions > span {
+  color: var(--mut);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-person-quick-actions .nk-button { min-height: 32px; }
+
 .nk-person-feedback {
   flex: 0 0 auto;
   display: flex;
@@ -202,12 +218,122 @@
 
 .nk-person-grid-wide { grid-column: 1 / -1; }
 
+.nk-person-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.nk-person-summary-grid article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 92px;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surf-2);
+}
+
+.nk-person-summary-grid span,
+.nk-person-summary-grid small { color: var(--mut); font-size: var(--text-sm); }
+.nk-person-summary-grid strong { color: var(--ink); font-size: var(--text-base); }
+.nk-person-summary-grid strong.ok { color: var(--ok); }
+.nk-person-summary-grid strong.warn { color: var(--warn-ink); }
+.nk-person-summary-grid strong.error { color: var(--err); }
+
+.nk-person-operation-snapshot {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: calc(var(--space-4) * -1) 0 var(--space-4);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--line);
+}
+
+.nk-person-operation-snapshot span {
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--surf);
+  color: var(--sub);
+  font-size: var(--text-sm);
+}
+
+.nk-person-operation-snapshot b {
+  display: block;
+  margin-bottom: var(--space-1);
+  color: var(--ink);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-person-details,
+.nk-person-inline-details {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surf);
+}
+
+.nk-person-details summary,
+.nk-person-inline-details summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.nk-person-details .nk-person-grid,
+.nk-person-inline-details .nk-person-chip-list { margin-top: var(--space-4); }
+
+.nk-person-workflow {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surf);
+}
+
+.nk-person-workflow summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+  color: var(--ink);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+}
+
+.nk-person-workflow summary small {
+  color: var(--mut);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.nk-person-workflow-help,
+.nk-person-details-help {
+  margin: var(--space-3) 0;
+  color: var(--sub);
+  font-size: var(--text-sm);
+}
+
+.nk-person-details-content { margin-top: var(--space-4); }
+.nk-person-optional-section { padding-bottom: var(--space-3); }
+
 .nk-person-assignment-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   align-items: end;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+@media (max-width: 820px) {
+  .nk-person-summary-grid { grid-template-columns: 1fr; }
 }
 
 .nk-person-chip-list {
@@ -243,6 +369,28 @@
 .nk-person-text-muted { color: var(--mut); }
 .nk-person-text-sub { color: var(--sub); font-size: var(--text-sm); }
 .nk-person-text-strong { color: var(--ink); font-weight: var(--weight-semibold); }
+
+.nk-person-timeline {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nk-person-timeline li {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.nk-person-timeline li:last-child { padding-bottom: 0; border-bottom: 0; }
+.nk-person-timeline time { color: var(--mut); font-size: var(--text-sm); }
+.nk-person-timeline div { display: grid; justify-items: start; gap: var(--space-1); }
+.nk-person-timeline strong { color: var(--ink); font-size: var(--text-sm); }
+.nk-person-timeline small { color: var(--sub); font-size: var(--text-sm); }
 
 .nk-person-file-name {
   display: inline-flex;
@@ -295,6 +443,7 @@
   .nk-person-detail-top { flex-direction: column; }
   .nk-person-header-actions { justify-content: flex-start; }
   .nk-person-assignment-form { grid-template-columns: 1fr 1fr; }
+  .nk-person-operation-snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0; }
 }
 
 @media (max-width: 768px) {
@@ -303,4 +452,5 @@
   .nk-person-assignment-form { grid-template-columns: 1fr; }
   .nk-person-grid-wide { grid-column: auto; }
   .nk-person-card-head { align-items: flex-start; flex-direction: column; }
+  .nk-person-timeline li { grid-template-columns: 1fr; gap: var(--space-1); }
 }
