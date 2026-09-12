@@ -33,6 +33,13 @@ export default function PublicNavigation({ active = 'inicio', onNavigate }) {
             contacto@nexoklar.cl
           </a>
           <button
+            className="nk-button nk-button-secondary"
+            type="button"
+            onClick={() => onNavigate?.('clientes-access')}
+          >
+            Crear empresa
+          </button>
+          <button
             className="nk-button nk-button-primary"
             type="button"
             onClick={() => navigate('/login')}
