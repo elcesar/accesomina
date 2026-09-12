@@ -1,29 +1,21 @@
 import { useMemo, useState } from 'react'
-import {
-  IconDatabaseExport,
-  IconDatabaseImport,
-  IconDownload,
-  IconFileSpreadsheet,
-  IconRefresh,
-  IconShieldCheck,
-  IconUpload,
-} from '@tabler/icons-react'
+import { IconDatabaseExport, IconDatabaseImport, IconDownload, IconUpload } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/data-transfer.css'
 
 const TYPES = [
-  { id: 'trabajadores', label: 'Personas', group: 'Capital Humano' },
-  { id: 'turnos', label: 'Turnos y asistencia', group: 'Capital Humano' },
-  { id: 'epp', label: 'Entregas de EPP', group: 'Capital Humano' },
-  { id: 'minas', label: 'Clientes', group: 'Relación Comercial' },
-  { id: 'contratos', label: 'Contratos', group: 'Relación Comercial' },
-  { id: 'mantenciones', label: 'Órdenes de servicio', group: 'Relación Comercial' },
-  { id: 'oportunidades', label: 'Prospectos y oportunidades', group: 'Relación Comercial' },
-  { id: 'vehiculos', label: 'Vehículos', group: 'Gestión Operacional' },
-  { id: 'hoteles', label: 'Alojamientos', group: 'Gestión Operacional' },
-  { id: 'credenciales', label: 'Credenciales', group: 'Gestión Operacional' },
-  { id: 'subcontratos', label: 'Contratistas', group: 'Contratistas' },
-  { id: 'documentos', label: 'Documentos importados', group: 'Cumplimiento' },
+  { id: 'trabajadores', label: 'Personas' },
+  { id: 'turnos', label: 'Turnos y asistencia' },
+  { id: 'epp', label: 'Entregas de EPP' },
+  { id: 'minas', label: 'Clientes' },
+  { id: 'contratos', label: 'Contratos' },
+  { id: 'mantenciones', label: 'Órdenes de servicio' },
+  { id: 'oportunidades', label: 'Prospectos y oportunidades' },
+  { id: 'vehiculos', label: 'Vehículos' },
+  { id: 'hoteles', label: 'Alojamientos' },
+  { id: 'credenciales', label: 'Credenciales' },
+  { id: 'subcontratos', label: 'Contratistas' },
+  { id: 'documentos', label: 'Documentos importados' },
 ]
 
 function download(path) {
@@ -36,49 +28,42 @@ function download(path) {
 }
 
 export default function ImportarExportarPage() {
-  const [tab, setTab] = useState('exportar')
-  const [type, setType] = useState('trabajadores')
+  const [exportType, setExportType] = useState('backup')
+  const [importType, setImportType] = useState('trabajadores')
   const [file, setFile] = useState(null)
   const [mode, setMode] = useState('append')
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState('')
 
-  const selected = useMemo(() => TYPES.find(item => item.id === type) || TYPES[0], [type])
-  const groups = useMemo(() => [...new Set(TYPES.map(item => item.group))], [])
+  const selectedImport = useMemo(() => TYPES.find(item => item.id === importType) || TYPES[0], [importType])
+  const backupImport = importType === 'backup'
 
-  const importCsv = async () => {
+  const exportData = () => {
+    setMessage('')
+    download(exportType === 'backup' ? '/export' : `/export/${exportType}`)
+  }
+
+  const importData = async () => {
     if (!file) {
-      setMessage('Selecciona un archivo CSV antes de importar.')
+      setMessage(`Selecciona un archivo ${backupImport ? 'JSON' : 'CSV'} antes de importar.`)
       return
     }
+    if (backupImport && !window.confirm('Restaurar un respaldo reemplazará la información actual de los módulos incluidos. ¿Continuar?')) return
+
     setSending(true)
     setMessage('')
     try {
-      const result = await api.upload(`/data-transfer/import/${type}`, file, { mode })
-      const count = result?.imported ?? result?.rowCount ?? result?.count
-      setMessage(count !== undefined ? `Importación completada: ${count} registros procesados.` : 'Importación completada correctamente.')
+      if (backupImport) {
+        await api.upload('/data-transfer/import/backup', file, { mode: 'replace' })
+        setMessage('Respaldo restaurado correctamente.')
+      } else {
+        const result = await api.upload(`/data-transfer/import/${importType}`, file, { mode })
+        const count = result?.imported ?? result?.rowCount ?? result?.count
+        setMessage(count !== undefined ? `Importación completada: ${count} registros procesados.` : 'Importación completada correctamente.')
+      }
       setFile(null)
     } catch (error) {
       setMessage(error?.message || 'No fue posible importar el archivo.')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const restoreBackup = async () => {
-    if (!file) {
-      setMessage('Selecciona un archivo JSON de respaldo.')
-      return
-    }
-    if (!window.confirm('Restaurar un respaldo reemplazará la información actual de los módulos incluidos. ¿Continuar?')) return
-    setSending(true)
-    setMessage('')
-    try {
-      await api.upload('/data-transfer/import/backup', file, { mode: 'replace' })
-      setMessage('Respaldo restaurado correctamente.')
-      setFile(null)
-    } catch (error) {
-      setMessage(error?.message || 'No fue posible restaurar el respaldo.')
     } finally {
       setSending(false)
     }
@@ -89,104 +74,95 @@ export default function ImportarExportarPage() {
       <header className="nk-module-header">
         <div>
           <h1>Importar y exportar</h1>
-          <p>Transfiere datos mediante plantillas controladas o genera respaldos completos sin alterar el ownership de cada módulo.</p>
+          <p>Respaldo empresarial y carga masiva validada.</p>
         </div>
       </header>
 
       {message && <p className="nk-form-message">{message}</p>}
 
-      <div className="nk-transfer-summary nk-dashboard-grid">
-        <article className="nk-dashboard-metric"><IconFileSpreadsheet size={22}/><div><b>{TYPES.length}</b><span>Tipos disponibles</span></div></article>
-        <article className="nk-dashboard-metric teal"><IconDatabaseExport size={22}/><div><b>CSV</b><span>Exportación por módulo</span></div></article>
-        <article className="nk-dashboard-metric amber"><IconDatabaseImport size={22}/><div><b>CSV / JSON</b><span>Formatos de importación</span></div></article>
-        <article className="nk-dashboard-metric"><IconShieldCheck size={22}/><div><b>Admin</b><span>Acceso restringido</span></div></article>
-      </div>
-
-      <nav className="nk-transfer-tabs" aria-label="Opciones de transferencia">
-        <button className={tab === 'exportar' ? 'active' : ''} onClick={() => { setTab('exportar'); setMessage('') }}>Exportar</button>
-        <button className={tab === 'importar' ? 'active' : ''} onClick={() => { setTab('importar'); setMessage(''); setFile(null) }}>Importar</button>
-        <button className={tab === 'backup' ? 'active' : ''} onClick={() => { setTab('backup'); setMessage(''); setFile(null) }}>Respaldo completo</button>
-      </nav>
-
-      {tab !== 'backup' && (
-        <section className="nk-module-card nk-transfer-workspace">
-          <header className="nk-transfer-head">
+      <div className="nk-transfer-grid">
+        <section className="nk-module-card nk-transfer-panel">
+          <header className="nk-transfer-panel-head">
+            <span className="nk-transfer-panel-icon"><IconDatabaseExport size={20}/></span>
             <div>
-              <h2>{tab === 'exportar' ? 'Exportar datos' : 'Importar datos'}</h2>
-              <p>{tab === 'exportar' ? 'Descarga información de un módulo en CSV o su plantilla vacía.' : 'Carga un CSV utilizando la estructura oficial del módulo seleccionado.'}</p>
+              <h2>Exportar información</h2>
+              <p>Descarga un respaldo completo o la información de un módulo específico.</p>
             </div>
-            <span className="nk-transfer-current">{selected.group} · {selected.label}</span>
           </header>
 
-          <div className="nk-transfer-layout">
-            <aside className="nk-transfer-selector">
-              {groups.map(group => (
-                <div key={group}>
-                  <small>{group}</small>
-                  {TYPES.filter(item => item.group === group).map(item => (
-                    <button key={item.id} className={item.id === type ? 'active' : ''} onClick={() => { setType(item.id); setFile(null); setMessage('') }}>
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </aside>
+          <div className="nk-transfer-panel-body">
+            <label className="nk-transfer-field">
+              <span>Contenido</span>
+              <select className="nk-input" value={exportType} onChange={event => setExportType(event.target.value)}>
+                <option value="backup">Respaldo completo</option>
+                {TYPES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <small>{exportType === 'backup' ? 'Genera un archivo JSON con todos los módulos y configuraciones disponibles.' : 'Genera un archivo CSV con los registros actuales del módulo seleccionado.'}</small>
+            </label>
 
-            <div className="nk-transfer-action">
-              <div className="nk-transfer-action-title">
-                <IconFileSpreadsheet size={22}/>
-                <div><h3>{selected.label}</h3><p>{selected.group}</p></div>
-              </div>
+            <div className="nk-transfer-panel-actions">
+              <button className="nk-button nk-button-primary" onClick={exportData}>
+                <IconDownload size={16}/> Descargar archivo
+              </button>
+            </div>
+          </div>
+        </section>
 
-              {tab === 'exportar' ? (
-                <div className="nk-transfer-buttons">
-                  <button className="nk-button nk-button-primary" onClick={() => download(`/export/${type}`)}><IconDownload size={16}/> Descargar CSV</button>
-                  <button className="nk-button nk-button-secondary" onClick={() => download(`/template/${type}`)}><IconDownload size={16}/> Descargar plantilla</button>
-                </div>
-              ) : (
-                <div className="nk-transfer-import-form">
-                  <label className="nk-transfer-file">
-                    <span>Archivo CSV</span>
-                    <input key={`${type}-${file ? file.name : 'empty'}`} type="file" accept=".csv,text/csv" onChange={event => setFile(event.target.files?.[0] || null)} />
-                    <small>{file ? file.name : 'Selecciona el archivo a cargar'}</small>
-                  </label>
-                  <label className="nk-transfer-mode">
-                    <span>Modo de importación</span>
-                    <select className="nk-input" value={mode} onChange={event => setMode(event.target.value)}>
-                      <option value="append">Agregar registros</option>
-                      <option value="replace">Reemplazar módulo</option>
-                    </select>
-                    <small>“Reemplazar módulo” elimina los registros actuales de este módulo antes de cargar el archivo.</small>
-                  </label>
-                  <div className="nk-transfer-buttons">
-                    <button className="nk-button nk-button-secondary" onClick={() => download(`/template/${type}`)}><IconDownload size={16}/> Plantilla</button>
-                    <button className="nk-button nk-button-primary" disabled={sending || !file} onClick={importCsv}><IconUpload size={16}/>{sending ? 'Importando…' : 'Importar CSV'}</button>
-                  </div>
-                </div>
+        <section className="nk-module-card nk-transfer-panel">
+          <header className="nk-transfer-panel-head">
+            <span className="nk-transfer-panel-icon teal"><IconDatabaseImport size={20}/></span>
+            <div>
+              <h2>Importar datos masivos</h2>
+              <p>Carga información usando las plantillas oficiales y reglas de validación del sistema.</p>
+            </div>
+          </header>
+
+          <div className="nk-transfer-panel-body">
+            <div className="nk-transfer-form-grid">
+              <label className="nk-transfer-field">
+                <span>Tipo de archivo</span>
+                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage('') }}>
+                  {TYPES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+                  <option value="backup">Respaldo completo</option>
+                </select>
+              </label>
+
+              <label className="nk-transfer-field">
+                <span>Acción</span>
+                <select className="nk-input" value={backupImport ? 'replace' : mode} disabled={backupImport} onChange={event => setMode(event.target.value)}>
+                  <option value="append">Agregar registros</option>
+                  <option value="replace">Reemplazar módulo</option>
+                </select>
+              </label>
+            </div>
+
+            <label className="nk-transfer-field nk-transfer-file-field">
+              <span>Archivo</span>
+              <input
+                key={`${importType}-${file ? file.name : 'empty'}`}
+                type="file"
+                accept={backupImport ? '.json,application/json' : '.csv,text/csv'}
+                onChange={event => setFile(event.target.files?.[0] || null)}
+              />
+              <small>{file ? file.name : `Selecciona un archivo ${backupImport ? 'JSON de respaldo' : 'CSV'}`}</small>
+            </label>
+
+            <div className="nk-transfer-panel-actions split">
+              {!backupImport && (
+                <button className="nk-button nk-button-secondary" onClick={() => download(`/template/${importType}`)}>
+                  <IconDownload size={16}/> Descargar plantilla
+                </button>
               )}
+              <button className="nk-button nk-button-primary" disabled={sending || !file} onClick={importData}>
+                <IconUpload size={16}/>{sending ? 'Procesando…' : backupImport ? 'Restaurar respaldo' : 'Validar e importar'}
+              </button>
             </div>
-          </div>
-        </section>
-      )}
 
-      {tab === 'backup' && (
-        <section className="nk-module-card nk-transfer-workspace">
-          <header className="nk-transfer-head">
-            <div><h2>Respaldo completo</h2><p>Exporta o restaura una copia integral de los módulos y configuración de la empresa.</p></div>
-          </header>
-          <div className="nk-transfer-backup-grid">
-            <article>
-              <IconDatabaseExport size={24}/><div><h3>Generar respaldo</h3><p>Descarga un archivo JSON con todos los módulos y configuraciones disponibles.</p></div>
-              <button className="nk-button nk-button-primary" onClick={() => download('/export')}><IconDownload size={16}/> Descargar respaldo</button>
-            </article>
-            <article>
-              <IconRefresh size={24}/><div><h3>Restaurar respaldo</h3><p>Reemplaza la información incluida en el respaldo. Esta acción requiere confirmación.</p></div>
-              <label className="nk-transfer-file compact"><input key={file ? file.name : 'backup-empty'} type="file" accept=".json,application/json" onChange={event => setFile(event.target.files?.[0] || null)} /><small>{file ? file.name : 'Selecciona un respaldo JSON'}</small></label>
-              <button className="nk-button nk-button-secondary" disabled={sending || !file} onClick={restoreBackup}><IconUpload size={16}/>{sending ? 'Restaurando…' : 'Restaurar respaldo'}</button>
-            </article>
+            {!backupImport && <p className="nk-transfer-hint">La plantilla seleccionada corresponde a <b>{selectedImport.label}</b>. Revisa su estructura antes de cargar información masiva.</p>}
+            {backupImport && <p className="nk-transfer-hint warning">La restauración reemplaza los módulos incluidos en el respaldo y requiere confirmación.</p>}
           </div>
         </section>
-      )}
+      </div>
     </section>
   )
 }
