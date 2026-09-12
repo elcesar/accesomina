@@ -1,0 +1,36 @@
+:root[data-theme='dark'] {
+  --bg: #171A1F;
+  --surf: #20242A;
+  --surf-2: #282D34;
+  --line: #3A414A;
+
+  --ink: #F4F6F8;
+  --mut: #B7C0C9;
+  --sub: #8F9AA6;
+  --disabled: #68727D;
+
+  --pri-light: #35365E;
+  --acc-light: #173F3D;
+  --hot-light: #4A1B32;
+
+  --state-ok-bg: #183629;
+  --state-warn-bg: #463719;
+  --state-error-bg: #442326;
+  --state-none-bg: #2B3036;
+
+  --ok-bg: var(--state-ok-bg);
+  --warn-bg: var(--state-warn-bg);
+  --err-bg: var(--state-error-bg);
+  --none-bg: var(--state-none-bg);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.22);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.34);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.40);
+}
+
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] #root {
+  background: var(--bg);
+  color: var(--ink);
+}
