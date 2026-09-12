@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { applyTenantBranding } from '../services/theme.js'
 import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
@@ -49,7 +50,7 @@ export default function ConfiguracionPage() {
     try {
       const data = await api.get('/settings')
       const current = data?.settings || {}
-      setSettings({
+      const nextSettings = {
         branding: {
           displayName: current.branding?.displayName || '',
           theme: current.branding?.theme || 'light',
@@ -62,7 +63,10 @@ export default function ConfiguracionPage() {
           criticalDays: Number(current.alerts?.criticalDays) || 7,
         },
         catalogs: current.catalogs || { specialties: [] },
-      })
+      }
+      setSettings(nextSettings)
+      applyTenantBranding(nextSettings.branding)
+
       const byProvider = Object.fromEntries((data?.integrations || []).map(item => [item.provider, item]))
       setIntegrations({
         smtp: { ...emptyIntegration, ...byProvider.smtp, publicConfig: byProvider.smtp?.public_config || byProvider.smtp?.publicConfig || {}, secret: {} },
@@ -87,7 +91,10 @@ export default function ConfiguracionPage() {
     setMessage('')
     try {
       const result = await api.put('/settings', settings)
-      setSettings(current => ({ ...current, ...result }))
+      const nextBranding = result?.branding || settings.branding
+      setSettings(current => ({ ...current, ...result, branding: nextBranding }))
+      applyTenantBranding(nextBranding)
+      window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
       setMessage('Configuración guardada correctamente.')
     } catch (error) {
       setMessage(error.message || 'No fue posible guardar la configuración.')
@@ -112,7 +119,13 @@ export default function ConfiguracionPage() {
     }
   }
 
-  const setBranding = (key, value) => setSettings(current => ({ ...current, branding: { ...current.branding, [key]: value } }))
+  const setBranding = (key, value) => {
+    setSettings(current => {
+      const branding = { ...current.branding, [key]: value }
+      if (key === 'theme' || key === 'accent') applyTenantBranding(branding)
+      return { ...current, branding }
+    })
+  }
   const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
   const toggleModule = key => setSettings(current => ({ ...current, modules: { ...current.modules, [key]: current.modules?.[key] === false } }))
   const updateIntegration = (provider, section, key, value) => setIntegrations(current => ({ ...current, [provider]: { ...current[provider], [section]: { ...current[provider][section], [key]: value } } }))
