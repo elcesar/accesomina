@@ -96,7 +96,12 @@ stateRouter.put('/modules',editors,async(req,res)=>{
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
     for(const key of keys){const change=changes[key];if(!change||Number(change.version)!==Number(versions[key]||0))return null;proposed[key]=change.data;}
     const normalized=normalizeInventoryState(proposed);
-    const clean=validateTenantState(normalized);enforceStateScope(req.auth.role,Object.fromEntries(keys.map(k=>[k,current[k]])),Object.fromEntries(keys.map(k=>[k,clean[k]]));
+    const clean = validateTenantState(normalized);
+      enforceStateScope(
+      req.auth.role,
+      Object.fromEntries(keys.map(k => [k, current[k]])),
+      Object.fromEntries(keys.map(k => [k, clean[k]]))  // ← falta este )
+    );
     const output={};
     for(const key of keys){const previous=current[key];const row=(await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
       VALUES($1,$2,$3::jsonb,1,$4) ON CONFLICT(tenant_id,module_key) DO UPDATE SET data=EXCLUDED.data,version=tenant_module_state.version+1,updated_by=EXCLUDED.updated_by,updated_at=now()

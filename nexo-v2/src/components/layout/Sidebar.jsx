@@ -119,6 +119,14 @@ const NAV = [
   },
 ]
 
+const NEXO_ADMIN_NAV = {
+  key: 'administracion-nexo-klar',
+  label: 'Administración Nexo Klar',
+  items: [
+    { to: '/app/administracion-clientes', label: 'Administración de clientes', icon: IconBuildingCommunity },
+  ],
+}
+
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
   return (
     <NavLink
@@ -167,6 +175,7 @@ function NavGroup({ group, badges, defaultOpen = true }) {
 
 export default function Sidebar() {
   const { session } = useAuth()
+  const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const badges = {
     '/app/alertas': session?.state?.alertCount || 0,
@@ -200,6 +209,14 @@ export default function Sidebar() {
             defaultOpen={['centro-control', 'capital-humano', 'relacion-comercial'].includes(group.key)}
           />
         ))}
+
+        {isNexoAdmin && (
+          <NavGroup
+            group={NEXO_ADMIN_NAV}
+            badges={badges}
+            defaultOpen
+          />
+        )}
       </nav>
 
       <div className="nk-sidebar-bottom">
