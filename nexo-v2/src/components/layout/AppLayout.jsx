@@ -26,7 +26,7 @@ export default function AppLayout() {
         const data = await api.get('/settings')
         applyBranding(data?.settings?.branding || {})
       } catch {
-        applyBranding({ theme: 'light' })
+        applyBranding({ theme: 'claro' })
       }
     }
 

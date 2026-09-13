@@ -1,0 +1,173 @@
+/* Nexo Klar brand-system v1.0
+   Normalización final para vistas públicas y privadas. */
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--nk-base);
+  color: var(--nk-ink);
+  font-family: var(--nk-family-ui);
+}
+
+body {
+  margin: 0;
+}
+
+.nk-public-site,
+.nk-app-shell,
+.nk-module-page,
+.nk-specialized-page {
+  background: var(--nk-base);
+  color: var(--nk-ink);
+  font-family: var(--nk-family-ui);
+}
+
+.nk-public-site h1,
+.nk-public-site h2,
+.nk-public-site h3,
+.nk-module-header h1,
+.nk-dialog h2,
+.nk-module-card h2 {
+  font-family: var(--nk-family-brand);
+  letter-spacing: 0;
+}
+
+.nk-public-site h1 { font: var(--nk-font-display); }
+.nk-public-site h2 { font: var(--nk-font-title-1); }
+.nk-public-site h3 { font: var(--nk-font-title-2); }
+.nk-module-header h1 { font: var(--nk-font-title-1); }
+
+.nk-public-site p,
+.nk-public-site button,
+.nk-public-site input,
+.nk-public-site select,
+.nk-public-site textarea {
+  font-family: var(--nk-family-ui);
+}
+
+.nk-public-topbar,
+.nk-public-tabs,
+.nk-sidebar,
+.nk-global-header,
+.nk-public-footer,
+.nk-module-card,
+.nk-module-summary article,
+.nk-module-relationships,
+.nk-dialog,
+.nk-access-card,
+.nk-card,
+.nk-table-wrapper {
+  background: var(--nk-surface);
+  border-color: var(--nk-line);
+}
+
+.nk-public-topbar,
+.nk-public-tabs,
+.nk-sidebar,
+.nk-global-header,
+.nk-public-footer {
+  color: var(--nk-ink);
+}
+
+.nk-button-primary,
+.nk-button-action {
+  background: var(--nk-action);
+  color: var(--nk-on-action);
+}
+
+.nk-button-primary:hover:not(:disabled),
+.nk-button-action:hover:not(:disabled) {
+  background: var(--nk-action-hover);
+}
+
+.nk-button-secondary,
+.nk-button-quiet,
+.nk-icon-button {
+  background: var(--nk-surface);
+  color: var(--nk-action);
+  border-color: var(--nk-border-control);
+}
+
+.nk-button-secondary:hover:not(:disabled),
+.nk-button-quiet:hover:not(:disabled),
+.nk-icon-button:hover:not(:disabled) {
+  background: var(--nk-surface-2);
+}
+
+.nk-input,
+.nk-select,
+.nk-textarea,
+.nk-public-form input,
+.nk-public-form select,
+.nk-public-form textarea,
+.nk-access-form input,
+.nk-dialog input,
+.nk-dialog select,
+.nk-dialog textarea,
+.nk-search {
+  background: var(--nk-surface);
+  color: var(--nk-ink);
+  border-color: var(--nk-border-control);
+}
+
+.nk-input::placeholder,
+.nk-textarea::placeholder,
+.nk-search input::placeholder {
+  color: var(--nk-ink-3);
+}
+
+.nk-table th,
+.nk-data-table th {
+  background: var(--nk-support);
+  color: var(--nk-on-primary);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.nk-table tbody tr:nth-child(even),
+.nk-data-table tbody tr:nth-child(even) {
+  background: var(--nk-surface-2);
+}
+
+.nk-table td,
+.nk-data-table td {
+  border-color: var(--nk-line);
+}
+
+.nk-accents,
+.nk-eyebrow,
+.nk-module-kicker,
+.nk-side-link.active,
+.nk-public-tabs button.active {
+  color: var(--nk-primary);
+}
+
+.nk-public-tabs button.active,
+.nk-side-link.active {
+  background: var(--nk-primary-soft);
+}
+
+.nk-public-tabs button.active {
+  color: var(--nk-primary-deep);
+}
+
+.nk-public-section,
+.nk-module-page {
+  scroll-margin-top: var(--nk-space-20);
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--nk-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

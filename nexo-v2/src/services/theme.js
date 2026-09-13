@@ -1,27 +1,33 @@
-function clearLegacyRootBranding() {
-  const root = document.documentElement
-  delete root.dataset.theme
-  root.style.removeProperty('color-scheme')
-  root.style.removeProperty('--pri')
-  root.style.removeProperty('--action')
+const THEMES = new Set(['claro', 'oscuro'])
+
+function normalizeTheme(value) {
+  return value === 'dark' || value === 'oscuro' ? 'oscuro' : 'claro'
 }
 
 export function applyTenantBranding(branding = {}) {
-  clearLegacyRootBranding()
+  const theme = normalizeTheme(branding.theme)
+  const root = document.documentElement
+
+  root.dataset.tema = theme
+  root.style.colorScheme = theme === 'oscuro' ? 'dark' : 'light'
 
   const shell = document.querySelector('.nk-app-shell')
-  if (!shell) return
+  if (shell) shell.dataset.theme = theme
 
-  const theme = branding.theme === 'dark' ? 'dark' : 'light'
-  shell.dataset.theme = theme
-  shell.style.colorScheme = theme
-
-  const accent = String(branding.accent || '').trim()
-  if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
-    shell.style.setProperty('--pri', accent)
-    shell.style.setProperty('--action', accent)
-  } else {
-    shell.style.removeProperty('--pri')
-    shell.style.removeProperty('--action')
+  try {
+    localStorage.setItem('nexo:tema', theme)
+  } catch {
+    // The explicit choice remains active when browser storage is unavailable.
   }
+}
+
+export function restorePreferredTheme() {
+  let stored = ''
+  try {
+    stored = localStorage.getItem('nexo:tema') || ''
+  } catch {
+    stored = ''
+  }
+
+  applyTenantBranding({ theme: THEMES.has(stored) ? stored : 'claro' })
 }

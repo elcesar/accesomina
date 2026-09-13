@@ -40,7 +40,7 @@ authRouter.post('/register', limiter, async (req, res) => {
     const initialState = { empresa: { nombre: body.companyName, rut: body.rut, representante: body.adminName, email, tel: body.phone }, minas: [], contratos: [], mantenciones: [], hoteles: [], firmas: [], callouts: [], trabajadores: [], asignaciones: [], hotelAsig: [], waGroups: [], contractTemplates: [], tenantUsers: [] };
     await client.query('INSERT INTO tenant_state (tenant_id,state,updated_by) VALUES ($1,$2::jsonb,$3)', [tenant.id, JSON.stringify(initialState), user.id]);
     await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) e",[tenant.id,JSON.stringify(initialState),user.id]);
-    await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,theme:'light',accent:'#2a2a8c'}),user.id]);
+    await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,theme:'claro'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
     res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Nexo Klar.' });

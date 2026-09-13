@@ -5,7 +5,7 @@ import '../styles/libro-obra.css'
 
 const list = value => Array.isArray(value) ? value : []
 const today = () => new Date().toISOString().slice(0, 10)
-const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de obra', entryType:'avance', occurredAt:`${today()}T12:00:00.000Z`, subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
+const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de Obra', entryType:'avance', occurredAt:`${today()}T12:00:00.000Z`, subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
 const openStatus = status => !['cerrado', 'firmado'].includes(status)
 const normalize = value => String(value || '').toLowerCase()
 
@@ -33,7 +33,7 @@ export default function LibroObraPage() {
       setEntries(list(book))
       setState(appState?.state || appState || {})
     } catch (error) {
-      setNotice(error.message || 'No fue posible cargar el Libro de obra.')
+      setNotice(error.message || 'No fue posible cargar el Libro de Obra.')
     } finally {
       setLoading(false)
     }
@@ -120,7 +120,7 @@ export default function LibroObraPage() {
     <section className="nk-book-page">
       <header className="nk-book-page-header">
         <div>
-          <h1>Libro de obra</h1>
+          <h1>Libro de Obra</h1>
           <p>Registro formal, correlativo y trazable por cliente, contrato y servicio.</p>
         </div>
         <div className="nk-book-header-actions">
@@ -137,7 +137,7 @@ export default function LibroObraPage() {
       <section className="nk-book-control-card">
         <div className="nk-book-card-heading">
           <div>
-            <h2>Control formal del Libro de obra</h2>
+            <h2>Control formal del Libro de Obra</h2>
             <p>Cada anotación se vincula con cliente, contrato y orden de servicio para mantener contexto, evidencia y trazabilidad.</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function LibroObraPage() {
 
       {notice && <p className="nk-book-message">{notice}</p>}
 
-      <section className="nk-book-filters" aria-label="Filtros del Libro de obra">
+      <section className="nk-book-filters" aria-label="Filtros del Libro de Obra">
         <label className="nk-book-search"><IconSearch size={15}/><input value={filters.q} onChange={event => updateFilter('q', event.target.value)} placeholder="Buscar folio, asunto o contenido..." /></label>
         <select value={filters.mine} onChange={event => updateFilter('mine', event.target.value)}><option value="">Todos los clientes</option>{clients.map(row => <option value={row.id} key={row.id}>{row.nombre || row.razon || row.name || row.id}</option>)}</select>
         <select value={filters.project} onChange={event => updateFilter('project', event.target.value)}><option value="">Todas las órdenes</option>{orders.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.id}</option>)}</select>
@@ -185,7 +185,7 @@ export default function LibroObraPage() {
                   <td>{row.entry_number || '—'}</td>
                   <td>{String(row.occurred_at || row.occurredAt || '').slice(0, 10) || '—'}</td>
                   <td><strong>{relationName(clients, row.mine_ref || row.mineRef)}</strong><small>{relationName(orders, row.project_ref || row.projectRef)}</small></td>
-                  <td><strong>{row.subject || 'Sin asunto'}</strong><small>{(row.book_title || row.bookTitle || 'Libro de obra')} · {String(row.entry_type || row.entryType || '').replaceAll('_', ' ')}</small></td>
+                  <td><strong>{row.subject || 'Sin asunto'}</strong><small>{(row.book_title || row.bookTitle || 'Libro de Obra')} · {String(row.entry_type || row.entryType || '').replaceAll('_', ' ')}</small></td>
                   <td>{row.responsible || 'Sin asignar'}</td>
                   <td><span className={`nk-book-status ${normalize(row.status)}`}>{String(row.status || 'borrador').replaceAll('_', ' ')}</span></td>
                 </tr>
@@ -196,7 +196,7 @@ export default function LibroObraPage() {
       </section>
 
       {showForm && <div className="nk-book-modal" onMouseDown={() => setShowForm(false)}><form onSubmit={submit} onMouseDown={event => event.stopPropagation()}>
-        <header><div><h2>Nueva anotación del Libro de obra</h2><p>El sistema creará o reutilizará el libro asociado al cliente, contrato y orden.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
+        <header><div><h2>Nueva anotación del Libro de Obra</h2><p>El sistema creará o reutilizará el libro asociado al cliente, contrato y orden.</p></div><button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
         <div className="nk-book-form">
           <label><span>Cliente *</span><select required value={form.mineRef} onChange={event => setForm(current => ({ ...current, mineRef:event.target.value, contractRef:'', projectRef:'' }))}><option value="">Selecciona</option>{clients.map(row => <option value={row.id} key={row.id}>{row.nombre || row.razon || row.name || row.id}</option>)}</select></label>
           <label><span>Contrato</span><select value={form.contractRef} onChange={event => setForm(current => ({ ...current, contractRef:event.target.value }))}><option value="">Selecciona</option>{scopedContracts.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.numero || row.id}</option>)}</select></label>

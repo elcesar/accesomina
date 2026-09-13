@@ -12,6 +12,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
 function diasHasta(fecha) {
@@ -99,15 +100,15 @@ function workerContractIds(persona, asignaciones, mantenciones) {
 }
 
 function AvailabilityBadge({ value, blocked }) {
-  if (blocked) return <span className="nk-badge nk-badge-error">Restringido</span>
+  if (blocked) return <StatusBadge value="no_habilitado" />
 
   const map = {
     disponible: ['nk-badge-ok', 'Disponible'],
     vacaciones: ['nk-badge-warn', 'Vacaciones'],
     asignado: ['nk-badge-none', 'Asignado'],
   }
-  const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin información']
-  return <span className={`nk-badge ${cls}`}>{label}</span>
+  const [, label] = map[value] || ['nk-badge-none', value || 'Sin información']
+  return <StatusBadge value={label === 'Disponible' ? 'disponible' : label === 'Vacaciones' ? 'vacaciones' : label === 'Asignado' ? 'asignado' : 'sin_informacion'} />
 }
 
 function LinkTypeBadge({ type }) {

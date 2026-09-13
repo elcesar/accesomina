@@ -15,7 +15,7 @@ import {
 import '../../styles/sidebar.css'
 
 const PRIMARY_NAV = [
-  { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },
+  { to: '/app/reportes', label: 'Reportería', icon: IconChartBar },
 ]
 
 const NAV = [
@@ -23,9 +23,9 @@ const NAV = [
     key: 'centro-control',
     label: 'Centro de Control',
     items: [
-      { to: '/app', label: 'Panel General', icon: IconLayoutDashboard, exact: true },
+      { to: '/app', label: 'Panel de control', icon: IconLayoutDashboard, exact: true },
       { to: '/app/alertas', label: 'Alertas', icon: IconBell, badge: true },
-      { to: '/app/reclutamiento', label: 'Gestión de trabajadores por proyecto', icon: IconClipboardList },
+      { to: '/app/reclutamiento', label: 'Dotación por proyecto', icon: IconClipboardList },
       { to: '/app/operaciones', label: 'Centro Operativo', icon: IconServer },
     ],
   },
@@ -38,8 +38,8 @@ const NAV = [
       { to: '/app/epp', label: 'Protección personal / EPP', icon: IconShield, badge: true },
       { to: '/app/cursos', label: 'Formación y certificaciones', icon: IconSchool },
       { to: '/app/examenes', label: 'Exámenes y aptitudes', icon: IconMicroscope },
-      { to: '/app/salud', label: 'Salud Ocupacional', icon: IconStethoscope },
-      { to: '/app/bloqueados', label: 'Restringidos', icon: IconBan },
+      { to: '/app/salud', label: 'Salud ocupacional', icon: IconStethoscope },
+      { to: '/app/bloqueados', label: 'No habilitados', icon: IconBan },
     ],
   },
   {
@@ -54,11 +54,11 @@ const NAV = [
   },
   {
     key: 'contratistas',
-    label: 'Contratistas',
+    label: 'Terceros',
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
       { to: '/app/convenios', label: 'Contratos y convenios', icon: IconFileText },
-      { to: '/app/personal-contratista', label: 'Personal del contratista', icon: IconUsers },
+      { to: '/app/personal-contratista', label: 'Trabajadores de la empresa colaboradora', icon: IconUsers },
       { to: '/app/habilitaciones-contratistas', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
       { to: '/app/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
     ],
@@ -76,8 +76,8 @@ const NAV = [
     key: 'cumplimiento-calidad',
     label: 'Cumplimiento y Calidad',
     items: [
-      { to: '/app/acreditacion-empresa', label: 'Documentación de la Empresa', icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente', icon: IconCircleCheck },
+      { to: '/app/acreditacion-empresa', label: 'Documentación de la empresa', icon: IconBuildingCommunity },
+      { to: '/app/acreditacion-mandante', label: 'Habilitación del cliente', icon: IconCircleCheck },
       { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
       { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
     ],
@@ -86,7 +86,7 @@ const NAV = [
     key: 'proyectos-negocios',
     label: 'Gestión de Proyectos y Negocios',
     items: [
-      { to: '/app/libro-obra', label: 'Libro de obra', icon: IconBook, badge: true },
+      { to: '/app/libro-obra', label: 'Libro de Obra', icon: IconBook, badge: true },
       { to: '/app/oportunidades', label: 'Prospectos y oportunidades', icon: IconBriefcase },
     ],
   },
@@ -114,7 +114,7 @@ const NAV = [
       { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
       { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
       { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
-      { to: '/app/privacidad', label: 'Privacidad y datos', icon: IconShieldLock },
+      { to: '/app/privacidad', label: 'Privacidad y protección de datos', icon: IconShieldLock },
     ],
   },
 ]

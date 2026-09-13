@@ -4,8 +4,6 @@ import { api } from '../services/api.js'
 import { applyTenantBranding } from '../services/theme.js'
 import '../styles/configuracion.css'
 
-const DEFAULT_ACCENT = '#2a2a8c'
-
 const MODULE_OPTIONS = [
   ['trabajadores', 'Personas'],
   ['turnos', 'Turnos y asistencia'],
@@ -23,7 +21,7 @@ const MODULE_OPTIONS = [
 ]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }
-const normalizeTheme = value => value === 'dark' ? 'dark' : 'light'
+const normalizeTheme = value => value === 'dark' || value === 'oscuro' ? 'oscuro' : 'claro'
 
 function lineList(value) {
   return String(value || '').split(/\n|,/).map(item => item.trim()).filter(Boolean)
@@ -34,7 +32,7 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
   const [settings, setSettings] = useState({
-    branding: { displayName: '', theme: 'light', accent: DEFAULT_ACCENT, logoUrl: '' },
+    branding: { displayName: '', theme: 'claro', logoUrl: '' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
     catalogs: { specialties: [] },
@@ -57,7 +55,6 @@ export default function ConfiguracionPage() {
         branding: {
           displayName: current.branding?.displayName || '',
           theme: normalizeTheme(current.branding?.theme),
-          accent: current.branding?.accent || DEFAULT_ACCENT,
           logoUrl: current.branding?.logoUrl || '',
         },
         modules: current.modules || {},
@@ -77,7 +74,7 @@ export default function ConfiguracionPage() {
         signature: { ...emptyIntegration, ...byProvider.signature, publicConfig: byProvider.signature?.public_config || byProvider.signature?.publicConfig || {}, secret: {} },
       })
     } catch (error) {
-      applyTenantBranding({ theme: 'light' })
+      applyTenantBranding({ theme: 'claro' })
       setMessage(error.message || 'No fue posible cargar la configuración.')
     } finally {
       setLoading(false)
@@ -126,11 +123,10 @@ export default function ConfiguracionPage() {
   const setBranding = (key, value) => {
     setSettings(current => {
       const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
-      if (key === 'theme' || key === 'accent') applyTenantBranding(branding)
+      if (key === 'theme') applyTenantBranding(branding)
       return { ...current, branding }
     })
   }
-  const restoreDefaultAccent = () => setBranding('accent', DEFAULT_ACCENT)
   const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
   const toggleModule = key => setSettings(current => ({ ...current, modules: { ...current.modules, [key]: current.modules?.[key] === false } }))
   const updateIntegration = (provider, section, key, value) => setIntegrations(current => ({ ...current, [provider]: { ...current[provider], [section]: { ...current[provider][section], [key]: value } } }))
@@ -155,8 +151,7 @@ export default function ConfiguracionPage() {
           <header><div><h2>Identidad y alertas</h2><p>Identidad visual, ventanas de alerta y especialidades propias de la empresa.</p></div></header>
           <div className="nk-config-form-grid">
             <label className="nk-config-field full"><span>Nombre visible</span><input className="nk-input" value={settings.branding.displayName} onChange={e => setBranding('displayName', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="light">Fondo claro</option><option value="dark">Fondo oscuro</option></select></label>
-            <div className="nk-config-field"><span>Color principal</span><div className="nk-config-color"><input aria-label="Seleccionar color principal" type="color" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /><input aria-label="Código del color principal" className="nk-input" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /></div><button className="nk-button nk-button-secondary" type="button" onClick={restoreDefaultAccent} disabled={settings.branding.accent.toLowerCase() === DEFAULT_ACCENT}><IconRefresh size={14}/> Volver al color original</button></div>
+            <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="claro">Fondo claro</option><option value="oscuro">Fondo oscuro</option></select><small>La apariencia se aplica inmediatamente y se conserva para esta cuenta.</small></label>
             <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>

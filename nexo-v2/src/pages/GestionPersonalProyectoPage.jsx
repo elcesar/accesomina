@@ -174,7 +174,7 @@ export default function GestionPersonalProyectoPage() {
   const enabledAssigned = workers.filter(worker => managementStage(relationByWorker.get(worker.id)) === 'habilitado').length
 
   return <div className="nk-control-workspace nk-staffing-workspace">
-    <header className="nk-control-workspace-header"><div><h1>Gestión de trabajadores por proyecto</h1><p>Controla la dotación de cada servicio desde una sola vista: candidatos, contacto, confirmación, asignación y habilitación.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
+    <header className="nk-control-workspace-header"><div><h1>Dotación por proyecto</h1><p>Controla la dotación de cada servicio desde una sola vista: candidatos, contacto, confirmación, asignación y habilitación.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
     {(error || ok) && <div className={`nk-control-feedback ${error ? 'error' : 'ok'}`}><span>{error || ok}</span><button className="nk-icon-button" type="button" onClick={() => { setError(''); setOk('') }} aria-label="Cerrar"><IconX size={15}/></button></div>}
 
     <section className="nk-card nk-staffing-context">
