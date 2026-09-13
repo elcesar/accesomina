@@ -17,7 +17,7 @@ const PAGE_DOMAINS = [
     prefixes: ['/app/llamados', '/app/comunicaciones', '/app/vehiculos', '/app/hoteleria', '/app/credenciales'],
   },
   {
-    label: 'Contratistas',
+    label: 'Terceros',
     prefixes: ['/app/subcontratos', '/app/convenios', '/app/personal-contratista', '/app/habilitaciones-contratistas', '/app/evaluacion-desempeno'],
   },
   {

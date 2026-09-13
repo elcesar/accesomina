@@ -2,9 +2,9 @@
 
 Este documento mantiene la trazabilidad canónica de las páginas React (`nexo-v2/src/pages/*.jsx`) intervenidas o revisadas durante la modernización de Nexo Klar.
 
-**Actualizado:** 12 de septiembre de 2026  
-**Estado global:** Fases 0 a 15 cerradas · migración React finalizada.  
-**Baseline estable:** Nexo Klar React `v3.0.0`.
+**Actualizado:** 13 de septiembre de 2026
+**Estado global:** Fases 0 a 15 cerradas · evolución visual, accesibilidad y lenguaje aplicada.
+**Baseline estable:** Nexo Klar React `v3.1.0`.
 
 ## Estados
 
@@ -52,11 +52,11 @@ Este documento mantiene la trazabilidad canónica de las páginas React (`nexo-v
 | Fase 5 · Gestión Operacional | `VehiculosPage.jsx` | Actualizada · Revisada · Reemplazada | Flota asociada a OS. |
 | Fase 5 · Gestión Operacional | `AlojamientosPage.jsx` | Actualizada · Revisada · Reemplazada | `hoteles` + `hotelAsig`. |
 | Fase 5 · Gestión Operacional | `CredencialesPage.jsx` | Actualizada · Revisada · Reemplazada | Credenciales por Persona/Cliente. |
-| Fase 6 · Contratistas | `TercerosSubcontratosPage.jsx` | Actualizada · Revisada · Reemplazada | `subcontratos` fuente de escritura. |
-| Fase 6 · Contratistas | `ConveniosPage.jsx` | Actualizada · Revisada · Reemplazada | `convenios` canónico. |
-| Fase 6 · Contratistas | `PersonalEmpresaServiciosPage.jsx` | Actualizada · Revisada · Reemplazada | Relación Empresa ↔ Persona. |
-| Fase 6 · Contratistas | `HabilitacionesCumplimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Habilitaciones especializadas. |
-| Fase 6 · Contratistas | `EvaluacionDesempenoPage.jsx` | Actualizada · Revisada · Reemplazada | Evaluación especializada. |
+| Fase 6 · Terceros | `TercerosSubcontratosPage.jsx` | Actualizada · Revisada · Reemplazada | `subcontratos` fuente de escritura. |
+| Fase 6 · Terceros | `ConveniosPage.jsx` | Actualizada · Revisada · Reemplazada | `convenios` canónico. |
+| Fase 6 · Terceros | `PersonalEmpresaServiciosPage.jsx` | Actualizada · Revisada · Reemplazada | Relación empresa colaboradora ↔ persona. |
+| Fase 6 · Terceros | `HabilitacionesCumplimientoPage.jsx` | Actualizada · Revisada · Reemplazada | Habilitaciones especializadas. |
+| Fase 6 · Terceros | `EvaluacionDesempenoPage.jsx` | Actualizada · Revisada · Reemplazada | Evaluación especializada. |
 | Fase 7 · Cumplimiento | `CumplimientoCorporativoPage.jsx` | Actualizada · Revisada · Reemplazada | `empresaDocs` canónico. |
 | Fase 7 · Cumplimiento | `HabilitacionClientePage.jsx` | Actualizada · Revisada · Reemplazada | `acreditacionesMandante` canónico. |
 | Fase 7 · Cumplimiento | `IncidentesPage.jsx` | Actualizada · Revisada · Reemplazada | `incidentes` canónico. |
@@ -92,6 +92,8 @@ La base React `v3.0.0` conserva la arquitectura y rutas canónicas de la Fase 15
 - Ficha de persona simplificada con acciones rápidas, contacto de emergencia, próximo paso y separación entre documentos, aptitudes y formación.
 - Capas visuales compartidas para mantener la apariencia de Nexo Klar en sitio público y privado.
 - Acceso a configuración MFA y Administración de clientes sin crear rutas paralelas ni reemplazar los módulos especializados.
+- Tokens oficiales, recursos de marca, modos claro y oscuro, foco visible y estados semánticos aplicados de forma transversal.
+- Vocabulario visible homologado: `Reportería`, `Libro de Obra`, `No habilitado` y `Terceros`.
 
 ## Cierre Fase 15 · Migración React — CERRADA
 
@@ -137,7 +139,7 @@ FASE 2  Clientes                                         ✓ CERRADA
 FASE 3  Contratos                                        ✓ CERRADA
 FASE 4  Órdenes de servicio                              ✓ CERRADA
 FASE 5  Gestión Operacional                              ✓ CERRADA
-FASE 6  Contratistas                                     ✓ CERRADA
+FASE 6  Terceros                                         ✓ CERRADA
 FASE 7  Cumplimiento                                     ✓ CERRADA
 FASE 8  Inventario / Activos                             ✓ CERRADA
 FASE 9  Prospectos y oportunidades                       ✓ CERRADA

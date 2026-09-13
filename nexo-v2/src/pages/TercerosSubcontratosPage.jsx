@@ -32,7 +32,7 @@ function StatusBadge({ value }) {
   const map = {
     vigente: ['nk-badge-ok', 'Vigente'],
     observado: ['nk-badge-warn', 'Observado'],
-    bloqueado: ['nk-badge-error', 'Restringido'],
+    bloqueado: ['nk-badge-error', 'No habilitada'],
   }
   const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin estado']
   return <span className={`nk-badge ${cls}`}>{label}</span>
@@ -215,7 +215,7 @@ export default function TercerosSubcontratosPage() {
         </div>
         <div className="nk-actions">
           <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
-          <button className="nk-button nk-button-primary" type="button" onClick={openNew}><IconPlus size={15} /> Nuevo tercero</button>
+          <button className="nk-button nk-button-primary" type="button" onClick={openNew}><IconPlus size={15} /> Agregar empresa colaboradora</button>
         </div>
       </header>
 
@@ -231,12 +231,12 @@ export default function TercerosSubcontratosPage() {
           <option value="">Todos los estados</option>
           <option value="vigente">Vigente</option>
           <option value="observado">Observado</option>
-          <option value="bloqueado">Restringido</option>
+          <option value="bloqueado">No habilitada</option>
         </select>
       </section>
 
       <section className="nk-third-summary" aria-label="Resumen de terceros">
-        <article className="nk-third-kpi"><strong>{loading ? '…' : summary.total}</strong><span>Subcontratistas</span></article>
+        <article className="nk-third-kpi"><strong>{loading ? '…' : summary.total}</strong><span>Empresas colaboradoras</span></article>
         <article className="nk-third-kpi"><strong>{loading ? '…' : summary.ok}</strong><span>Cumplimiento vigente</span></article>
         <article className="nk-third-kpi"><strong>{loading ? '…' : summary.alerts}</strong><span>Con alertas</span></article>
         <article className="nk-third-kpi"><strong>{loading ? '…' : summary.people}</strong><span>Dotación</span></article>
@@ -285,7 +285,7 @@ export default function TercerosSubcontratosPage() {
           <div className="nk-third-form">
             <div className="nk-field nk-third-wide"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">RUT</label><input className="nk-input" value={form.rut} onChange={e => setForm(current => ({ ...current, rut: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
+            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitada</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
             <div className="nk-field nk-third-wide"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>

@@ -17,7 +17,7 @@ const MODULE_OPTIONS = [
   ['credenciales', 'Credenciales'],
   ['incidentes', 'Incidentes y no conformidades'],
   ['auditoria', 'Auditoría'],
-  ['reportes', 'Reportes y analítica'],
+  ['reportes', 'Reportería'],
 ]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }

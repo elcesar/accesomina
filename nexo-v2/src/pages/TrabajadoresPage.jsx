@@ -139,10 +139,10 @@ function ProgressBar({ pct, expiry }) {
 }
 
 const TABS = [
-  { key: 'planta', label: 'Personal fijo', icon: IconUserCheck },
-  { key: 'esporadico', label: 'Por proyecto', icon: IconUsers },
-  { key: 'disponible', label: 'Disponibles', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
+  { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
+  { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
+  { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
+  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
@@ -353,7 +353,7 @@ export default function TrabajadoresPage() {
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
           <option value="vacaciones">Vacaciones</option>
-          <option value="bloqueado">Restringido</option>
+          <option value="bloqueado">No habilitado</option>
         </select>
 
         <select className={`nk-select nk-people-filter ${clientId ? 'is-active' : ''}`} value={clientId} onChange={event => setClientId(event.target.value)} aria-label="Filtrar por cliente">
