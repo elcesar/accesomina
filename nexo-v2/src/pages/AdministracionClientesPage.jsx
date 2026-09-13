@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useState } from 'react'
-import { IconKey, IconRefresh } from '@tabler/icons-react'
+import { useEffect, useState } from 'react'
+import { IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import '../styles/admin-clients.css'
@@ -14,12 +14,10 @@ const STATUS_LABELS = {
 export default function AdministracionClientesPage() {
   const { session } = useAuth()
   const [tenants, setTenants] = useState([])
-  const [usersByTenant, setUsersByTenant] = useState({})
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState('')
-  const [loadingUsers, setLoadingUsers] = useState('')
   const [changingStatus, setChangingStatus] = useState('')
+  const [deleting, setDeleting] = useState('')
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const load = async () => {
@@ -39,91 +37,35 @@ export default function AdministracionClientesPage() {
     else setLoading(false)
   }, [isNexoAdmin])
 
-  const changeStatus = async (tenant, status) => {
-    const action = status === 'active'
-      ? tenant.status === 'pending' ? 'activar' : 'reactivar'
-      : 'suspender'
-
-    if (!window.confirm(`¿Deseas ${action} la cuenta de ${tenant.company_name}?`)) return
+  const activate = async tenant => {
+    if (!window.confirm(`¿Deseas activar la cuenta de ${tenant.company_name}?`)) return
 
     setChangingStatus(tenant.id)
     setMessage('')
     try {
-      const updated = await api.patch(`/tenants/${tenant.id}`, { status })
+      const updated = await api.patch(`/tenants/${tenant.id}`, { status: 'active' })
       setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item))
-      setMessage(
-        status === 'active'
-          ? tenant.status === 'pending'
-            ? `La cuenta de ${tenant.company_name} fue activada correctamente.`
-            : `La cuenta de ${tenant.company_name} fue reactivada correctamente.`
-          : `La cuenta de ${tenant.company_name} fue suspendida correctamente.`,
-      )
+      setMessage(`La cuenta de ${tenant.company_name} fue activada correctamente.`)
     } catch (error) {
-      setMessage(error.message || 'No fue posible actualizar el estado de la empresa.')
+      setMessage(error.message || 'No fue posible activar la empresa.')
     } finally {
       setChangingStatus('')
     }
   }
 
-  const reset = async tenant => {
-    if (!window.confirm(`Se enviará un enlace al administrador de ${tenant.company_name}. ¿Continuar?`)) return
-    setSending(tenant.id)
+  const deleteTenant = async tenant => {
+    if (!window.confirm(`¿Deseas eliminar el cliente ${tenant.company_name}? Esta acción bloqueará sus accesos.`)) return
+
+    setDeleting(tenant.id)
     setMessage('')
     try {
-      const result = await api.post(`/tenants/${tenant.id}/reset-admin-password`, {})
-      setMessage(
-        result.delivery === 'pending_configuration'
-          ? 'La solicitud quedó registrada. Falta configurar el correo saliente para entregar el enlace.'
-          : `Enlace de restablecimiento enviado a ${result.user.email}.`,
-      )
+      const updated = await api.delete(`/tenants/${tenant.id}`)
+      setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item))
+      setMessage(`El cliente ${tenant.company_name} fue eliminado correctamente.`)
     } catch (error) {
-      setMessage(error.message || 'No fue posible solicitar el restablecimiento.')
+      setMessage(error.message || 'No fue posible eliminar el cliente.')
     } finally {
-      setSending('')
-    }
-  }
-
-  const loadUsers = async tenant => {
-    if (usersByTenant[tenant.id]) {
-      setUsersByTenant(current => {
-        const next = { ...current }
-        delete next[tenant.id]
-        return next
-      })
-      return
-    }
-
-    setLoadingUsers(tenant.id)
-    setMessage('')
-    try {
-      const users = await api.get(`/tenants/${tenant.id}/users`)
-      setUsersByTenant(current => ({
-        ...current,
-        [tenant.id]: users,
-      }))
-    } catch (error) {
-      setMessage(error.message || 'No fue posible cargar las cuentas de la empresa.')
-    } finally {
-      setLoadingUsers('')
-    }
-  }
-
-  const resetUser = async (tenant, user) => {
-    if (!window.confirm(`Se enviará un enlace temporal a ${user.email}. ¿Continuar?`)) return
-    const key = `${tenant.id}:${user.id}`
-    setSending(key)
-    setMessage('')
-    try {
-      const result = await api.post(`/tenants/${tenant.id}/users/${user.id}/reset-password`, {})
-      setMessage(
-        result.delivery === 'pending_configuration'
-          ? 'La solicitud quedó registrada. Falta configurar el correo saliente para entregar el enlace.'
-          : `Enlace de restablecimiento enviado a ${result.user.email}.`,
-      )
-    } catch (error) {
-      setMessage(error.message || 'No fue posible solicitar el restablecimiento.')
-    } finally {
-      setSending('')
+      setDeleting('')
     }
   }
 
@@ -147,7 +89,7 @@ export default function AdministracionClientesPage() {
       <header className="nk-module-header">
         <div>
           <h1>Administración de clientes</h1>
-          <p>Gestiona empresas usuarias y ayuda a sus administradores sin acceder a sus contraseñas.</p>
+          <p>Gestiona las empresas registradas en Nexo Klar.</p>
         </div>
         <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
           <IconRefresh size={16} />
@@ -161,7 +103,7 @@ export default function AdministracionClientesPage() {
         <header className="nk-admin-clients-card-head">
           <div>
             <h2>Empresas usuarias</h2>
-            <p>Administra las cuentas de empresa y los accesos de sus usuarios autorizados.</p>
+            <p>Administra el estado de las empresas registradas.</p>
           </div>
         </header>
 
@@ -180,119 +122,39 @@ export default function AdministracionClientesPage() {
               {loading ? (
                 <tr><td colSpan="5">Cargando empresas…</td></tr>
               ) : visibleTenants.length ? visibleTenants.map(tenant => (
-                <Fragment key={tenant.id}>
-                  <tr>
-                    <td><strong>{tenant.company_name}</strong></td>
-                    <td>{tenant.rut || '—'}</td>
-                    <td>{tenant.admin_email || '—'}</td>
-                    <td>
-                      <span className={`nk-admin-clients-status ${tenant.status || ''}`}>
-                        {STATUS_LABELS[tenant.status] || tenant.status || 'Sin estado'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="nk-admin-clients-actions">
-                        {tenant.status === 'pending' && (
-                          <button
-                            className="nk-button nk-button-primary nk-button-sm"
-                            disabled={changingStatus === tenant.id}
-                            onClick={() => changeStatus(tenant, 'active')}
-                          >
-                            {changingStatus === tenant.id ? 'Activando…' : 'Activar cuenta'}
-                          </button>
-                        )}
-
-                        {tenant.status === 'active' && (
-                          <button
-                            className="nk-button nk-button-secondary nk-button-sm"
-                            disabled={changingStatus === tenant.id}
-                            onClick={() => changeStatus(tenant, 'suspended')}
-                          >
-                            {changingStatus === tenant.id ? 'Suspendiendo…' : 'Suspender'}
-                          </button>
-                        )}
-
-                        {tenant.status === 'suspended' && (
-                          <button
-                            className="nk-button nk-button-primary nk-button-sm"
-                            disabled={changingStatus === tenant.id}
-                            onClick={() => changeStatus(tenant, 'active')}
-                          >
-                            {changingStatus === tenant.id ? 'Reactivando…' : 'Reactivar'}
-                          </button>
-                        )}
-
-                        {tenant.status === 'active' && (
-                          <button
-                            className="nk-button nk-button-secondary nk-button-sm"
-                            disabled={sending === tenant.id}
-                            onClick={() => reset(tenant)}
-                          >
-                            <IconKey size={14} />
-                            {sending === tenant.id ? 'Enviando…' : 'Restablecer administrador'}
-                          </button>
-                        )}
-
+                <tr key={tenant.id}>
+                  <td><strong>{tenant.company_name}</strong></td>
+                  <td>{tenant.rut || '—'}</td>
+                  <td>{tenant.admin_email || '—'}</td>
+                  <td>
+                    <span className={`nk-admin-clients-status ${tenant.status || ''}`}>
+                      {STATUS_LABELS[tenant.status] || tenant.status || 'Sin estado'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="nk-admin-clients-actions">
+                      {tenant.status === 'pending' && (
                         <button
-                          className="nk-button nk-button-secondary nk-button-sm"
-                          disabled={loadingUsers === tenant.id || tenant.status === 'deleted'}
-                          onClick={() => loadUsers(tenant)}
+                          className="nk-button nk-button-primary nk-button-sm"
+                          disabled={changingStatus === tenant.id}
+                          onClick={() => activate(tenant)}
                         >
-                          {loadingUsers === tenant.id
-                            ? 'Cargando…'
-                            : usersByTenant[tenant.id]
-                              ? 'Ocultar cuentas'
-                              : 'Ver cuentas'}
+                          {changingStatus === tenant.id ? 'Activando…' : 'Activar cuenta'}
                         </button>
-                      </div>
-                    </td>
-                  </tr>
+                      )}
 
-                  {usersByTenant[tenant.id] && (
-                    <tr>
-                      <td colSpan="5" className="nk-admin-clients-users-cell">
-                        <div className="nk-admin-clients-users-panel">
-                          <div className="nk-table-wrapper">
-                            <table className="nk-table nk-admin-clients-users-table">
-                              <thead>
-                                <tr>
-                                  <th>Cuenta</th>
-                                  <th>Rol</th>
-                                  <th>Último acceso</th>
-                                  <th>Estado</th>
-                                  <th>Acción</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {usersByTenant[tenant.id].length ? usersByTenant[tenant.id].map(user => {
-                                  const key = `${tenant.id}:${user.id}`
-                                  return (
-                                    <tr key={user.id}>
-                                      <td><strong>{user.full_name}</strong><small>{user.email}</small></td>
-                                      <td>{user.role}</td>
-                                      <td>{user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('es-CL') : 'Sin acceso'}</td>
-                                      <td><span className={`nk-admin-clients-status ${user.active ? 'active' : ''}`}>{user.active ? 'Activa' : 'Inactiva'}</span></td>
-                                      <td>
-                                        <button
-                                          className="nk-button nk-button-secondary nk-button-sm"
-                                          disabled={!user.active || sending === key}
-                                          onClick={() => resetUser(tenant, user)}
-                                        >
-                                          <IconKey size={14} />
-                                          {sending === key ? 'Enviando…' : 'Restablecer acceso'}
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  )
-                                }) : <tr><td colSpan="5">No hay cuentas registradas.</td></tr>}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
+                      {tenant.status !== 'deleted' && (
+                        <button
+                          className="nk-button nk-button-danger nk-button-sm"
+                          disabled={deleting === tenant.id}
+                          onClick={() => deleteTenant(tenant)}
+                        >
+                          {deleting === tenant.id ? 'Eliminando…' : 'Eliminar cliente'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
               )) : (
                 <tr><td colSpan="5" className="nk-admin-clients-empty">No hay empresas usuarias registradas.</td></tr>
               )}
