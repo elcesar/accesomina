@@ -11,6 +11,7 @@
 .nk-admin-clients-actions{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap}
 .nk-admin-clients-status{display:inline-flex;align-items:center;min-height:26px;padding:0 9px;border-radius:var(--radius-pill);font-size:var(--text-xs);font-weight:var(--weight-semibold);white-space:nowrap;background:var(--surf-2);border:1px solid var(--line);color:var(--mut)}
 .nk-admin-clients-status.active{border-color:var(--ok);color:var(--ok)}
+.nk-admin-clients-status.pending{border-color:var(--warn);color:var(--warn)}
 .nk-admin-clients-status.suspended,.nk-admin-clients-status.deleted{color:var(--mut)}
 .nk-admin-clients-users-cell{padding:0!important;background:var(--surf-2)}
 .nk-admin-clients-users-panel{padding:var(--space-3) var(--space-4)}
