@@ -60,9 +60,10 @@ export default function AdministracionClientesPage() {
     setLoadingUsers(tenant.id)
     setMessage('')
     try {
+      const users = await api.get(`/tenants/${tenant.id}/users`)
       setUsersByTenant(current => ({
         ...current,
-        [tenant.id]: await api.get(`/tenants/${tenant.id}/users`),
+        [tenant.id]: users,
       }))
     } catch (error) {
       setMessage(error.message || 'No fue posible cargar las cuentas de la empresa.')
