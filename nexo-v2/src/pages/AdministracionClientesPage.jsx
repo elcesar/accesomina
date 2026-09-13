@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { IconKey, IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import '../styles/admin-clients.css'
 
 export default function AdministracionClientesPage() {
   const { session } = useAuth()
@@ -15,6 +16,7 @@ export default function AdministracionClientesPage() {
 
   const load = async () => {
     setLoading(true)
+    setMessage('')
     try {
       setTenants(await api.get('/tenants'))
     } catch (error) {
@@ -93,87 +95,94 @@ export default function AdministracionClientesPage() {
 
   if (!isNexoAdmin) {
     return (
-      <section className="nk-module-page">
-        <h1>Administración de clientes</h1>
-        <p>Este módulo está disponible únicamente para Administración Nexo Klar.</p>
+      <section className="nk-module-page nk-admin-clients-page">
+        <header className="nk-module-header">
+          <div>
+            <h1>Administración de clientes</h1>
+            <p>Este módulo está disponible únicamente para Administración Nexo Klar.</p>
+          </div>
+        </header>
       </section>
     )
   }
 
+  const visibleTenants = tenants.filter(tenant => !tenant.is_domian_admin)
+
   return (
-    <section className="nk-module-page">
+    <section className="nk-module-page nk-admin-clients-page">
       <header className="nk-module-header">
         <div>
-          <p className="nk-module-kicker">Administración Nexo Klar</p>
           <h1>Administración de clientes</h1>
           <p>Gestiona empresas usuarias y ayuda a sus administradores sin acceder a sus contraseñas.</p>
         </div>
-        <button className="nk-button nk-button-secondary" onClick={load}>
+        <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
           <IconRefresh size={16} />
-          Actualizar
+          {loading ? 'Actualizando…' : 'Actualizar'}
         </button>
       </header>
 
       {message && <p className="nk-form-message">{message}</p>}
 
-      <section className="nk-report-workspace">
-        <header>
+      <section className="nk-module-card nk-admin-clients-card">
+        <header className="nk-admin-clients-card-head">
           <div>
             <h2>Empresas usuarias</h2>
-            <p>Los enlaces son temporales, de un solo uso y se entregan solo al correo autorizado de cada cuenta.</p>
+            <p>Administra las cuentas de empresa y los accesos de sus usuarios autorizados.</p>
           </div>
         </header>
 
-        {loading ? (
-          <p>Cargando empresas...</p>
-        ) : (
-          <div className="nk-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Empresa</th>
-                  <th>RUT</th>
-                  <th>Administrador</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tenants.filter(tenant => !tenant.is_domian_admin).map(tenant => (
-                  <Fragment key={tenant.id}>
-                    <tr>
-                      <td><b>{tenant.company_name}</b></td>
-                      <td>{tenant.rut}</td>
-                      <td>{tenant.admin_email}</td>
-                      <td>{tenant.status}</td>
-                      <td>
+        <div className="nk-table-wrapper nk-admin-clients-table-wrap">
+          <table className="nk-table nk-admin-clients-table">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>RUT</th>
+                <th>Administrador</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="5">Cargando empresas…</td></tr>
+              ) : visibleTenants.length ? visibleTenants.map(tenant => (
+                <Fragment key={tenant.id}>
+                  <tr>
+                    <td><strong>{tenant.company_name}</strong></td>
+                    <td>{tenant.rut || '—'}</td>
+                    <td>{tenant.admin_email || '—'}</td>
+                    <td><span className={`nk-admin-clients-status ${tenant.status || ''}`}>{tenant.status || 'Sin estado'}</span></td>
+                    <td>
+                      <div className="nk-admin-clients-actions">
                         <button
-                          className="nk-button nk-button-secondary"
+                          className="nk-button nk-button-secondary nk-button-sm"
                           disabled={sending === tenant.id || tenant.status === 'deleted'}
                           onClick={() => reset(tenant)}
                         >
-                          <IconKey size={15} />
-                          {sending === tenant.id ? 'Enviando...' : 'Restablecer administrador'}
+                          <IconKey size={14} />
+                          {sending === tenant.id ? 'Enviando…' : 'Restablecer administrador'}
                         </button>
                         <button
-                          className="nk-button nk-button-secondary"
+                          className="nk-button nk-button-secondary nk-button-sm"
                           disabled={loadingUsers === tenant.id || tenant.status === 'deleted'}
                           onClick={() => loadUsers(tenant)}
                         >
                           {loadingUsers === tenant.id
-                            ? 'Cargando...'
+                            ? 'Cargando…'
                             : usersByTenant[tenant.id]
                               ? 'Ocultar cuentas'
                               : 'Ver cuentas'}
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </td>
+                  </tr>
 
-                    {usersByTenant[tenant.id] && (
-                      <tr>
-                        <td colSpan="5">
-                          <div className="nk-table-wrap">
-                            <table>
+                  {usersByTenant[tenant.id] && (
+                    <tr>
+                      <td colSpan="5" className="nk-admin-clients-users-cell">
+                        <div className="nk-admin-clients-users-panel">
+                          <div className="nk-table-wrapper">
+                            <table className="nk-table nk-admin-clients-users-table">
                               <thead>
                                 <tr>
                                   <th>Cuenta</th>
@@ -184,42 +193,41 @@ export default function AdministracionClientesPage() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {usersByTenant[tenant.id].map(user => {
+                                {usersByTenant[tenant.id].length ? usersByTenant[tenant.id].map(user => {
                                   const key = `${tenant.id}:${user.id}`
                                   return (
                                     <tr key={user.id}>
-                                      <td>
-                                        {user.full_name}<br />
-                                        <small>{user.email}</small>
-                                      </td>
+                                      <td><strong>{user.full_name}</strong><small>{user.email}</small></td>
                                       <td>{user.role}</td>
                                       <td>{user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('es-CL') : 'Sin acceso'}</td>
-                                      <td>{user.active ? 'Activa' : 'Inactiva'}</td>
+                                      <td><span className={`nk-admin-clients-status ${user.active ? 'active' : ''}`}>{user.active ? 'Activa' : 'Inactiva'}</span></td>
                                       <td>
                                         <button
-                                          className="nk-button nk-button-secondary"
+                                          className="nk-button nk-button-secondary nk-button-sm"
                                           disabled={!user.active || sending === key}
                                           onClick={() => resetUser(tenant, user)}
                                         >
-                                          <IconKey size={15} />
-                                          {sending === key ? 'Enviando...' : 'Restablecer acceso'}
+                                          <IconKey size={14} />
+                                          {sending === key ? 'Enviando…' : 'Restablecer acceso'}
                                         </button>
                                       </td>
                                     </tr>
                                   )
-                                })}
+                                }) : <tr><td colSpan="5">No hay cuentas registradas.</td></tr>}
                               </tbody>
                             </table>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              )) : (
+                <tr><td colSpan="5" className="nk-admin-clients-empty">No hay empresas usuarias registradas.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </section>
   )
