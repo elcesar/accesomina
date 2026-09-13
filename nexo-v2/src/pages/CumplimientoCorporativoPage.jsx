@@ -46,14 +46,13 @@ function daysUntil(date) {
 function statusFor(doc) {
   const requirement = REQUIREMENTS.find(item => item.id === doc.reqId) || doc
   const hasEvidence = Boolean(doc.fileName || doc.cloudUrl)
-  if (!hasEvidence) return { key: 'faltante', label: 'Faltante', cls: 'nk-badge-error' }
-  if (requirement.expires && !doc.vence) return { key: 'faltante', label: 'Faltante', cls: 'nk-badge-error' }
+  if (!hasEvidence) return { key: 'no_habilitado', label: 'No habilitado', cls: 'nk-badge-error' }
+  if (requirement.expires && !doc.vence) return { key: 'no_habilitado', label: 'No habilitado', cls: 'nk-badge-error' }
   if (!requirement.expires) return { key: 'ok', label: 'Vigente', cls: 'nk-badge-ok' }
   const days = daysUntil(doc.vence)
-  if (days === null) return { key: 'faltante', label: 'Faltante', cls: 'nk-badge-error' }
-  if (days < 0) return { key: 'vencido', label: 'Vencido', cls: 'nk-badge-error' }
-  if (days <= 15) return { key: 'critico', label: 'Crítico', cls: 'nk-badge-error' }
-  if (days <= 30) return { key: 'proximo', label: 'Próximo', cls: 'nk-badge-warn' }
+  if (days === null) return { key: 'sin_informacion', label: 'Sin información', cls: 'nk-badge-none' }
+  if (days < 0) return { key: 'no_habilitado', label: 'No habilitado', cls: 'nk-badge-error' }
+  if (days <= 30) return { key: 'por_vencer', label: 'Por vencer', cls: 'nk-badge-warn' }
   return { key: 'ok', label: 'Vigente', cls: 'nk-badge-ok' }
 }
 
@@ -118,7 +117,7 @@ export default function CumplimientoCorporativoPage() {
       const status = statusFor(doc)
       const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => String(value || '').toLowerCase().includes(term))
       const matchesArea = !areaFilter || doc.area === areaFilter
-      const matchesStatus = !statusFilter || (statusFilter === 'ok' ? status.key === 'ok' : statusFilter === 'faltante' ? status.key === 'faltante' : ['vencido', 'critico', 'proximo'].includes(status.key))
+      const matchesStatus = !statusFilter || status.key === statusFilter
       return matchesText && matchesArea && matchesStatus
     })
   }, [docs, query, areaFilter, statusFilter])
@@ -127,8 +126,8 @@ export default function CumplimientoCorporativoPage() {
     const status = statusFor(doc)
     acc.total += 1
     if (status.key === 'ok') acc.ok += 1
-    if (status.key === 'faltante') acc.missing += 1
-    if (['vencido', 'critico', 'proximo'].includes(status.key)) acc.expiring += 1
+    if (status.key === 'no_habilitado') acc.missing += 1
+    if (status.key === 'por_vencer') acc.expiring += 1
     return acc
   }, { total: 0, ok: 0, missing: 0, expiring: 0 }), [docs])
   const compliance = summary.total ? Math.round((summary.ok / summary.total) * 100) : 0
@@ -201,7 +200,7 @@ export default function CumplimientoCorporativoPage() {
       <section className="nk-card nk-compliance-filters" aria-label="Filtros de documentación corporativa">
         <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
         <select className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="">Todas las áreas</option>{Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Cargado y vigente</option><option value="faltante">Faltante</option><option value="vencido">Vencido / crítico</option></select>
+        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Vigente</option><option value="por_vencer">Por vencer</option><option value="no_habilitado">No habilitado</option><option value="sin_informacion">Sin información</option></select>
       </section>
 
       <section className="nk-compliance-summary" aria-label="Resumen de cumplimiento corporativo">

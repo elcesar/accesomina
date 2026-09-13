@@ -25,8 +25,8 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
         </button>
 
         <div className="nk-public-actions nk-public-nav-cta">
-          <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.cl">
-            contacto@nexoklar.cl
+          <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.com">
+            contacto@nexoklar.com
           </a>
           <button className="nk-button nk-button-secondary" type="button" onClick={onCreateCompany}>
             Crear empresa

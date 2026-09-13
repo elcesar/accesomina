@@ -76,6 +76,42 @@ body {
   font-family: var(--nk-family-ui);
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: var(--nk-family-ui);
+}
+
+button,
+[role="button"] {
+  min-height: var(--nk-control-min);
+}
+
+.nk-button,
+.nk-icon-button {
+  align-items: center;
+  border-radius: var(--nk-radius-2);
+  display: inline-flex;
+  font: var(--nk-font-label);
+  gap: var(--nk-space-2);
+  justify-content: center;
+}
+
+.nk-input,
+.nk-select,
+.nk-textarea {
+  border-radius: var(--nk-radius-2);
+  font: var(--nk-font-body-sm);
+}
+
+.nk-label,
+.nk-field > label,
+.nk-field > span:first-child {
+  color: var(--nk-ink);
+  font: var(--nk-font-label);
+}
+
 .nk-public-topbar,
 .nk-public-tabs,
 .nk-sidebar,
@@ -155,6 +191,23 @@ body {
   text-transform: none;
 }
 
+.nk-table th {
+  font: var(--nk-font-label);
+}
+
+.nk-badge {
+  align-items: center;
+  display: inline-flex;
+  font: var(--nk-font-label);
+  gap: var(--nk-space-1);
+}
+
+.nk-badge-ok { background: var(--nk-state-ok-soft); color: var(--nk-state-ok); }
+.nk-badge-warn { background: var(--nk-state-warn-soft); color: var(--nk-state-warn-ink); }
+.nk-badge-error { background: var(--nk-state-error-soft); color: var(--nk-state-error); }
+.nk-badge-none,
+.nk-badge-neutral { background: var(--nk-state-none-soft); color: var(--nk-state-none); }
+
 .nk-table tbody tr:nth-child(even),
 .nk-data-table tbody tr:nth-child(even) {
   background: var(--nk-surface-2);
@@ -191,6 +244,12 @@ body {
   outline: 3px solid var(--nk-focus);
   outline-offset: 2px;
   box-shadow: none;
+}
+
+@media (pointer: coarse) {
+  :where(button, a, input, select, textarea, [role="button"]) {
+    min-height: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

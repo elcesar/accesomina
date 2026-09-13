@@ -14,6 +14,7 @@ import './styles/operational-workspaces.css'
 import './styles/clientes-workspace.css'
 import './styles/ux-foundations.css'
 import './styles/brand-system.css'
+import './styles/account-pages.css'
 
 restorePreferredTheme()
 
