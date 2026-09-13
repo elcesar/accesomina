@@ -4,6 +4,11 @@ import { api } from '../../../services/api.js'
 
 const initialRegistration = { companyName: '', rut: '', phone: '', adminName: '', email: '', password: '', inviteCode: '' }
 
+const registrationErrorMessages = {
+  INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
+  WEAK_PASSWORD: 'La contraseña debe tener al menos 12 caracteres e incluir mayúsculas, minúsculas y un número.',
+}
+
 function formatRut(value) {
   const clean = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
   if (clean.length < 2) return clean
@@ -38,7 +43,7 @@ export function CustomerAccessPanel() {
       setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar.')
       setRegistration(initialRegistration)
     } catch (error) {
-      setMessage(error.message || 'No fue posible crear el sitio privado.')
+      setMessage(registrationErrorMessages[error.code] || error.message || 'No fue posible crear el sitio privado.')
     } finally {
       setBusy(false)
     }
