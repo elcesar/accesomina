@@ -2,7 +2,7 @@
 
 Archivo final:
 
-- `outputs/Video_Promocional_Domian_Instagram_1080x1920.mp4`
+- `outputs/Video_Promocional_Nexo_Klar_Instagram_1080x1920.mp4`
 
 ## Caracteristicas
 
@@ -19,7 +19,7 @@ Archivo final:
 
 ¿Tu empresa todavia controla personas, contratos y documentos en planillas separadas?
 
-Domian centraliza clientes, contratos, proyectos, servicios, trabajadores, documentos, EPP, vehiculos, hoteleria, turnos, credenciales y reportes en un solo espacio privado.
+Nexo Klar centraliza clientes, contratos, proyectos, servicios, trabajadores, documentos, EPP, vehiculos, hoteleria, turnos, credenciales y reportes en un solo espacio privado.
 
 Anticipa vencimientos, reduce reprocesos y conserva trazabilidad para responder ante auditorias y solicitudes de tus clientes.
 
@@ -27,16 +27,16 @@ Una plataforma adaptable para empresas de servicios, mantenimiento, construccion
 
 Solicita una demostracion:
 
-- `contacto@domian.cl`
-- `www.domian.cl`
+- `contacto@nexoklar.com`
+- `www.nexoklar.com`
 
 ## Frase comercial
 
-Domian: personas, operaciones y cumplimiento conectados.
+Nexo Klar: personas, operaciones y cumplimiento conectados.
 
 ## Etiquetas sugeridas
 
-`#GestionEmpresarial #TransformacionDigital #ControlOperacional #GestionDocumental #RecursosHumanos #Mantenimiento #ServiciosIndustriales #Contratos #Cumplimiento #Trazabilidad #SoftwareEmpresarial #Domian`
+`#GestionEmpresarial #TransformacionDigital #ControlOperacional #GestionDocumental #RecursosHumanos #Mantenimiento #ServiciosIndustriales #Contratos #Cumplimiento #Trazabilidad #SoftwareEmpresarial #Nexo Klar`
 
 ## Recomendacion de publicacion
 

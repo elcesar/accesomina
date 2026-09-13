@@ -146,10 +146,10 @@ const TABS = [
 ]
 
 const TAB_LABELS = {
-  planta: 'personas con vínculo fijo',
-  esporadico: 'personas vinculadas por proyecto',
-  disponible: 'personas disponibles',
-  bloqueados: 'personas restringidas',
+  planta: 'trabajadores con vínculo fijo',
+  esporadico: 'trabajadores vinculados por proyecto',
+  disponible: 'trabajadores disponibles',
+  bloqueados: 'trabajadores no habilitados',
 }
 
 export default function TrabajadoresPage() {

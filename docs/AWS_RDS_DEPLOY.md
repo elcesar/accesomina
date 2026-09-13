@@ -1,4 +1,4 @@
-# Despliegue AWS propuesto para AccesoMina Domian
+# Despliegue AWS propuesto para Nexo Klar
 
 ## Arquitectura recomendada
 
@@ -7,7 +7,7 @@
 - Base de datos: Amazon RDS PostgreSQL.
 - Archivos: S3 privado por tenant.
 - Login: AWS Cognito o backend auth propio con MFA.
-- Dominio: Route 53, por ejemplo `accesomina.domian.cl`.
+- Dominio: Route 53, por ejemplo `nexoklar.com`.
 
 ## Por qué la data no debe vivir solamente en GitHub
 
@@ -26,7 +26,7 @@ El repositorio sí incluye `database/postgres/*.sql`, que define la estructura p
 1. Crear VPC o usar una VPC existente.
 2. Crear RDS PostgreSQL 15+.
 3. Activar backups automáticos mínimo 7 a 30 días.
-4. Crear base de datos: `accesomina`.
+4. Crear base de datos: `nexo_klar`.
 5. Crear usuario de aplicación con permisos limitados.
 6. Ejecutar las migraciones desde la aplicación:
 
@@ -38,18 +38,18 @@ pnpm run seed:admin
 7. Crear bucket S3 privado para documentos:
 
 ```text
-s3://accesomina-domian-prod/clientes/{tenant_id}/trabajadores/{worker_id}/...
+s3://nexo-klar-prod/clientes/{tenant_id}/trabajadores/{worker_id}/...
 ```
 
 8. Configurar variables de entorno en backend:
 
 ```env
 NODE_ENV=production
-APP_ORIGIN=https://accesomina.domian.cl
-DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/accesomina
+APP_ORIGIN=https://nexoklar.com
+DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/nexo_klar
 TENANT_SECRET_KEY=<secreto-aleatorio-en-Secrets-Manager>
 AWS_REGION=us-east-1
-AWS_S3_BUCKET=accesomina-domian-prod
+AWS_S3_BUCKET=nexo-klar-prod
 COGNITO_USER_POOL_ID=
 COGNITO_CLIENT_ID=
 ```

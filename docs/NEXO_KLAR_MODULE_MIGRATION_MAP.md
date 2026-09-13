@@ -77,7 +77,7 @@ Las relaciones se almacenan una vez en el módulo dueño y se visualizan/navegan
 Mapa de ownership, persistencia, aliases legacy, rutas y dependencias establecido.
 
 ### FASE 1 · Capital Humano — ✓ CERRADA
-Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud Ocupacional y Restringidos especializados y documentados.
+Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud ocupacional y No habilitados especializados y documentados.
 
 ### FASE 2 · Clientes — ✓ CERRADA
 `ClientesPage.jsx` recupera filtros, grilla y ficha; `minas` permanece como fuente canónica.
@@ -91,7 +91,7 @@ Personas, Turnos y asistencia, EPP, Formación, Exámenes, Salud Ocupacional y R
 ### FASE 5 · Gestión Operacional — ✓ CERRADA
 Comunicaciones, Flota, Alojamientos/estadías y Credenciales especializados.
 
-### FASE 6 · Contratistas — ✓ CERRADA
+### FASE 6 · Terceros — ✓ CERRADA
 Terceros, convenios, personal del contratista, habilitaciones y evaluación de desempeño especializados con ownership separado.
 
 ### FASE 7 · Cumplimiento — ✓ CERRADA
@@ -147,7 +147,7 @@ FASE 2  Clientes                                         ✓ CERRADA
 FASE 3  Contratos                                        ✓ CERRADA
 FASE 4  Órdenes de servicio                              ✓ CERRADA
 FASE 5  Gestión Operacional                              ✓ CERRADA
-FASE 6  Contratistas                                     ✓ CERRADA
+FASE 6  Terceros                                     ✓ CERRADA
 FASE 7  Cumplimiento                                     ✓ CERRADA
 FASE 8  Inventario / Activos                             ✓ CERRADA
 FASE 9  Prospectos y oportunidades                       ✓ CERRADA

@@ -14,6 +14,36 @@ body {
   margin: 0;
 }
 
+.nk-app-loading {
+  align-items: center;
+  background: var(--nk-base);
+  display: flex;
+  height: 100vh;
+  justify-content: center;
+}
+
+.nk-app-loading-content {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nk-space-3);
+}
+
+.nk-app-loading-content p {
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-sm);
+  margin: 0;
+}
+
+.nk-app-loading-spinner {
+  animation: spin 0.7s linear infinite;
+  border: 3px solid var(--nk-primary);
+  border-radius: var(--nk-radius-pill);
+  border-top-color: transparent;
+  height: 28px;
+  width: 28px;
+}
+
 .nk-public-site,
 .nk-app-shell,
 .nk-module-page,

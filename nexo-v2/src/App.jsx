@@ -61,10 +61,10 @@ import MfaSetupPage from './pages/MfaSetupPage.jsx'
 function ProtectedRoute({ children, allowPasswordChange = false, allowMfaSetup = false }) {
   const { session, loading } = useAuth()
   if (loading) return (
-    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4EFE3' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 28, height: 28, border: '2.5px solid #2A2A8C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-        <p style={{ fontSize: 13, color: '#5D6B7A' }}>Cargando Nexo Klar…</p>
+    <div className="nk-app-loading">
+      <div className="nk-app-loading-content">
+        <div className="nk-app-loading-spinner" aria-hidden="true" />
+        <p>Cargando Nexo Klar…</p>
       </div>
     </div>
   )

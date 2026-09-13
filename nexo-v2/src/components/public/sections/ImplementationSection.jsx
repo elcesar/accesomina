@@ -7,7 +7,7 @@ const steps = [
 const privacy = [
   ['Acceso individual', 'Cada integrante utiliza su propia cuenta autorizada.'],
   ['Roles y permisos', 'Configura administración, edición o consulta según responsabilidades.'],
-  ['Datos separados', 'La información de una empresa no se mezcla con la de otra.'],
+  ['Información separada por empresa', 'La información de una empresa no se mezcla con la de otra.'],
   ['Historial y trazabilidad', 'Conserva registros para revisar cambios, estados y antecedentes.'],
 ]
 
@@ -26,7 +26,7 @@ export default function ImplementationSection() {
       <article className="nk-access-card">
         <p className="nk-eyebrow">Privacidad por empresa</p>
         <h2>Tu información es de tu empresa.</h2>
-        <p className="nk-lead">Cada empresa trabaja en un espacio privado e independiente. Sus usuarios, permisos, configuraciones y datos permanecen separados de las demás organizaciones.</p>
+        <p className="nk-lead">Cada empresa trabaja en un espacio privado e independiente. Sus usuarios, permisos, configuraciones e información permanecen separados de las demás organizaciones.</p>
         <div className="nk-card-grid nk-values">
           {privacy.map(([title, body]) => <article key={title}><b>{title}</b><span>{body}</span></article>)}
         </div>

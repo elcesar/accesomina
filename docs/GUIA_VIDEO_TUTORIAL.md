@@ -1,8 +1,8 @@
-# Guia del video tutorial de la plataforma Domian
+# Guia del video tutorial de la plataforma Nexo Klar
 
 Archivo generado:
 
-- `outputs/Video_Tutorial_Plataforma_Domian.mp4`
+- `outputs/Video_Tutorial_Plataforma_Nexo_Klar.mp4`
 
 ## Objetivo
 
@@ -14,7 +14,7 @@ Mostrar en formato simple y comercial el recorrido completo de la plataforma, de
 2. Dashboard central con indicadores.
 3. Creacion de clientes.
 4. Creacion de contratos.
-5. Creacion de proyectos o servicios.
+5. Creación de órdenes de servicio.
 6. Registro y ficha de trabajadores.
 7. Carga y revision documental.
 8. Entrega de EPP por trabajador.
