@@ -4,6 +4,13 @@ import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import '../styles/admin-clients.css'
 
+const STATUS_LABELS = {
+  pending: 'Pendiente de aprobación',
+  active: 'Activa',
+  suspended: 'Suspendida',
+  deleted: 'Eliminada',
+}
+
 export default function AdministracionClientesPage() {
   const { session } = useAuth()
   const [tenants, setTenants] = useState([])
@@ -12,6 +19,7 @@ export default function AdministracionClientesPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState('')
   const [loadingUsers, setLoadingUsers] = useState('')
+  const [changingStatus, setChangingStatus] = useState('')
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const load = async () => {
@@ -30,6 +38,32 @@ export default function AdministracionClientesPage() {
     if (isNexoAdmin) load()
     else setLoading(false)
   }, [isNexoAdmin])
+
+  const changeStatus = async (tenant, status) => {
+    const action = status === 'active'
+      ? tenant.status === 'pending' ? 'activar' : 'reactivar'
+      : 'suspender'
+
+    if (!window.confirm(`¿Deseas ${action} la cuenta de ${tenant.company_name}?`)) return
+
+    setChangingStatus(tenant.id)
+    setMessage('')
+    try {
+      const updated = await api.patch(`/tenants/${tenant.id}`, { status })
+      setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item))
+      setMessage(
+        status === 'active'
+          ? tenant.status === 'pending'
+            ? `La cuenta de ${tenant.company_name} fue activada correctamente.`
+            : `La cuenta de ${tenant.company_name} fue reactivada correctamente.`
+          : `La cuenta de ${tenant.company_name} fue suspendida correctamente.`,
+      )
+    } catch (error) {
+      setMessage(error.message || 'No fue posible actualizar el estado de la empresa.')
+    } finally {
+      setChangingStatus('')
+    }
+  }
 
   const reset = async tenant => {
     if (!window.confirm(`Se enviará un enlace al administrador de ${tenant.company_name}. ¿Continuar?`)) return
@@ -151,17 +185,54 @@ export default function AdministracionClientesPage() {
                     <td><strong>{tenant.company_name}</strong></td>
                     <td>{tenant.rut || '—'}</td>
                     <td>{tenant.admin_email || '—'}</td>
-                    <td><span className={`nk-admin-clients-status ${tenant.status || ''}`}>{tenant.status || 'Sin estado'}</span></td>
+                    <td>
+                      <span className={`nk-admin-clients-status ${tenant.status || ''}`}>
+                        {STATUS_LABELS[tenant.status] || tenant.status || 'Sin estado'}
+                      </span>
+                    </td>
                     <td>
                       <div className="nk-admin-clients-actions">
-                        <button
-                          className="nk-button nk-button-secondary nk-button-sm"
-                          disabled={sending === tenant.id || tenant.status === 'deleted'}
-                          onClick={() => reset(tenant)}
-                        >
-                          <IconKey size={14} />
-                          {sending === tenant.id ? 'Enviando…' : 'Restablecer administrador'}
-                        </button>
+                        {tenant.status === 'pending' && (
+                          <button
+                            className="nk-button nk-button-primary nk-button-sm"
+                            disabled={changingStatus === tenant.id}
+                            onClick={() => changeStatus(tenant, 'active')}
+                          >
+                            {changingStatus === tenant.id ? 'Activando…' : 'Activar cuenta'}
+                          </button>
+                        )}
+
+                        {tenant.status === 'active' && (
+                          <button
+                            className="nk-button nk-button-secondary nk-button-sm"
+                            disabled={changingStatus === tenant.id}
+                            onClick={() => changeStatus(tenant, 'suspended')}
+                          >
+                            {changingStatus === tenant.id ? 'Suspendiendo…' : 'Suspender'}
+                          </button>
+                        )}
+
+                        {tenant.status === 'suspended' && (
+                          <button
+                            className="nk-button nk-button-primary nk-button-sm"
+                            disabled={changingStatus === tenant.id}
+                            onClick={() => changeStatus(tenant, 'active')}
+                          >
+                            {changingStatus === tenant.id ? 'Reactivando…' : 'Reactivar'}
+                          </button>
+                        )}
+
+                        {tenant.status === 'active' && (
+                          <button
+                            className="nk-button nk-button-secondary nk-button-sm"
+                            disabled={sending === tenant.id}
+                            onClick={() => reset(tenant)}
+                          >
+                            <IconKey size={14} />
+                            {sending === tenant.id ? 'Enviando…' : 'Restablecer administrador'}
+                          </button>
+                        )}
+
                         <button
                           className="nk-button nk-button-secondary nk-button-sm"
                           disabled={loadingUsers === tenant.id || tenant.status === 'deleted'}
