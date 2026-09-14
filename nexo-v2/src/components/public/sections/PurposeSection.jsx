@@ -1,2 +1,30 @@
-const values = [['Claridad','Información fácil de entender, seguir y gestionar.'],['Conexión','Áreas, personas, documentos y procesos en una plataforma.'],['Control','Datos seguros, actualizados y dentro de la compañía.'],['Simplicidad','Una herramienta práctica y pensada para el uso diario.'],['Trazabilidad','Cada cambio, documento y vencimiento deja historial.'],['Continuidad','El conocimiento permanece aunque cambien los equipos.']]
-export default function PurposeSection() { return <section id="proposito" className="nk-public-section"><div><p className="nk-eyebrow">Nuestro propósito</p><h2>Información clara que permanece y genera continuidad.</h2><p className="nk-lead">Nexo Klar nace para simplificar, unificar y conectar la gestión diaria, evitando que la información crítica quede dispersa en personas, planillas, correos o carpetas.</p><div className="nk-card-grid nk-statements">{[['Visión','Una operación más simple y controlada','Ser la plataforma que ayuda a las empresas a simplificar, unificar y controlar su información operativa, manteniendo los datos críticos dentro de la compañía.'],['Misión','Conectar la información que mueve a la empresa','Conectar personas, documentos, contratos, procesos y operaciones en un sistema fácil de usar, con información clara, estructurada y trazable.']].map(([l,t,b])=><article key={l}><small>{l}</small><h3>{t}</h3><p>{b}</p></article>)}</div><div className="nk-card-grid nk-values">{values.map(([t,b])=><article key={t}><b>{t}</b><span>{b}</span></article>)}</div></div></section> }
+const values = [
+  ['Conexión','Unimos datos, sistemas y personas para que la información fluya sin barreras.'],
+  ['Claridad','Hacemos visible lo importante para que cada decisión tenga fundamento.'],
+  ['Control','Convertimos la información en dominio de la operación, reduciendo incertidumbre y mejorando el desempeño.'],
+  ['Confianza','Damos visibilidad y trazabilidad a datos. No asumir que todo está bien, sino tener la información para comprobarlo.'],
+  ['Continuidad','Acompañamos la operación de forma permanente con soluciones confiables, escalables y disponibles cuando más se necesita.'],
+]
+
+export default function PurposeSection() {
+  return <section id="proposito" className="nk-public-section"><div>
+    <p className="nk-eyebrow">Nuestro propósito</p>
+    <h2>Creemos que las mejores decisiones nacen de información confiable, conectada y accesible para todos.</h2>
+    <p className="nk-lead">La simplicidad guía el producto: hacer visible lo importante, reducir fricción y ayudar a cada persona a saber qué ocurre y qué debe hacer.</p>
+
+    <div className="nk-card-grid nk-statements">
+      <article>
+        <small>Visión</small>
+        <h3>Información disponible en el momento preciso</h3>
+        <p>Construir un futuro donde cada decisión operacional se tome con información integrada, confiable y disponible en el momento preciso.</p>
+      </article>
+      <article>
+        <small>Misión</small>
+        <h3>Todo empieza por las personas</h3>
+        <p>Impulsamos la excelencia operacional de cada empresa con una sola base de información que unifica y conecta su operación, la simplifica y le da control, con datos claros y trazables. Porque todo empieza por las personas: saber quiénes son, qué saben hacer y que estén siempre listas para operar.</p>
+      </article>
+    </div>
+
+    <div className="nk-card-grid nk-values">{values.map(([t,b])=><article key={t}><b>{t}</b><span>{b}</span></article>)}</div>
+  </div></section>
+}
