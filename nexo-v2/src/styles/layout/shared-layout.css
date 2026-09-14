@@ -4,6 +4,7 @@
  *
  * Esta capa define geometría y flujo. No define identidad visual
  * de componentes ni estilos específicos de una página.
+ * Toda dimensión visual consume tokens canónicos --nk-*.
  */
 
 /* Contenedores y secciones */
@@ -26,12 +27,16 @@
 
 .nk-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr)
+  );
   gap: var(--nk-space-4);
 }
 
 .nk-form-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
   gap: var(--nk-space-2);
@@ -67,8 +72,12 @@
 }
 
 /* Encabezados de sección y contenido editorial */
+.nk-section-heading,
+.nk-prose {
+  max-width: calc((var(--nk-space-20) * 8) + var(--nk-space-10));
+}
+
 .nk-section-heading {
-  max-width: 680px;
   margin-bottom: var(--nk-space-10);
 }
 
@@ -85,7 +94,6 @@
 }
 
 .nk-prose {
-  max-width: 680px;
   color: var(--nk-ink);
   font: var(--nk-font-body);
 }
@@ -117,32 +125,18 @@
   margin-bottom: var(--nk-space-2);
 }
 
-@media (max-width: 1024px) {
-  .nk-card-grid-4,
-  .nk-card-grid-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .nk-form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .nk-form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-
-  .nk-form-actions .nk-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 640px) {
+/*
+ * Responsividad intrínseca.
+ * Se evita declarar breakpoints locales: las grillas se adaptan por
+ * contenido y los grupos de acciones envuelven cuando falta espacio.
+ */
+@supports (grid-template-columns: subgrid) {
   .nk-card-grid-2,
   .nk-card-grid-3,
   .nk-card-grid-4 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr)
+    );
   }
 }
