@@ -76,8 +76,8 @@ export default function LandingPage() {
       <section className="nk-public-section nk-centered nk-final-cta" id="contacto">
         <div>
           <p className="nk-eyebrow">Conversemos</p>
-          <h2>Descubre cómo Nexo Klar puede ordenar tu operación.</h2>
-          <p className="nk-lead">Revisamos contigo tus procesos, tipos de personal, contratos y órdenes de servicio para definir la configuración que realmente necesita tu empresa.</p>
+          <h2>Conecta tu operación sobre una sola base de información.</h2>
+          <p className="nk-lead">Cuéntanos cómo administras hoy tu dotación, documentos, recursos y cumplimiento. Revisaremos contigo qué módulos necesita tu empresa para comenzar.</p>
           <div className="nk-actions">
             <button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('demo')}>Solicitar demostración</button>
             <button className="nk-button nk-button-secondary" type="button" onClick={openCompanyRegistration}>Crear empresa</button>
@@ -87,10 +87,10 @@ export default function LandingPage() {
     </main>
 
     <footer className="nk-public-footer">
-      <span>Nexo Klar · Gestión empresarial y operacional</span>
+      <span>Nexo Klar · Información que conecta</span>
       <div>
         <button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button>
-        <a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a>
+        <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
       </div>
     </footer>
 
