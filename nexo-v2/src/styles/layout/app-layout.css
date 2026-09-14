@@ -1,0 +1,29 @@
+/*
+ * NEXO KLAR · App Layout
+ * Geometría estructural de la aplicación privada.
+ */
+
+.nk-app-shell {
+  display: flex;
+  min-height: 100vh;
+  height: 100vh;
+  background: var(--nk-base);
+  overflow: hidden;
+}
+
+.nk-app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nk-app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--nk-base);
+}
