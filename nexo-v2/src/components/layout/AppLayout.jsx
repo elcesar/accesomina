@@ -6,7 +6,6 @@ import { api } from '../../services/api.js'
 import { applyTenantBranding } from '../../services/theme.js'
 import { pageDomain } from '../../config/page-domains.js'
 import '../../styles/app-layout.css'
-import '../../styles/page-header.css'
 
 export default function AppLayout() {
   const { pathname } = useLocation()

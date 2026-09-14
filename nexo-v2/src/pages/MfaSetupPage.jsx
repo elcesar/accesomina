@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { IconCheck, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
-import '../styles/account-pages.css'
 
 export default function MfaSetupPage() {
   const { session, reload } = useAuth()
