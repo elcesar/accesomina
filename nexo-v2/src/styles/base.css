@@ -75,8 +75,8 @@ svg {
 }
 
 :focus-visible {
-  outline: var(--nk-space-1) solid var(--nk-focus);
-  outline-offset: var(--nk-space-1);
+  outline: var(--nk-focus-width) solid var(--nk-focus);
+  outline-offset: var(--nk-focus-offset);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -86,6 +86,5 @@ svg {
     scroll-behavior: auto !important;
     transition-duration: 0s !important;
     animation-duration: 0s !important;
-    animation-iteration-count: 1 !important;
   }
 }
