@@ -4,6 +4,7 @@ import { IconArrowLeft, IconBuilding, IconCheck, IconFileText, IconLoader2, Icon
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import '../styles/clientes.css'
+import '../styles/clientes-workspace.css'
 
 const emptyClient=()=>({nombre:'',mandante:'',rut:'',region:'',comuna:'',telefonoMandante:'',emailMandante:'',observacion:'',estado:'activo',contactos:[],requisitos:[]})
 const newId=()=>globalThis.crypto?.randomUUID?.()||`cliente-${Date.now()}-${Math.random().toString(16).slice(2)}`

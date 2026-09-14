@@ -12,9 +12,6 @@
  * - No incluir layouts específicos de páginas.
  */
 
-@import url("./tokens.css");
-
-
 /* =========================================================
    01. CONTAINERS
    ========================================================= */
@@ -47,10 +44,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
 
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  line-height: 1.2;
+  font: var(--nk-font-label);
 
   text-decoration: none;
   cursor: pointer;
@@ -227,8 +221,7 @@
 
 .nk-label {
   color: var(--ink);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font: var(--nk-font-label);
 }
 
 .nk-input,
@@ -244,8 +237,7 @@
 
   padding: var(--space-3) var(--space-3);
 
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
+  font: var(--nk-font-body-sm);
 
   transition:
     border-color var(--transition-base),
@@ -319,8 +311,7 @@
 
   border-radius: var(--radius-pill);
 
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  font: var(--nk-font-label);
   line-height: 1;
 }
 
@@ -356,6 +347,11 @@
   color: var(--nk-state-none);
 }
 
+.nk-badge-neutral {
+  background: var(--nk-state-none-soft);
+  color: var(--nk-state-none);
+}
+
 
 /* =========================================================
    09. TABLE
@@ -385,8 +381,7 @@
 
   text-align: left;
 
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  font: var(--nk-font-label);
   letter-spacing: 0;
   text-transform: none;
 

@@ -1,5 +1,8 @@
-/* Nexo Klar brand-system v1.0
-   Normalización final para vistas públicas y privadas. */
+/* Nexo Klar · fundamentos
+   Base visual, accesibilidad y tipografía. Los componentes reutilizables
+   viven exclusivamente en components.css. */
+
+@import url("./ux-foundations.css");
 
 html,
 body,
@@ -76,42 +79,6 @@ body {
   font-family: var(--nk-family-ui);
 }
 
-button,
-input,
-select,
-textarea {
-  font-family: var(--nk-family-ui);
-}
-
-button,
-[role="button"] {
-  min-height: var(--nk-control-min);
-}
-
-.nk-button,
-.nk-icon-button {
-  align-items: center;
-  border-radius: var(--nk-radius-2);
-  display: inline-flex;
-  font: var(--nk-font-label);
-  gap: var(--nk-space-2);
-  justify-content: center;
-}
-
-.nk-input,
-.nk-select,
-.nk-textarea {
-  border-radius: var(--nk-radius-2);
-  font: var(--nk-font-body-sm);
-}
-
-.nk-label,
-.nk-field > label,
-.nk-field > span:first-child {
-  color: var(--nk-ink);
-  font: var(--nk-font-label);
-}
-
 .nk-public-topbar,
 .nk-public-tabs,
 .nk-sidebar,
@@ -134,88 +101,6 @@ button,
 .nk-global-header,
 .nk-public-footer {
   color: var(--nk-ink);
-}
-
-.nk-button-primary,
-.nk-button-action {
-  background: var(--nk-action);
-  color: var(--nk-on-action);
-}
-
-.nk-button-primary:hover:not(:disabled),
-.nk-button-action:hover:not(:disabled) {
-  background: var(--nk-action-hover);
-}
-
-.nk-button-secondary,
-.nk-button-quiet,
-.nk-icon-button {
-  background: var(--nk-surface);
-  color: var(--nk-action);
-  border-color: var(--nk-border-control);
-}
-
-.nk-button-secondary:hover:not(:disabled),
-.nk-button-quiet:hover:not(:disabled),
-.nk-icon-button:hover:not(:disabled) {
-  background: var(--nk-surface-2);
-}
-
-.nk-input,
-.nk-select,
-.nk-textarea,
-.nk-public-form input,
-.nk-public-form select,
-.nk-public-form textarea,
-.nk-access-form input,
-.nk-dialog input,
-.nk-dialog select,
-.nk-dialog textarea,
-.nk-search {
-  background: var(--nk-surface);
-  color: var(--nk-ink);
-  border-color: var(--nk-border-control);
-}
-
-.nk-input::placeholder,
-.nk-textarea::placeholder,
-.nk-search input::placeholder {
-  color: var(--nk-ink-3);
-}
-
-.nk-table th,
-.nk-data-table th {
-  background: var(--nk-support);
-  color: var(--nk-on-primary);
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.nk-table th {
-  font: var(--nk-font-label);
-}
-
-.nk-badge {
-  align-items: center;
-  display: inline-flex;
-  font: var(--nk-font-label);
-  gap: var(--nk-space-1);
-}
-
-.nk-badge-ok { background: var(--nk-state-ok-soft); color: var(--nk-state-ok); }
-.nk-badge-warn { background: var(--nk-state-warn-soft); color: var(--nk-state-warn-ink); }
-.nk-badge-error { background: var(--nk-state-error-soft); color: var(--nk-state-error); }
-.nk-badge-none,
-.nk-badge-neutral { background: var(--nk-state-none-soft); color: var(--nk-state-none); }
-
-.nk-table tbody tr:nth-child(even),
-.nk-data-table tbody tr:nth-child(even) {
-  background: var(--nk-surface-2);
-}
-
-.nk-table td,
-.nk-data-table td {
-  border-color: var(--nk-line);
 }
 
 .nk-accents,

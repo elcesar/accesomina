@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { IconArrowLeft, IconLayoutDashboard, IconMapOff } from '@tabler/icons-react'
+import '../styles/account-pages.css'
 
 export default function NotFoundPage() {
   const { session } = useAuth()
