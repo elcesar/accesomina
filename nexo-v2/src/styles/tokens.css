@@ -1,6 +1,6 @@
 /*
  * NEXO KLAR · Design Tokens
- * Version: 3.2
+ * Version: 3.3
  *
  * Fuente única de verdad para valores visuales compartidos.
  * Alineado con el Sistema de color v2.0 y el manual de marca v1.0.
@@ -71,6 +71,17 @@
   --nk-state-none: #5D6B7A;
   --nk-state-none-soft: #EFF1F3;
   --nk-focus: #00706A;
+
+  /* Technical strokes and focus */
+  --nk-stroke-thin: 1px;
+  --nk-stroke-strong: 2px;
+  --nk-focus-width: 3px;
+  --nk-focus-offset: 2px;
+
+  /* Layers */
+  --nk-layer-sticky: 60;
+  --nk-layer-popover: 70;
+  --nk-layer-modal: 80;
 
   /* Spacing */
   --nk-space-0: 0;
@@ -237,7 +248,7 @@
   --color-cobalt-deep: var(--nk-action-hover);
   --color-cobalt-light: var(--nk-action-soft);
   --color-graphite: var(--nk-support);
-  --color-graphite-mid: #3D4E5A;
+  --color-graphite-mid: var(--nk-ink-2);
   --color-magenta: var(--nk-accent-warm);
   --color-magenta-ink: var(--nk-accent-warm-ink);
   --color-magenta-light: var(--nk-accent-warm-soft);
@@ -365,7 +376,7 @@
   --page-padding: var(--nk-page-padding);
 
   /* Focus */
-  --focus-ring: 0 0 0 3px rgba(0, 112, 106, 0.22);
+  --focus-ring: 0 0 0 var(--nk-focus-width) var(--nk-focus);
 
   /* Existing --nk-* aliases retained for compatibility */
   --nk-bg: var(--nk-base);
