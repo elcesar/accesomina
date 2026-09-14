@@ -1,12 +1,16 @@
-import { CustomerAccessPanel } from './CustomerAccessSection.jsx'
-
 const points = [
   ['Una fuente común', 'Tu equipo trabaja con información ordenada, conectada y disponible.'],
   ['Órdenes de servicio preparadas', 'Detecta vencimientos, faltantes y restricciones antes de iniciar el trabajo.'],
   ['Historial que permanece', 'El conocimiento queda en la empresa, no disperso en planillas o correos.'],
 ]
 
-export default function HomeSection({ openDemo, onNavigate }) {
+const productNotes = [
+  ['Estado operativo', 'Identifica qué servicios están listos y cuáles tienen brechas.'],
+  ['Alertas prioritarias', 'Concentra pendientes y vencimientos que requieren acción.'],
+  ['Información conectada', 'Accede desde el cliente hasta cada persona, recurso y documento.'],
+]
+
+export default function HomeSection({ openDemo, openPreview, onNavigate }) {
   return (
     <section id="inicio" className="nk-hero nk-public-section">
       <div className="nk-hero-copy">
@@ -41,8 +45,24 @@ export default function HomeSection({ openDemo, onNavigate }) {
         </div>
       </div>
 
-      <div id="clientes-access" className="nk-hero-access" aria-label="Registro de nueva empresa">
-        <CustomerAccessPanel />
+      <div className="nk-hero-product" aria-label="Vista real de Nexo Klar">
+        <button
+          className="nk-image-button"
+          type="button"
+          onClick={openPreview}
+          aria-label="Ampliar vista del panel de control de Nexo Klar"
+        >
+          <img src="/assets/dashboard-demo.png" alt="Panel de control real de Nexo Klar" />
+        </button>
+
+        <div className="nk-card-grid nk-hero-product-notes" aria-label="Información del panel">
+          {productNotes.map(([title, body]) => (
+            <article key={title}>
+              <b>{title}</b>
+              <span>{body}</span>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   )
