@@ -1,382 +1,389 @@
-/**
+/*
  * NEXO KLAR · Design Tokens
- * Version: 3.0
+ * Version: 3.1
  *
- * Design System Foundation
+ * Fuente única de verdad para valores visuales compartidos.
  *
- * Regla principal:
- * Este archivo es la única fuente de verdad para los valores
- * visuales compartidos de Nexo Klar.
- *
- * NO agregar aquí:
- * - estilos específicos de páginas
- * - layouts específicos del Landing
- * - estilos de componentes complejos
- * - hacks de compatibilidad de páginas
- *
- * Los componentes deben consumir estos tokens.
+ * Estrategia de migración:
+ * - Los tokens canónicos usan prefijo --nk-*.
+ * - Los nombres históricos se mantienen como aliases de compatibilidad.
+ * - No se modifican CSS de páginas ni componentes en esta etapa.
+ * - El modo oscuro queda disponible sólo de forma explícita mediante
+ *   [data-tema="oscuro"]. La activación automática se revisará en la
+ *   etapa de theme.css/theme.js.
  */
 
-
 /* =========================================================
-   01. TYPOGRAPHY
+   01. CANONICAL TOKENS · LIGHT MODE
    ========================================================= */
 
 :root {
-  --font-ui:
-    'Inter',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  /* Families */
+  --nk-family-brand: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --nk-family-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --nk-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --nk-family-office: Cambria, Georgia, serif;
 
-  --font-brand:
-    'Manrope',
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  /* Surfaces and neutral roles */
+  --nk-base: #F4EFE3;
+  --nk-surface: #FFFFFF;
+  --nk-surface-2: #FBF9F5;
+  --nk-line: #E3DED2;
+  --nk-line-strong: #C7D0D6;
+  --nk-border-control: #78848F;
+  --nk-ink: #141A20;
+  --nk-ink-2: #5D6B7A;
+  --nk-ink-3: #8A96A1;
+  --nk-ink-disabled: #C7D0D6;
 
+  /* Brand and actions */
+  --nk-on-primary: #FFFFFF;
+  --nk-on-action: #FFFFFF;
+  --nk-primary: #2A2A8C;
+  --nk-primary-deep: #1A1A5E;
+  --nk-primary-soft: #E3E3F0;
+  --nk-action: #1E3AE0;
+  --nk-action-hover: #1229A8;
+  --nk-action-soft: #E0E6FF;
+  --nk-support: #26313A;
+
+  /* Accent roles */
+  --nk-accent-warm: #E4006E;
+  --nk-accent-warm-ink: #A3004F;
+  --nk-accent-warm-soft: #FFE0EF;
+  --nk-accent-data: #00CFC1;
+  --nk-accent-data-ink: #00706A;
+  --nk-accent-data-soft: #E0F7F5;
+  --nk-on-accent-data: #08302F;
+  --nk-attention: #E9A319;
+  --nk-attention-ink: #8A5A00;
+  --nk-attention-soft: #FEF3DC;
+
+  /* System states */
+  --nk-state-ok: #146B3E;
+  --nk-state-ok-soft: #E6F2EB;
+  --nk-state-warn: #E9A319;
+  --nk-state-warn-ink: #8A5A00;
+  --nk-state-warn-soft: #FEF3DC;
+  --nk-state-error: #9B2226;
+  --nk-state-error-soft: #FBE8E6;
+  --nk-state-none: #5D6B7A;
+  --nk-state-none-soft: #F2F4F5;
+  --nk-focus: #1E3AE0;
+
+  /* Spacing */
+  --nk-space-0: 0;
+  --nk-space-1: 4px;
+  --nk-space-2: 8px;
+  --nk-space-3: 12px;
+  --nk-space-4: 16px;
+  --nk-space-5: 20px;
+  --nk-space-6: 24px;
+  --nk-space-8: 32px;
+  --nk-space-10: 40px;
+  --nk-space-12: 48px;
+  --nk-space-16: 64px;
+  --nk-space-20: 80px;
+
+  /* Radius */
+  --nk-radius-sm: 6px;
+  --nk-radius-md: 8px;
+  --nk-radius-lg: 12px;
+  --nk-radius-xl: 16px;
+  --nk-radius-pill: 99px;
+
+  /* Elevation
+     Values preserve the current production shadows during migration. */
+  --nk-elev-0: none;
+  --nk-elev-1: 0 2px 8px rgba(20, 26, 32, 0.06);
+  --nk-elev-2: 0 4px 16px rgba(20, 26, 32, 0.10);
+  --nk-elev-3: 0 8px 32px rgba(20, 26, 32, 0.14);
+  --nk-elev-4: 0 16px 48px rgba(20, 26, 32, 0.18);
 
   /* Type scale */
+  --nk-text-xs: 11px;
+  --nk-text-sm: 12px;
+  --nk-text-base: 13px;
+  --nk-text-md: 14px;
+  --nk-text-lg: 16px;
+  --nk-text-xl: 18px;
+  --nk-text-2xl: 22px;
+  --nk-text-3xl: 28px;
+  --nk-text-4xl: 36px;
 
-  --text-xs:   11px;
-  --text-sm:   12px;
-  --text-base: 13px;
-  --text-md:   14px;
-  --text-lg:   16px;
-  --text-xl:   18px;
-  --text-2xl:  22px;
-  --text-3xl:  28px;
-  --text-4xl:  36px;
+  --nk-weight-regular: 400;
+  --nk-weight-medium: 500;
+  --nk-weight-semibold: 600;
+  --nk-weight-bold: 700;
+  --nk-weight-extrabold: 800;
 
+  --nk-leading-tight: 1.15;
+  --nk-leading-snug: 1.30;
+  --nk-leading-normal: 1.50;
+  --nk-leading-relaxed: 1.60;
 
-  /* Font weights */
+  /* Semantic typography */
+  --nk-font-display: 800 36px/1.15 var(--nk-family-brand);
+  --nk-font-title-1: 800 28px/1.15 var(--nk-family-brand);
+  --nk-font-title-2: 700 22px/1.30 var(--nk-family-brand);
+  --nk-font-title-3: 700 18px/1.30 var(--nk-family-ui);
+  --nk-font-body-lg: 400 16px/1.50 var(--nk-family-ui);
+  --nk-font-body: 400 14px/1.50 var(--nk-family-ui);
+  --nk-font-body-sm: 400 13px/1.50 var(--nk-family-ui);
+  --nk-font-label: 600 12px/1.35 var(--nk-family-ui);
+  --nk-font-caption: 400 12px/1.45 var(--nk-family-ui);
+  --nk-font-overline: 700 11px/1.20 var(--nk-family-ui);
+  --nk-font-mono: 400 13px/1.50 var(--nk-family-mono);
 
-  --weight-regular:   400;
-  --weight-medium:    500;
-  --weight-semibold:  600;
-  --weight-bold:      700;
-  --weight-extrabold: 800;
+  /* Motion */
+  --nk-motion-fast: 120ms;
+  --nk-motion-normal: 180ms;
+  --nk-motion-slow: 280ms;
+  --nk-motion-curve: ease;
 
+  /* Compatibility with the proposed Spanish motion names */
+  --nk-motion-rapido: var(--nk-motion-fast);
+  --nk-motion-lento: var(--nk-motion-slow);
+  --nk-motion-curva: var(--nk-motion-curve);
 
-  /* Line heights */
+  /* Density and interaction */
+  --nk-row-comfortable: 48px;
+  --nk-row-normal: 40px;
+  --nk-row-compact: 34px;
+  --nk-cell-x: 14px;
+  --nk-cell-y: 10px;
+  --nk-control-min: 40px;
+  --nk-touch-min: 44px;
 
-  --leading-tight:  1.15;
-  --leading-snug:   1.30;
-  --leading-normal: 1.50;
-  --leading-relaxed: 1.60;
+  /* Compatibility with proposed Spanish density names */
+  --nk-fila-comoda: var(--nk-row-comfortable);
+  --nk-fila-normal: var(--nk-row-normal);
+  --nk-fila-compacta: var(--nk-row-compact);
+  --nk-celda-x: var(--nk-cell-x);
+  --nk-celda-y: var(--nk-cell-y);
+  --nk-toque-min: var(--nk-touch-min);
+
+  /* Global layout — preserved from current production */
+  --nk-sidebar-width: 224px;
+  --nk-header-height: 56px;
+  --nk-content-max-width: 1200px;
+  --nk-page-padding: clamp(16px, 4vw, 24px);
 }
 
+/* =========================================================
+   02. DARK MODE TOKENS
+   Explicit only in this stage. Theme activation is handled later.
+   ========================================================= */
+
+:root[data-tema="oscuro"] {
+  --nk-base: #0E1219;
+  --nk-surface: #161C26;
+  --nk-surface-2: #1D2531;
+  --nk-line: #2C3644;
+  --nk-line-strong: #3E4B5C;
+  --nk-border-control: #657483;
+  --nk-ink: #F4EFE3;
+  --nk-ink-2: #AEBAC6;
+  --nk-ink-3: #8894A2;
+  --nk-ink-disabled: #5F6B79;
+  --nk-on-primary: #0E1219;
+  --nk-on-action: #0E1219;
+  --nk-primary: #9FA5E4;
+  --nk-primary-deep: #C3C7EF;
+  --nk-primary-soft: #1B1F3D;
+  --nk-action: #8FA0F5;
+  --nk-action-hover: #B0BCF9;
+  --nk-action-soft: #171E3F;
+  --nk-support: #AEBAC6;
+  --nk-accent-warm: #FF6BAA;
+  --nk-accent-warm-ink: #FF9BC6;
+  --nk-accent-warm-soft: #33122A;
+  --nk-accent-data: #4CDDD4;
+  --nk-accent-data-ink: #8CE9E3;
+  --nk-accent-data-soft: #0B2E2D;
+  --nk-on-accent-data: #08302F;
+  --nk-attention: #F0BF5E;
+  --nk-attention-ink: #F5D698;
+  --nk-attention-soft: #332611;
+  --nk-state-ok: #5FC98E;
+  --nk-state-ok-soft: #0F2E1E;
+  --nk-state-warn: #F0BF5E;
+  --nk-state-warn-ink: #F5D698;
+  --nk-state-warn-soft: #332611;
+  --nk-state-error: #F58A8E;
+  --nk-state-error-soft: #3A1518;
+  --nk-state-none: #AEBAC6;
+  --nk-state-none-soft: #1D2531;
+  --nk-focus: #4CDDD4;
+  --nk-elev-1: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --nk-elev-2: 0 2px 6px rgba(0, 0, 0, 0.46);
+  --nk-elev-3: 0 8px 24px rgba(0, 0, 0, 0.54);
+  --nk-elev-4: 0 20px 48px rgba(0, 0, 0, 0.62);
+  color-scheme: dark;
+}
 
 /* =========================================================
-   02. BRAND COLORS
+   03. LEGACY / TRANSITIONAL ALIASES
+   Existing pages can continue using these names unchanged.
+   New development should prefer the canonical --nk-* tokens.
    ========================================================= */
 
 :root {
-
-  /* ---------- Indigo ---------- */
-
-  --color-indigo:       #2A2A8C;
-  --color-indigo-deep:  #1A1A5E;
-  --color-indigo-light: #E3E3F0;
-
-
-  /* ---------- Cobalt ---------- */
-
-  --color-cobalt:       #1E3AE0;
-  --color-cobalt-deep:  #1229A8;
-  --color-cobalt-light: #E0E6FF;
-
-
-  /* ---------- Graphite ---------- */
-
-  --color-graphite:     #26313A;
+  /* Existing color primitives kept as aliases */
+  --color-indigo: var(--nk-primary);
+  --color-indigo-deep: var(--nk-primary-deep);
+  --color-indigo-light: var(--nk-primary-soft);
+  --color-cobalt: var(--nk-action);
+  --color-cobalt-deep: var(--nk-action-hover);
+  --color-cobalt-light: var(--nk-action-soft);
+  --color-graphite: var(--nk-support);
   --color-graphite-mid: #3D4E5A;
-
-
-  /* ---------- Magenta ---------- */
-
-  --color-magenta:       #E4006E;
-  --color-magenta-ink:   #A3004F;
-  --color-magenta-light: #FFE0EF;
-
-
-  /* ---------- Teal ---------- */
-
-  --color-teal:       #00CFC1;
-  --color-teal-ink:   #00706A;
-  --color-teal-light: #E0F7F5;
-
-
-  /* ---------- Amber ---------- */
-
-  --color-amber:       #E9A319;
-  --color-amber-ink:   #8A5A00;
-  --color-amber-light: #FEF3DC;
-}
-
-
-/* =========================================================
-   03. NEUTRAL COLORS
-   ========================================================= */
-
-:root {
-
-  --color-ivory:      #F4EFE3;
-  --color-white:      #FFFFFF;
-  --color-bone:       #FBF9F5;
-
-  --color-warm-line:  #E3DED2;
-
-  --color-ink:        #141A20;
-  --color-ink-mid:    #5D6B7A;
-  --color-ink-sub:    #8A96A1;
-
-  --color-metal:      #C7D0D6;
-}
-
-
-/* =========================================================
-   04. SEMANTIC COLORS
-   ========================================================= */
-
-:root {
-
-  /* Application surfaces */
-
-  --bg:     var(--color-ivory);
-  --surf:   var(--color-white);
-  --surf-2: var(--color-bone);
-  --line:   var(--color-warm-line);
-
+  --color-magenta: var(--nk-accent-warm);
+  --color-magenta-ink: var(--nk-accent-warm-ink);
+  --color-magenta-light: var(--nk-accent-warm-soft);
+  --color-teal: var(--nk-accent-data);
+  --color-teal-ink: var(--nk-accent-data-ink);
+  --color-teal-light: var(--nk-accent-data-soft);
+  --color-amber: var(--nk-attention);
+  --color-amber-ink: var(--nk-attention-ink);
+  --color-amber-light: var(--nk-attention-soft);
+  --color-ivory: var(--nk-base);
+  --color-white: var(--nk-surface);
+  --color-bone: var(--nk-surface-2);
+  --color-warm-line: var(--nk-line);
+  --color-ink: var(--nk-ink);
+  --color-ink-mid: var(--nk-ink-2);
+  --color-ink-sub: var(--nk-ink-3);
+  --color-metal: var(--nk-line-strong);
 
   /* Typography */
+  --font-ui: var(--nk-family-ui);
+  --font-brand: var(--nk-family-brand);
+  --font-mono: var(--nk-family-mono);
+  --text-xs: var(--nk-text-xs);
+  --text-sm: var(--nk-text-sm);
+  --text-base: var(--nk-text-base);
+  --text-md: var(--nk-text-md);
+  --text-lg: var(--nk-text-lg);
+  --text-xl: var(--nk-text-xl);
+  --text-2xl: var(--nk-text-2xl);
+  --text-3xl: var(--nk-text-3xl);
+  --text-4xl: var(--nk-text-4xl);
+  --weight-regular: var(--nk-weight-regular);
+  --weight-medium: var(--nk-weight-medium);
+  --weight-semibold: var(--nk-weight-semibold);
+  --weight-bold: var(--nk-weight-bold);
+  --weight-extrabold: var(--nk-weight-extrabold);
+  --leading-tight: var(--nk-leading-tight);
+  --leading-snug: var(--nk-leading-snug);
+  --leading-normal: var(--nk-leading-normal);
+  --leading-relaxed: var(--nk-leading-relaxed);
 
-  --ink:      var(--color-ink);
-  --mut:      var(--color-ink-mid);
-  --sub:      var(--color-ink-sub);
-  --disabled: var(--color-metal);
+  /* Semantic roles */
+  --bg: var(--nk-base);
+  --surf: var(--nk-surface);
+  --surf-2: var(--nk-surface-2);
+  --line: var(--nk-line);
+  --line-strong: var(--nk-line-strong);
+  --border: var(--nk-line);
+  --control-border: var(--nk-border-control);
+  --ink: var(--nk-ink);
+  --mut: var(--nk-ink-2);
+  --sub: var(--nk-ink-3);
+  --disabled: var(--nk-ink-disabled);
+  --pri: var(--nk-primary);
+  --pri-deep: var(--nk-primary-deep);
+  --pri-light: var(--nk-primary-soft);
+  --action: var(--nk-action);
+  --action-deep: var(--nk-action-hover);
+  --acc: var(--nk-accent-data);
+  --acc-ink: var(--nk-accent-data-ink);
+  --acc-light: var(--nk-accent-data-soft);
+  --hot: var(--nk-accent-warm);
+  --hot-ink: var(--nk-accent-warm-ink);
+  --hot-light: var(--nk-accent-warm-soft);
+  --graph: var(--nk-support);
 
-
-  /* Primary */
-
-  --pri:       var(--color-indigo);
-  --pri-deep:  var(--color-indigo-deep);
-  --pri-light: var(--color-indigo-light);
-
-
-  /* Primary action */
-
-  --action:      var(--color-cobalt);
-  --action-deep: var(--color-cobalt-deep);
-
-
-  /* Accent */
-
-  --acc:       var(--color-teal);
-  --acc-ink:   var(--color-teal-ink);
-  --acc-light: var(--color-teal-light);
-
-
-  /* Highlight */
-
-  --hot:       var(--color-magenta);
-  --hot-ink:   var(--color-magenta-ink);
-  --hot-light: var(--color-magenta-light);
-
-
-  /* Secondary brand */
-
-  --graph: var(--color-graphite);
-}
-
-
-/* =========================================================
-   05. SYSTEM STATES
-   ========================================================= */
-
-:root {
-
-  /* Success */
-
-  --state-ok:      #146B3E;
-  --state-ok-bg:   #E6F2EB;
+  /* States */
+  --state-ok: var(--nk-state-ok);
+  --state-ok-bg: var(--nk-state-ok-soft);
   --state-ok-label: "Vigente";
-
-
-  /* Warning */
-
-  --state-warn:      #E9A319;
-  --state-warn-ink:  #8A5A00;
-  --state-warn-bg:   #FEF3DC;
+  --state-warn: var(--nk-state-warn);
+  --state-warn-ink: var(--nk-state-warn-ink);
+  --state-warn-bg: var(--nk-state-warn-soft);
   --state-warn-label: "Por vencer";
-
-
-  /* Error */
-
-  --state-error:      #9B2226;
-  --state-error-bg:   #FBE8E6;
+  --state-error: var(--nk-state-error);
+  --state-error-bg: var(--nk-state-error-soft);
   --state-error-label: "No habilitado";
-
-
-  /* Neutral / no information */
-
-  --state-none:      #5D6B7A;
-  --state-none-bg:   #F2F4F5;
+  --state-none: var(--nk-state-none);
+  --state-none-bg: var(--nk-state-none-soft);
   --state-none-label: "Sin información";
+  --ok: var(--nk-state-ok);
+  --ok-bg: var(--nk-state-ok-soft);
+  --warn: var(--nk-state-warn);
+  --warn-ink: var(--nk-state-warn-ink);
+  --warn-bg: var(--nk-state-warn-soft);
+  --err: var(--nk-state-error);
+  --err-bg: var(--nk-state-error-soft);
+  --none: var(--nk-state-none);
+  --none-bg: var(--nk-state-none-soft);
 
+  /* Spacing */
+  --space-0: var(--nk-space-0);
+  --space-1: var(--nk-space-1);
+  --space-2: var(--nk-space-2);
+  --space-3: var(--nk-space-3);
+  --space-4: var(--nk-space-4);
+  --space-5: var(--nk-space-5);
+  --space-6: var(--nk-space-6);
+  --space-8: var(--nk-space-8);
+  --space-10: var(--nk-space-10);
+  --space-12: var(--nk-space-12);
+  --space-16: var(--nk-space-16);
+  --space-20: var(--nk-space-20);
 
-  /* Semantic aliases */
+  /* Radius and elevation */
+  --radius-sm: var(--nk-radius-sm);
+  --radius-md: var(--nk-radius-md);
+  --radius-lg: var(--nk-radius-lg);
+  --radius-xl: var(--nk-radius-xl);
+  --radius-pill: var(--nk-radius-pill);
+  --shadow-sm: var(--nk-elev-1);
+  --shadow-md: var(--nk-elev-2);
+  --shadow-lg: var(--nk-elev-3);
+  --shadow-xl: var(--nk-elev-4);
 
-  --ok:       var(--state-ok);
-  --ok-bg:    var(--state-ok-bg);
+  /* Motion */
+  --transition-fast: var(--nk-motion-fast) var(--nk-motion-curve);
+  --transition-base: var(--nk-motion-normal) var(--nk-motion-curve);
+  --transition-slow: var(--nk-motion-slow) var(--nk-motion-curve);
 
-  --warn:     var(--state-warn);
-  --warn-ink: var(--state-warn-ink);
-  --warn-bg:  var(--state-warn-bg);
+  /* Layout */
+  --sidebar-width: var(--nk-sidebar-width);
+  --header-height: var(--nk-header-height);
+  --content-max-width: var(--nk-content-max-width);
+  --page-padding: var(--nk-page-padding);
 
-  --err:      var(--state-error);
-  --err-bg:   var(--state-error-bg);
+  /* Focus */
+  --focus-ring: 0 0 0 3px rgba(30, 58, 224, 0.22);
 
-  --none:     var(--state-none);
-  --none-bg:  var(--state-none-bg);
+  /* Existing --nk-* aliases retained for compatibility */
+  --nk-bg: var(--nk-base);
+  --nk-text: var(--nk-ink);
+  --nk-muted: var(--nk-ink-2);
+  --nk-subtle: var(--nk-ink-3);
+  --nk-accent: var(--nk-accent-data);
+  --nk-accent-ink: var(--nk-accent-data-ink);
+  --nk-graphite: var(--nk-support);
+  --nk-success: var(--nk-state-ok);
+  --nk-warning: var(--nk-state-warn);
+  --nk-error: var(--nk-state-error);
 }
 
-
 /* =========================================================
-   06. BORDERS & RADII
-   ========================================================= */
-
-:root {
-
-  --radius-sm:   6px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-pill: 99px;
-}
-
-
-/* =========================================================
-   07. SHADOWS
-   ========================================================= */
-
-:root {
-
-  --shadow-sm:
-    0 2px 8px rgba(20, 26, 32, 0.06);
-
-  --shadow-md:
-    0 4px 16px rgba(20, 26, 32, 0.10);
-
-  --shadow-lg:
-    0 8px 32px rgba(20, 26, 32, 0.14);
-
-  --shadow-xl:
-    0 16px 48px rgba(20, 26, 32, 0.18);
-}
-
-
-/* =========================================================
-   08. SPACING
-   ========================================================= */
-
-:root {
-
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-}
-
-
-/* =========================================================
-   09. MOTION
-   ========================================================= */
-
-:root {
-
-  --transition-fast: 0.12s ease;
-  --transition-base: 0.18s ease;
-  --transition-slow: 0.28s ease;
-}
-
-
-/* =========================================================
-   10. LAYOUT
-   ========================================================= */
-
-:root {
-
-  --sidebar-width: 224px;
-  --header-height: 56px;
-
-  --content-max-width: 1200px;
-
-  --page-padding:
-    clamp(16px, 4vw, 24px);
-}
-
-
-/* =========================================================
-   11. ACCESSIBILITY
-   ========================================================= */
-
-:root {
-
-  --focus-ring:
-    0 0 0 3px rgba(30, 58, 224, 0.22);
-}
-
-
-/* =========================================================
-   12. COMPATIBILITY ALIASES
-   =========================================================
- *
- * Estas variables existen únicamente para facilitar la
- * migración de módulos existentes.
- *
- * NO crear nuevos --nk-*.
- * Los nuevos desarrollos deben utilizar los tokens oficiales.
- */
-
-:root {
-
-  --nk-bg:       var(--bg);
-  --nk-surface:  var(--surf);
-  --nk-surface-2: var(--surf-2);
-
-  --nk-line:     var(--line);
-
-  --nk-text:     var(--ink);
-  --nk-muted:    var(--mut);
-  --nk-subtle:   var(--sub);
-
-  --nk-primary:  var(--pri);
-  --nk-primary-deep: var(--pri-deep);
-
-  --nk-accent:   var(--acc);
-  --nk-accent-ink: var(--acc-ink);
-
-  --nk-graphite: var(--graph);
-
-  --nk-success:  var(--ok);
-  --nk-warning:  var(--warn);
-  --nk-error:    var(--err);
-}
-
-
-/* =========================================================
-   13. GLOBAL BASE
+   04. CURRENT GLOBAL BASE
+   Preserved in this stage to avoid page-level regressions.
+   It will be evaluated separately when the base/theme layer is migrated.
    ========================================================= */
 
 html {
@@ -391,15 +398,12 @@ html {
 
 body {
   margin: 0;
-
   font-family: var(--font-ui);
   font-size: var(--text-md);
   font-weight: var(--weight-regular);
   line-height: var(--leading-normal);
-
   color: var(--ink);
   background: var(--bg);
-
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -420,11 +424,6 @@ svg {
   max-width: 100%;
 }
 
-
-/* =========================================================
-   14. TYPOGRAPHY UTILITIES
-   ========================================================= */
-
 .font-ui {
   font-family: var(--font-ui);
 }
@@ -432,7 +431,6 @@ svg {
 .font-brand {
   font-family: var(--font-brand);
 }
-
 
 .heading-xl {
   font-family: var(--font-brand);
@@ -469,23 +467,12 @@ svg {
   line-height: var(--leading-snug);
 }
 
-
-/* =========================================================
-   15. FOCUS
-   ========================================================= */
-
 :focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
 }
 
-
-/* =========================================================
-   16. REDUCED MOTION
-   ========================================================= */
-
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
