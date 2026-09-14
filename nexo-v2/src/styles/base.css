@@ -1,0 +1,91 @@
+/*
+ * Nexo Klar · Base
+ * Reglas globales de documento, tipografía y accesibilidad.
+ *
+ * Principios:
+ * - consume tokens; no define identidad visual propia;
+ * - no contiene estilos de componentes, layout ni páginas;
+ * - mantiene una base común para sitio público y aplicación privada.
+ */
+
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  font: var(--nk-font-body);
+  color: var(--nk-ink);
+  background: var(--nk-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+.font-ui {
+  font-family: var(--nk-family-ui);
+}
+
+.font-brand {
+  font-family: var(--nk-family-brand);
+}
+
+.heading-xl {
+  font: var(--nk-font-display);
+}
+
+.heading-lg {
+  font: var(--nk-font-title-1);
+}
+
+.heading-md {
+  font: var(--nk-font-title-2);
+}
+
+.heading-sm {
+  font: var(--nk-font-title-3);
+}
+
+.claim {
+  font-family: var(--nk-family-brand);
+  font-size: var(--nk-text-lg);
+  font-weight: var(--nk-weight-semibold);
+  line-height: var(--nk-leading-snug);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
