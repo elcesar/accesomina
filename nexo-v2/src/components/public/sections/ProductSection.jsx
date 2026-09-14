@@ -3,10 +3,10 @@ export default function ProductSection({ openPreview }) {
     <section id="producto" className="nk-public-section">
       <div className="nk-two-columns nk-product-section">
         <div>
-          <p className="nk-eyebrow">Control operacional y cumplimiento</p>
-          <h2>Todo empieza por las personas.</h2>
+          <p className="nk-eyebrow">Producto real</p>
+          <h2>Ve la operación antes de que un pendiente detenga el servicio.</h2>
           <p className="nk-lead">
-            Consulta quiénes son, qué saben hacer, qué documentación tienen vigente y si están listas para operar. Desde esa base, Nexo Klar conecta contratos, órdenes de servicio, recursos y cumplimiento.
+            Revisa dotación, órdenes de servicio, vencimientos, pendientes y alertas desde un panel centralizado. Identifica rápidamente qué está listo, qué falta y quién debe actuar.
           </p>
         </div>
 
@@ -17,10 +17,10 @@ export default function ProductSection({ openPreview }) {
             onClick={openPreview}
             aria-label="Ampliar vista demostrativa del panel de control"
           >
-            <img src="/assets/dashboard-demo.png" alt="Panel de control de Nexo Klar" />
+            <img src="/assets/dashboard-demo.png" alt="Panel real de Nexo Klar con dotación, órdenes de servicio y alertas operativas" />
           </button>
           <p className="nk-caption">
-            Vista demostrativa. Cada empresa trabaja con su propia configuración, usuarios autorizados e información independiente.
+            Vista real de Nexo Klar con información demostrativa. Cada empresa trabaja con su propia configuración, usuarios y datos privados.
           </p>
         </div>
       </div>
