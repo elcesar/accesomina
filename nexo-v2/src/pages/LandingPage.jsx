@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import '../styles/landing.css'
+import { useEffect, useMemo, useState } from 'react'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
 import PlatformSection from '../components/public/sections/PlatformSection.jsx'
@@ -9,15 +8,13 @@ import SolutionsSection from '../components/public/sections/SolutionsSection.jsx
 import IndustriesSection from '../components/public/sections/IndustriesSection.jsx'
 import ImplementationSection from '../components/public/sections/ImplementationSection.jsx'
 import PurposeSection from '../components/public/sections/PurposeSection.jsx'
-import { DemoRequestDialog, InformationDialog } from '../components/public/PublicDialogs.jsx'
+import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
 
-const trackedSections = ['inicio', 'solucion', 'resultados', 'producto', 'capacidades', 'industrias', 'implementacion', 'proposito', 'contacto']
+const sections = { inicio: HomeSection, solucion: PlatformSection, resultados: BenefitsSection, producto: ProductSection, soluciones: SolutionsSection, industrias: IndustriesSection, implementacion: ImplementationSection, proposito: PurposeSection, 'clientes-access': CustomerAccessSection }
 
 export default function LandingPage() {
-  const [active, setActive] = useState('inicio')
   const [preview, setPreview] = useState(false)
-  const [dialog, setDialog] = useState(null)
-
+  const [active, setActive] = useState('inicio')
   useEffect(() => {
     document.body.classList.add('nk-public-body')
     return () => document.body.classList.remove('nk-public-body')
@@ -25,77 +22,24 @@ export default function LandingPage() {
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
-    if (hash === 'clientes-access') {
-      requestAnimationFrame(() => document.getElementById('clientes-access')?.scrollIntoView({ block: 'center' }))
-      return
-    }
-    if (trackedSections.includes(hash)) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: 'start' }))
-  }, [])
-
-  useEffect(() => {
-    const sections = trackedSections.map(id => document.getElementById(id)).filter(Boolean)
-    if (!sections.length || !('IntersectionObserver' in window)) return undefined
-
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries
-        .filter(entry => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-      if (visible?.target?.id) setActive(visible.target.id)
-    }, { rootMargin: '-24% 0px -58% 0px', threshold: [0.08, 0.2, 0.45] })
-
-    sections.forEach(section => observer.observe(section))
-    return () => observer.disconnect()
+    if (sections[hash]) setActive(hash)
   }, [])
 
   const goTo = id => {
-    const target = document.getElementById(id)
-    if (!target) return
+    if (!sections[id]) return
     setActive(id)
     window.history.replaceState(null, '', `#${id}`)
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }
-
-  const openCompanyRegistration = () => {
-    window.history.replaceState(null, '', '#clientes-access')
-    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+  const ActiveSection = useMemo(() => sections[active] || HomeSection, [active])
+  const sectionProps = active === 'inicio' ? { openPreview: () => setPreview(true), onNavigate: goTo } : active === 'producto' ? { openPreview: () => setPreview(true) } : {}
 
   return <div className="nk-public-site" data-public-page={active}>
-    <PublicNavigation active={active} onNavigate={goTo} onCreateCompany={openCompanyRegistration} />
-
+    <PublicNavigation active={active} onNavigate={goTo} />
     <main>
-      <HomeSection openDemo={() => setDialog('demo')} onNavigate={goTo} />
-      <PlatformSection />
-      <BenefitsSection />
-      <ProductSection openPreview={() => setPreview(true)} />
-      <SolutionsSection />
-      <IndustriesSection />
-      <ImplementationSection />
-      <PurposeSection />
-
-      <section className="nk-public-section nk-centered nk-final-cta" id="contacto">
-        <div>
-          <p className="nk-eyebrow">Conversemos</p>
-          <h2>Descubre cómo Nexo Klar puede ordenar tu operación.</h2>
-          <p className="nk-lead">Revisamos contigo tus procesos, tipos de personal, contratos y órdenes de servicio para definir la configuración que realmente necesita tu empresa.</p>
-          <div className="nk-actions">
-            <button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('demo')}>Solicitar demostración</button>
-            <button className="nk-button nk-button-secondary" type="button" onClick={openCompanyRegistration}>Crear empresa</button>
-          </div>
-        </div>
-      </section>
+      <ActiveSection {...sectionProps} />
     </main>
-
-    <footer className="nk-public-footer">
-      <span>Nexo Klar · Gestión empresarial y operacional</span>
-      <div>
-        <button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button>
-        <a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a>
-      </div>
-    </footer>
-
-    {preview && <div className="nk-lightbox" role="dialog" aria-modal="true" onClick={() => setPreview(false)}><button aria-label="Cerrar vista ampliada" onClick={() => setPreview(false)}>×</button><img src="/assets/dashboard-demo.png" alt="Vista ampliada de Nexo Klar" onClick={event => event.stopPropagation()} /></div>}
-    {dialog === 'demo' && <DemoRequestDialog onClose={() => setDialog(null)} />}
-    {dialog && dialog !== 'demo' && <InformationDialog kind={dialog} onClose={() => setDialog(null)} />}
+    <footer className="nk-public-footer"><span>Nexo Klar · Gestión operativa, información y cumplimiento</span><button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button><a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a></footer>
+    {preview && <div className="nk-lightbox" role="dialog" aria-modal="true" onClick={() => setPreview(false)}><button aria-label="Cerrar vista ampliada" onClick={() => setPreview(false)}>×</button><img src="/dashboard-demo.png" alt="Vista ampliada de Nexo Klar" onClick={event => event.stopPropagation()} /></div>}
   </div>
 }

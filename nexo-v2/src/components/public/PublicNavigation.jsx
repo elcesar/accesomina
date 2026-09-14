@@ -3,10 +3,15 @@ import BrandLogo from './BrandLogo.jsx'
 import '../../styles/public-navigation.css'
 
 export const publicSections = [
+  ['inicio', 'Inicio'],
   ['solucion', 'Plataforma'],
-  ['capacidades', 'Soluciones'],
+  ['resultados', 'Beneficios'],
+  ['producto', 'Producto'],
+  ['soluciones', 'Soluciones'],
   ['industrias', 'Industrias'],
   ['implementacion', 'Implementación y privacidad'],
+  ['proposito', 'Propósito'],
+  ['clientes-access', 'Acceso'],
 ]
 
 export default function PublicNavigation({ active = 'inicio', onNavigate, onCreateCompany }) {

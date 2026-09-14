@@ -33,7 +33,7 @@
 /* Superficies por vista pública */
 .nk-public-site[data-public-page="inicio"] main,
 .nk-public-site[data-public-page="resultados"] main,
-.nk-public-site[data-public-page="capacidades"] main,
+.nk-public-site[data-public-page="soluciones"] main,
 .nk-public-site[data-public-page="implementacion"] main,
 .nk-public-site[data-public-page="clientes-access"] main {
   background: var(--surf);
