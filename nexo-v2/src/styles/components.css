@@ -1,218 +1,240 @@
-/**
+/*
  * NEXO KLAR · Shared Components
- * Version: 1.0
+ * Version: 2.0
  *
  * Componentes visuales reutilizables.
  *
- * IMPORTANTE:
- * - Todos los valores visuales deben venir desde tokens.css.
- * - No definir colores corporativos aquí.
- * - No redefinir tipografías.
- * - No crear nuevos tokens locales.
- * - No incluir layouts específicos de páginas.
+ * Principios:
+ * - consume tokens.css; no define identidad visual propia;
+ * - usa roles semánticos --nk-* en lugar de colores directos;
+ * - contempla estados interactivos y accesibilidad;
+ * - no contiene reglas específicas de una página.
+ *
+ * Nota de migración:
+ * algunas utilidades de composición se mantienen temporalmente aquí para
+ * compatibilidad y se moverán a la capa layout sin cambiar su API CSS.
  */
 
-@import url("./tokens.css");
-
-
 /* =========================================================
-   01. CONTAINERS
+   01. COMPOSITION UTILITIES · transitional
    ========================================================= */
 
 .nk-container {
-  width: min(100%, var(--content-max-width));
+  width: min(100%, var(--nk-content-max-width));
   margin-inline: auto;
-  padding-inline: var(--page-padding);
+  padding-inline: var(--nk-page-padding);
 }
 
 .nk-section {
   width: 100%;
-  padding-block: var(--space-12);
+  padding-block: var(--nk-space-12);
 }
-
 
 /* =========================================================
    02. BUTTONS
    ========================================================= */
 
 .nk-button {
-  min-height: 40px;
+  min-height: var(--nk-control-min);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-
-  padding: var(--space-2) var(--space-4);
-
+  gap: var(--nk-space-2);
+  padding: var(--nk-space-2) var(--nk-space-4);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  line-height: 1.2;
-
+  border-radius: var(--nk-radius-md);
+  font-family: var(--nk-family-ui);
+  font-size: var(--nk-text-md);
+  font-weight: var(--nk-weight-semibold);
+  line-height: var(--nk-leading-snug);
   text-decoration: none;
   cursor: pointer;
-
   transition:
-    background-color var(--transition-base),
-    border-color var(--transition-base),
-    color var(--transition-base),
-    box-shadow var(--transition-base);
+    background-color var(--nk-motion-normal) var(--nk-motion-curve),
+    border-color var(--nk-motion-normal) var(--nk-motion-curve),
+    color var(--nk-motion-normal) var(--nk-motion-curve),
+    box-shadow var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
-.nk-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-
-/* Primary */
-
-.nk-button-primary {
-  background: var(--pri);
-  color: var(--color-white);
-}
-
-.nk-button-primary:hover:not(:disabled) {
-  background: var(--pri-deep);
-}
-
-
-/* Action */
-
+/* Acción principal: el cobalto es el rol oficial para acciones. */
+.nk-button-primary,
 .nk-button-action {
-  background: var(--action);
-  color: var(--color-white);
+  background: var(--nk-action);
+  color: var(--nk-on-action);
 }
 
-.nk-button-action:hover:not(:disabled) {
-  background: var(--action-deep);
+.nk-button-primary:hover:not(:disabled):not([aria-disabled='true']),
+.nk-button-action:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-action-hover);
 }
 
-
-/* Secondary */
+.nk-button-primary:active:not(:disabled):not([aria-disabled='true']),
+.nk-button-action:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-primary-deep);
+}
 
 .nk-button-secondary {
-  background: var(--surf);
-  color: var(--pri);
-  border-color: var(--line);
+  background: var(--nk-surface);
+  color: var(--nk-action);
+  border-color: var(--nk-border-control);
 }
 
-.nk-button-secondary:hover:not(:disabled) {
-  background: var(--surf-2);
+.nk-button-secondary:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-action-soft);
+  border-color: var(--nk-action);
 }
 
-
-/* Quiet */
+.nk-button-secondary:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-primary-soft);
+}
 
 .nk-button-quiet {
   background: transparent;
-  color: var(--pri);
+  color: var(--nk-action);
   border-color: transparent;
 }
 
-.nk-button-quiet:hover:not(:disabled) {
-  background: var(--surf-2);
+.nk-button-quiet:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-action-soft);
 }
 
+.nk-button-quiet:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-primary-soft);
+}
 
-/* Danger */
-
+/* Peligro se expresa como superficie suave + tinta de error para mantener contraste en ambos temas. */
 .nk-button-danger {
-  background: var(--err);
-  color: var(--color-white);
+  background: var(--nk-state-error-soft);
+  color: var(--nk-state-error);
+  border-color: var(--nk-state-error);
 }
 
+.nk-button-danger:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-surface-2);
+}
+
+.nk-button:disabled,
+.nk-button[aria-disabled='true'] {
+  background: var(--nk-surface-2);
+  color: var(--nk-ink-disabled);
+  border-color: var(--nk-line);
+  cursor: not-allowed;
+}
+
+.nk-button[aria-busy='true'],
+.nk-button[data-state='loading'] {
+  cursor: progress;
+}
+
+.nk-button[aria-invalid='true'],
+.nk-button[data-state='error'] {
+  border-color: var(--nk-state-error);
+}
 
 /* =========================================================
    03. ICON BUTTON
    ========================================================= */
 
 .nk-icon-button {
-  width: 36px;
-  height: 36px;
-
+  width: var(--nk-control-min);
+  height: var(--nk-control-min);
   display: inline-grid;
   place-items: center;
-
   padding: 0;
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-
-  background: var(--surf);
-  color: var(--mut);
-
+  border: 1px solid var(--nk-border-control);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+  color: var(--nk-ink-2);
   cursor: pointer;
-
   transition:
-    background-color var(--transition-base),
-    color var(--transition-base),
-    border-color var(--transition-base);
+    background-color var(--nk-motion-normal) var(--nk-motion-curve),
+    color var(--nk-motion-normal) var(--nk-motion-curve),
+    border-color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
-.nk-icon-button:hover {
-  background: var(--surf-2);
-  color: var(--ink);
+.nk-icon-button:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-action-soft);
+  color: var(--nk-action);
+  border-color: var(--nk-action);
 }
 
+.nk-icon-button:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--nk-primary-soft);
+}
+
+.nk-icon-button:disabled,
+.nk-icon-button[aria-disabled='true'] {
+  background: var(--nk-surface-2);
+  color: var(--nk-ink-disabled);
+  border-color: var(--nk-line);
+  cursor: not-allowed;
+}
 
 /* =========================================================
    04. LINKS
    ========================================================= */
 
 .nk-link {
-  color: var(--pri);
-  text-decoration: none;
-  font-weight: var(--weight-semibold);
+  color: var(--nk-action);
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: var(--nk-space-1);
+  font-weight: var(--nk-weight-semibold);
 }
 
 .nk-link:hover {
-  text-decoration: underline;
+  color: var(--nk-action-hover);
 }
 
+.nk-link[aria-disabled='true'] {
+  color: var(--nk-ink-disabled);
+  pointer-events: none;
+}
 
 /* =========================================================
    05. CARDS
    ========================================================= */
 
 .nk-card {
-  background: var(--surf);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-5);
+  background: var(--nk-surface);
+  border: 1px solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+  box-shadow: var(--nk-elev-1);
+  padding: var(--nk-space-5);
 }
 
 .nk-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  gap: var(--nk-space-4);
+  margin-bottom: var(--nk-space-4);
 }
 
 .nk-card-title {
   margin: 0;
-
-  color: var(--ink);
-
-  font-family: var(--font-brand);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  line-height: var(--leading-snug);
+  color: var(--nk-ink);
+  font: var(--nk-font-title-3);
 }
 
 .nk-card-description {
-  margin: var(--space-1) 0 0;
-
-  color: var(--mut);
-  font-size: var(--text-md);
-  line-height: var(--leading-normal);
+  margin: var(--nk-space-1) 0 0;
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body);
 }
 
+.nk-card[aria-busy='true'],
+.nk-card[data-state='loading'] {
+  cursor: progress;
+}
+
+.nk-card[data-state='error'] {
+  border-color: var(--nk-state-error);
+}
+
+.nk-card[data-state='empty'] {
+  background: var(--nk-surface-2);
+}
 
 /* =========================================================
    06. FORM ELEMENTS
@@ -220,139 +242,147 @@
 
 .nk-field {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--nk-space-2);
 }
 
 .nk-label {
-  color: var(--ink);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  color: var(--nk-ink);
+  font: var(--nk-font-label);
 }
 
 .nk-input,
 .nk-select,
 .nk-textarea {
   width: 100%;
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-
-  background: var(--surf);
-  color: var(--ink);
-
-  padding: var(--space-3) var(--space-3);
-
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
-
+  min-height: var(--nk-control-min);
+  border: 1px solid var(--nk-border-control);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+  color: var(--nk-ink);
+  padding: var(--nk-space-2) var(--nk-space-3);
+  font: var(--nk-font-body);
   transition:
-    border-color var(--transition-base),
-    box-shadow var(--transition-base);
+    border-color var(--nk-motion-normal) var(--nk-motion-curve),
+    box-shadow var(--nk-motion-normal) var(--nk-motion-curve),
+    background-color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
 .nk-input::placeholder,
 .nk-textarea::placeholder {
-  color: var(--sub);
+  color: var(--nk-ink-2);
+}
+
+.nk-input:hover:not(:disabled),
+.nk-select:hover:not(:disabled),
+.nk-textarea:hover:not(:disabled) {
+  border-color: var(--nk-action);
 }
 
 .nk-input:focus,
 .nk-select:focus,
 .nk-textarea:focus {
-  outline: none;
-  border-color: var(--action);
-  box-shadow: var(--focus-ring);
+  border-color: var(--nk-focus);
 }
 
 .nk-input:disabled,
 .nk-select:disabled,
 .nk-textarea:disabled {
-  background: var(--surf-2);
-  color: var(--disabled);
+  background: var(--nk-surface-2);
+  color: var(--nk-ink-disabled);
+  border-color: var(--nk-line);
   cursor: not-allowed;
 }
 
+.nk-input[aria-invalid='true'],
+.nk-select[aria-invalid='true'],
+.nk-textarea[aria-invalid='true'],
+.nk-field[data-state='error'] .nk-input,
+.nk-field[data-state='error'] .nk-select,
+.nk-field[data-state='error'] .nk-textarea {
+  border-color: var(--nk-state-error);
+}
+
+.nk-field-error {
+  color: var(--nk-state-error);
+  font: var(--nk-font-caption);
+}
+
+.nk-field-help {
+  color: var(--nk-ink-2);
+  font: var(--nk-font-caption);
+}
+
 .nk-textarea {
-  min-height: 120px;
+  min-height: var(--nk-space-20);
   resize: vertical;
 }
 
-
 /* =========================================================
-   07. FORM LAYOUT
+   07. FORM COMPOSITION · transitional
    ========================================================= */
 
 .nk-form {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--nk-space-4);
 }
 
 .nk-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: var(--nk-space-4);
 }
 
 .nk-form-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
+  gap: var(--nk-space-2);
+  margin-top: var(--nk-space-4);
 }
 
-
 /* =========================================================
-   08. BADGES / STATUS
+   08. BADGES / DOCUMENT STATUS
+   El estado nunca debe depender sólo del color: el markup debe incluir
+   texto completo y, para semáforos documentales, icono distintivo.
    ========================================================= */
 
 .nk-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-
-  min-height: 24px;
-  padding: 4px 9px;
-
-  border-radius: var(--radius-pill);
-
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  line-height: 1;
+  gap: var(--nk-space-1);
+  min-height: var(--nk-space-6);
+  padding: var(--nk-space-1) var(--nk-space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--nk-radius-pill);
+  font: var(--nk-font-label);
 }
 
-
-/* Success */
+.nk-badge-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
 
 .nk-badge-ok {
-  background: var(--ok-bg);
-  color: var(--ok);
+  background: var(--nk-state-ok-soft);
+  color: var(--nk-state-ok);
 }
-
-
-/* Warning */
 
 .nk-badge-warn {
-  background: var(--warn-bg);
-  color: var(--warn-ink);
+  background: var(--nk-state-warn-soft);
+  color: var(--nk-state-warn-ink);
 }
-
-
-/* Error */
 
 .nk-badge-error {
-  background: var(--err-bg);
-  color: var(--err);
+  background: var(--nk-state-error-soft);
+  color: var(--nk-state-error);
 }
-
-
-/* Neutral */
 
 .nk-badge-none {
-  background: var(--none-bg);
-  color: var(--none);
+  background: var(--nk-state-none-soft);
+  color: var(--nk-state-none);
 }
-
 
 /* =========================================================
    09. TABLE
@@ -361,53 +391,76 @@
 .nk-table-wrapper {
   width: 100%;
   overflow-x: auto;
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surf);
+  border: 1px solid var(--nk-line);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
 }
 
 .nk-table {
   width: 100%;
   border-collapse: collapse;
-
-  font-size: var(--text-md);
+  font: var(--nk-font-body);
 }
 
 .nk-table th {
-  padding: var(--space-3);
-
-  background: var(--graph);
-  color: var(--color-white);
-
+  height: var(--nk-row-normal);
+  padding: var(--nk-cell-y) var(--nk-cell-x);
+  background: var(--nk-support);
+  color: var(--nk-base);
   text-align: left;
-
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  font: var(--nk-font-label);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-
   white-space: nowrap;
 }
 
 .nk-table td {
-  padding: var(--space-3);
-
-  border-bottom: 1px solid var(--line);
-
-  color: var(--ink);
-
+  min-height: var(--nk-row-normal);
+  padding: var(--nk-cell-y) var(--nk-cell-x);
+  border-bottom: 1px solid var(--nk-line);
+  color: var(--nk-ink);
   vertical-align: middle;
 }
 
+.nk-table tbody tr:nth-child(even) {
+  background: var(--nk-surface-2);
+}
+
 .nk-table tbody tr:hover {
-  background: var(--surf-2);
+  background: var(--nk-action-soft);
 }
 
 .nk-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
+.nk-table-number,
+.nk-table [data-type='number'] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nk-table [data-state='error'] {
+  color: var(--nk-state-error);
+}
+
+.nk-table-empty {
+  padding: var(--nk-space-8);
+  color: var(--nk-ink-2);
+  text-align: center;
+  background: var(--nk-surface-2);
+}
+
+.nk-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nk-space-3);
+  padding: var(--nk-space-3) var(--nk-cell-x);
+  border-top: 1px solid var(--nk-line);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-caption);
+}
 
 /* =========================================================
    10. SEARCH
@@ -416,37 +469,36 @@
 .nk-search {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-
-  min-height: 40px;
-
-  padding-inline: var(--space-3);
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-
-  background: var(--surf-2);
-  color: var(--mut);
+  gap: var(--nk-space-2);
+  min-height: var(--nk-control-min);
+  padding-inline: var(--nk-space-3);
+  border: 1px solid var(--nk-border-control);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+  color: var(--nk-ink-2);
 }
 
 .nk-search input {
   width: 100%;
-
   border: 0;
   outline: 0;
-
   background: transparent;
-  color: var(--ink);
+  color: var(--nk-ink);
+  font: var(--nk-font-body);
+}
 
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
+.nk-search:hover {
+  border-color: var(--nk-action);
 }
 
 .nk-search:focus-within {
-  border-color: var(--action);
+  border-color: var(--nk-focus);
   box-shadow: var(--focus-ring);
 }
 
+.nk-search[data-state='error'] {
+  border-color: var(--nk-state-error);
+}
 
 /* =========================================================
    11. TABS
@@ -455,107 +507,105 @@
 .nk-tabs {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-
-  border-bottom: 1px solid var(--line);
+  gap: var(--nk-space-1);
+  border-bottom: 1px solid var(--nk-line);
 }
 
 .nk-tab {
+  min-height: var(--nk-control-min);
   border: 0;
   border-bottom: 2px solid transparent;
-
   background: transparent;
-
-  padding: var(--space-3) var(--space-4);
-
-  color: var(--mut);
-
-  font-family: var(--font-ui);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-
+  padding: var(--nk-space-2) var(--nk-space-4);
+  color: var(--nk-ink-2);
+  font-family: var(--nk-family-ui);
+  font-size: var(--nk-text-md);
+  font-weight: var(--nk-weight-semibold);
   cursor: pointer;
-
   transition:
-    color var(--transition-base),
-    border-color var(--transition-base);
+    color var(--nk-motion-normal) var(--nk-motion-curve),
+    border-color var(--nk-motion-normal) var(--nk-motion-curve),
+    background-color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
-.nk-tab:hover {
-  color: var(--ink);
+.nk-tab:hover:not(:disabled) {
+  color: var(--nk-ink);
+  background: var(--nk-action-soft);
 }
 
-.nk-tab.active {
-  color: var(--pri);
-  border-bottom-color: var(--pri);
+.nk-tab.active,
+.nk-tab[aria-selected='true'] {
+  color: var(--nk-action);
+  border-bottom-color: var(--nk-action);
 }
 
+.nk-tab:disabled,
+.nk-tab[aria-disabled='true'] {
+  color: var(--nk-ink-disabled);
+  cursor: not-allowed;
+}
 
 /* =========================================================
    12. DIALOG / MODAL
+   La trampa de foco y restauración de foco pertenecen al componente JSX.
    ========================================================= */
 
 .nk-dialog-backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
-
   display: grid;
   place-items: center;
-
-  padding: var(--space-5);
-
-  background: rgba(20, 26, 32, 0.46);
-  backdrop-filter: blur(3px);
+  padding: var(--nk-space-5);
+  background: color-mix(in srgb, var(--nk-ink) 46%, transparent);
+  backdrop-filter: blur(var(--nk-space-1));
 }
 
 .nk-dialog {
   width: min(560px, 100%);
-  max-height: calc(100vh - var(--space-10));
-
+  max-height: calc(100vh - var(--nk-space-10));
   overflow: auto;
-
-  padding: var(--space-6);
-
-  background: var(--surf);
-
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-
-  box-shadow: var(--shadow-xl);
+  padding: var(--nk-space-6);
+  background: var(--nk-surface);
+  color: var(--nk-ink);
+  border: 1px solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+  box-shadow: var(--nk-elev-4);
 }
 
 .nk-dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-
-  gap: var(--space-4);
-
-  margin-bottom: var(--space-5);
+  gap: var(--nk-space-4);
+  margin-bottom: var(--nk-space-5);
 }
 
 .nk-dialog-title {
   margin: 0;
-
-  font-family: var(--font-brand);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
-  line-height: var(--leading-snug);
+  color: var(--nk-ink);
+  font: var(--nk-font-title-2);
 }
 
 .nk-dialog-body {
-  color: var(--ink);
+  color: var(--nk-ink);
 }
 
 .nk-dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-2);
-
-  margin-top: var(--space-5);
+  gap: var(--nk-space-2);
+  margin-top: var(--nk-space-5);
 }
 
+.nk-dialog[aria-busy='true'],
+.nk-dialog[data-state='loading'] {
+  cursor: progress;
+}
+
+.nk-dialog[data-state='error'] {
+  border-color: var(--nk-state-error);
+}
 
 /* =========================================================
    13. EMPTY STATE
@@ -563,33 +613,27 @@
 
 .nk-empty {
   min-height: 200px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
-  gap: var(--space-2);
-
-  padding: var(--space-6);
-
+  gap: var(--nk-space-2);
+  padding: var(--nk-space-6);
   text-align: center;
-
-  color: var(--mut);
+  color: var(--nk-ink-2);
+  background: var(--nk-surface-2);
+  border-radius: var(--nk-radius-md);
 }
 
 .nk-empty-title {
-  color: var(--ink);
-  font-weight: var(--weight-semibold);
+  color: var(--nk-ink);
+  font: var(--nk-font-title-3);
 }
 
 .nk-empty-description {
   max-width: 500px;
-
-  font-size: var(--text-md);
-  line-height: var(--leading-normal);
+  font: var(--nk-font-body);
 }
-
 
 /* =========================================================
    14. DIVIDER
@@ -598,33 +642,147 @@
 .nk-divider {
   width: 100%;
   height: 1px;
-
   border: 0;
-
-  background: var(--line);
-
-  margin-block: var(--space-4);
+  background: var(--nk-line);
+  margin-block: var(--nk-space-4);
 }
 
-
 /* =========================================================
-   15. ACTION GROUP
+   15. ACTION / CHIP GROUPS
    ========================================================= */
 
-.nk-actions {
+.nk-actions,
+.nk-action-group,
+.nk-chip-list {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--nk-space-2);
   flex-wrap: wrap;
 }
 
-
 /* =========================================================
-   16. RESPONSIVE
+   16. CARD GRID · transitional composition utility
    ========================================================= */
 
-@media (max-width: 768px) {
+.nk-card-grid {
+  display: grid;
+  gap: var(--nk-space-5);
+}
 
+.nk-card-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.nk-card-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.nk-card-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* =========================================================
+   17. SECTION HEADING / PROSE · transitional composition utility
+   ========================================================= */
+
+.nk-section-heading {
+  max-width: 680px;
+  margin-bottom: var(--nk-space-10);
+}
+
+.nk-section-heading h2 {
+  margin: var(--nk-space-3) 0;
+  color: var(--nk-ink);
+  font: var(--nk-font-title-1);
+}
+
+.nk-section-heading p {
+  margin: 0;
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-lg);
+}
+
+.nk-prose {
+  max-width: 680px;
+  color: var(--nk-ink);
+  font: var(--nk-font-body);
+}
+
+.nk-prose h2 {
+  margin: var(--nk-space-8) 0 var(--nk-space-3);
+  color: var(--nk-ink);
+  font: var(--nk-font-title-2);
+}
+
+.nk-prose h3 {
+  margin: var(--nk-space-6) 0 var(--nk-space-2);
+  color: var(--nk-ink);
+  font: var(--nk-font-title-3);
+}
+
+.nk-prose p,
+.nk-prose ul,
+.nk-prose ol {
+  margin: 0 0 var(--nk-space-4);
+}
+
+.nk-prose ul,
+.nk-prose ol {
+  padding-left: var(--nk-space-5);
+}
+
+.nk-prose li {
+  margin-bottom: var(--nk-space-2);
+}
+
+/* =========================================================
+   18. STEP NUMBER
+   ========================================================= */
+
+.nk-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--nk-space-10);
+  height: var(--nk-space-10);
+  margin-bottom: var(--nk-space-4);
+  border-radius: var(--nk-radius-pill);
+  background: var(--nk-primary-soft);
+  color: var(--nk-primary);
+  font-family: var(--nk-family-brand);
+  font-size: var(--nk-text-lg);
+  font-weight: var(--nk-weight-extrabold);
+  line-height: 1;
+}
+
+/* =========================================================
+   19. RESPONSIVE / TOUCH
+   ========================================================= */
+
+@media (pointer: coarse) {
+  .nk-button,
+  .nk-icon-button,
+  .nk-input,
+  .nk-select,
+  .nk-tab,
+  .nk-search {
+    min-height: var(--nk-touch-min);
+  }
+
+  .nk-icon-button {
+    width: var(--nk-touch-min);
+    height: var(--nk-touch-min);
+  }
+}
+
+@media (max-width: 1024px) {
+  .nk-card-grid-4,
+  .nk-card-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
   .nk-form-grid {
     grid-template-columns: 1fr;
   }
@@ -643,172 +801,15 @@
   }
 }
 
-/* =========================================================
-   ADICIÓN A components.css — Clases genéricas reutilizables
-   Agregar al final de src/styles/components.css
-   ========================================================= */
-
-
-/* =========================================================
-   17. ACTION GROUP
-   Grupo horizontal de acciones (botones, links).
-   Reemplaza a .nk-actions con soporte para wrap.
-   ========================================================= */
-
-.nk-action-group {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-
-/* =========================================================
-   18. CARD GRID
-   Grid responsivo de cards. Usar con modificador de columnas.
-   ========================================================= */
-
-.nk-card-grid {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.nk-card-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.nk-card-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.nk-card-grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-@media (max-width: 1024px) {
-  .nk-card-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .nk-card-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
 @media (max-width: 640px) {
   .nk-card-grid-2,
   .nk-card-grid-3,
-  .nk-card-grid-4 { grid-template-columns: 1fr; }
-}
+  .nk-card-grid-4 {
+    grid-template-columns: 1fr;
+  }
 
-
-/* =========================================================
-   19. CHIP LIST
-   Lista horizontal de chips/badges.
-   ========================================================= */
-
-.nk-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-
-/* =========================================================
-   20. SECTION HEADING
-   Encabezado de sección con badge + título + descripción.
-   ========================================================= */
-
-.nk-section-heading {
-  max-width: 680px;
-  margin-bottom: var(--space-10);
-}
-
-.nk-section-heading h2 {
-  margin: var(--space-3) 0 var(--space-3);
-
-  font-family: var(--font-brand);
-  font-size: var(--text-3xl);
-  font-weight: var(--weight-bold);
-  line-height: var(--leading-snug);
-
-  color: var(--ink);
-}
-
-.nk-section-heading p {
-  margin: 0;
-
-  font-size: var(--text-lg);
-  line-height: var(--leading-relaxed);
-
-  color: var(--mut);
-}
-
-
-/* =========================================================
-   21. PROSE
-   Texto editorial largo (FAQs, términos, contenido legal).
-   ========================================================= */
-
-.nk-prose {
-  max-width: 680px;
-
-  font-size: var(--text-md);
-  line-height: var(--leading-relaxed);
-  color: var(--ink);
-}
-
-.nk-prose h2 {
-  margin: var(--space-8) 0 var(--space-3);
-
-  font-family: var(--font-brand);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
-
-  color: var(--ink);
-}
-
-.nk-prose h3 {
-  margin: var(--space-6) 0 var(--space-2);
-
-  font-family: var(--font-brand);
-  font-size: var(--text-xl);
-  font-weight: var(--weight-semibold);
-
-  color: var(--ink);
-}
-
-.nk-prose p {
-  margin: 0 0 var(--space-4);
-}
-
-.nk-prose ul,
-.nk-prose ol {
-  margin: 0 0 var(--space-4);
-  padding-left: var(--space-5);
-}
-
-.nk-prose li {
-  margin-bottom: var(--space-2);
-}
-
-
-/* =========================================================
-   22. STEP NUMBER
-   Número de paso en procesos secuenciales.
-   ========================================================= */
-
-.nk-step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 36px;
-  height: 36px;
-  margin-bottom: var(--space-4);
-
-  border-radius: var(--radius-pill);
-
-  background: var(--pri-light);
-  color: var(--pri);
-
-  font-family: var(--font-brand);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
-  line-height: 1;
+  .nk-table-pagination {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
