@@ -55,15 +55,15 @@ export default function PlatformSection() {
               <article key={number}>
                 <strong>{number}</strong>
                 <div>
-                  <b>{title}</b>
-                  <span>{body}</span>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
                 </div>
               </article>
             ))}
           </div>
         </div>
 
-        <div className="nk-product-mock" aria-label="Vista demostrativa del panel de control">
+        <div className="nk-product-mock" role="img" aria-label="Vista demostrativa del panel de control de Nexo Klar">
           <header>
             <i aria-hidden="true" />
             <i aria-hidden="true" />
@@ -80,7 +80,7 @@ export default function PlatformSection() {
               ))}
             </aside>
 
-            <main>
+            <div className="nk-product-mock-content">
               <h3>Resumen de la operación</h3>
               <p>Información centralizada y actualizada</p>
 
@@ -98,7 +98,7 @@ export default function PlatformSection() {
                   {row.map(cell => <span key={cell}>{cell}</span>)}
                 </div>
               ))}
-            </main>
+            </div>
           </div>
         </div>
       </div>
