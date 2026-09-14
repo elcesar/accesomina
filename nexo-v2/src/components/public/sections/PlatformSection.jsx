@@ -63,7 +63,7 @@ export default function PlatformSection() {
           </div>
         </div>
 
-        <div className="nk-product-mock" role="img" aria-label="Vista demostrativa del panel de control de Nexo Klar">
+        <div className="nk-product-mock" role="group" aria-label="Vista demostrativa del panel de control de Nexo Klar">
           <header>
             <i aria-hidden="true" />
             <i aria-hidden="true" />
