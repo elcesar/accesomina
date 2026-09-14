@@ -35,8 +35,8 @@ export default function BenefitsSection() {
           {items.map(({ number, title, body }) => (
             <article key={number}>
               <strong>{number}</strong>
-              <b>{title}</b>
-              <span>{body}</span>
+              <h3>{title}</h3>
+              <p>{body}</p>
             </article>
           ))}
         </div>
