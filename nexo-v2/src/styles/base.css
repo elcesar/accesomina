@@ -75,8 +75,7 @@ svg {
 }
 
 :focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  outline: 3px solid var(--nk-focus);
 }
 
 @media (prefers-reduced-motion: reduce) {
