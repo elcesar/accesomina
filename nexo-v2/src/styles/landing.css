@@ -5,6 +5,7 @@
  * La navegación vive en layout/public-layout.css.
  * Los componentes reutilizables viven en components.css.
  * Esta capa consume exclusivamente tokens canónicos --nk-*.
+ * Los cálculos restantes corresponden sólo a composición estructural.
  */
 
 /* =========================================================
@@ -147,7 +148,7 @@
   flex-direction: column;
   gap: var(--nk-space-2);
   padding-top: var(--nk-space-3);
-  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-hero-points b {
@@ -194,7 +195,7 @@
 .nk-image-button img {
   display: block;
   width: 100%;
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   box-shadow: var(--nk-elev-4);
 }
@@ -220,7 +221,7 @@
   grid-template-columns: var(--nk-space-10) 1fr;
   gap: var(--nk-space-3);
   padding-block: var(--nk-space-4);
-  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-number-list article > strong {
@@ -248,7 +249,7 @@
 
 .nk-product-mock {
   overflow: hidden;
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-4);
@@ -285,7 +286,7 @@
 .nk-product-mock aside {
   padding: var(--nk-space-3);
   background: var(--nk-surface-2);
-  border-right: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-right: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-product-mock aside span {
@@ -329,7 +330,7 @@
 .nk-mini-kpis article {
   padding: var(--nk-space-3);
   background: var(--nk-surface-2);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-md);
 }
 
@@ -350,7 +351,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--nk-space-2);
   padding-block: var(--nk-space-2);
-  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
   color: var(--nk-ink);
   font: var(--nk-font-caption);
 }
@@ -391,7 +392,7 @@
   flex-direction: column;
   gap: var(--nk-space-2);
   padding: var(--nk-space-5);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-lg);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-1);
@@ -467,7 +468,7 @@
 
 .nk-access-card {
   padding: var(--nk-space-6);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-3);
@@ -513,7 +514,7 @@
   min-height: var(--nk-control-min);
   box-sizing: border-box;
   padding: var(--nk-space-2) var(--nk-space-3);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
   color: var(--nk-ink);
@@ -538,7 +539,7 @@
 .nk-form-message {
   margin: var(--nk-space-4) 0 0;
   padding: var(--nk-space-3);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface-2);
   color: var(--nk-ink);
@@ -609,7 +610,7 @@
 
 .nk-info-list article {
   padding-top: var(--nk-space-4);
-  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-info-list b {
@@ -669,7 +670,7 @@
 .nk-lightbox {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--nk-space-20) + var(--nk-space-5));
+  z-index: var(--nk-layer-modal);
   display: grid;
   place-items: center;
   padding: var(--nk-space-6);
@@ -692,7 +693,7 @@
   height: var(--nk-touch-min);
   display: grid;
   place-items: center;
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
   border-radius: var(--nk-radius-pill);
   background: var(--nk-surface);
   color: var(--nk-ink);
