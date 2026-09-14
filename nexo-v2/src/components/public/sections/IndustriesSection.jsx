@@ -64,8 +64,8 @@ export default function IndustriesSection() {
           {industries.map(({ number, title, body }) => (
             <article key={number}>
               <small>{number}</small>
-              <b>{title}</b>
-              <span>{body}</span>
+              <h3>{title}</h3>
+              <p>{body}</p>
             </article>
           ))}
         </div>
