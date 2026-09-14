@@ -1,23 +1,23 @@
 const items = [
   {
     number: '01',
-    title: 'Información confiable',
-    body: 'Una sola fuente para saber qué está vigente, qué falta y qué requiere atención.',
+    title: 'Personas listas para trabajar',
+    body: 'Revisa asignaciones, documentos, formación, aptitudes, equipos de protección personal (EPP) y credenciales.',
   },
   {
     number: '02',
-    title: 'Personas listas para operar',
-    body: 'Consulta asignaciones, formación, aptitudes, documentos, EPP y credenciales desde la ficha de cada persona.',
+    title: 'Órdenes de servicio preparadas',
+    body: 'Detecta brechas de personas, alojamiento, vehículos y recursos antes de iniciar el trabajo.',
   },
   {
     number: '03',
-    title: 'Cumplimiento visible',
-    body: 'Distingue estados vigentes, por vencer, no habilitados y sin información sin depender solo del color.',
+    title: 'Cumplimiento demostrable',
+    body: 'Conserva estados, responsables, vencimientos, observaciones e historial.',
   },
   {
     number: '04',
-    title: 'Continuidad operacional',
-    body: 'Mantén el conocimiento y la trazabilidad aunque cambien personas, equipos o responsables.',
+    title: 'Continuidad para crecer',
+    body: 'Protege el conocimiento aunque cambien personas, equipos o responsables.',
   },
 ]
 
@@ -25,10 +25,10 @@ export default function BenefitsSection() {
   return (
     <section id="resultados" className="nk-public-section nk-centered">
       <div>
-        <p className="nk-eyebrow">Información que conecta</p>
-        <h2>Menos dispersión. Más claridad y control.</h2>
+        <p className="nk-eyebrow">Resultados para tu operación</p>
+        <h2>Menos búsqueda. Más control. Mejores decisiones.</h2>
         <p className="nk-lead">
-          Las mejores decisiones nacen de información confiable, conectada y accesible para todos.
+          Todos trabajan sobre una misma base de información para anticipar brechas y mantener cada orden de servicio preparada.
         </p>
 
         <div className="nk-card-grid nk-outcome-grid">
