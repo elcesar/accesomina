@@ -90,7 +90,7 @@ export default function LandingPage() {
       <span>Nexo Klar · Gestión empresarial y operacional</span>
       <div>
         <button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button>
-        <a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a>
+        <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
       </div>
     </footer>
 
