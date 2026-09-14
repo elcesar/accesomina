@@ -17,8 +17,8 @@ function daysUntil(date) {
 function replaceStatus(date) {
   const days = daysUntil(date)
   if (days === null) return { label: 'Sin información', cls: 'nk-badge-none', key: 'none' }
-  if (days < 0) return { label: 'No habilitado', cls: 'nk-badge-error', key: 'error' }
-  if (days <= 30) return { label: 'Por vencer', cls: 'nk-badge-warn', key: 'warn' }
+  if (days < 0) return { label: 'Reposición vencida', cls: 'nk-badge-error', key: 'error' }
+  if (days <= 30) return { label: 'Reposición próxima', cls: 'nk-badge-warn', key: 'warn' }
   return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
 }
 

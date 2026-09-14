@@ -17,7 +17,7 @@
 .nk-user-status.inactive{background:var(--surf-2);border:1px solid var(--line);color:var(--mut)}
 .nk-user-actions{display:flex;align-items:center;gap:var(--space-1);flex-wrap:wrap}
 .nk-button-sm{min-height:30px;padding-inline:9px;font-size:var(--text-xs)}
-.nk-user-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--space-4);background:color-mix(in srgb, var(--nk-ink) 36%, transparent)}
+.nk-user-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--space-4);background:rgba(15,23,42,.36)}
 .nk-user-dialog{width:min(520px,100%);background:var(--surf);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden}
 .nk-user-dialog>header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4);border-bottom:1px solid var(--line)}
 .nk-user-dialog h2{margin:0 0 var(--space-1);font-family:var(--font-brand);font-size:var(--text-xl);color:var(--ink)}

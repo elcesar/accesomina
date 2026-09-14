@@ -503,7 +503,7 @@
 
   padding: var(--space-5);
 
-  background: color-mix(in srgb, var(--nk-ink) 46%, transparent);
+  background: rgba(20, 26, 32, 0.46);
   backdrop-filter: blur(3px);
 }
 

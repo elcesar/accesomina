@@ -40,7 +40,7 @@
 .nk-login-brand-description {
   max-width: 340px;
   margin: 0;
-  color: color-mix(in srgb, var(--nk-surface) 65%, transparent);
+  color: rgba(255, 255, 255, 0.65);
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
 }
@@ -55,7 +55,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  color: color-mix(in srgb, var(--nk-surface) 72%, transparent);
+  color: rgba(255, 255, 255, 0.72);
   font-size: var(--text-base);
 }
 
@@ -70,7 +70,7 @@
 
 .nk-login-brand-footer {
   margin: 0;
-  color: color-mix(in srgb, var(--nk-surface) 30%, transparent);
+  color: rgba(255, 255, 255, 0.3);
   font-size: var(--text-xs);
 }
 

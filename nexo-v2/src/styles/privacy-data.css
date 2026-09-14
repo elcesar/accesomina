@@ -26,7 +26,7 @@
 .nk-privacy-status-select{min-width:130px;min-height:32px;padding-block:0;font-size:var(--text-xs)}
 .nk-button-danger{background:var(--danger-bg);border:1px solid color-mix(in srgb,var(--danger-ink) 28%,transparent);color:var(--danger-ink)}
 .nk-button-danger:hover{filter:brightness(.97)}
-.nk-privacy-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--space-4);background:color-mix(in srgb, var(--nk-ink) 38%, transparent)}
+.nk-privacy-dialog-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:var(--space-4);background:rgba(15,23,42,.38)}
 .nk-privacy-dialog{width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--surf);border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg)}
 .nk-privacy-dialog>header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);padding:var(--space-4);border-bottom:1px solid var(--line)}
 .nk-privacy-dialog h2{margin:0 0 var(--space-1);font-family:var(--font-brand);font-size:var(--text-xl);color:var(--ink)}

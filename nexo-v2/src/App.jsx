@@ -57,7 +57,6 @@ import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
 import MfaSetupPage from './pages/MfaSetupPage.jsx'
-import DialogAccessibilityManager from './components/ui/DialogAccessibilityManager.jsx'
 
 function ProtectedRoute({ children, allowPasswordChange = false, allowMfaSetup = false }) {
   const { session, loading } = useAuth()
@@ -93,7 +92,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <DialogAccessibilityManager />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         <Routes>
           <Route path="/" element={<LandingPage />} />

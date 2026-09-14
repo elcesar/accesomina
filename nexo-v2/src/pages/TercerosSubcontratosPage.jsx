@@ -18,8 +18,8 @@ function daysUntil(date) {
 
 function expiryState(date) {
   const days = daysUntil(date)
-  if (days === null) return { label: 'Sin información', cls: 'nk-badge-none', alert: true, days: null }
-  if (days < 0) return { label: 'No habilitado', cls: 'nk-badge-error', alert: true, days }
+  if (days === null) return { label: 'Sin fecha', cls: 'nk-badge-none', alert: true, days: null }
+  if (days < 0) return { label: 'Vencido', cls: 'nk-badge-error', alert: true, days }
   if (days <= 30) return { label: 'Por vencer', cls: 'nk-badge-warn', alert: true, days }
   return { label: 'Vigente', cls: 'nk-badge-ok', alert: false, days }
 }

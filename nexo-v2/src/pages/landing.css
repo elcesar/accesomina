@@ -346,20 +346,20 @@
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   background: var(--color-graphite-mid);
-  border-bottom: 1px solid color-mix(in srgb, var(--nk-surface) 8%, transparent);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .nk-product-mock > header i {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--nk-surface) 20%, transparent);
+  background: rgba(255,255,255,0.2);
   display: inline-block;
 }
 
 .nk-product-mock > header span {
   font-size: var(--text-xs);
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
   margin-left: var(--space-2);
 }
 
@@ -374,21 +374,21 @@
   flex-direction: column;
   gap: 2px;
   padding: var(--space-3);
-  background: color-mix(in srgb, var(--nk-ink) 18%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--nk-surface) 6%, transparent);
+  background: rgba(0,0,0,0.18);
+  border-right: 1px solid rgba(255,255,255,0.06);
 }
 
 .nk-product-mock aside span {
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
   cursor: default;
 }
 
 .nk-product-mock aside span.active {
   background: var(--pri);
-  color: var(--nk-surface);
+  color: #fff;
 }
 
 .nk-product-mock main {
@@ -403,13 +403,13 @@
   font-family: var(--font-brand);
   font-size: var(--text-lg);
   font-weight: var(--weight-bold);
-  color: var(--nk-surface);
+  color: #fff;
 }
 
 .nk-product-mock main > p {
   margin: 0;
   font-size: var(--text-sm);
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
 }
 
 /* Mini KPIs dentro del mock */
@@ -421,9 +421,9 @@
 .nk-mini-kpis article {
   flex: 1;
   padding: var(--space-3);
-  background: color-mix(in srgb, var(--nk-surface) 6%, transparent);
+  background: rgba(255,255,255,0.06);
   border-radius: var(--radius-md);
-  border: 1px solid color-mix(in srgb, var(--nk-surface) 8%, transparent);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .nk-mini-kpis article b {
@@ -431,12 +431,12 @@
   font-family: var(--font-brand);
   font-size: var(--text-2xl);
   font-weight: var(--weight-extrabold);
-  color: var(--nk-surface);
+  color: #fff;
 }
 
 .nk-mini-kpis article small {
   font-size: var(--text-xs);
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
   line-height: var(--leading-normal);
 }
 
@@ -446,13 +446,13 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  background: color-mix(in srgb, var(--nk-surface) 4%, transparent);
+  background: rgba(255,255,255,0.04);
   border-radius: var(--radius-sm);
 }
 
 .nk-mock-row span {
   font-size: var(--text-xs);
-  color: color-mix(in srgb, var(--nk-surface) 60%, transparent);
+  color: rgba(255,255,255,0.6);
   flex: 1;
 }
 
@@ -1011,7 +1011,7 @@
   gap: var(--space-4);
   padding: var(--space-6) var(--page-padding);
   background: var(--color-graphite);
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
   font-size: var(--text-sm);
 }
 
@@ -1028,14 +1028,14 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: color-mix(in srgb, var(--nk-surface) 45%, transparent);
+  color: rgba(255,255,255,0.45);
   font-size: var(--text-sm);
   text-decoration: none;
   transition: color var(--transition-base);
 }
 
 .nk-public-footer button:hover,
-.nk-public-footer a:hover { color: var(--nk-surface); }
+.nk-public-footer a:hover { color: #fff; }
 
 
 /* =========================================================
@@ -1049,7 +1049,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-6);
-  background: color-mix(in srgb, var(--nk-ink) 88%, transparent);
+  background: rgba(20,26,32,0.88);
   backdrop-filter: blur(6px);
   cursor: zoom-out;
 }
@@ -1064,14 +1064,14 @@
   place-items: center;
   border: none;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--nk-surface) 12%, transparent);
-  color: var(--nk-surface);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
   font-size: var(--text-2xl);
   cursor: pointer;
   transition: background var(--transition-base);
 }
 
-.nk-lightbox button:hover { background: color-mix(in srgb, var(--nk-surface) 22%, transparent); }
+.nk-lightbox button:hover { background: rgba(255,255,255,0.22); }
 
 .nk-lightbox img {
   max-width: min(1100px, 100%);
