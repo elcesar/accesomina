@@ -14,7 +14,7 @@ Todos los registros usan `tenant_id`, politicas PostgreSQL RLS forzadas y permis
 
 ## Responsabilidades del cliente
 
-Cada empresa debe definir sus finalidades, bases de licitud, plazos de conservacion, responsables, procedimientos y textos legales con asesoria juridica. Nexo Klar actua como plataforma y encargado de tratamiento segun el contrato que se suscriba; la herramienta no reemplaza una evaluacion legal ni certifica por si sola el cumplimiento.
+Cada empresa debe definir sus finalidades, bases de licitud, plazos de conservacion, responsables, procedimientos y textos legales con asesoria juridica. Domian actua como plataforma y encargado de tratamiento segun el contrato que se suscriba; la herramienta no reemplaza una evaluacion legal ni certifica por si sola el cumplimiento.
 
 ## Pendientes de infraestructura y organizacion
 

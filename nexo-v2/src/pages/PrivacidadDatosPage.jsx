@@ -137,7 +137,7 @@ export default function PrivacidadDatosPage() {
   return (
     <section className="nk-module-page nk-privacy-page">
       <header className="nk-module-header nk-privacy-header">
-        <div><h1>Privacidad y protección de datos</h1><p>Tratamientos, derechos, consentimientos e incidentes de privacidad</p></div>
+        <div><h1>Privacidad y datos</h1><p>Tratamientos, derechos, consentimientos e incidentes de privacidad</p></div>
         <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>{loading ? 'Actualizando…' : 'Actualizar'}</button>
       </header>
 

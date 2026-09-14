@@ -36,7 +36,7 @@
    ========================================================= */
 
 .nk-button {
-  min-height: var(--nk-control-min);
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -63,9 +63,7 @@
 }
 
 .nk-button:disabled {
-  background: var(--nk-surface-2);
-  color: var(--nk-ink-disabled);
-  border-color: var(--nk-line);
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -73,24 +71,24 @@
 /* Primary */
 
 .nk-button-primary {
-  background: var(--nk-action);
-  color: var(--nk-on-action);
+  background: var(--pri);
+  color: var(--color-white);
 }
 
 .nk-button-primary:hover:not(:disabled) {
-  background: var(--nk-action-hover);
+  background: var(--pri-deep);
 }
 
 
 /* Action */
 
 .nk-button-action {
-  background: var(--nk-action);
-  color: var(--nk-on-action);
+  background: var(--action);
+  color: var(--color-white);
 }
 
 .nk-button-action:hover:not(:disabled) {
-  background: var(--nk-action-hover);
+  background: var(--action-deep);
 }
 
 
@@ -98,8 +96,8 @@
 
 .nk-button-secondary {
   background: var(--surf);
-  color: var(--nk-primary);
-  border-color: var(--nk-border-control);
+  color: var(--pri);
+  border-color: var(--line);
 }
 
 .nk-button-secondary:hover:not(:disabled) {
@@ -111,7 +109,7 @@
 
 .nk-button-quiet {
   background: transparent;
-  color: var(--nk-action);
+  color: var(--pri);
   border-color: transparent;
 }
 
@@ -123,8 +121,8 @@
 /* Danger */
 
 .nk-button-danger {
-  background: var(--nk-state-error);
-  color: var(--nk-on-action);
+  background: var(--err);
+  color: var(--color-white);
 }
 
 
@@ -133,15 +131,15 @@
    ========================================================= */
 
 .nk-icon-button {
-  width: var(--nk-control-min);
-  height: var(--nk-control-min);
+  width: 36px;
+  height: 36px;
 
   display: inline-grid;
   place-items: center;
 
   padding: 0;
 
-  border: 1px solid var(--nk-border-control);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
 
   background: var(--surf);
@@ -236,7 +234,7 @@
 .nk-textarea {
   width: 100%;
 
-  border: 1px solid var(--nk-border-control);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
 
   background: var(--surf);
@@ -257,20 +255,19 @@
   color: var(--sub);
 }
 
-.nk-input:focus-visible,
-.nk-select:focus-visible,
-.nk-textarea:focus-visible {
-  outline: 3px solid var(--nk-focus);
-  outline-offset: 2px;
-  border-color: var(--nk-focus);
-  box-shadow: none;
+.nk-input:focus,
+.nk-select:focus,
+.nk-textarea:focus {
+  outline: none;
+  border-color: var(--action);
+  box-shadow: var(--focus-ring);
 }
 
 .nk-input:disabled,
 .nk-select:disabled,
 .nk-textarea:disabled {
-  background: var(--nk-surface-2);
-  color: var(--nk-ink-disabled);
+  background: var(--surf-2);
+  color: var(--disabled);
   cursor: not-allowed;
 }
 
@@ -328,32 +325,32 @@
 /* Success */
 
 .nk-badge-ok {
-  background: var(--nk-state-ok-soft);
-  color: var(--nk-state-ok);
+  background: var(--ok-bg);
+  color: var(--ok);
 }
 
 
 /* Warning */
 
 .nk-badge-warn {
-  background: var(--nk-state-warn-soft);
-  color: var(--nk-state-warn-ink);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
 
 /* Error */
 
 .nk-badge-error {
-  background: var(--nk-state-error-soft);
-  color: var(--nk-state-error);
+  background: var(--err-bg);
+  color: var(--err);
 }
 
 
 /* Neutral */
 
 .nk-badge-none {
-  background: var(--nk-state-none-soft);
-  color: var(--nk-state-none);
+  background: var(--none-bg);
+  color: var(--none);
 }
 
 
@@ -380,15 +377,15 @@
 .nk-table th {
   padding: var(--space-3);
 
-  background: var(--nk-support);
-  color: var(--nk-on-primary);
+  background: var(--graph);
+  color: var(--color-white);
 
   text-align: left;
 
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
-  letter-spacing: 0;
-  text-transform: none;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 
   white-space: nowrap;
 }

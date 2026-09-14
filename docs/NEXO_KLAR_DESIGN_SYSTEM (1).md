@@ -1,8 +1,9 @@
-# Nexo Klar — Guía de sistema de diseño
-**Versión 3.4 · Septiembre 2026**
+# Nexo Klar — Design System Guide
+**Version 3.3 · Septiembre 2026**
 
-> **Para desarrollo y agentes IA:**
-> El Manual de Marca Nexo Klar v1.0 y sus tokens son la norma de identidad. Este documento establece cómo aplicarlos en React. Antes de crear una clase CSS, modificar una interfaz, introducir un patrón visual o crear una nueva vista transversal, revisar el manual, `tokens.css` y `components.css`.
+> **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
+> Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
+> Antes de crear una clase CSS, modificar una interfaz, introducir un patrón visual o crear una nueva vista transversal, revisar este documento, `tokens.css` y `components.css`.
 >
 > Regla base: **los valores visuales compartidos pertenecen a tokens, los componentes reutilizables pertenecen a `components.css`, los layouts específicos pertenecen a CSS específico y el JSX describe estructura y comportamiento.**
 
@@ -20,7 +21,7 @@ CSS específico de layout / página / módulo
 JSX
 ```
 
-`tokens.css` es la única fuente de verdad de valores visuales compartidos. `components.css` contiene componentes reutilizables `nk-*`. El CSS de módulo solo debe resolver composición, grid, flex, posiciones, anchuras y excepciones propias de esa pantalla. `brand-system.css` centraliza los ajustes transversales de aplicación de marca y no puede redefinir valores fuera de los tokens.
+`tokens.css` es la única fuente de verdad de valores visuales compartidos. `components.css` contiene componentes reutilizables `nk-*`. El CSS de módulo solo debe resolver composición, grid, flex, posiciones, anchuras y excepciones propias de esa pantalla.
 
 ### Regla de reutilización
 
@@ -44,8 +45,6 @@ Los recursos oficiales viven en `public/brand/`:
 - `NK-color-horizontal.svg`: logo principal sobre fondo claro.
 - `NK-color-horizontal-claim.svg`: portada y piezas con claim.
 - `NK-blanco-horizontal.svg`: fondos oscuros.
-- `NK-blanco-horizontal-claim.svg`: piezas oscuras con claim.
-- `NK-1tinta-horizontal.svg` y `NK-1tinta-isotipo.svg`: usos de una tinta autorizados.
 - `NK-favico.svg`: favicon y representación reducida.
 
 No duplicar assets, recrear logos como texto, modificar `fill`, aplicar filtros CSS ni usar variantes incompatibles con el fondo.
@@ -56,28 +55,28 @@ No duplicar assets, recrear logos como texto, modificar `fill`, aplicar filtros 
 
 Los nombres y valores reales de tokens están definidos en `src/styles/tokens.css`; ese archivo es la referencia técnica final.
 
-Familias principales (usar los tokens `--nk-*`; los aliases históricos solo existen mientras se migra CSS):
+Familias principales:
 
 ```text
-Tipografía: --nk-family-*, --nk-font-*
-Superficies: --nk-base, --nk-surface, --nk-surface-2, --nk-line
-Texto: --nk-ink, --nk-ink-2, --nk-ink-3, --nk-ink-disabled
-Marca/acción: --nk-primary, --nk-action, --nk-accent-*
-Estados: --nk-state-ok, --nk-state-warn, --nk-state-error, --nk-state-none y sus fondos
-Escala: --nk-space-*, --nk-radius-*, --nk-elev-*
-Motion/accesibilidad: --nk-motion-*, --nk-focus
+Tipografía: --font-ui, --font-brand, --text-*, --weight-*, --leading-*
+Superficies: --bg, --surf, --surf-2, --line
+Texto: --ink, --mut, --sub, --disabled
+Marca/acción: --pri, --action, --acc, --hot, --graph
+Estados: --ok, --warn, --err, --none y sus fondos
+Layout: --sidebar-width, --header-height, --content-max-width, --page-padding
+Motion/accesibilidad: --transition-*, --focus-ring
 ```
 
 ### Jerarquía de superficies
 
 Las páginas internas deben compartir una misma base visual:
 
-- **`--nk-base`**: fondo general de la aplicación y del lienzo principal de cada página interna. Es la superficie base común y no debe cambiar según el módulo.
-- **`--nk-surface`**: tarjetas, paneles, formularios, tablas contenidas y superficies elevadas sobre el fondo general.
-- **`--nk-surface-2`**: superficies secundarias o de apoyo, por ejemplo zonas de filtros o resúmenes cuando se requiere diferenciación suave.
-- **`--nk-line`**: separación entre superficies y componentes.
+- **`--bg`**: fondo general de la aplicación y del lienzo principal de cada página interna. Es la superficie base común y no debe cambiar según el módulo.
+- **`--surf`**: tarjetas, paneles, formularios, tablas contenidas y superficies elevadas sobre el fondo general.
+- **`--surf-2`**: superficies secundarias o de apoyo, por ejemplo zonas de filtros o resúmenes cuando se requiere diferenciación suave.
+- **`--line`**: separación entre superficies y componentes.
 
-No utilizar `--nk-surface` como fondo completo de una página interna por decisión local. Un módulo puede contener encabezados, tablas o paneles blancos, pero el lienzo de página debe permanecer en `--nk-base`. Las excepciones deben estar justificadas como un patrón transversal y documentadas aquí, no definidas aisladamente en CSS de página.
+No utilizar `--surf` (blanco) como fondo completo de una página interna por decisión local. Un módulo puede contener encabezados, tablas o paneles blancos, pero el lienzo de página debe permanecer en `--bg`. Las excepciones deben estar justificadas como un patrón transversal y documentadas aquí, no definidas aisladamente en CSS de página.
 
 Componentes compartidos principales:
 
@@ -177,21 +176,25 @@ La transformación a mayúsculas del dominio es visual mediante CSS; el texto fu
 
 **Línea 1 · Dominio**
 - clase: `.nk-page-domain`;
-- tipografía: `--nk-font-overline`;
-- color: `--nk-primary`;
+- tamaño: `--text-xs`;
+- peso: `--weight-bold`;
+- color: `--pri`;
 - `letter-spacing: 0.08em`;
 - presentación en mayúsculas.
 
 **Línea 2 · Título de página**
 - clase: `.nk-page-title`;
-- tipografía: `--nk-font-title-1`;
-- color: `--nk-ink`;
+- fuente: `--font-brand`;
+- tamaño: `--text-3xl`;
+- peso: `--weight-bold`;
+- color: `--ink`;
+- `line-height: --leading-snug`;
 - no se permiten tamaños locales distintos para el H1 de una página interna.
 
 **Línea 3 · Descripción**
 - clase: `.nk-page-description`;
-- tipografía: `--nk-font-body`;
-- color: `--nk-ink-2`;
+- tamaño: `--text-md`;
+- color: `--mut`;
 - ancho máximo recomendado: 760 px;
 - describir la función de la pantalla en lenguaje de usuario;
 - no exponer nombres de claves, IDs, fuentes JSON, tablas ni detalles técnicos de implementación.

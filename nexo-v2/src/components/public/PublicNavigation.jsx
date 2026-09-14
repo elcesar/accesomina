@@ -3,13 +3,17 @@ import BrandLogo from './BrandLogo.jsx'
 import '../../styles/public-navigation.css'
 
 export const publicSections = [
+  ['inicio', 'Inicio'],
   ['solucion', 'Plataforma'],
+  ['resultados', 'Beneficios'],
+  ['producto', 'Producto'],
   ['capacidades', 'Soluciones'],
   ['industrias', 'Industrias'],
   ['implementacion', 'Implementación y privacidad'],
+  ['proposito', 'Propósito'],
 ]
 
-export default function PublicNavigation({ active = 'inicio', onNavigate, onCreateCompany }) {
+export default function PublicNavigation({ active = 'inicio', onNavigate }) {
   const navigate = useNavigate()
 
   return (
@@ -25,13 +29,14 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
         </button>
 
         <div className="nk-public-actions nk-public-nav-cta">
-          <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.com">
-            contacto@nexoklar.com
+          <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.cl">
+            contacto@nexoklar.cl
           </a>
-          <button className="nk-button nk-button-secondary" type="button" onClick={onCreateCompany}>
-            Crear empresa
-          </button>
-          <button className="nk-button nk-button-primary" type="button" onClick={() => navigate('/login')}>
+          <button
+            className="nk-button nk-button-primary"
+            type="button"
+            onClick={() => navigate('/login')}
+          >
             Acceso
           </button>
         </div>

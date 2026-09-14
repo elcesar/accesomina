@@ -16,7 +16,7 @@ Los 30 casos de aceptacion minera fueron ejecutados automaticamente y quedaron i
 6. Rechazo de numeros de contrato duplicados.
 7. Rechazo de mineras duplicadas.
 8. Rechazo de proyectos conectados a contratos de otra minera.
-9. Separación entre trabajadores fijos y trabajadores por proyecto.
+9. Separacion de personal permanente y spot.
 10. Rechazo de RUT de trabajador invalido.
 11. Rechazo de trabajador sin identificacion minima.
 12. Rechazo de RUT duplicado con formato diferente.

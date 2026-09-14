@@ -2,7 +2,7 @@
 
 Archivo:
 
-- `outputs/Video_Tutorial_Interactivo_Nexo_Klar_Clientes.mp4`
+- `outputs/Video_Tutorial_Interactivo_Domian_Clientes.mp4`
 
 ## Caracteristicas
 

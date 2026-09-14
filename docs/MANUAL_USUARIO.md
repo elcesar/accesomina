@@ -1,8 +1,8 @@
-# Manual de Usuario Nexo Klar
+# Manual de Usuario AccesoMina Domian
 
 ## 1. Presentacion general
 
-Nexo Klar es una plataforma privada para administrar empresas, clientes, contratos, proyectos, servicios, trabajadores, documentos, vencimientos, EPP, vehiculos, hoteleria, credenciales, incidentes, protocolos de salud, auditoria y reportes.
+AccesoMina Domian es una plataforma privada para administrar empresas, clientes, contratos, proyectos, servicios, trabajadores, documentos, vencimientos, EPP, vehiculos, hoteleria, credenciales, incidentes, protocolos de salud, auditoria y reportes.
 
 El objetivo es que una empresa pueda controlar su informacion operacional y documental en un solo lugar, con datos separados por empresa y con trazabilidad de las acciones realizadas.
 
@@ -20,13 +20,13 @@ Es la empresa, faena, planta, instalacion o cliente final donde se prestan servi
 
 Representa el acuerdo comercial u operativo con un cliente. Debe registrar vigencia, alcance, responsable, estado, documentos asociados y alertas.
 
-### Orden de servicio
+### Proyecto o servicio
 
 Es una actividad especifica asociada a un cliente o contrato. Puede representar una mantencion, servicio spot, obra, operacion o proyecto permanente.
 
 ### Trabajador
 
-Persona registrada en el sistema. Puede ser trabajador fijo de planta o trabajador por proyecto asignado a un proyecto, servicio o contrato especifico.
+Persona registrada en el sistema. Puede ser personal permanente de planta o personal spot asignado a un proyecto, servicio o contrato especifico.
 
 ### Documento
 
@@ -34,18 +34,18 @@ Archivo o registro requerido para validar cumplimiento laboral, contractual, ope
 
 ## 3. Acceso al sistema
 
-1. Ingresar al sitio privado entregado por Nexo Klar.
+1. Ingresar al sitio privado entregado por Domian.
 2. Escribir RUT o empresa, correo autorizado y contrasena.
 3. Presionar "Ingresar al sitio privado".
 4. El sistema mostrara solo la informacion de la empresa autorizada.
 
-Si un usuario no puede ingresar, debe solicitar al administrador de su empresa o al administrador Nexo Klar el restablecimiento de su acceso.
+Si un usuario no puede ingresar, debe solicitar al administrador de su empresa o al administrador Domian el restablecimiento de su acceso.
 
 ## 4. Roles de usuario
 
 Los permisos pueden organizarse de la siguiente forma:
 
-- Administrador Nexo Klar: administra empresas clientes, usuarios principales, restablecimientos y soporte general.
+- Administrador Domian: administra empresas clientes, usuarios principales, restablecimientos y soporte general.
 - Administrador Empresa: administra usuarios y datos de su propia empresa.
 - Editor: puede crear y modificar registros operativos.
 - Auditor: puede revisar informacion y documentos.
@@ -57,8 +57,8 @@ Los permisos pueden organizarse de la siguiente forma:
 El Dashboard permite ver el estado general de la empresa:
 
 - Total de trabajadores.
-- Trabajadores fijos.
-- Trabajadores por proyecto.
+- Personal permanente.
+- Personal spot.
 - Contratos activos.
 - Proyectos o servicios activos.
 - Documentos vencidos o por vencer.
@@ -130,8 +130,8 @@ La ficha del trabajador centraliza los datos personales, laborales, documentales
 1. Ir a Trabajadores.
 2. Presionar "Agregar trabajador".
 3. Ingresar nombre, RUT, cargo, correo, telefono, tipo de trabajador y estado.
-4. Seleccionar si es trabajador fijo o spot.
-5. Asignar cliente, contrato, orden de servicio si corresponde.
+4. Seleccionar si es personal permanente o spot.
+5. Asignar cliente, contrato, proyecto o servicio si corresponde.
 6. Registrar tallas y medidas de EPP.
 7. Guardar.
 
@@ -143,7 +143,7 @@ La ficha debe mostrar:
 
 - Datos personales.
 - Cargo y tipo de trabajador.
-- Cliente, contrato, orden de servicio asignado.
+- Cliente, contrato, proyecto o servicio asignado.
 - Documentos cargados.
 - Documentos faltantes.
 - Fechas de vencimiento.
@@ -246,7 +246,7 @@ El modulo Hoteleria permite administrar hoteles, habitaciones y asignacion de pe
 ### Asignar alojamiento
 
 1. Seleccionar trabajador.
-2. Seleccionar orden de servicio.
+2. Seleccionar proyecto o servicio.
 3. Seleccionar hotel.
 4. Seleccionar habitacion.
 5. Registrar check-in y check-out.
@@ -271,7 +271,7 @@ Datos recomendados:
 - Archivo de respaldo.
 - Estado.
 
-Si existen documentos vencidos, la credencial debe quedar observada o no habilitada segun la politica de la empresa.
+Si existen documentos vencidos, la credencial debe quedar observada o bloqueada segun la politica de la empresa.
 
 ## 16. Incidentes y no conformidades
 
@@ -280,7 +280,7 @@ Este modulo permite registrar eventos de seguridad, desviaciones, hallazgos y ac
 Datos recomendados:
 
 - Fecha.
-- Cliente, contrato, orden de servicio.
+- Cliente, contrato, proyecto o servicio.
 - Trabajador o area involucrada.
 - Tipo de incidente o no conformidad.
 - Descripcion.
@@ -354,7 +354,7 @@ Usos recomendados:
 - Coordinar inicio de proyecto.
 - Solicitar documentos faltantes.
 - Informar cambios de turno.
-- Contactar trabajador por proyecto disponible.
+- Contactar personal spot disponible.
 - Notificar vencimientos o pendientes.
 
 Se recomienda mantener listas actualizadas por cliente, contrato, proyecto, servicio y tipo de trabajador.
@@ -377,7 +377,7 @@ Los reportes deben permitir revisar informacion por item:
 
 - Cliente.
 - Contrato.
-- Orden de servicio.
+- Proyecto o servicio.
 - Trabajadores permanentes.
 - Trabajadores spot.
 - Documentos vencidos.
@@ -405,7 +405,7 @@ Los reportes deben permitir revisar informacion por item:
 
 ## 24. Soporte y administracion
 
-El administrador Nexo Klar puede apoyar en:
+El administrador Domian puede apoyar en:
 
 - Alta de empresas.
 - Validacion de cuentas.
@@ -417,6 +417,6 @@ El administrador Nexo Klar puede apoyar en:
 
 ## 25. Cierre
 
-Nexo Klar esta pensado para entregar control centralizado, trazabilidad y orden documental a empresas que gestionan personal, contratos, proyectos y servicios en entornos operativos exigentes.
+AccesoMina Domian esta pensado para entregar control centralizado, trazabilidad y orden documental a empresas que gestionan personal, contratos, proyectos y servicios en entornos operativos exigentes.
 
 El mayor valor del sistema esta en mantener la informacion actualizada, separar correctamente los datos por empresa y utilizar alertas para anticipar vencimientos o incumplimientos.

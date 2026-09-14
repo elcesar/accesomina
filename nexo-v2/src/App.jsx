@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
@@ -46,7 +46,6 @@ import MovimientosInventarioPage from './pages/MovimientosInventarioPage.jsx'
 import MantenimientoPage from './pages/MantenimientoPage.jsx'
 import AsignacionesPrestamosPage from './pages/AsignacionesPrestamosPage.jsx'
 import ProspectosPage from './pages/ProspectosPage.jsx'
-import LibroObraPage from './pages/LibroObraPage.jsx'
 import GestionPersonalProyectoPage from './pages/GestionPersonalProyectoPage.jsx'
 import CentroOperativoPage from './pages/CentroOperativoPage.jsx'
 import ReportesPage from './pages/ReportesPage.jsx'
@@ -55,22 +54,19 @@ import UsuariosPermisosPage from './pages/UsuariosPermisosPage.jsx'
 import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
-import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
-import MfaSetupPage from './pages/MfaSetupPage.jsx'
 
-function ProtectedRoute({ children, allowPasswordChange = false, allowMfaSetup = false }) {
+function ProtectedRoute({ children, allowPasswordChange = false }) {
   const { session, loading } = useAuth()
   if (loading) return (
-    <div className="nk-app-loading">
-      <div className="nk-app-loading-content">
-        <div className="nk-app-loading-spinner" aria-hidden="true" />
-        <p>Cargando Nexo Klar…</p>
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4EFE3' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 28, height: 28, border: '2.5px solid #2A2A8C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <p style={{ fontSize: 13, color: '#5D6B7A' }}>Cargando Nexo Klar…</p>
       </div>
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
   if (session.user?.mustChangePassword && !allowPasswordChange) return <Navigate to="/cambiar-password" replace />
-  if (session.user?.mfaEnrollmentRequired && !allowMfaSetup && !allowPasswordChange) return <Navigate to="/configurar-mfa" replace />
   return children
 }
 
@@ -78,14 +74,8 @@ function PublicRoute({ children }) {
   const { session, loading } = useAuth()
   if (loading) return null
   if (session?.user?.mustChangePassword) return <Navigate to="/cambiar-password" replace />
-  if (session?.user?.mfaEnrollmentRequired) return <Navigate to="/configurar-mfa" replace />
   if (session) return <Navigate to="/app" replace />
   return children
-}
-
-function LegacyOrderServiceRedirect() {
-  const { orderId } = useParams()
-  return <Navigate to={`/app/servicios/${orderId}`} replace />
 }
 
 export default function App() {
@@ -99,12 +89,13 @@ export default function App() {
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           <Route path="/cambiar-password" element={<ProtectedRoute allowPasswordChange><ChangePasswordPage /></ProtectedRoute>} />
-          <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaSetup><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="reclutamiento" element={<GestionPersonalProyectoPage />} />
+            <Route path="modulos/gestion-personal-proyecto" element={<Navigate to="/app/reclutamiento" replace />} />
             <Route path="operaciones" element={<CentroOperativoPage />} />
+            <Route path="modulos/centro-operativo" element={<Navigate to="/app/operaciones" replace />} />
             <Route path="trabajadores" element={<TrabajadoresPage />} />
             <Route path="trabajadores/nuevo" element={<NuevoTrabajadorPage />} />
             <Route path="trabajadores/:id" element={<FichaTrabajadorPage />} />
@@ -120,34 +111,44 @@ export default function App() {
             <Route path="hoteleria" element={<AlojamientosPage />} />
             <Route path="credenciales" element={<CredencialesPage />} />
             <Route path="subcontratos" element={<TercerosSubcontratosPage />} />
-            <Route path="convenios" element={<ConveniosPage />} />
-            <Route path="personal-contratista" element={<PersonalEmpresaServiciosPage />} />
-            <Route path="habilitaciones-contratistas" element={<HabilitacionesCumplimientoPage />} />
-            <Route path="evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
+            <Route path="modulos/contratos-convenios" element={<ConveniosPage />} />
+            <Route path="modulos/personal-empresa-servicios" element={<PersonalEmpresaServiciosPage />} />
+            <Route path="modulos/habilitaciones-cumplimiento" element={<HabilitacionesCumplimientoPage />} />
+            <Route path="modulos/evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
             <Route path="acreditacion-empresa" element={<CumplimientoCorporativoPage />} />
             <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
-            <Route path="libro-obra" element={<LibroObraPage />} />
             <Route path="oportunidades" element={<ProspectosPage />} />
+            <Route path="modulos/prospectos" element={<Navigate to="/app/oportunidades" replace />} />
             <Route path="activos-inventario" element={<ActivosInventarioPage />} />
+            <Route path="modulos/activos-inventario" element={<Navigate to="/app/activos-inventario" replace />} />
             <Route path="maquinaria" element={<MaquinariaPage />} />
+            <Route path="modulos/maquinaria" element={<Navigate to="/app/maquinaria" replace />} />
             <Route path="equipos-instrumentos" element={<EquiposInstrumentosPage />} />
+            <Route path="modulos/equipos-instrumentos" element={<Navigate to="/app/equipos-instrumentos" replace />} />
             <Route path="herramientas" element={<HerramientasPage />} />
+            <Route path="modulos/herramientas" element={<Navigate to="/app/herramientas" replace />} />
             <Route path="epp-inventario" element={<EppInventarioPage />} />
+            <Route path="modulos/epp-inventario" element={<Navigate to="/app/epp-inventario" replace />} />
             <Route path="materiales" element={<MaterialesPage />} />
+            <Route path="modulos/materiales" element={<Navigate to="/app/materiales" replace />} />
             <Route path="insumos" element={<InsumosPage />} />
+            <Route path="modulos/insumos" element={<Navigate to="/app/insumos" replace />} />
             <Route path="bodegas" element={<BodegasPage />} />
+            <Route path="modulos/bodegas" element={<Navigate to="/app/bodegas" replace />} />
             <Route path="movimientos-inventario" element={<MovimientosInventarioPage />} />
+            <Route path="modulos/movimientos-inventario" element={<Navigate to="/app/movimientos-inventario" replace />} />
             <Route path="mantenimiento" element={<MantenimientoPage />} />
+            <Route path="modulos/mantenimiento" element={<Navigate to="/app/mantenimiento" replace />} />
             <Route path="asignaciones-prestamos" element={<AsignacionesPrestamosPage />} />
+            <Route path="modulos/asignaciones-prestamos" element={<Navigate to="/app/asignaciones-prestamos" replace />} />
             <Route path="reportes" element={<ReportesPage />} />
             <Route path="transferencia" element={<ImportarExportarPage />} />
             <Route path="usuarios" element={<UsuariosPermisosPage />} />
             <Route path="bitacora" element={<BitacoraCambiosPage />} />
             <Route path="privacidad" element={<PrivacidadDatosPage />} />
             <Route path="configuracion" element={<ConfiguracionPage />} />
-            <Route path="administracion-clientes" element={<AdministracionClientesPage />} />
             <Route path="clientes" element={<ClientesPage key="clientes-list" />} />
             <Route path="clientes/nuevo" element={<ClientesPage key="clientes-new" createMode />} />
             <Route path="clientes/:clientId" element={<ClientesPage key="clientes-detail" />} />
@@ -158,7 +159,7 @@ export default function App() {
             <Route path="servicios/nuevo" element={<OrdenesServicioPage key="servicios-new" createMode />} />
             <Route path="servicios/:orderId" element={<OrdenesServicioPage key="servicios-detail" />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
-            <Route path="ordenes-servicio/:orderId" element={<LegacyOrderServiceRedirect />} />
+            <Route path="ordenes-servicio/:orderId" element={<OrdenesServicioPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />

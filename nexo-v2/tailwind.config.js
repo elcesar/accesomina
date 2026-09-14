@@ -1,81 +1,57 @@
-// Nexo Klar · configuración de Tailwind
-// Los valores viven en tokens.css. Aquí solo se declaran los alias, para que
-// el color nunca quede escrito a mano en una clase.
+/** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        "base": "var(--nk-base)",
-        "surface": "var(--nk-surface)",
-        "surface-2": "var(--nk-surface-2)",
-        "line": "var(--nk-line)",
-        "line-strong": "var(--nk-line-strong)",
-        "border-control": "var(--nk-border-control)",
-        "ink": "var(--nk-ink)",
-        "ink-2": "var(--nk-ink-2)",
-        "ink-3": "var(--nk-ink-3)",
-        "ink-disabled": "var(--nk-ink-disabled)",
-        "on-primary": "var(--nk-on-primary)",
-        "on-action": "var(--nk-on-action)",
-        "primary": "var(--nk-primary)",
-        "primary-deep": "var(--nk-primary-deep)",
-        "primary-soft": "var(--nk-primary-soft)",
-        "action": "var(--nk-action)",
-        "action-hover": "var(--nk-action-hover)",
-        "action-soft": "var(--nk-action-soft)",
-        "support": "var(--nk-support)",
-        "accent-warm": "var(--nk-accent-warm)",
-        "accent-warm-ink": "var(--nk-accent-warm-ink)",
-        "accent-warm-soft": "var(--nk-accent-warm-soft)",
-        "accent-data": "var(--nk-accent-data)",
-        "accent-data-ink": "var(--nk-accent-data-ink)",
-        "accent-data-soft": "var(--nk-accent-data-soft)",
-        "on-accent-data": "var(--nk-on-accent-data)",
-        "attention": "var(--nk-attention)",
-        "attention-ink": "var(--nk-attention-ink)",
-        "attention-soft": "var(--nk-attention-soft)",
-        "state-ok": "var(--nk-state-ok)",
-        "state-ok-soft": "var(--nk-state-ok-soft)",
-        "state-warn": "var(--nk-state-warn)",
-        "state-warn-ink": "var(--nk-state-warn-ink)",
-        "state-warn-soft": "var(--nk-state-warn-soft)",
-        "state-error": "var(--nk-state-error)",
-        "state-error-soft": "var(--nk-state-error-soft)",
-        "state-none": "var(--nk-state-none)",
-        "state-none-soft": "var(--nk-state-none-soft)",
-        "focus": "var(--nk-focus)",
-      },
-      spacing: {
-        "0": "var(--nk-space-0)",
-        "1": "var(--nk-space-1)",
-        "2": "var(--nk-space-2)",
-        "3": "var(--nk-space-3)",
-        "4": "var(--nk-space-4)",
-        "5": "var(--nk-space-5)",
-        "6": "var(--nk-space-6)",
-        "8": "var(--nk-space-8)",
-        "10": "var(--nk-space-10)",
-        "12": "var(--nk-space-12)",
-        "16": "var(--nk-space-16)",
-        "20": "var(--nk-space-20)",
-      },
-      borderRadius: {
-        "sm": "var(--nk-radius-sm)",
-        "md": "var(--nk-radius-md)",
-        "lg": "var(--nk-radius-lg)",
-        "xl": "var(--nk-radius-xl)",
-        "pill": "var(--nk-radius-pill)",
+        // Fondos
+        bg:      '#F4EFE3',   // fondo de página
+        surface: '#FFFFFF',   // tarjetas y paneles
+        'surface-2': '#FBF9F5', // zebra de tabla, secciones alternas
+        line:    '#E3DED2',   // bordes y separadores
+
+        // Texto
+        ink:     '#141A20',   // texto principal
+        muted:   '#5D6B7A',   // texto secundario
+        subtle:  '#8A96A1',   // placeholders, inactivos
+
+        // Marca
+        primary: {
+          DEFAULT: '#2A2A8C',
+          deep:    '#1A1A5E', // hover / presionado
+        },
+        graphite: '#26313A',  // encabezados tabla, segundo nivel
+
+        // Acento
+        accent: {
+          DEFAULT: '#00CFC1',
+          txt:     '#00706A', // turquesa como texto o icono
+          dark:    '#08302F', // texto sobre turquesa
+        },
+
+        // Estados semánticos
+        ok:   '#1B7F4B',   // vigente
+        warn: '#C77700',   // por vencer
+        err:  '#B3261E',   // vencido / no habilitado
+
+        // Alerta
+        coral: {
+          DEFAULT: '#FF5A3C',
+          txt:     '#B03510',
+        },
+
+        // Neutro
+        metal: '#C7D0D6',
       },
       fontFamily: {
-        brand: ["Manrope", "system-ui", "sans-serif"],
-        ui: ["Inter", "system-ui", "sans-serif"],
+        sans:    ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Manrope', 'Inter', 'system-ui', 'sans-serif'],
       },
-      boxShadow: {
-        1: "var(--nk-elev-1)", 2: "var(--nk-elev-2)",
-        3: "var(--nk-elev-3)", 4: "var(--nk-elev-4)",
+      borderRadius: {
+        card: '14px',
+        chip: '9px',
       },
     },
   },
-  darkMode: ["selector", '[data-tema="oscuro"]'],
-};
+  plugins: [],
+}

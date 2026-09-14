@@ -1,4 +1,4 @@
-# Arquitectura cloud de Nexo Klar
+# Arquitectura cloud de AccesoMina
 
 ## Límites de confianza
 
@@ -41,16 +41,16 @@ S3 privado
 
 ## Roles
 
-- `domian_admin`: identificador técnico heredado para la administración global controlada de Nexo Klar.
+- `domian_admin`: administración global controlada.
 - `client_admin`: usuarios y operación completa de su empresa.
 - `rrhh`: trabajadores, contratos y comunicaciones.
 - `prevencion`: documentación, riesgos y salud ocupacional.
 - `acreditacion`: carga, revisión y envío al mandante.
 - `consulta`: lectura y reportes.
 
-## Gobierno Nexo Klar
+## Gobierno Domian
 
-La empresa administradora Nexo Klar mantiene el rol global técnico `domian_admin`, que se conserva solo por compatibilidad de base de datos. Las cuentas nuevas comienzan en estado `pending`; Administración Nexo Klar debe aprobarlas antes del primer acceso. Desde Administración de clientes se pueden suspender, reactivar, eliminar lógicamente y restablecer la contraseña del administrador. Cada restablecimiento revoca sesiones, genera una clave temporal mostrada una sola vez, obliga a cambiarla y registra auditoría. La cuenta global Nexo Klar está protegida contra suspensión, eliminación o degradación.
+La empresa con RUT `78.425.213-2` y el usuario `contacto@domian.cl` mantienen el rol global `domian_admin`. Las cuentas nuevas comienzan en estado `pending`; Domian debe aprobarlas antes del primer acceso. Desde Clientes Domian se pueden suspender, reactivar, eliminar lógicamente y restablecer la contraseña del administrador. Cada restablecimiento revoca sesiones, genera una clave temporal mostrada una sola vez, obliga a cambiarla y registra auditoría. La cuenta global Domian está protegida contra suspensión, eliminación o degradación.
 
 ## Parametrización por empresa
 

@@ -12,7 +12,6 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
-import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
 function diasHasta(fecha) {
@@ -100,15 +99,15 @@ function workerContractIds(persona, asignaciones, mantenciones) {
 }
 
 function AvailabilityBadge({ value, blocked }) {
-  if (blocked) return <StatusBadge value="no_habilitado" />
+  if (blocked) return <span className="nk-badge nk-badge-error">Restringido</span>
 
   const map = {
     disponible: ['nk-badge-ok', 'Disponible'],
     vacaciones: ['nk-badge-warn', 'Vacaciones'],
     asignado: ['nk-badge-none', 'Asignado'],
   }
-  const [, label] = map[value] || ['nk-badge-none', value || 'Sin información']
-  return <StatusBadge value={label === 'Disponible' ? 'disponible' : label === 'Vacaciones' ? 'vacaciones' : label === 'Asignado' ? 'asignado' : 'sin_informacion'} />
+  const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin información']
+  return <span className={`nk-badge ${cls}`}>{label}</span>
 }
 
 function LinkTypeBadge({ type }) {
@@ -139,17 +138,17 @@ function ProgressBar({ pct, expiry }) {
 }
 
 const TABS = [
-  { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
-  { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
-  { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
+  { key: 'planta', label: 'Personal fijo', icon: IconUserCheck },
+  { key: 'esporadico', label: 'Por proyecto', icon: IconUsers },
+  { key: 'disponible', label: 'Disponibles', icon: IconUserCheck },
+  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
-  planta: 'trabajadores con vínculo fijo',
-  esporadico: 'trabajadores vinculados por proyecto',
-  disponible: 'trabajadores disponibles',
-  bloqueados: 'trabajadores no habilitados',
+  planta: 'personas con vínculo fijo',
+  esporadico: 'personas vinculadas por proyecto',
+  disponible: 'personas disponibles',
+  bloqueados: 'personas restringidas',
 }
 
 export default function TrabajadoresPage() {
@@ -353,7 +352,7 @@ export default function TrabajadoresPage() {
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
           <option value="vacaciones">Vacaciones</option>
-          <option value="bloqueado">No habilitado</option>
+          <option value="bloqueado">Restringido</option>
         </select>
 
         <select className={`nk-select nk-people-filter ${clientId ? 'is-active' : ''}`} value={clientId} onChange={event => setClientId(event.target.value)} aria-label="Filtrar por cliente">
