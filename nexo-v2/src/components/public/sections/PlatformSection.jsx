@@ -1,42 +1,42 @@
 const benefits = [
   {
     number: '01',
-    title: 'Unifica',
-    body: 'Concentra personas, documentos, contratos, formación, exámenes, EPP, vehículos y vencimientos en una sola base.',
+    title: 'Coordina con contexto',
+    body: 'Consulta responsables, personas, documentos, turnos, alojamiento y recursos desde cada orden de servicio.',
   },
   {
     number: '02',
-    title: 'Conecta',
-    body: 'Relaciona la información con clientes, contratos, órdenes de servicio, personas y recursos para trabajar con contexto.',
+    title: 'Actúa a tiempo',
+    body: 'Identifica pendientes, vencimientos y brechas operativas con paneles claros.',
   },
   {
     number: '03',
-    title: 'Simplifica y controla',
-    body: 'Haz visible qué está vigente, qué está por vencer y qué necesita atención antes de afectar la operación.',
+    title: 'Responde con evidencia',
+    body: 'Conserva historial, documentos y responsables para revisiones, clientes y auditorías.',
   },
 ]
 
 const mockNavigation = [
   'Panel de control',
-  'Clientes',
+  'Empresas y clientes',
   'Contratos',
   'Órdenes de servicio',
   'Personas',
-  'Cumplimiento',
-  'Inventario',
-  'Reportería',
+  'Documentos',
+  'Alertas',
+  'Reportes y analítica',
 ]
 
 const mockKpis = [
-  ['12', 'Órdenes activas'],
-  ['86%', 'Dotación vigente'],
+  ['12', 'Servicios activos'],
+  ['86%', 'Documentación vigente'],
   ['7', 'Alertas por atender'],
 ]
 
 const mockRows = [
-  ['Servicio en terreno', 'Operaciones', 'Vigente'],
-  ['Proyecto de instalación', 'Proyectos', 'Por vencer'],
-  ['Orden programada', 'Equipo técnico', 'Sin información'],
+  ['Servicio en terreno', 'Equipo de Operaciones', 'Al día'],
+  ['Proyecto de instalación', 'Equipo de Proyectos', 'En curso'],
+  ['Orden programada', 'Equipo técnico', 'Revisar'],
 ]
 
 export default function PlatformSection() {
@@ -44,10 +44,10 @@ export default function PlatformSection() {
     <section id="solucion" className="nk-public-section">
       <div className="nk-two-columns">
         <div>
-          <p className="nk-eyebrow">Una sola base de información</p>
-          <h2>Unificar. Conectar. Simplificar. Controlar.</h2>
+          <p className="nk-eyebrow">Una operación conectada de principio a fin</p>
+          <h2>De la oportunidad al servicio cerrado.</h2>
           <p className="nk-lead">
-            Nexo Klar transforma información dispersa en una operación integrada, confiable y trazable. Cada elemento queda relacionado con la persona, servicio y recurso que corresponde.
+            Nexo Klar transforma datos dispersos en una operación clara, trazable y fácil de seguir. La información se registra una vez y se relaciona con el cliente, contrato, orden de servicio, persona y recurso correspondiente.
           </p>
 
           <div className="nk-number-list">
@@ -82,7 +82,7 @@ export default function PlatformSection() {
 
             <main>
               <h3>Resumen de la operación</h3>
-              <p>Información integrada y disponible</p>
+              <p>Información centralizada y actualizada</p>
 
               <div className="nk-mini-kpis">
                 {mockKpis.map(([value, label]) => (
