@@ -61,13 +61,12 @@
   margin: 0 0 var(--nk-space-3);
   color: var(--nk-primary);
   font: var(--nk-font-overline);
-  letter-spacing: .06em;
   text-align: left;
   text-transform: uppercase;
 }
 
 .nk-public-section h2 {
-  max-width: 48rem;
+  max-width: calc((var(--nk-space-20) * 9) + var(--nk-space-12));
   margin: 0 0 var(--nk-space-4);
   color: var(--nk-ink);
   font: var(--nk-font-display);
@@ -75,7 +74,7 @@
 }
 
 .nk-lead {
-  max-width: 48rem;
+  max-width: calc((var(--nk-space-20) * 9) + var(--nk-space-12));
   margin: 0;
   color: var(--nk-ink-2);
   font: var(--nk-font-body-lg);
@@ -100,7 +99,7 @@
   min-height: calc(var(--nk-space-20) * 8);
   margin-inline: auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, .95fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 5)), 1fr));
   align-items: start;
   gap: var(--nk-space-16);
   background: transparent;
@@ -119,11 +118,10 @@
 }
 
 .nk-hero-copy h1 {
-  max-width: 44rem;
+  max-width: calc((var(--nk-space-20) * 8) + var(--nk-space-16));
   margin: 0 0 var(--nk-space-5);
   color: var(--nk-ink);
   font: var(--nk-font-display);
-  letter-spacing: -.02em;
 }
 
 .nk-hero-copy h1 span {
@@ -131,7 +129,7 @@
 }
 
 .nk-hero-copy .nk-lead {
-  max-width: 42rem;
+  max-width: calc((var(--nk-space-20) * 8) + var(--nk-space-8));
 }
 
 .nk-hero-copy > .nk-actions {
@@ -141,7 +139,7 @@
 .nk-hero-points {
   width: 100%;
   margin-top: var(--nk-space-8);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 2)), 1fr));
 }
 
 .nk-hero-points article {
@@ -149,7 +147,7 @@
   flex-direction: column;
   gap: var(--nk-space-2);
   padding-top: var(--nk-space-3);
-  border-top: 1px solid var(--nk-line);
+  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
 }
 
 .nk-hero-points b {
@@ -170,9 +168,11 @@
    04. SHARED PUBLIC COMPOSITION
    ========================================================= */
 
-.nk-two-columns {
+.nk-two-columns,
+.nk-access-layout,
+.nk-industry-heading {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 5)), 1fr));
   align-items: start;
   gap: var(--nk-space-16);
 }
@@ -194,7 +194,7 @@
 .nk-image-button img {
   display: block;
   width: 100%;
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   box-shadow: var(--nk-elev-4);
 }
@@ -220,7 +220,7 @@
   grid-template-columns: var(--nk-space-10) 1fr;
   gap: var(--nk-space-3);
   padding-block: var(--nk-space-4);
-  border-top: 1px solid var(--nk-line);
+  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
 }
 
 .nk-number-list article > strong {
@@ -246,7 +246,7 @@
 
 .nk-product-mock {
   overflow: hidden;
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-4);
@@ -277,13 +277,13 @@
 .nk-product-mock > div {
   min-height: calc(var(--nk-space-20) * 4);
   display: grid;
-  grid-template-columns: calc(var(--nk-space-20) * 2) 1fr;
+  grid-template-columns: minmax(calc(var(--nk-space-20) * 2), max-content) 1fr;
 }
 
 .nk-product-mock aside {
   padding: var(--nk-space-3);
   background: var(--nk-surface-2);
-  border-right: 1px solid var(--nk-line);
+  border-right: calc(var(--nk-space-1) / 4) solid var(--nk-line);
 }
 
 .nk-product-mock aside span {
@@ -319,7 +319,7 @@
 
 .nk-mini-kpis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 2)), 1fr));
   gap: var(--nk-space-2);
   margin-bottom: var(--nk-space-4);
 }
@@ -327,7 +327,7 @@
 .nk-mini-kpis article {
   padding: var(--nk-space-3);
   background: var(--nk-surface-2);
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-md);
 }
 
@@ -345,10 +345,10 @@
 
 .nk-mock-row {
   display: grid;
-  grid-template-columns: 1.3fr 1fr .7fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--nk-space-2);
   padding-block: var(--nk-space-2);
-  border-top: 1px solid var(--nk-line);
+  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   color: var(--nk-ink);
   font: var(--nk-font-caption);
 }
@@ -362,11 +362,16 @@
    06. PUBLIC CONTENT CARDS
    ========================================================= */
 
-.nk-outcome-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: var(--nk-space-8);
+.nk-outcome-grid,
+.nk-solutions-grid,
+.nk-industries-grid,
+.nk-steps,
+.nk-values,
+.nk-statements {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr));
 }
 
+.nk-outcome-grid,
 .nk-solutions-grid,
 .nk-industries-grid,
 .nk-steps,
@@ -384,7 +389,7 @@
   flex-direction: column;
   gap: var(--nk-space-2);
   padding: var(--nk-space-5);
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-lg);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-1);
@@ -417,13 +422,6 @@
   font: var(--nk-font-body-sm);
 }
 
-.nk-solutions-grid,
-.nk-industries-grid,
-.nk-steps,
-.nk-values {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 .nk-solutions-grid h3,
 .nk-steps h3,
 .nk-statements h3 {
@@ -434,26 +432,15 @@
 
 .nk-solutions-grid article,
 .nk-steps article {
-  min-height: calc(var(--nk-space-20) * 2 + var(--nk-space-8));
+  min-height: calc((var(--nk-space-20) * 2) + var(--nk-space-8));
 }
 
 .nk-industries-grid article {
-  min-height: calc(var(--nk-space-20) * 2 + var(--nk-space-2));
-}
-
-.nk-industry-heading {
-  display: grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap: var(--nk-space-8);
-  align-items: start;
+  min-height: calc((var(--nk-space-20) * 2) + var(--nk-space-2));
 }
 
 .nk-industry-heading .nk-lead {
   margin: 0;
-}
-
-.nk-statements {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .nk-values {
@@ -480,16 +467,9 @@
    08. CUSTOMER ACCESS
    ========================================================= */
 
-.nk-access-layout {
-  display: grid;
-  grid-template-columns: minmax(0, .9fr) minmax(0, .8fr);
-  align-items: start;
-  gap: var(--nk-space-16);
-}
-
 .nk-access-card {
   padding: var(--nk-space-6);
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-xl);
   background: var(--nk-surface);
   box-shadow: var(--nk-elev-3);
@@ -513,7 +493,7 @@
 
 .nk-access-form-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr));
   gap: var(--nk-space-3);
 }
 
@@ -535,7 +515,7 @@
   min-height: var(--nk-control-min);
   box-sizing: border-box;
   padding: var(--nk-space-2) var(--nk-space-3);
-  border: 1px solid var(--nk-border-control);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
   color: var(--nk-ink);
@@ -560,7 +540,7 @@
 .nk-form-message {
   margin: var(--nk-space-4) 0 0;
   padding: var(--nk-space-3);
-  border: 1px solid var(--nk-line);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface-2);
   color: var(--nk-ink);
@@ -606,7 +586,7 @@
 
 .nk-public-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr));
   gap: var(--nk-space-4);
   margin-top: var(--nk-space-5);
 }
@@ -618,6 +598,7 @@
 
 .nk-public-form footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--nk-space-2);
   margin-top: var(--nk-space-2);
@@ -630,7 +611,7 @@
 
 .nk-info-list article {
   padding-top: var(--nk-space-4);
-  border-top: 1px solid var(--nk-line);
+  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
 }
 
 .nk-info-list b {
@@ -650,6 +631,7 @@
 
 .nk-public-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--nk-space-5);
@@ -661,6 +643,7 @@
 
 .nk-public-footer > div {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--nk-space-4);
 }
@@ -688,16 +671,16 @@
 .nk-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: calc(var(--nk-space-20) + var(--nk-space-5));
   display: grid;
   place-items: center;
   padding: var(--nk-space-6);
-  background: color-mix(in srgb, var(--nk-ink) 78%, transparent);
+  background: color-mix(in srgb, var(--nk-ink), transparent);
 }
 
 .nk-lightbox img {
-  max-width: min(var(--nk-content-max-width), 94vw);
-  max-height: 88vh;
+  max-width: min(var(--nk-content-max-width), calc(100% - (2 * var(--nk-page-padding))));
+  max-height: calc(100% - (2 * var(--nk-space-16)));
   object-fit: contain;
   border-radius: var(--nk-radius-lg);
   box-shadow: var(--nk-elev-4);
@@ -711,90 +694,9 @@
   height: var(--nk-touch-min);
   display: grid;
   place-items: center;
-  border: 1px solid var(--nk-border-control);
+  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
   border-radius: var(--nk-radius-pill);
   background: var(--nk-surface);
   color: var(--nk-ink);
   font: var(--nk-font-title-2);
-}
-
-/* =========================================================
-   12. RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 1100px) {
-  .nk-hero,
-  .nk-two-columns,
-  .nk-access-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .nk-hero {
-    min-height: auto;
-  }
-
-  .nk-outcome-grid,
-  .nk-solutions-grid,
-  .nk-industries-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .nk-industry-heading {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 720px) {
-  .nk-public-section {
-    padding-block: var(--nk-space-16);
-  }
-
-  .nk-hero {
-    gap: var(--nk-space-10);
-  }
-
-  .nk-hero-points,
-  .nk-outcome-grid,
-  .nk-solutions-grid,
-  .nk-industries-grid,
-  .nk-steps,
-  .nk-statements,
-  .nk-values,
-  .nk-mini-kpis,
-  .nk-access-form-row,
-  .nk-public-form {
-    grid-template-columns: 1fr;
-  }
-
-  .nk-product-mock > div {
-    grid-template-columns: 1fr;
-  }
-
-  .nk-product-mock aside {
-    display: none;
-  }
-
-  .nk-public-form footer {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-
-  .nk-public-form footer .nk-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: 520px) {
-  .nk-public-section {
-    padding-block: var(--nk-space-12);
-  }
-
-  .nk-access-card {
-    padding: var(--nk-space-4);
-  }
-
-  .nk-public-footer {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
