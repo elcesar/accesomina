@@ -171,7 +171,7 @@
   font-size: clamp(40px, 5.4vw, 64px);
   font-weight: var(--weight-extrabold);
   line-height: 1.08;
-  letter-spacing: -.035em;
+  letter-spacing: 0;
 }
 .nk-hero-copy h1 span { color: var(--pri); }
 .nk-hero-copy .nk-lead { max-width: 650px; }
