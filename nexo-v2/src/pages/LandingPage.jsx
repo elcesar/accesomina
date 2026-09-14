@@ -9,6 +9,7 @@ import SolutionsSection from '../components/public/sections/SolutionsSection.jsx
 import IndustriesSection from '../components/public/sections/IndustriesSection.jsx'
 import ImplementationSection from '../components/public/sections/ImplementationSection.jsx'
 import PurposeSection from '../components/public/sections/PurposeSection.jsx'
+import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
 import { DemoRequestDialog } from '../components/public/PublicDialogs.jsx'
 
 const trackedSections = [
@@ -20,6 +21,7 @@ const trackedSections = [
   'industrias',
   'implementacion',
   'proposito',
+  'clientes-access',
   'contacto',
 ]
 
@@ -108,7 +110,11 @@ export default function LandingPage() {
       />
 
       <main>
-        <HomeSection openDemo={() => setDialog('demo')} onNavigate={goTo} />
+        <HomeSection
+          openDemo={() => setDialog('demo')}
+          openPreview={() => setPreview(true)}
+          onNavigate={goTo}
+        />
         <PlatformSection />
         <BenefitsSection />
         <ProductSection openPreview={() => setPreview(true)} />
@@ -116,6 +122,7 @@ export default function LandingPage() {
         <IndustriesSection />
         <ImplementationSection />
         <PurposeSection />
+        <CustomerAccessSection />
 
         <section className="nk-public-section nk-centered nk-final-cta" id="contacto">
           <div>
