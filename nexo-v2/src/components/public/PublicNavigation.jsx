@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import BrandLogo from './BrandLogo.jsx'
-import '../../styles/public-navigation.css'
+import '../../styles/layout/public-layout.css'
 
 export const publicSections = [
   ['solucion', 'Plataforma'],

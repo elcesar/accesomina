@@ -8,7 +8,7 @@ import {
   IconUserPlus,
 } from '@tabler/icons-react'
 import { useAuth } from '../../services/auth.jsx'
-import '../../styles/header.css'
+import '../../styles/layout/header.css'
 
 const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
 

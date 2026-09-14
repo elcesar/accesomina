@@ -12,7 +12,7 @@ import {
   IconSettings, IconPackage, IconTruckDelivery, IconTools,
   IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
 } from '@tabler/icons-react'
-import '../../styles/sidebar.css'
+import '../../styles/layout/sidebar.css'
 
 const PRIMARY_NAV = [
   { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },

@@ -1,0 +1,150 @@
+/*
+ * NEXO KLAR · Public Layout
+ * Estructura compartida de navegación y cabecera del sitio público.
+ */
+
+.nk-public-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--nk-surface);
+  border-bottom: 1px solid var(--nk-line);
+}
+
+.nk-public-topbar {
+  position: relative;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nk-space-4);
+  padding-inline: var(--nk-page-padding);
+  background: color-mix(in srgb, var(--nk-surface) 96%, transparent);
+  border-bottom: 1px solid var(--nk-line);
+  backdrop-filter: blur(10px);
+}
+
+.nk-public-brand-button {
+  min-width: 148px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.nk-public-logo {
+  width: auto;
+  height: 34px;
+  display: block;
+}
+
+.nk-public-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--nk-space-2);
+}
+
+.nk-public-nav-cta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.nk-public-section-tabs {
+  min-height: 48px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-inline: var(--nk-page-padding);
+  background: var(--nk-surface);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nk-public-section-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.nk-public-section-tabs button {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 var(--nk-space-4);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--nk-ink-2);
+  font: var(--nk-font-label);
+  white-space: nowrap;
+  transition: color var(--nk-motion-normal) var(--nk-motion-curve), border-color var(--nk-motion-normal) var(--nk-motion-curve), background-color var(--nk-motion-normal) var(--nk-motion-curve);
+}
+
+.nk-public-section-tabs button:hover {
+  color: var(--nk-primary);
+  background: var(--nk-surface-2);
+}
+
+.nk-public-section-tabs button.is-active {
+  color: var(--nk-primary);
+  border-bottom-color: var(--nk-primary);
+  background: var(--nk-primary-soft);
+}
+
+.nk-public-site main {
+  min-height: calc(100vh - 112px);
+}
+
+.nk-public-section {
+  scroll-margin-top: 112px;
+}
+
+@media (max-width: 1180px) {
+  .nk-public-section-tabs {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .nk-public-topbar {
+    min-height: 58px;
+    padding-inline: var(--nk-space-3);
+  }
+
+  .nk-public-brand-button {
+    min-width: 0;
+  }
+
+  .nk-public-logo {
+    height: 27px;
+  }
+
+  .nk-public-nav-cta .nk-button-quiet {
+    display: none;
+  }
+
+  .nk-public-section-tabs {
+    min-height: var(--nk-touch-min);
+    justify-content: flex-start;
+    padding-inline: var(--nk-space-2);
+    scroll-snap-type: x proximity;
+  }
+
+  .nk-public-section-tabs button {
+    min-height: var(--nk-touch-min);
+    padding: 0 var(--nk-space-3);
+    scroll-snap-align: start;
+  }
+
+  .nk-public-site main {
+    min-height: calc(100vh - 102px);
+  }
+
+  .nk-public-section {
+    scroll-margin-top: 102px;
+  }
+}

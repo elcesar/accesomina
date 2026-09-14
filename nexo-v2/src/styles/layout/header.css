@@ -1,13 +1,18 @@
+/*
+ * NEXO KLAR · Header Layout
+ * Cabecera global de la aplicación privada.
+ */
+
 .nk-global-header {
-  min-height: var(--header-height);
+  min-height: var(--nk-header-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--nk-space-4);
   flex-shrink: 0;
-  padding: var(--space-2) var(--page-padding);
-  background: var(--surf);
-  border-bottom: 1px solid var(--line);
+  padding: var(--nk-space-2) var(--nk-page-padding);
+  background: var(--nk-surface);
+  border-bottom: 1px solid var(--nk-line);
 }
 
 .nk-global-context {
@@ -24,7 +29,7 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--nk-space-2);
 }
 
 .nk-global-tenant-logo {
@@ -39,10 +44,10 @@
   min-width: 0;
   max-width: 360px;
   overflow: hidden;
-  color: var(--ink);
-  font-family: var(--font-brand);
-  font-size: var(--text-md);
-  font-weight: var(--weight-bold);
+  color: var(--nk-ink);
+  font-family: var(--nk-family-brand);
+  font-size: var(--nk-text-md);
+  font-weight: var(--nk-weight-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -51,17 +56,17 @@
   min-width: 0;
   max-width: 420px;
   overflow: hidden;
-  color: var(--mut);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  color: var(--nk-ink-2);
+  font-size: var(--nk-text-sm);
+  font-weight: var(--nk-weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .nk-global-user small {
-  color: var(--sub);
+  color: var(--nk-ink-3);
   font-size: inherit;
-  font-weight: var(--weight-regular);
+  font-weight: var(--nk-weight-regular);
 }
 
 .nk-global-actions {
@@ -69,7 +74,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--nk-space-2);
   flex: 0 1 auto;
 }
 
@@ -82,7 +87,7 @@
   .nk-global-header {
     align-items: flex-start;
     flex-direction: column;
-    padding-block: var(--space-3);
+    padding-block: var(--nk-space-3);
   }
 
   .nk-global-context,
@@ -93,7 +98,7 @@
   .nk-global-actions {
     justify-content: flex-start;
     overflow-x: auto;
-    padding-bottom: var(--space-1);
+    padding-bottom: var(--nk-space-1);
   }
 }
 
