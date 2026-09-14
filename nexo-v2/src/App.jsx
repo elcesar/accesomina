@@ -56,19 +56,22 @@ import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
+import MfaSetupPage from './pages/MfaSetupPage.jsx'
+import PrivateModuleRouter from './pages/PrivateModuleRouter.jsx'
 
-function ProtectedRoute({ children, allowPasswordChange = false }) {
+function ProtectedRoute({ children, allowPasswordChange = false, allowMfaSetup = false }) {
   const { session, loading } = useAuth()
   if (loading) return (
-    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#F4EFE3' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 28, height: 28, border: '2.5px solid #2A2A8C', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-        <p style={{ fontSize: 13, color: '#5D6B7A' }}>Cargando Nexo Klar…</p>
+    <div className="nk-app-loading">
+      <div className="nk-app-loading-content">
+        <div className="nk-app-loading-spinner" aria-hidden="true" />
+        <p>Cargando Nexo Klar…</p>
       </div>
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
   if (session.user?.mustChangePassword && !allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+  if (session.user?.mfaEnrollmentRequired && !allowMfaSetup && !allowPasswordChange) return <Navigate to="/configurar-mfa" replace />
   return children
 }
 
@@ -76,6 +79,7 @@ function PublicRoute({ children }) {
   const { session, loading } = useAuth()
   if (loading) return null
   if (session?.user?.mustChangePassword) return <Navigate to="/cambiar-password" replace />
+  if (session?.user?.mfaEnrollmentRequired) return <Navigate to="/configurar-mfa" replace />
   if (session) return <Navigate to="/app" replace />
   return children
 }
@@ -96,6 +100,7 @@ export default function App() {
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
           <Route path="/cambiar-password" element={<ProtectedRoute allowPasswordChange><ChangePasswordPage /></ProtectedRoute>} />
+          <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaSetup><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
             <Route path="alertas" element={<AlertasPage />} />
@@ -155,6 +160,8 @@ export default function App() {
             <Route path="servicios/:orderId" element={<OrdenesServicioPage key="servicios-detail" />} />
             <Route path="ordenes-servicio" element={<Navigate to="/app/servicios" replace />} />
             <Route path="ordenes-servicio/:orderId" element={<LegacyOrderServiceRedirect />} />
+            <Route path="modulos/:modulePath" element={<PrivateModuleRouter />} />
+            <Route path=":modulePath" element={<PrivateModuleRouter />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
