@@ -28,7 +28,7 @@ export function CustomerAccessPanel() {
     api.get('/auth/config').then(setConfig).catch(() => {})
   }, [])
 
-  const update = key => event => setRegistration(current => ({ ...current, [key]: event.target.value }))
+  const update=set=>key=>event=>set(current=>({ ...current, [key]: event.target.value }))
   const formatFieldRut = () => setRegistration(current => ({ ...current, rut: formatRut(current.rut) }))
 
   const submitRegistration = async event => {
@@ -61,37 +61,37 @@ export function CustomerAccessPanel() {
       <form className="nk-access-form" onSubmit={submitRegistration}>
         <label>
           Nombre empresa
-          <input required value={registration.companyName} onChange={update('companyName')} placeholder="Ej: Servicios Mineros Norte SpA" />
+          <input required value={registration.companyName} onChange={update(setRegistration)('companyName')} placeholder="Ej: Servicios Mineros Norte SpA" />
         </label>
 
         <div className="nk-access-form-row">
           <label>
             RUT empresa
-            <input required value={registration.rut} onChange={update('rut')} onBlur={formatFieldRut} placeholder="76.123.456-7" />
+            <input required value={registration.rut} onChange={update(setRegistration)('rut')} onBlur={formatFieldRut} placeholder="76.123.456-7" />
           </label>
           <label>
             Teléfono
-            <input value={registration.phone} onChange={update('phone')} placeholder="+56 9..." autoComplete="tel" />
+            <input value={registration.phone} onChange={update(setRegistration)('phone')} placeholder="+56 9..." autoComplete="tel" />
           </label>
         </div>
 
         <label>
           Nombre administrador
-          <input required value={registration.adminName} onChange={update('adminName')} placeholder="Nombre y apellido" autoComplete="name" />
+          <input required value={registration.adminName} onChange={update(setRegistration)('adminName')} placeholder="Nombre y apellido" autoComplete="name" />
         </label>
         <label>
           Correo administrador
-          <input required type="email" value={registration.email} onChange={update('email')} placeholder="admin@empresa.cl" autoComplete="email" />
+          <input required type="email" value={registration.email} onChange={update(setRegistration)('email')} placeholder="admin@empresa.cl" autoComplete="email" />
         </label>
 
         <div className="nk-access-form-row">
           <label>
             Contraseña
-            <input required type="password" minLength="12" value={registration.password} onChange={update('password')} placeholder="12+ caracteres" autoComplete="new-password" />
+            <input required type="password" minLength="12" value={registration.password} onChange={update(setRegistration)('password')} placeholder="12+ caracteres" autoComplete="new-password" />
           </label>
           <label>
             Código de invitación
-            <input required type="password" value={registration.inviteCode} onChange={update('inviteCode')} placeholder="Entregado por Nexo Klar" />
+            <input required type="password" value={registration.inviteCode} onChange={update(setRegistration)('inviteCode')} placeholder="Entregado por Nexo Klar" />
           </label>
         </div>
 

@@ -92,6 +92,7 @@
   --nk-radius-lg: 12px;
   --nk-radius-xl: 16px;
   --nk-radius-pill: 999px;
+  --nk-radius: var(--nk-radius-md);
 
   /* Elevation */
   --nk-elev-0: none;
