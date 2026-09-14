@@ -5,6 +5,7 @@ import './styles/tokens.css'
 import './styles/base.css'
 import './styles/theme.css'
 import './styles/components.css'
+import './styles/layout/shared-layout.css'
 import './styles/page-header.css'
 import './index.css'
 
