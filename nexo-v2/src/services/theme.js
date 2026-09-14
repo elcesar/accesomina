@@ -19,6 +19,12 @@ function clearLegacyRootBranding() {
   root.style.removeProperty('--action')
 }
 
+function clearLegacyShellBranding(shell) {
+  if (!shell) return
+  shell.style.removeProperty('--pri')
+  shell.style.removeProperty('--action')
+}
+
 function normalizeTheme(value) {
   const theme = String(value || '').trim().toLowerCase()
 
@@ -60,22 +66,12 @@ export function applyTenantBranding(branding = {}) {
   clearSystemThemeListener()
 
   const shell = document.querySelector('.nk-app-shell')
-  const themePreference = normalizeTheme(branding.theme)
+  clearLegacyShellBranding(shell)
 
+  const themePreference = normalizeTheme(branding.theme)
   applyResolvedTheme(themePreference, shell)
 
   if (themePreference === 'sistema') {
     watchSystemTheme(shell)
-  }
-
-  if (!shell) return
-
-  const accent = String(branding.accent || '').trim()
-  if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
-    shell.style.setProperty('--pri', accent)
-    shell.style.setProperty('--action', accent)
-  } else {
-    shell.style.removeProperty('--pri')
-    shell.style.removeProperty('--action')
   }
 }
