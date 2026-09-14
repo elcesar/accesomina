@@ -1,36 +1,40 @@
 const values = [
   {
-    title: 'Conexión',
-    body: 'Unimos datos, sistemas y personas para que la información fluya sin barreras.',
+    title: 'Claridad',
+    body: 'Información fácil de entender, seguir y gestionar.',
   },
   {
-    title: 'Claridad',
-    body: 'Hacemos visible lo importante para que cada decisión tenga fundamento.',
+    title: 'Conexión',
+    body: 'Áreas, personas, documentos y procesos en una plataforma.',
   },
   {
     title: 'Control',
-    body: 'Convertimos la información en dominio de la operación, reduciendo incertidumbre y mejorando el desempeño.',
+    body: 'Datos seguros, actualizados y dentro de la compañía.',
   },
   {
-    title: 'Confianza',
-    body: 'Damos visibilidad y trazabilidad a datos. No asumir que todo está bien, sino tener la información para comprobarlo.',
+    title: 'Simplicidad',
+    body: 'Una herramienta práctica y pensada para el uso diario.',
+  },
+  {
+    title: 'Trazabilidad',
+    body: 'Cada cambio, documento y vencimiento deja historial.',
   },
   {
     title: 'Continuidad',
-    body: 'Acompañamos la operación de forma permanente con soluciones confiables, escalables y disponibles cuando más se necesita.',
+    body: 'El conocimiento permanece aunque cambien los equipos.',
   },
 ]
 
 const statements = [
   {
     label: 'Visión',
-    title: 'Información disponible en el momento preciso',
-    body: 'Construir un futuro donde cada decisión operacional se tome con información integrada, confiable y disponible en el momento preciso.',
+    title: 'Una operación más simple y controlada',
+    body: 'Ser la plataforma que ayuda a las empresas a simplificar, unificar y controlar su información operativa, manteniendo los datos críticos dentro de la compañía.',
   },
   {
     label: 'Misión',
-    title: 'Todo empieza por las personas',
-    body: 'Impulsamos la excelencia operacional de cada empresa con una sola base de información que unifica y conecta su operación, la simplifica y le da control, con datos claros y trazables. Porque todo empieza por las personas: saber quiénes son, qué saben hacer y que estén siempre listas para operar.',
+    title: 'Conectar la información que mueve a la empresa',
+    body: 'Conectar personas, documentos, contratos y operaciones en un sistema fácil de usar, con información clara, estructurada y trazable para reducir riesgos y tomar mejores decisiones.',
   },
 ]
 
@@ -39,9 +43,9 @@ export default function PurposeSection() {
     <section id="proposito" className="nk-public-section">
       <div>
         <p className="nk-eyebrow">Nuestro propósito</p>
-        <h2>Creemos que las mejores decisiones nacen de información confiable, conectada y accesible para todos.</h2>
+        <h2>Información clara que permanece y genera continuidad.</h2>
         <p className="nk-lead">
-          La simplicidad guía el producto: hacer visible lo importante, reducir fricción y ayudar a cada persona a saber qué ocurre y qué debe hacer.
+          Nexo Klar nace para simplificar, unificar y conectar la gestión diaria, evitando que la información crítica quede dispersa en personas, planillas, correos o carpetas.
         </p>
 
         <div className="nk-card-grid nk-statements">
