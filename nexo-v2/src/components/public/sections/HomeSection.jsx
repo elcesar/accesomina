@@ -1,33 +1,33 @@
 import { CustomerAccessPanel } from './CustomerAccessSection.jsx'
 
 const points = [
-  ['Unifica', 'Una sola base para tu dotación, documentos, contratos y recursos.'],
-  ['Conecta', 'Relaciona personas, operación y cumplimiento para trabajar con contexto.'],
-  ['Controla', 'Haz visible lo importante y actúa antes de que un vencimiento detenga la operación.'],
+  ['Una fuente común', 'Tu equipo trabaja con información ordenada, conectada y disponible.'],
+  ['Órdenes de servicio preparadas', 'Detecta vencimientos, faltantes y restricciones antes de iniciar el trabajo.'],
+  ['Historial que permanece', 'El conocimiento queda en la empresa, no disperso en planillas o correos.'],
 ]
 
 export default function HomeSection({ openDemo, onNavigate }) {
   return (
     <section id="inicio" className="nk-hero nk-public-section">
       <div className="nk-hero-copy">
-        <p className="nk-eyebrow">Control operacional y cumplimiento</p>
+        <p className="nk-eyebrow">Gestión operativa para empresas de servicios</p>
         <h1>
-          Tu operación comienza con un <span>nexo de información confiable.</span>
+          Convierte información dispersa en una <span>operación que avanza.</span>
         </h1>
         <p className="nk-lead">
-          Nexo Klar ordena tu dotación, tus documentos y tus recursos en una sola base de información para simplificar la operación, mantener el cumplimiento visible y tomar mejores decisiones.
+          Nexo Klar conecta clientes, contratos, órdenes de servicio, personas, documentos y recursos para que tu equipo sepa qué está listo, qué falta y quién debe actuar.
         </p>
 
         <div className="nk-actions">
+          <button className="nk-button nk-button-primary" type="button" onClick={openDemo}>
+            Solicitar demostración
+          </button>
           <button
-            className="nk-button nk-button-primary"
+            className="nk-button nk-button-secondary"
             type="button"
             onClick={() => onNavigate?.('solucion')}
           >
-            Conocer la plataforma
-          </button>
-          <button className="nk-button nk-button-secondary" type="button" onClick={openDemo}>
-            Solicitar demostración
+            Ver cómo funciona
           </button>
         </div>
 
