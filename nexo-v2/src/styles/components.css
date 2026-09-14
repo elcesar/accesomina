@@ -1,6 +1,6 @@
 /*
  * NEXO KLAR · Shared Components
- * Version: 2.2
+ * Version: 2.3
  *
  * Componentes visuales reutilizables.
  * - consume tokens.css; no define identidad visual propia;
@@ -21,7 +21,7 @@
   justify-content: center;
   gap: var(--nk-space-2);
   padding: var(--nk-space-2) var(--nk-space-4);
-  border: calc(var(--nk-space-1) / 4) solid transparent;
+  border: var(--nk-stroke-thin) solid transparent;
   border-radius: var(--nk-radius-md);
   font-family: var(--nk-family-ui);
   font-size: var(--nk-text-md);
@@ -119,7 +119,7 @@
   display: inline-grid;
   place-items: center;
   padding: 0;
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
   color: var(--nk-ink-2);
@@ -175,7 +175,7 @@
 
 .nk-card {
   background: var(--nk-surface);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-lg);
   box-shadow: var(--nk-elev-1);
   padding: var(--nk-space-5);
@@ -234,7 +234,7 @@
 .nk-textarea {
   width: 100%;
   min-height: var(--nk-control-min);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
   color: var(--nk-ink);
@@ -307,7 +307,7 @@
   gap: var(--nk-space-1);
   min-height: var(--nk-space-6);
   padding: var(--nk-space-1) var(--nk-space-2);
-  border: calc(var(--nk-space-1) / 4) solid currentColor;
+  border: var(--nk-stroke-thin) solid currentColor;
   border-radius: var(--nk-radius-pill);
   font: var(--nk-font-label);
 }
@@ -345,7 +345,7 @@
 .nk-table-wrapper {
   width: 100%;
   overflow-x: auto;
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
 }
@@ -370,7 +370,7 @@
 .nk-table td {
   min-height: var(--nk-row-normal);
   padding: var(--nk-cell-y) var(--nk-cell-x);
-  border-bottom: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
   color: var(--nk-ink);
   vertical-align: middle;
 }
@@ -411,7 +411,7 @@
   justify-content: space-between;
   gap: var(--nk-space-3);
   padding: var(--nk-space-3) var(--nk-cell-x);
-  border-top: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
   color: var(--nk-ink-2);
   font: var(--nk-font-caption);
 }
@@ -426,7 +426,7 @@
   gap: var(--nk-space-2);
   min-height: var(--nk-control-min);
   padding-inline: var(--nk-space-3);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-border-control);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
   border-radius: var(--nk-radius-md);
   background: var(--nk-surface);
   color: var(--nk-ink-2);
@@ -447,8 +447,8 @@
 
 .nk-search:focus-within {
   border-color: var(--nk-focus);
-  outline: calc(var(--nk-space-1) - (var(--nk-space-1) / 4)) solid var(--nk-focus);
-  outline-offset: calc(var(--nk-space-1) / 2);
+  outline: var(--nk-focus-width) solid var(--nk-focus);
+  outline-offset: var(--nk-focus-offset);
 }
 
 .nk-search[data-state='error'] {
@@ -463,13 +463,13 @@
   display: flex;
   align-items: center;
   gap: var(--nk-space-1);
-  border-bottom: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-tab {
   min-height: var(--nk-control-min);
   border: 0;
-  border-bottom: calc(var(--nk-space-1) / 2) solid transparent;
+  border-bottom: var(--nk-stroke-strong) solid transparent;
   background: transparent;
   padding: var(--nk-space-2) var(--nk-space-4);
   color: var(--nk-ink-2);
@@ -508,6 +508,7 @@
 .nk-dialog-backdrop {
   position: fixed;
   inset: 0;
+  z-index: var(--nk-layer-modal);
   display: grid;
   place-items: center;
   padding: var(--nk-space-5);
@@ -522,7 +523,7 @@
   padding: var(--nk-space-6);
   background: var(--nk-surface);
   color: var(--nk-ink);
-  border: calc(var(--nk-space-1) / 4) solid var(--nk-line);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-lg);
   box-shadow: var(--nk-elev-4);
 }
@@ -597,7 +598,7 @@
 
 .nk-divider {
   width: 100%;
-  height: calc(var(--nk-space-1) / 4);
+  height: var(--nk-stroke-thin);
   border: 0;
   background: var(--nk-line);
   margin-block: var(--nk-space-4);
