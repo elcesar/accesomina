@@ -1,2 +1,17 @@
-const items = [['01','Clientes y contratos','Registra empresas, vigencias, alcance, responsables y servicios asociados a cada relación comercial.'],['02','Órdenes de servicio','Organiza operaciones recurrentes y órdenes de servicio, junto con las personas y los recursos asignados.'],['03','Personas y asignaciones','Administra personas y distingue trabajadores fijos, trabajadores por proyecto y sus asignaciones.'],['04','Documentos y vencimientos','Centraliza antecedentes, revisa estados y recibe alertas sobre documentos faltantes o próximos a vencer.'],['05','Seguridad y recursos','Controla equipos de protección personal (EPP), exámenes y aptitudes, formación, permisos, vehículos, equipos, credenciales e incidentes.'],['06','Comunicaciones, reportes y analítica','Segmenta equipos, prepara comunicaciones y genera reportes por cliente, contrato, orden de servicio o persona.']]
-export default function SolutionsSection() { return <section id="capacidades" className="nk-public-section"><div><p className="nk-eyebrow">Control centralizado</p><h2>Lo esencial para administrar servicios, personas y cumplimiento.</h2><p className="nk-lead">Activa la información que necesita tu empresa y conserva una visión común entre administración, operación, gestión de personas y cumplimiento.</p><div className="nk-card-grid nk-solutions-grid">{items.map(([n,t,b])=><article key={n}><small>{n}</small><h3>{t}</h3><p>{b}</p></article>)}</div></div></section> }
+const items = [
+  ['01','Personas y dotación','Administra personas, asignaciones, identificadores, formación, aptitudes, credenciales y documentación habilitante.'],
+  ['02','Clientes, contratos y servicios','Relaciona clientes, contratos, órdenes de servicio y responsables para mantener el contexto comercial y operacional.'],
+  ['03','Cumplimiento','Controla vigencias, vencimientos, faltantes y observaciones con estados claros y trazables.'],
+  ['04','Recursos e inventario','Gestiona EPP, vehículos, equipos, herramientas, materiales, alojamientos y otros recursos de la operación.'],
+  ['05','Proyectos y operación','Coordina turnos, ejecución, Libro de Obra, incidentes, comunicaciones y actividades asociadas a cada servicio.'],
+  ['06','Control y reportería','Consulta paneles, alertas, historial y reportes para tomar decisiones con información integrada.'],
+]
+
+export default function SolutionsSection() {
+  return <section id="capacidades" className="nk-public-section"><div>
+    <p className="nk-eyebrow">Una plataforma modular</p>
+    <h2>Activa lo que tu operación necesita.</h2>
+    <p className="nk-lead">Nexo Klar se configura por módulos y acompaña el crecimiento de cada empresa sin perder una base común de información.</p>
+    <div className="nk-card-grid nk-solutions-grid">{items.map(([n,t,b])=><article key={n}><small>{n}</small><h3>{t}</h3><p>{b}</p></article>)}</div>
+  </div></section>
+}
