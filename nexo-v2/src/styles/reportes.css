@@ -7,8 +7,8 @@
 .nk-report-categories{display:flex;gap:6px;overflow-x:auto;padding:1px 0 3px;scrollbar-width:thin}
 .nk-report-categories button{flex:0 0 auto;min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf-2);color:var(--mut);display:inline-flex;align-items:center;gap:7px;cursor:pointer;font:inherit;font-size:var(--text-sm);font-weight:var(--weight-semibold);white-space:nowrap}
 .nk-report-categories button:hover{border-color:var(--pri);color:var(--ink)}
-.nk-report-categories button.active{background:var(--pri);border-color:var(--pri);color:#fff}
-.nk-report-categories button span{display:grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border-radius:var(--radius-pill);background:rgba(255,255,255,.14);font-size:10px}
+.nk-report-categories button.active{background:var(--pri);border-color:var(--pri);color:var(--nk-surface)}
+.nk-report-categories button span{display:grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border-radius:var(--radius-pill);background:color-mix(in srgb, var(--nk-surface) 14%, transparent);font-size:10px}
 .nk-report-categories button:not(.active) span{background:var(--surf);color:var(--mut)}
 .nk-report-workspace{background:var(--surf);border:1px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);box-shadow:var(--shadow-sm)}
 .nk-report-workspace>header{display:flex;justify-content:space-between;gap:var(--space-4);align-items:flex-start;margin-bottom:var(--space-2)}
