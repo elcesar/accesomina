@@ -1,37 +1,16 @@
 /*
  * NEXO KLAR · Shared Components
- * Version: 2.0
+ * Version: 2.1
  *
  * Componentes visuales reutilizables.
- *
- * Principios:
  * - consume tokens.css; no define identidad visual propia;
- * - usa roles semánticos --nk-* en lugar de colores directos;
+ * - usa roles semánticos --nk-*;
  * - contempla estados interactivos y accesibilidad;
- * - no contiene reglas específicas de una página.
- *
- * Nota de migración:
- * algunas utilidades de composición se mantienen temporalmente aquí para
- * compatibilidad y se moverán a la capa layout sin cambiar su API CSS.
+ * - no contiene layout compartido ni reglas específicas de página.
  */
 
 /* =========================================================
-   01. COMPOSITION UTILITIES · transitional
-   ========================================================= */
-
-.nk-container {
-  width: min(100%, var(--nk-content-max-width));
-  margin-inline: auto;
-  padding-inline: var(--nk-page-padding);
-}
-
-.nk-section {
-  width: 100%;
-  padding-block: var(--nk-space-12);
-}
-
-/* =========================================================
-   02. BUTTONS
+   01. BUTTONS
    ========================================================= */
 
 .nk-button {
@@ -130,7 +109,7 @@
 }
 
 /* =========================================================
-   03. ICON BUTTON
+   02. ICON BUTTON
    ========================================================= */
 
 .nk-icon-button {
@@ -169,7 +148,7 @@
 }
 
 /* =========================================================
-   04. LINKS
+   03. LINKS
    ========================================================= */
 
 .nk-link {
@@ -190,7 +169,7 @@
 }
 
 /* =========================================================
-   05. CARDS
+   04. CARDS
    ========================================================= */
 
 .nk-card {
@@ -235,7 +214,7 @@
 }
 
 /* =========================================================
-   06. FORM ELEMENTS
+   05. FORM ELEMENTS
    ========================================================= */
 
 .nk-field {
@@ -316,30 +295,7 @@
 }
 
 /* =========================================================
-   07. FORM COMPOSITION · transitional
-   ========================================================= */
-
-.nk-form {
-  display: grid;
-  gap: var(--nk-space-4);
-}
-
-.nk-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--nk-space-4);
-}
-
-.nk-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: var(--nk-space-2);
-  margin-top: var(--nk-space-4);
-}
-
-/* =========================================================
-   08. BADGES / DOCUMENT STATUS
+   06. BADGES / DOCUMENT STATUS
    ========================================================= */
 
 .nk-badge {
@@ -381,7 +337,7 @@
 }
 
 /* =========================================================
-   09. TABLE
+   07. TABLE
    ========================================================= */
 
 .nk-table-wrapper {
@@ -459,7 +415,7 @@
 }
 
 /* =========================================================
-   10. SEARCH
+   08. SEARCH
    ========================================================= */
 
 .nk-search {
@@ -489,7 +445,8 @@
 
 .nk-search:focus-within {
   border-color: var(--nk-focus);
-  box-shadow: var(--focus-ring);
+  outline: 3px solid var(--nk-focus);
+  outline-offset: 2px;
 }
 
 .nk-search[data-state='error'] {
@@ -497,7 +454,7 @@
 }
 
 /* =========================================================
-   11. TABS
+   09. TABS
    ========================================================= */
 
 .nk-tabs {
@@ -542,7 +499,8 @@
 }
 
 /* =========================================================
-   12. DIALOG / MODAL
+   10. DIALOG / MODAL
+   Focus trap y restauración de foco pertenecen al componente JSX.
    ========================================================= */
 
 .nk-dialog-backdrop {
@@ -603,7 +561,7 @@
 }
 
 /* =========================================================
-   13. EMPTY STATE
+   11. EMPTY STATE
    ========================================================= */
 
 .nk-empty {
@@ -631,7 +589,7 @@
 }
 
 /* =========================================================
-   14. DIVIDER
+   12. DIVIDER
    ========================================================= */
 
 .nk-divider {
@@ -643,95 +601,7 @@
 }
 
 /* =========================================================
-   15. ACTION / CHIP GROUPS
-   ========================================================= */
-
-.nk-actions,
-.nk-action-group,
-.nk-chip-list {
-  display: flex;
-  align-items: center;
-  gap: var(--nk-space-2);
-  flex-wrap: wrap;
-}
-
-/* =========================================================
-   16. CARD GRID · transitional composition utility
-   ========================================================= */
-
-.nk-card-grid {
-  display: grid;
-  gap: var(--nk-space-5);
-}
-
-.nk-card-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.nk-card-grid-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.nk-card-grid-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-/* =========================================================
-   17. SECTION HEADING / PROSE · transitional composition utility
-   ========================================================= */
-
-.nk-section-heading {
-  max-width: 680px;
-  margin-bottom: var(--nk-space-10);
-}
-
-.nk-section-heading h2 {
-  margin: var(--nk-space-3) 0;
-  color: var(--nk-ink);
-  font: var(--nk-font-title-1);
-}
-
-.nk-section-heading p {
-  margin: 0;
-  color: var(--nk-ink-2);
-  font: var(--nk-font-body-lg);
-}
-
-.nk-prose {
-  max-width: 680px;
-  color: var(--nk-ink);
-  font: var(--nk-font-body);
-}
-
-.nk-prose h2 {
-  margin: var(--nk-space-8) 0 var(--nk-space-3);
-  color: var(--nk-ink);
-  font: var(--nk-font-title-2);
-}
-
-.nk-prose h3 {
-  margin: var(--nk-space-6) 0 var(--nk-space-2);
-  color: var(--nk-ink);
-  font: var(--nk-font-title-3);
-}
-
-.nk-prose p,
-.nk-prose ul,
-.nk-prose ol {
-  margin: 0 0 var(--nk-space-4);
-}
-
-.nk-prose ul,
-.nk-prose ol {
-  padding-left: var(--nk-space-5);
-}
-
-.nk-prose li {
-  margin-bottom: var(--nk-space-2);
-}
-
-/* =========================================================
-   18. STEP NUMBER
+   13. STEP NUMBER
    ========================================================= */
 
 .nk-step-number {
@@ -751,7 +621,7 @@
 }
 
 /* =========================================================
-   19. RESPONSIVE / TOUCH
+   14. RESPONSIVE / TOUCH
    ========================================================= */
 
 @media (pointer: coarse) {
@@ -770,39 +640,13 @@
   }
 }
 
-@media (max-width: 1024px) {
-  .nk-card-grid-4,
-  .nk-card-grid-3 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 768px) {
-  .nk-form-grid {
-    grid-template-columns: 1fr;
-  }
-
   .nk-card-header {
     flex-direction: column;
-  }
-
-  .nk-form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
-  }
-
-  .nk-form-actions .nk-button {
-    width: 100%;
   }
 }
 
 @media (max-width: 640px) {
-  .nk-card-grid-2,
-  .nk-card-grid-3,
-  .nk-card-grid-4 {
-    grid-template-columns: 1fr;
-  }
-
   .nk-table-pagination {
     align-items: flex-start;
     flex-direction: column;
