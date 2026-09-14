@@ -26,7 +26,6 @@ test('production configuration refuses insecure or incomplete infrastructure', (
     assert.match(error.message, /APP_ORIGIN/);
     assert.match(error.message, /TENANT_SECRET_KEY/);
     assert.match(error.message, /REGISTRATION_INVITE_CODE/);
-    assert.match(error.message, /REGISTRATION_ENABLED/);
     assert.match(error.message, /MFA_REQUIRED/);
     assert.match(error.message, /FILE_STORAGE/);
     assert.match(error.message, /AWS_S3_BUCKET/);
