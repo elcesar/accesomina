@@ -1,8 +1,9 @@
 /*
  * NEXO KLAR · Design Tokens
- * Version: 3.1
+ * Version: 3.2
  *
  * Fuente única de verdad para valores visuales compartidos.
+ * Alineado con el Sistema de color v2.0 y el manual de marca v1.0.
  *
  * Estrategia de migración:
  * - Los tokens canónicos usan prefijo --nk-*.
@@ -34,42 +35,42 @@
   --nk-ink: #141A20;
   --nk-ink-2: #5D6B7A;
   --nk-ink-3: #8A96A1;
-  --nk-ink-disabled: #C7D0D6;
+  --nk-ink-disabled: #8A96A1;
 
   /* Brand and actions */
   --nk-on-primary: #FFFFFF;
   --nk-on-action: #FFFFFF;
   --nk-primary: #2A2A8C;
   --nk-primary-deep: #1A1A5E;
-  --nk-primary-soft: #E3E3F0;
+  --nk-primary-soft: #E5E5F1;
   --nk-action: #1E3AE0;
-  --nk-action-hover: #1229A8;
-  --nk-action-soft: #E0E6FF;
+  --nk-action-hover: #1930B8;
+  --nk-action-soft: #E4E7FB;
   --nk-support: #26313A;
 
   /* Accent roles */
   --nk-accent-warm: #E4006E;
   --nk-accent-warm-ink: #A3004F;
-  --nk-accent-warm-soft: #FFE0EF;
+  --nk-accent-warm-soft: #FCE0EE;
   --nk-accent-data: #00CFC1;
   --nk-accent-data-ink: #00706A;
-  --nk-accent-data-soft: #E0F7F5;
+  --nk-accent-data-soft: #E0F9F8;
   --nk-on-accent-data: #08302F;
   --nk-attention: #E9A319;
   --nk-attention-ink: #8A5A00;
-  --nk-attention-soft: #FEF3DC;
+  --nk-attention-soft: #FCF4E3;
 
   /* System states */
   --nk-state-ok: #146B3E;
-  --nk-state-ok-soft: #E6F2EB;
+  --nk-state-ok-soft: #E3F0E8;
   --nk-state-warn: #E9A319;
   --nk-state-warn-ink: #8A5A00;
-  --nk-state-warn-soft: #FEF3DC;
+  --nk-state-warn-soft: #FCF4E3;
   --nk-state-error: #9B2226;
-  --nk-state-error-soft: #FBE8E6;
+  --nk-state-error-soft: #F7E4E4;
   --nk-state-none: #5D6B7A;
-  --nk-state-none-soft: #F2F4F5;
-  --nk-focus: #1E3AE0;
+  --nk-state-none-soft: #EFF1F3;
+  --nk-focus: #00706A;
 
   /* Spacing */
   --nk-space-0: 0;
@@ -90,15 +91,14 @@
   --nk-radius-md: 8px;
   --nk-radius-lg: 12px;
   --nk-radius-xl: 16px;
-  --nk-radius-pill: 99px;
+  --nk-radius-pill: 999px;
 
-  /* Elevation
-     Values preserve the current production shadows during migration. */
+  /* Elevation */
   --nk-elev-0: none;
-  --nk-elev-1: 0 2px 8px rgba(20, 26, 32, 0.06);
-  --nk-elev-2: 0 4px 16px rgba(20, 26, 32, 0.10);
-  --nk-elev-3: 0 8px 32px rgba(20, 26, 32, 0.14);
-  --nk-elev-4: 0 16px 48px rgba(20, 26, 32, 0.18);
+  --nk-elev-1: 0 1px 2px rgba(20, 26, 32, 0.06);
+  --nk-elev-2: 0 2px 6px rgba(20, 26, 32, 0.08);
+  --nk-elev-3: 0 8px 24px rgba(20, 26, 32, 0.12);
+  --nk-elev-4: 0 20px 48px rgba(20, 26, 32, 0.16);
 
   /* Type scale */
   --nk-text-xs: 11px;
@@ -107,9 +107,9 @@
   --nk-text-md: 14px;
   --nk-text-lg: 16px;
   --nk-text-xl: 18px;
-  --nk-text-2xl: 22px;
-  --nk-text-3xl: 28px;
-  --nk-text-4xl: 36px;
+  --nk-text-2xl: 23px;
+  --nk-text-3xl: 30px;
+  --nk-text-4xl: 40px;
 
   --nk-weight-regular: 400;
   --nk-weight-medium: 500;
@@ -123,23 +123,23 @@
   --nk-leading-relaxed: 1.60;
 
   /* Semantic typography */
-  --nk-font-display: 800 36px/1.15 var(--nk-family-brand);
-  --nk-font-title-1: 800 28px/1.15 var(--nk-family-brand);
-  --nk-font-title-2: 700 22px/1.30 var(--nk-family-brand);
-  --nk-font-title-3: 700 18px/1.30 var(--nk-family-ui);
-  --nk-font-body-lg: 400 16px/1.50 var(--nk-family-ui);
-  --nk-font-body: 400 14px/1.50 var(--nk-family-ui);
-  --nk-font-body-sm: 400 13px/1.50 var(--nk-family-ui);
+  --nk-font-display: 800 40px/1.08 var(--nk-family-brand);
+  --nk-font-title-1: 800 30px/1.14 var(--nk-family-brand);
+  --nk-font-title-2: 700 23px/1.2 var(--nk-family-brand);
+  --nk-font-title-3: 700 18px/1.3 var(--nk-family-ui);
+  --nk-font-body-lg: 400 16px/1.55 var(--nk-family-ui);
+  --nk-font-body: 400 14px/1.55 var(--nk-family-ui);
+  --nk-font-body-sm: 400 13px/1.5 var(--nk-family-ui);
   --nk-font-label: 600 12px/1.35 var(--nk-family-ui);
   --nk-font-caption: 400 12px/1.45 var(--nk-family-ui);
-  --nk-font-overline: 700 11px/1.20 var(--nk-family-ui);
-  --nk-font-mono: 400 13px/1.50 var(--nk-family-mono);
+  --nk-font-overline: 700 11px/1.2 var(--nk-family-ui);
+  --nk-font-mono: 400 13px/1.5 var(--nk-family-mono);
 
   /* Motion */
   --nk-motion-fast: 120ms;
   --nk-motion-normal: 180ms;
-  --nk-motion-slow: 280ms;
-  --nk-motion-curve: ease;
+  --nk-motion-slow: 260ms;
+  --nk-motion-curve: cubic-bezier(.2, .6, .3, 1);
 
   /* Compatibility with the proposed Spanish motion names */
   --nk-motion-rapido: var(--nk-motion-fast);
@@ -365,7 +365,7 @@
   --page-padding: var(--nk-page-padding);
 
   /* Focus */
-  --focus-ring: 0 0 0 3px rgba(30, 58, 224, 0.22);
+  --focus-ring: 0 0 0 3px rgba(0, 112, 106, 0.22);
 
   /* Existing --nk-* aliases retained for compatibility */
   --nk-bg: var(--nk-base);
