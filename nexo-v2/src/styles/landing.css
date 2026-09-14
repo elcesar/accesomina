@@ -234,12 +234,14 @@
   gap: var(--nk-space-1);
 }
 
-.nk-number-list b {
+.nk-number-list h3 {
+  margin: 0;
   color: var(--nk-ink);
   font: var(--nk-font-title-3);
 }
 
-.nk-number-list span {
+.nk-number-list p {
+  margin: 0;
   color: var(--nk-ink-2);
   font: var(--nk-font-body);
 }
@@ -300,18 +302,18 @@
   font-weight: var(--nk-weight-bold);
 }
 
-.nk-product-mock main {
+.nk-product-mock-content {
   min-width: 0;
   padding: var(--nk-space-5);
 }
 
-.nk-product-mock main h3 {
+.nk-product-mock-content h3 {
   margin: 0;
   color: var(--nk-ink);
   font: var(--nk-font-title-3);
 }
 
-.nk-product-mock main p {
+.nk-product-mock-content p {
   margin: var(--nk-space-1) 0 var(--nk-space-4);
   color: var(--nk-ink-2);
   font: var(--nk-font-body-sm);
@@ -404,30 +406,26 @@
   font: var(--nk-font-label);
 }
 
-.nk-outcome-grid b,
-.nk-industries-grid b,
-.nk-values b {
-  color: var(--nk-ink);
-  font: var(--nk-font-title-3);
-}
-
-.nk-outcome-grid span,
-.nk-industries-grid span,
-.nk-values span,
-.nk-solutions-grid p,
-.nk-steps p,
-.nk-statements p {
-  margin: 0;
-  color: var(--nk-ink-2);
-  font: var(--nk-font-body-sm);
-}
-
+.nk-values b,
+.nk-outcome-grid h3,
+.nk-industries-grid h3,
 .nk-solutions-grid h3,
 .nk-steps h3,
 .nk-statements h3 {
   margin: 0;
   color: var(--nk-ink);
   font: var(--nk-font-title-3);
+}
+
+.nk-values span,
+.nk-outcome-grid p,
+.nk-industries-grid p,
+.nk-solutions-grid p,
+.nk-steps p,
+.nk-statements p {
+  margin: 0;
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-sm);
 }
 
 .nk-solutions-grid article,
