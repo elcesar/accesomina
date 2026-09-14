@@ -78,7 +78,7 @@ El HTML histórico `AccesoMina_v6.html` continúa siendo referencia funcional y 
 | `FormacionPage.jsx` | Formación y certificaciones. |
 | `ExamenesPage.jsx` | Exámenes y aptitudes. |
 | `SaludOcupacionalPage.jsx` | Salud ocupacional y protocolos. |
-| `RestringidosPage.jsx` | Personas restringidas / bloqueadas. |
+| `RestringidosPage.jsx` | Personas no habilitadas / restringidas operacionalmente. |
 
 ## Relación comercial
 
@@ -87,7 +87,6 @@ El HTML histórico `AccesoMina_v6.html` continúa siendo referencia funcional y 
 | `ClientesPage.jsx` | Clientes y vista consolidada Cliente 360. |
 | `ContratosPage.jsx` | Contratos y firmas. |
 | `OrdenesServicioPage.jsx` | Órdenes de servicio. |
-| `ProspectosPage.jsx` | Prospectos y oportunidades. |
 
 ## Gestión operacional
 
@@ -122,6 +121,7 @@ El HTML histórico `AccesoMina_v6.html` continúa siendo referencia funcional y 
 | Page JSX | Estado / responsabilidad |
 | --- | --- |
 | `LibroObraPage.jsx` | Libro de Obra: anotaciones, compromisos, evidencias, estados y solicitudes de firma. |
+| `ProspectosPage.jsx` | Prospectos y oportunidades; pertenece al dominio Gestión de Proyectos y Negocios. |
 
 ## Activos, equipos e inventario
 
@@ -139,15 +139,15 @@ El HTML histórico `AccesoMina_v6.html` continúa siendo referencia funcional y 
 | `MantenimientoPage.jsx` | Planes e historial de mantenimiento. |
 | `AsignacionesPrestamosPage.jsx` | Asignaciones y préstamos. |
 
-## Reportes, datos y administración
+## Reportes, información y administración
 
 | Page JSX | Estado / responsabilidad |
 | --- | --- |
 | `ReportesPage.jsx` | Reportería y analítica. |
-| `ImportarExportarPage.jsx` | Importación y exportación de datos. |
+| `ImportarExportarPage.jsx` | Importación y exportación de información. |
 | `UsuariosPermisosPage.jsx` | Usuarios y permisos. |
 | `BitacoraCambiosPage.jsx` | Bitácora / auditoría de cambios. |
-| `PrivacidadDatosPage.jsx` | Privacidad y gobernanza de datos. |
+| `PrivacidadDatosPage.jsx` | Privacidad y gobernanza de información. |
 | `ConfiguracionPage.jsx` | Configuración de empresa. |
 | `AdministracionClientesPage.jsx` | Administración Nexo Klar de clientes / tenants. |
 
@@ -245,7 +245,121 @@ src/services/auth.jsx                           1 JSX
 TOTAL                                           77 JSX
 ```
 
-# 9. Cierre de migración React
+---
+
+# 9. Lineamiento gráfico y de interfaz
+
+Este bloque resume el lineamiento operativo aportado en `Nexo Klar · Memoria de contexto v1.0`. **No reemplaza al Manual de marca v1.0 ni a los tokens oficiales**: ante cualquier diferencia, manda el Manual de marca y, para decisiones formales, la Matriz de decisiones.
+
+## 9.1 Principio rector
+
+- Base visual clara: marfil y blanco como superficies principales.
+- El **chrome es de la marca**: índigo, cobalto y magenta.
+- El **área de información operacional usa el semáforo**: verde, ámbar, rojo y gris.
+- El ámbar dentro del producto significa una sola cosa: **Por vencer**.
+- Todo valor de color, espacio, radio, tipografía, sombra o movimiento debe salir de un **token**. Si falta un token, no se inventa un valor local.
+- Proporción orientativa de uso de color: 62 % marfil/blanco · 26 % índigo/grafito · 5 % cobalto · 4 % turquesa · 2 % magenta · 1 % ámbar. El color vivo combinado no debe dominar la interfaz.
+
+## 9.2 Marca y logotipo
+
+- Escritura oficial: **Nexo Klar**.
+- Bajada única: **Información que conecta**.
+- El logotipo debe utilizar los armados oficiales: horizontal, horizontal con claim, vertical y vertical con claim; isotipo suelto solo para espacios reducidos.
+- Tamaño mínimo del isotipo: **16 px**.
+- El claim utiliza gris tinta `#5D6B7A`.
+- Los seis colores del logotipo no se reinterpretan ni sustituyen por tonos parecidos.
+
+## 9.3 Tipografía
+
+- Marca, titulares y bajadas: **Manrope**.
+- Interfaz y textos del producto: **Inter**.
+- El logotipo usa Arial Rounded trazada; la fuente no se instala ni distribuye como dependencia de la aplicación.
+- Escala canónica de interfaz:
+  - display: 40 px / 1.08 / 800 · Manrope;
+  - title-1: 30 px / 1.14 / 800 · Manrope;
+  - title-2: 23 px / 1.2 / 700 · Manrope;
+  - title-3: 18 px / 1.3 / 700 · Inter;
+  - body-lg: 16 px / 1.55 / 400 · Inter;
+  - body: 14 px / 1.55 / 400 · Inter;
+  - body-sm: 13 px / 1.5 / 400 · Inter;
+  - label: 12 px / 1.35 / 600 · Inter;
+  - caption: 12 px / 1.45 / 400 · Inter;
+  - overline: 11 px / 1.2 / 700 · Inter.
+
+## 9.4 Tokens base de color
+
+Los JSX no deben hardcodear colores. Deben consumir los tokens canónicos ya disponibles en estilos.
+
+| Token | Modo claro | Uso principal |
+| --- | --- | --- |
+| `--nk-base` | `#F4EFE3` | Fondo general de aplicación. |
+| `--nk-surface` | `#FFFFFF` | Tarjetas, tablas y modales. |
+| `--nk-surface-2` | `#FBF9F5` | Superficie secundaria / zebra. |
+| `--nk-line` | `#E3DED2` | Separadores. |
+| `--nk-border-control` | `#78848F` | Bordes de campos y controles. |
+| `--nk-ink` | `#141A20` | Texto principal. |
+| `--nk-ink-2` | `#5D6B7A` | Texto secundario y claim. |
+| `--nk-primary` | `#2A2A8C` | Estructura / chrome. |
+| `--nk-action` | `#1E3AE0` | Botón principal y enlaces. |
+| `--nk-support` | `#26313A` | Apoyo / encabezados. |
+| `--nk-accent-warm` | `#E4006E` | Acento comercial. |
+| `--nk-accent-data` | `#00CFC1` | Realce de información. |
+| `--nk-attention` | `#E9A319` | Atención / por vencer. |
+| `--nk-focus` | `#00706A` | Anillo de foco accesible. |
+
+El modo oscuro es oficial y debe **espejar los tokens por rol**, no introducir una paleta paralela escrita a mano.
+
+## 9.5 Espaciado, radios, elevación y movimiento
+
+- Espaciado únicamente en la escala: 0, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64 y 80 px mediante `--nk-space-*`.
+- Radios: `sm` 6 px · `md` 8 px · `lg` 12 px · `xl` 16 px · `pill` 999 px.
+- Sombras únicamente mediante `--nk-elev-1` a `--nk-elev-4`.
+- Movimiento: rápido 120 ms · normal 180 ms · lento 260 ms, usando la curva canónica.
+- Control mínimo: 40 px; objetivo táctil: 44 px.
+
+## 9.6 Semáforo operacional/documental
+
+Existen **cuatro estados y solo cuatro**:
+
+| Estado visible | Rol |
+| --- | --- |
+| **Vigente** | Información/documento al día. |
+| **Por vencer** | Dentro de ventana de aviso. |
+| **No habilitado** | Vencido o acreditación rechazada. |
+| **Sin información** | No cargado o pendiente de revisión. |
+
+Reglas:
+
+- Nunca comunicar un estado solo por color: debe llevar texto completo e ícono de forma diferenciable.
+- `Sin información` no es error y no debe verse rojo.
+- El rótulo visible debe ser **No habilitado**, no “bloqueado”.
+
+## 9.7 Componentes, tablas y accesibilidad
+
+- Todo componente interactivo debe contemplar: normal, hover, foco, activo, deshabilitado, cargando, error y vacío.
+- El foco debe ser siempre visible; usar anillo de 3 px en `--nk-focus` o equivalente tokenizado.
+- Contraste mínimo: 4,5:1 para texto normal; 3:1 para texto grande, bordes funcionales, íconos e indicadores de estado.
+- No usar `outline: none` sin reemplazo equivalente.
+- Etiquetas de formulario deben estar asociadas semánticamente al control.
+- Elementos clickeables deben ser alcanzables por teclado; evitar `div` interactivos sin semántica de botón/enlace.
+- Los modales deben gestionar foco correctamente.
+- Nada se trunca en silencio: si hay más contenido, debe indicarse y ofrecer acceso al resto.
+- Listas largas deben paginar y mostrar total de registros.
+- Estados vacíos deben explicar qué falta y qué acción corresponde.
+- En tablas, números alineados a la derecha con cifras tabulares; zebra con `--nk-surface-2` y encabezado con `--nk-support`.
+
+## 9.8 Voz visual y de contenido
+
+- Voz: **clara, precisa y cercana**.
+- Orden del mensaje: **primero qué ocurre, después qué debe hacer la persona**.
+- Español latinoamericano neutro.
+- En textos institucionales y de producto: preferir **información** sobre “datos”, salvo textos aprobados que explícitamente mantengan la excepción.
+- Nunca presentar a Nexo Klar como “gestión documental”; la categoría aprobada es **control operacional y cumplimiento**.
+- La interfaz debe respetar el principio rector de producto: **simple y destacado**.
+
+---
+
+# 10. Cierre de migración React
 
 La Fase 15 de migración React permanece cerrada. Este documento no implica reapertura de la migración: registra la estructura vigente después de las evoluciones posteriores, entre ellas Libro de Obra y la descomposición completa del sitio público.
 
@@ -271,7 +385,7 @@ FASE 5  Gestión Operacional                              ✓ CERRADA
 FASE 6  Contratistas                                     ✓ CERRADA
 FASE 7  Cumplimiento                                     ✓ CERRADA
 FASE 8  Inventario / Activos                             ✓ CERRADA
-FASE 9  Prospectos y oportunidades                       ✓ CERRADA
+FASE 9  Gestión de Proyectos y Negocios                  ✓ CERRADA
 FASE 10 Gestión personal por proyecto                    ✓ CERRADA
 FASE 11 Centro Operativo                                 ✓ CERRADA
 FASE 12 Alertas                                          ✓ CERRADA
