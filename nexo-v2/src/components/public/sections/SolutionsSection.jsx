@@ -1,33 +1,33 @@
 const items = [
   {
     number: '01',
-    title: 'Personas y dotación',
-    body: 'Administra personas, asignaciones, identificadores, formación, aptitudes, credenciales y documentación habilitante.',
+    title: 'Clientes y contratos',
+    body: 'Registra empresas, vigencias, alcance, responsables y servicios asociados a cada relación comercial.',
   },
   {
     number: '02',
-    title: 'Clientes, contratos y servicios',
-    body: 'Relaciona clientes, contratos, órdenes de servicio y responsables para mantener el contexto comercial y operacional.',
+    title: 'Órdenes de servicio',
+    body: 'Organiza operaciones recurrentes y órdenes de servicio, junto con las personas y los recursos asignados.',
   },
   {
     number: '03',
-    title: 'Cumplimiento',
-    body: 'Controla vigencias, vencimientos, faltantes y observaciones con estados claros y trazables.',
+    title: 'Personas y asignaciones',
+    body: 'Administra personas y distingue trabajadores fijos, trabajadores por proyecto y sus asignaciones.',
   },
   {
     number: '04',
-    title: 'Recursos e inventario',
-    body: 'Gestiona EPP, vehículos, equipos, herramientas, materiales, alojamientos y otros recursos de la operación.',
+    title: 'Documentos y vencimientos',
+    body: 'Centraliza antecedentes, revisa estados y recibe alertas sobre documentos faltantes o próximos a vencer.',
   },
   {
     number: '05',
-    title: 'Proyectos y operación',
-    body: 'Coordina turnos, ejecución, Libro de Obra, incidentes, comunicaciones y actividades asociadas a cada servicio.',
+    title: 'Seguridad y recursos',
+    body: 'Controla equipos de protección personal (EPP), exámenes y aptitudes, formación, permisos, vehículos, equipos, credenciales e incidentes.',
   },
   {
     number: '06',
-    title: 'Control y reportería',
-    body: 'Consulta paneles, alertas, historial y reportes para tomar decisiones con información integrada.',
+    title: 'Comunicaciones, reportes y analítica',
+    body: 'Segmenta equipos, prepara comunicaciones y genera reportes por cliente, contrato, orden de servicio o persona.',
   },
 ]
 
@@ -35,10 +35,10 @@ export default function SolutionsSection() {
   return (
     <section id="capacidades" className="nk-public-section">
       <div>
-        <p className="nk-eyebrow">Una plataforma modular</p>
-        <h2>Activa lo que tu operación necesita.</h2>
+        <p className="nk-eyebrow">Control centralizado</p>
+        <h2>Todo lo que necesita un servicio para operar con respaldo.</h2>
         <p className="nk-lead">
-          Nexo Klar se configura por módulos y acompaña el crecimiento de cada empresa sin perder una base común de información.
+          Desde la relación con el cliente hasta la ejecución, el cumplimiento y los resultados: todas las áreas trabajan con una visión común.
         </p>
 
         <div className="nk-card-grid nk-solutions-grid">
