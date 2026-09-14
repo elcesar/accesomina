@@ -2,32 +2,32 @@ const industries = [
   {
     number: '01',
     title: 'Minería',
-    body: 'Dotación, acreditaciones, contratos, turnos, EPP, vehículos y recursos para operaciones exigentes en terreno.',
+    body: 'Habilitación, centros de trabajo, contratistas y documentos críticos siempre al día.',
   },
   {
     number: '02',
     title: 'Energía',
-    body: 'Cuadrillas, permisos, mantenimiento, recursos y cumplimiento operacional en terreno.',
+    body: 'Cuadrillas, permisos, mantenimiento y seguridad operacional en terreno.',
   },
   {
     number: '03',
     title: 'Construcción',
-    body: 'Personas, contratos, avances, turnos, recursos y control por obra.',
+    body: 'Contratistas, avances, turnos, evidencias y control por obra.',
   },
   {
     number: '04',
     title: 'Mantenimiento industrial',
-    body: 'Técnicos, herramientas, equipos, repuestos, servicios y trazabilidad operacional.',
+    body: 'Despacho de técnicos, herramientas, repuestos, costos y trazabilidad.',
   },
   {
     number: '05',
     title: 'Gestión de instalaciones',
-    body: 'Servicios recurrentes, personas, recursos, turnos y cumplimiento por instalación.',
+    body: 'Servicios recurrentes, personal externo, alojamiento, recursos y reportes por cliente.',
   },
   {
     number: '06',
     title: 'Logística',
-    body: 'Turnos, vehículos, credenciales, recursos y control de la operación.',
+    body: 'Turnos, vehículos, credenciales, despachos operativos y respaldo documental.',
   },
   {
     number: '07',
@@ -37,12 +37,12 @@ const industries = [
   {
     number: '08',
     title: 'Agroindustria',
-    body: 'Temporadas, cuadrillas, EPP, asistencia y documentación habilitante.',
+    body: 'Temporadas, cuadrillas, EPP, asistencia y documentación del personal.',
   },
   {
     number: '09',
     title: 'Servicios técnicos',
-    body: 'Personas, contratos, órdenes de servicio, recursos y control operacional.',
+    body: 'Órdenes de servicio, recursos, contratos, documentación, costos y trazabilidad.',
   },
 ]
 
@@ -52,11 +52,11 @@ export default function IndustriesSection() {
       <div>
         <div className="nk-industry-heading">
           <div>
-            <p className="nk-eyebrow">Una base, distintas operaciones</p>
-            <h2>Diseñado para empresas que necesitan saber quién está listo para operar.</h2>
+            <p className="nk-eyebrow">Adaptable a tu industria</p>
+            <h2>Se adapta a la forma en que trabaja tu empresa.</h2>
           </div>
           <p className="nk-lead">
-            La plataforma se adapta a distintos sectores manteniendo el mismo principio: información integrada, confiable y disponible en el momento preciso.
+            Una misma base de información para coordinar personas, recursos, documentación, turnos y servicios en terreno, adaptada a la realidad de cada industria.
           </p>
         </div>
 
