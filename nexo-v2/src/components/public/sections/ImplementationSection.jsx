@@ -1,14 +1,14 @@
 const steps = [
-  ['Paso 1', 'Configura tu empresa', 'Define clientes, contratos, órdenes de servicio y los requisitos operacionales que necesitas controlar.'],
-  ['Paso 2', 'Incorpora tu información', 'Registra personas y recursos de forma individual o utiliza importación masiva para comenzar más rápido.'],
-  ['Paso 3', 'Gestiona desde el panel', 'Asigna responsables, revisa alertas, actualiza documentos y consulta el avance desde una sola vista.'],
+  ['Paso 1', 'Configura tu empresa', 'Define la estructura operacional, clientes, contratos, órdenes de servicio y módulos que necesitas utilizar.'],
+  ['Paso 2', 'Incorpora tu información', 'Registra personas, documentos y recursos de forma individual o mediante importación masiva.'],
+  ['Paso 3', 'Opera con control', 'Consulta estados, alertas, responsables e historial desde una sola base de información.'],
 ]
 
 const privacy = [
-  ['Acceso individual', 'Cada integrante utiliza su propia cuenta autorizada.'],
-  ['Roles y permisos', 'Configura administración, edición o consulta según responsabilidades.'],
-  ['Datos separados', 'La información de una empresa no se mezcla con la de otra.'],
-  ['Historial y trazabilidad', 'Conserva registros para revisar cambios, estados y antecedentes.'],
+  ['Acceso individual', 'Cada persona utiliza su propia cuenta autorizada.'],
+  ['Roles y permisos', 'La información visible y editable depende de las responsabilidades asignadas.'],
+  ['Información separada', 'Cada empresa trabaja en un espacio independiente.'],
+  ['Trazabilidad', 'Los cambios y estados relevantes quedan disponibles para revisión.'],
 ]
 
 export default function ImplementationSection() {
@@ -16,17 +16,17 @@ export default function ImplementationSection() {
     <div className="nk-two-columns">
       <div>
         <p className="nk-eyebrow">Puesta en marcha simple</p>
-        <h2>Empieza ordenado, sin detener tu operación.</h2>
-        <p className="nk-lead">Partimos con una estructura clara, acompañamos la carga inicial y dejamos la información disponible para cada equipo autorizado.</p>
+        <h2>Empieza con una estructura clara y crece sobre la misma base.</h2>
+        <p className="nk-lead">La configuración modular permite comenzar con lo necesario y ampliar capacidades a medida que evoluciona la operación.</p>
         <div className="nk-card-grid nk-steps">
           {steps.map(([n, title, body]) => <article key={n}><small>{n}</small><h3>{title}</h3><p>{body}</p></article>)}
         </div>
       </div>
 
       <article className="nk-access-card">
-        <p className="nk-eyebrow">Privacidad por empresa</p>
-        <h2>Tu información es de tu empresa.</h2>
-        <p className="nk-lead">Cada empresa trabaja en un espacio privado e independiente. Sus usuarios, permisos, configuraciones y datos permanecen separados de las demás organizaciones.</p>
+        <p className="nk-eyebrow">Privacidad y control de acceso</p>
+        <h2>La información de tu empresa permanece en su propio espacio.</h2>
+        <p className="nk-lead">Usuarios, permisos, configuración e información operacional se administran de manera independiente para cada organización.</p>
         <div className="nk-card-grid nk-values">
           {privacy.map(([title, body]) => <article key={title}><b>{title}</b><span>{body}</span></article>)}
         </div>
