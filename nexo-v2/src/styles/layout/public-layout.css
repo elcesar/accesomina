@@ -6,7 +6,7 @@
 
 .nk-public-header {
   position: sticky;
-  top: 0;
+  top: var(--nk-space-0);
   z-index: var(--nk-layer-sticky);
   background: var(--nk-surface);
   border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
@@ -30,7 +30,7 @@
   align-items: center;
   justify-content: flex-start;
   flex: 0 0 auto;
-  padding: 0;
+  padding: var(--nk-space-0);
   border: 0;
   background: transparent;
 }
@@ -75,7 +75,7 @@
 .nk-public-section-tabs button {
   flex: 0 0 auto;
   min-height: var(--nk-space-12);
-  padding: 0 var(--nk-space-4);
+  padding: var(--nk-space-0) var(--nk-space-4);
   border: 0;
   border-bottom: var(--nk-stroke-strong) solid transparent;
   background: transparent;
