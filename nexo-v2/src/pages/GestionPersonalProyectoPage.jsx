@@ -1,194 +1,68 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { IconPlus, IconRefresh, IconSearch, IconUsers, IconX } from '@tabler/icons-react'
+import { IconDownload, IconMessageCircle, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/control-workspaces.css'
 
 const rows = value => Array.isArray(value) ? value : []
-const FLOW = ['candidato', 'contactado', 'confirmado', 'asignado', 'habilitado']
-const FLOW_LABEL = { candidato: 'Candidato', contactado: 'Contactado', confirmado: 'Confirmado', asignado: 'Asignado', habilitado: 'Habilitado' }
-const FLOW_ACTION = { candidato: 'Contactar', contactado: 'Confirmar', confirmado: 'Asignar', asignado: 'Habilitar' }
-const ACTIVE_STAGES = new Set(['asignado', 'habilitado'])
-
-function daysUntil(value) {
-  if (!value) return null
-  const target = new Date(`${value}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
+const FLOW = [['reclutamiento', 'En reclutamiento'], ['convocado', 'Convocado'], ['en_validacion', 'Validación documental'], ['contrato_enviado', 'Contrato enviado'], ['contrato_firmado', 'Contrato firmado'], ['acreditacion_enviada', 'Acreditación enviada']]
+const label = value => FLOW.find(([id]) => id === value)?.[1] || 'Sin iniciar'
+const next = value => FLOW[FLOW.findIndex(([id]) => id === value) + 1]?.[0] || ''
+const stage = item => {
+  const value = String(item?.recruitmentStage || item?.estadoGestion || '').toLowerCase()
+  const legacy = { candidato: 'reclutamiento', contactado: 'convocado', confirmado: 'en_validacion', asignado: 'contrato_enviado', habilitado: 'acreditacion_enviada', contrato_generado: 'contrato_enviado' }
+  return FLOW.some(([id]) => id === value) ? value : legacy[value] || (item?.estado === 'confirmado' ? 'contrato_firmado' : '')
 }
-
-function habilitationFor(worker) {
-  if (worker.disponibilidad === 'bloqueado') return { label: 'Restringido', cls: 'nk-badge-error', key: 'blocked' }
-  const items = rows(worker.workerItems)
-  const invalid = items.some(item => ['examen', 'curso', 'certificacion'].includes(item.type) && (item.estado === 'rechazado' || (daysUntil(item.vence) !== null && daysUntil(item.vence) < 0)))
-  if (invalid) return { label: 'Requiere revisión', cls: 'nk-badge-warn', key: 'review' }
-  return { label: 'Disponible', cls: 'nk-badge-ok', key: 'ok' }
+const typeFor = worker => /proyecto|temporal|plazo/i.test(String(worker.tipoTrabajador || worker.tipoContrato || worker.modalidad || '')) ? 'Trabajador por proyecto' : 'Trabajador fijo'
+function validation(worker) {
+  if (worker.disponibilidad === 'bloqueado' || worker.restringido) return { label: 'Restringido', cls: 'nk-badge-error', pct: 0, issues: ['Persona restringida'], ready: false }
+  const all = rows(worker.workerItems).filter(item => ['documento', 'examen', 'curso', 'certificacion', 'contrato'].includes(item.type))
+  const issues = all.filter(item => item.estado === 'rechazado' || item.estado === 'faltante' || (item.vence && new Date(item.vence) < new Date())).map(item => item.nombre || item.name || 'Antecedente pendiente')
+  const pct = all.length ? Math.round(((all.length - issues.length) / all.length) * 100) : 0
+  return issues.length ? { label: 'Requiere revisión', cls: 'nk-badge-warn', pct, issues, ready: false } : { label: all.length ? 'Habilitada' : 'Sin información', cls: all.length ? 'nk-badge-ok' : 'nk-badge-neutral', pct, issues: all.length ? [] : ['Sin antecedentes cargados'], ready: all.length > 0 }
 }
-
-function workerType(worker) {
-  const raw = String(worker.tipoTrabajador || worker.tipoContrato || worker.modalidad || '').toLowerCase()
-  if (raw.includes('proyecto') || raw.includes('plazo') || raw.includes('temporal')) return 'Por proyecto'
-  return 'Fijo'
-}
-
-function managementStage(assignment) {
-  if (!assignment) return ''
-  const explicit = String(assignment.estadoGestion || '').toLowerCase()
-  if (FLOW.includes(explicit)) return explicit
-  const legacy = String(assignment.estado || '').toLowerCase()
-  if (legacy === 'confirmado') return 'asignado'
-  return 'candidato'
-}
-
-function stageBadge(stage) {
-  if (stage === 'habilitado') return 'nk-badge-ok'
-  if (stage === 'asignado' || stage === 'confirmado') return 'nk-badge-info'
-  if (stage === 'contactado') return 'nk-badge-warn'
-  return 'nk-badge-neutral'
-}
+function csv(name, data) { const text = data.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n'); const url = URL.createObjectURL(new Blob([`\uFEFF${text}`], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url) }
 
 export default function GestionPersonalProyectoPage() {
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [response, setResponse] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [ok, setOk] = useState('')
-  const [query, setQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [savingId, setSavingId] = useState('')
-
-  async function load() {
-    setLoading(true); setError('')
-    try { setResponse(await api.get('/state')) }
-    catch (cause) { setError(cause.message || 'No fue posible cargar la gestión de personal.') }
-    finally { setLoading(false) }
-  }
-
+  const navigate = useNavigate(); const [params, setParams] = useSearchParams()
+  const [response, setResponse] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [notice, setNotice] = useState(''), [saving, setSaving] = useState('')
+  const [query, setQuery] = useState(''), [specialty, setSpecialty] = useState(''), [stageFilter, setStageFilter] = useState(''), [availability, setAvailability] = useState('todos'), [followUp, setFollowUp] = useState(null), [follow, setFollow] = useState({ owner: '', nextDate: '', note: '' })
+  async function load() { setLoading(true); setError(''); try { setResponse(await api.get('/state')) } catch (cause) { setError(cause.message || 'No fue posible cargar la gestión de trabajadores por proyecto.') } finally { setLoading(false) } }
   useEffect(() => { load() }, [])
+  const state = response?.state || response || {}, workers = rows(state.trabajadores), projects = rows(state.mantenciones).filter(item => item.estado !== 'cerrada'), assignments = rows(state.asignaciones), clients = rows(state.minas).length ? rows(state.minas) : rows(state.clientes), contracts = rows(state.contratos)
+  const projectId = params.get('proyecto') || projects[0]?.id || '', project = projects.find(item => String(item.id) === String(projectId))
+  useEffect(() => { if (!params.get('proyecto') && projects[0]?.id) setParams({ proyecto: projects[0].id }, { replace: true }) }, [projects, params, setParams])
+  const related = useMemo(() => assignments.filter(item => String(item.mantId) === String(projectId)), [assignments, projectId])
+  const relation = useMemo(() => new Map(related.map(item => [String(item.trabId), item])), [related])
+  const specialties = useMemo(() => [...new Set(workers.map(w => w.especialidad || w.cargo).filter(Boolean))].sort(), [workers])
+  const roster = useMemo(() => workers.map(worker => {
+    const assignment = relation.get(String(worker.id)), current = stage(assignment), check = validation(worker)
+    const elsewhere = assignments.some(item => String(item.trabId) === String(worker.id) && String(item.mantId) !== String(projectId) && ['contrato_firmado', 'acreditacion_enviada'].includes(stage(item)))
+    return { worker, assignment, current, check, elsewhere }
+  }).filter(item => {
+    const text = query.trim().toLowerCase(), matches = !text || [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(v => String(v || '').toLowerCase().includes(text))
+    const free = !item.assignment && !item.elsewhere && item.worker.disponibilidad !== 'bloqueado'
+    return matches && (!specialty || (item.worker.especialidad || item.worker.cargo) === specialty) && (!stageFilter || item.current === stageFilter) && (availability === 'todos' || availability === 'califican' && item.check.ready && !item.elsewhere || availability === 'libres' && free || availability === 'asignados' && Boolean(item.assignment))
+  }), [workers, relation, assignments, projectId, query, specialty, stageFilter, availability])
+  const client = clients.find(item => String(item.id) === String(project?.minaId || project?.clienteId)), contract = contracts.find(item => String(item.id) === String(project?.contratoId)), required = Number(project?.personalReq || project?.dotacionRequerida || 0), signed = related.filter(a => ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))).length, gap = Math.max(0, required - signed)
 
-  const state = response?.state || response || {}
-  const workers = rows(state.trabajadores)
-  const projects = rows(state.mantenciones).filter(item => item.estado !== 'cerrada')
-  const assignments = rows(state.asignaciones)
-  const clients = rows(state.minas)
-  const contracts = rows(state.contratos)
-  const selectedId = searchParams.get('proyecto') || projects[0]?.id || ''
-  const project = projects.find(item => item.id === selectedId)
-
-  useEffect(() => {
-    if (!searchParams.get('proyecto') && projects[0]?.id) setSearchParams({ proyecto: projects[0].id }, { replace: true })
-  }, [projects, searchParams, setSearchParams])
-
-  const projectAssignments = useMemo(() => assignments.filter(item => item.mantId === selectedId), [assignments, selectedId])
-  const relationByWorker = useMemo(() => new Map(projectAssignments.map(item => [item.trabId, item])), [projectAssignments])
-  const assignedIds = useMemo(() => new Set(projectAssignments.filter(item => ACTIVE_STAGES.has(managementStage(item))).map(item => item.trabId)), [projectAssignments])
-  const assigned = workers.filter(worker => assignedIds.has(worker.id))
-
-  const roster = useMemo(() => {
-    const term = query.trim().toLowerCase()
-    return workers.map(worker => {
-      const relation = relationByWorker.get(worker.id)
-      const stage = managementStage(relation)
-      return { worker, relation, stage, assigned: ACTIVE_STAGES.has(stage), habilitation: habilitationFor(worker) }
-    }).filter(item => {
-      if (statusFilter === 'assigned' && !item.assigned) return false
-      if (statusFilter === 'available' && (item.assigned || item.worker.disponibilidad === 'bloqueado')) return false
-      if (statusFilter === 'pipeline' && (!item.stage || item.assigned)) return false
-      if (statusFilter === 'review' && item.habilitation.key === 'ok') return false
-      if (!term) return true
-      return [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(value => String(value || '').toLowerCase().includes(term))
-    })
-  }, [workers, relationByWorker, query, statusFilter])
-
-  async function writeAssignment(worker, updater, reason, successMessage) {
-    if (!project || savingId) return
-    setSavingId(worker.id); setError(''); setOk('')
-    try {
-      const currentResponse = await api.get('/state')
-      const current = currentResponse?.state || currentResponse || {}
-      const versionA = currentResponse?.moduleVersions?.asignaciones ?? 0
-      const versionT = currentResponse?.moduleVersions?.trabajadores ?? 0
-      const currentAssignments = rows(current.asignaciones)
-      const currentWorkers = rows(current.trabajadores)
-      const result = updater(currentAssignments, currentWorkers)
-      await api.put('/state/modules', {
-        reason,
-        changes: {
-          asignaciones: { version: versionA, data: result.assignments },
-          trabajadores: { version: versionT, data: result.workers }
-        }
-      })
-      setOk(successMessage)
-      await load()
-    } catch (cause) { setError(cause.message || 'No fue posible actualizar la gestión de la persona.') }
-    finally { setSavingId('') }
+  async function persist(worker, transform, reason, message) {
+    if (!project || saving) return; setSaving(worker.id); setError(''); setNotice('')
+    try { const latest = await api.get('/state'), current = latest?.state || latest || {}, result = transform(rows(current.asignaciones), rows(current.trabajadores)); await api.put('/state/modules', { reason, changes: { asignaciones: { version: latest?.moduleVersions?.asignaciones ?? 0, data: result.assignments }, trabajadores: { version: latest?.moduleVersions?.trabajadores ?? 0, data: result.workers } } }); setNotice(message); await load() } catch (cause) { setError(cause.message || 'No fue posible guardar el cambio.') } finally { setSaving('') }
   }
-
-  async function addCandidate(worker) {
-    await writeAssignment(worker, (currentAssignments, currentWorkers) => {
-      if (currentAssignments.some(item => item.mantId === project.id && item.trabId === worker.id)) throw new Error('La persona ya está incorporada a la gestión de esta OS.')
-      const now = new Date().toISOString()
-      return {
-        assignments: [...currentAssignments, { id: `asig_${Date.now()}`, mantId: project.id, trabId: worker.id, turno: 'día', estado: 'pendiente', estadoGestion: 'candidato', gestionUpdatedAt: now }],
-        workers: currentWorkers
-      }
-    }, `Candidato ${worker.nombre} incorporado a ${project.nombre}`, `${worker.nombre} quedó como candidato para ${project.nombre}.`)
-  }
-
-  async function advance(worker, relation, stage) {
-    const index = FLOW.indexOf(stage)
-    if (index < 0 || index >= FLOW.length - 1) return
-    const nextStage = FLOW[index + 1]
-    const habilitation = habilitationFor(worker)
-    if (nextStage === 'habilitado' && habilitation.key !== 'ok') {
-      setError(`${worker.nombre} no puede marcarse como habilitado mientras tenga observaciones de habilitación.`)
-      return
-    }
-    await writeAssignment(worker, (currentAssignments, currentWorkers) => {
-      const now = new Date().toISOString()
-      const nextAssignments = currentAssignments.map(item => item.id === relation.id ? {
-        ...item,
-        estadoGestion: nextStage,
-        estado: ACTIVE_STAGES.has(nextStage) ? 'confirmado' : 'pendiente',
-        gestionUpdatedAt: now
-      } : item)
-      const nextWorkers = currentWorkers.map(item => item.id === worker.id && ACTIVE_STAGES.has(nextStage) ? { ...item, disponibilidad: 'asignado' } : item)
-      return { assignments: nextAssignments, workers: nextWorkers }
-    }, `${FLOW_LABEL[nextStage]}: ${worker.nombre} en ${project.nombre}`, `${worker.nombre} avanzó a ${FLOW_LABEL[nextStage]} en ${project.nombre}.`)
-  }
-
-  async function remove(worker, relation) {
-    await writeAssignment(worker, (currentAssignments, currentWorkers) => {
-      const nextAssignments = currentAssignments.filter(item => item.id !== relation.id)
-      const stillAssigned = nextAssignments.some(item => item.trabId === worker.id && ACTIVE_STAGES.has(managementStage(item)))
-      const nextWorkers = currentWorkers.map(item => item.id === worker.id ? { ...item, disponibilidad: stillAssigned ? 'asignado' : 'disponible' } : item)
-      return { assignments: nextAssignments, workers: nextWorkers }
-    }, `Retiro de ${worker.nombre} de ${project.nombre}`, `${worker.nombre} fue retirado de la gestión de ${project.nombre}.`)
-  }
-
-  const client = clients.find(item => item.id === project?.minaId)
-  const contract = contracts.find(item => item.id === project?.contratoId)
-  const required = Number(project?.personalReq || 0)
-  const gap = Math.max(0, required - assigned.length)
-  const enabledAssigned = workers.filter(worker => managementStage(relationByWorker.get(worker.id)) === 'habilitado').length
+  function begin(worker) { persist(worker, (current, currentWorkers) => { if (current.some(a => String(a.mantId) === String(project.id) && String(a.trabId) === String(worker.id))) throw new Error('La persona ya está incorporada a esta orden de servicio.'); return { assignments: [...current, { id: `asig_${Date.now()}`, mantId: project.id, trabId: worker.id, turno: 'Por definir', estado: 'pendiente', recruitmentStage: 'reclutamiento', recruitmentUpdatedAt: new Date().toISOString(), recruitmentFollowUps: [] }], workers: currentWorkers } }, `Inicio de gestión de ${worker.nombre} en ${project.nombre}`, `${worker.nombre} fue incorporada al flujo de esta orden de servicio.`) }
+  function advance(worker, assignment) { const target = next(stage(assignment)); if (!target) return; if (target === 'acreditacion_enviada' && !validation(worker).ready) { setError(`${worker.nombre} no puede enviarse a acreditación mientras tenga antecedentes pendientes.`); return } persist(worker, (current, currentWorkers) => ({ assignments: current.map(a => a.id === assignment.id ? { ...a, recruitmentStage: target, estado: ['contrato_firmado', 'acreditacion_enviada'].includes(target) ? 'confirmado' : 'pendiente', recruitmentUpdatedAt: new Date().toISOString() } : a), workers: currentWorkers.map(w => w.id === worker.id && ['contrato_firmado', 'acreditacion_enviada'].includes(target) ? { ...w, disponibilidad: 'asignado' } : w) }), `${label(target)}: ${worker.nombre} en ${project.nombre}`, `${worker.nombre} avanzó a ${label(target)}.`) }
+  function remove(worker, assignment) { persist(worker, (current, currentWorkers) => { const nextRows = current.filter(a => a.id !== assignment.id), remains = nextRows.some(a => String(a.trabId) === String(worker.id) && ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))); return { assignments: nextRows, workers: currentWorkers.map(w => w.id === worker.id ? { ...w, disponibilidad: remains ? 'asignado' : 'disponible' } : w) } }, `Retiro de ${worker.nombre} de ${project.nombre}`, `${worker.nombre} fue retirada de la gestión de esta orden.`) }
+  function saveFollow(event) { event.preventDefault(); if (!follow.owner.trim() || !follow.note.trim()) { setError('Indica responsable y resultado del seguimiento.'); return } const { worker, assignment } = followUp; persist(worker, (current, currentWorkers) => ({ assignments: current.map(a => a.id === assignment.id ? { ...a, recruitmentOwner: follow.owner.trim(), recruitmentNextDate: follow.nextDate, recruitmentUpdatedAt: new Date().toISOString(), recruitmentFollowUps: [{ id: `rf_${Date.now()}`, date: new Date().toISOString().slice(0, 10), owner: follow.owner.trim(), nextDate: follow.nextDate, note: follow.note.trim() }, ...rows(a.recruitmentFollowUps)] } : a), workers: currentWorkers }), `Seguimiento de ${worker.nombre} en ${project.nombre}`, 'Seguimiento guardado.'); setFollowUp(null) }
+  function exportView() { if (project) csv(`gestion_trabajadores_${String(project.nombre || 'proyecto').replaceAll(/[^a-z0-9]+/gi, '_')}.csv`, [['Orden de servicio', 'Cliente', 'Persona', 'RUT', 'Cargo', 'Especialidad', 'Etapa', 'Habilitación', 'Pendientes', 'Responsable', 'Próximo seguimiento'], ...roster.map(({ worker, assignment, current, check }) => [project.nombre, client?.nombre || '', worker.nombre, worker.rut, worker.cargo, worker.especialidad, label(current), check.label, check.issues.join(' | '), assignment?.recruitmentOwner || '', assignment?.recruitmentNextDate || ''])]) }
 
   return <div className="nk-control-workspace nk-staffing-workspace">
-    <header className="nk-control-workspace-header"><div><h1>Gestión de trabajadores por proyecto</h1><p>Controla la dotación de cada servicio desde una sola vista: candidatos, contacto, confirmación, asignación y habilitación.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
-    {(error || ok) && <div className={`nk-control-feedback ${error ? 'error' : 'ok'}`}><span>{error || ok}</span><button className="nk-icon-button" type="button" onClick={() => { setError(''); setOk('') }} aria-label="Cerrar"><IconX size={15}/></button></div>}
-
-    <section className="nk-card nk-staffing-context">
-      <div className="nk-control-toolbar"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, RUT, cargo o especialidad"/></label><div className="nk-field"><label className="nk-label">Proyecto / servicio</label><select className="nk-select" value={selectedId} onChange={event => setSearchParams({ proyecto: event.target.value })}><option value="">Seleccionar</option>{projects.map(item => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></div></div>
-      {project && <div className="nk-staffing-project-line"><span><strong>{client?.nombre || 'Sin cliente'}</strong> · {contract?.nombre || 'Sin contrato'}</span><span>{project.nombre}</span></div>}
-    </section>
-
-    {project ? <>
-      <section className="nk-control-kpis nk-staffing-kpis"><div className="nk-control-kpi"><strong>{required || '—'}</strong><span>Dotación requerida</span></div><div className="nk-control-kpi"><strong>{assigned.length}</strong><span>Asignados</span></div><div className="nk-control-kpi"><strong>{enabledAssigned}</strong><span>Habilitados</span></div><div className={`nk-control-kpi ${gap > 0 ? 'nk-staffing-kpi-alert' : ''}`}><strong>{required ? gap : '—'}</strong><span>Brecha de dotación</span></div></section>
-
-      <section className="nk-card nk-staffing-roster-card">
-        <header className="nk-control-list-head nk-staffing-roster-head"><div><h2>Dotación del proyecto</h2><p>{roster.length} persona{roster.length === 1 ? '' : 's'} visibles para gestión.</p></div><div className="nk-staffing-filters"><button type="button" className={`nk-button ${statusFilter === 'all' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('all')}>Todas</button><button type="button" className={`nk-button ${statusFilter === 'pipeline' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('pipeline')}>En gestión</button><button type="button" className={`nk-button ${statusFilter === 'assigned' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('assigned')}>Asignadas</button><button type="button" className={`nk-button ${statusFilter === 'available' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('available')}>Disponibles</button><button type="button" className={`nk-button ${statusFilter === 'review' ? 'nk-button-primary' : 'nk-button-quiet'}`} onClick={() => setStatusFilter('review')}>Con observación</button></div></header>
-        {roster.length ? <div className="nk-table-wrapper"><table className="nk-table nk-staffing-table"><thead><tr><th>Persona</th><th>Tipo</th><th>Cargo / especialidad</th><th>Disponibilidad</th><th>Gestión OS</th><th>Habilitación</th><th>Acciones</th></tr></thead><tbody>{roster.map(({ worker, relation, stage, assigned: isAssigned, habilitation }) => <tr key={worker.id}><td><div className="nk-control-person"><strong>{worker.nombre}</strong><span>{worker.rut || 'Sin RUT'}</span></div></td><td>{workerType(worker)}</td><td><div className="nk-control-person"><strong>{worker.cargo || 'Sin cargo'}</strong><span>{worker.especialidad || 'Sin especialidad'}</span></div></td><td><span className={`nk-badge ${worker.disponibilidad === 'bloqueado' ? 'nk-badge-error' : isAssigned ? 'nk-badge-neutral' : 'nk-badge-ok'}`}>{worker.disponibilidad === 'bloqueado' ? 'Bloqueado' : isAssigned ? 'Asignado' : 'Disponible'}</span></td><td>{stage ? <span className={`nk-badge ${stageBadge(stage)}`}>{FLOW_LABEL[stage]}</span> : <span className="nk-badge nk-badge-neutral">Sin gestión</span>}</td><td><span className={`nk-badge ${habilitation.cls}`}>{habilitation.label}</span></td><td><div className="nk-actions nk-staffing-actions"><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${worker.id}`)}>Ver ficha</button>{!relation ? <button className="nk-button nk-button-primary" type="button" disabled={savingId === worker.id || habilitation.key === 'blocked'} onClick={() => addCandidate(worker)}><IconPlus size={14}/>Candidato</button> : <>{stage !== 'habilitado' && <button className="nk-button nk-button-primary" type="button" disabled={savingId === worker.id || (stage === 'asignado' && habilitation.key !== 'ok')} onClick={() => advance(worker, relation, stage)}>{FLOW_ACTION[stage] || 'Avanzar'}</button>}<button className="nk-button nk-button-secondary" type="button" disabled={savingId === worker.id} onClick={() => remove(worker, relation)}>{isAssigned ? 'Retirar' : 'Quitar'}</button></>}</div></td></tr>)}</tbody></table></div> : <div className="nk-empty"><IconUsers size={28}/><p className="nk-empty-title">Sin personas para mostrar</p><p>Ajusta la búsqueda o el filtro seleccionado.</p></div>}
-      </section>
-    </> : <div className="nk-empty"><IconUsers size={30}/><p className="nk-empty-title">No hay proyectos o servicios activos</p></div>}
+    <header className="nk-control-workspace-header"><div><h1>Gestión de trabajadores por proyecto</h1><p>Organiza la dotación por orden de servicio: identifica brechas, contacta candidatos, valida antecedentes y sigue cada contratación hasta la acreditación.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={exportView} disabled={!project}><IconDownload size={15}/>Exportar vista</button><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</button></div></header>
+    {(error || notice) && <div className={`nk-control-feedback ${error ? 'error' : 'ok'}`}><span>{error || notice}</span><button className="nk-icon-button" type="button" onClick={() => { setError(''); setNotice('') }} aria-label="Cerrar mensaje"><IconX size={15}/></button></div>}
+    <section className="nk-card nk-staffing-context"><p className="nk-control-note"><strong>Ruta recomendada:</strong> selecciona la orden de servicio, revisa cargos y brechas, contacta personas disponibles, valida antecedentes, gestiona contrato y completa la acreditación.</p><div className="nk-control-toolbar"><div className="nk-field"><label className="nk-label">Orden de servicio</label><select className="nk-select" value={projectId} onChange={e => setParams({ proyecto: e.target.value })}><option value="">Seleccionar orden de servicio</option>{projects.map(item => <option key={item.id} value={item.id}>{item.codigo ? `${item.codigo} · ` : ''}{item.nombre}</option>)}</select></div><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar persona, RUT, cargo o especialidad"/></label><div className="nk-field"><label className="nk-label">Especialidad</label><select className="nk-select" value={specialty} onChange={e => setSpecialty(e.target.value)}><option value="">Todas las especialidades</option>{specialties.map(item => <option key={item}>{item}</option>)}</select></div><div className="nk-field"><label className="nk-label">Etapa</label><select className="nk-select" value={stageFilter} onChange={e => setStageFilter(e.target.value)}><option value="">Todas las etapas</option>{FLOW.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div><div className="nk-field"><label className="nk-label">Disponibilidad</label><select className="nk-select" value={availability} onChange={e => setAvailability(e.target.value)}><option value="todos">Asignados y libres</option><option value="califican">Solo califican</option><option value="libres">Solo libres</option><option value="asignados">Solo asignados</option></select></div></div>{project && <div className="nk-staffing-project-line"><span><strong>{client?.nombre || 'Sin cliente'}</strong> · {contract?.numero || contract?.nombre || 'Sin contrato'}</span><span>{project.nombre}</span></div>}</section>
+    {!project ? <div className="nk-empty"><p className="nk-empty-title">No hay órdenes de servicio activas</p><p>Crea una orden de servicio para iniciar la gestión de trabajadores por proyecto.</p></div> : <><section className="nk-control-kpis nk-staffing-kpis"><div className="nk-control-kpi"><strong>{required || '—'}</strong><span>Personas requeridas</span></div><div className="nk-control-kpi"><strong>{related.length}</strong><span>En reclutamiento / asignadas</span></div><div className="nk-control-kpi"><strong>{signed}</strong><span>Disponibilidad confirmada</span></div><div className="nk-control-kpi"><strong>{related.filter(a => stage(a) === 'contrato_firmado').length}</strong><span>Contrato firmado</span></div><div className={`nk-control-kpi ${gap ? 'nk-staffing-kpi-alert' : ''}`}><strong>{required ? gap : '—'}</strong><span>Brecha por cubrir</span></div></section>
+    <section className="nk-control-columns"><article className="nk-card"><header className="nk-control-list-head"><div><h2>Cobertura por especialidad</h2><p>Compara la dotación requerida con las personas en proceso para esta orden de servicio.</p></div></header><div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Especialidad</th><th>En proceso</th><th>Con contrato</th><th>Estado</th></tr></thead><tbody>{(specialties.length ? specialties : ['Sin especialidad']).map(name => { const match = related.filter(a => { const worker = workers.find(w => String(w.id) === String(a.trabId)); return (worker?.especialidad || worker?.cargo || 'Sin especialidad') === name }); const covered = match.filter(a => ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))).length; return <tr key={name}><td>{name}</td><td>{match.length}</td><td>{covered}</td><td><span className={`nk-badge ${covered ? 'nk-badge-ok' : 'nk-badge-neutral'}`}>{covered ? 'Con cobertura' : 'Sin cobertura'}</span></td></tr> })}</tbody></table></div></article><article className="nk-card"><header className="nk-control-list-head"><div><h2>Flujo de contratación</h2><p>Personas que alcanzaron cada etapa de esta orden de servicio.</p></div></header><div className="nk-control-service-stats">{FLOW.map(([id, name]) => <div key={id} className="nk-control-stat"><strong>{related.filter(a => stage(a) === id).length}</strong><span>{name}</span></div>)}</div></article></section>
+    <section className="nk-card nk-staffing-roster-card"><header className="nk-control-list-head"><div><h2>Candidatos y personas disponibles</h2><p>{roster.length} persona{roster.length === 1 ? '' : 's'} visible{roster.length === 1 ? '' : 's'} para gestión.</p></div></header>{loading ? <div className="nk-empty"><p>Cargando personas…</p></div> : !roster.length ? <div className="nk-empty"><p className="nk-empty-title">No hay personas para estos filtros</p><p>Revisa la especialidad, disponibilidad o etapa seleccionada.</p></div> : <div className="nk-table-wrapper"><table className="nk-table nk-staffing-table"><thead><tr><th>Persona</th><th>Cargo / especialidad</th><th>Compatibilidad</th><th>Etapa</th><th>Habilitación</th><th>Brechas</th><th>Seguimiento</th><th>Acciones</th></tr></thead><tbody>{roster.map(({ worker, assignment, current, check, elsewhere }) => { const last = rows(assignment?.recruitmentFollowUps)[0], compatible = check.ready && !elsewhere; return <tr key={worker.id}><td><div className="nk-control-person"><strong>{worker.nombre || 'Sin nombre'}</strong><span>{worker.rut || 'Sin RUT'} · {typeFor(worker)}</span></div></td><td><div className="nk-control-person"><strong>{worker.cargo || 'Sin cargo'}</strong><span>{worker.especialidad || 'Sin especialidad'}</span></div></td><td><span className={`nk-badge ${compatible ? 'nk-badge-ok' : 'nk-badge-warn'}`}>{compatible ? 'Compatible' : elsewhere ? 'No disponible' : 'Requiere revisión'}</span></td><td><span className={`nk-badge ${current === 'acreditacion_enviada' ? 'nk-badge-ok' : current ? 'nk-badge-warn' : 'nk-badge-neutral'}`}>{label(current)}</span></td><td><span className={`nk-badge ${check.cls}`}>{check.label} · {check.pct}%</span></td><td><span className={`nk-badge ${check.issues.length ? 'nk-badge-warn' : 'nk-badge-ok'}`} title={check.issues.join(' · ')}>{check.issues.length ? `${check.issues.length} pendiente${check.issues.length === 1 ? '' : 's'}` : 'Sin brechas críticas'}</span></td><td>{assignment ? <><button className="nk-button nk-button-quiet nk-button-sm" type="button" disabled={saving === worker.id} onClick={() => { setFollowUp({ worker, assignment }); setFollow({ owner: assignment.recruitmentOwner || '', nextDate: assignment.recruitmentNextDate || '', note: '' }) }}>Seguimiento</button><div className="nk-control-person"><span>{last ? `${last.owner || 'Sin responsable'} · ${last.nextDate || 'sin fecha'}` : 'Sin seguimiento'}</span></div></> : '—'}</td><td><div className="nk-actions nk-staffing-actions"><button className="nk-button nk-button-quiet nk-button-sm" type="button" onClick={() => navigate(`/app/trabajadores/${worker.id}`)}>Ficha</button>{!assignment ? <button className="nk-button nk-button-primary nk-button-sm" type="button" disabled={saving === worker.id || elsewhere || worker.disponibilidad === 'bloqueado'} onClick={() => begin(worker)}><IconPlus size={14}/>Iniciar proceso</button> : <><button className="nk-button nk-button-secondary nk-button-sm" type="button" disabled={saving === worker.id || !next(current)} onClick={() => advance(worker, assignment)}>{current === 'reclutamiento' ? <><IconMessageCircle size={14}/>Contactar</> : 'Avanzar'}</button><button className="nk-button nk-button-quiet nk-button-sm" type="button" disabled={saving === worker.id} onClick={() => remove(worker, assignment)}>Quitar</button></>}</div></td></tr> })}</tbody></table></div>}</section></>}
+    {followUp && <div className="nk-dialog-backdrop" onMouseDown={() => setFollowUp(null)}><form className="nk-dialog" onSubmit={saveFollow} onMouseDown={e => e.stopPropagation()}><header className="nk-dialog-header"><div><h2 className="nk-dialog-title">Seguimiento de contratación</h2><p>{followUp.worker.nombre} · {project?.nombre}</p></div><button className="nk-icon-button" type="button" onClick={() => setFollowUp(null)} aria-label="Cerrar"><IconX size={18}/></button></header><div className="nk-dialog-body"><div className="nk-field"><label className="nk-label">Responsable</label><input className="nk-input" required value={follow.owner} onChange={e => setFollow({ ...follow, owner: e.target.value })}/></div><div className="nk-field"><label className="nk-label">Próximo seguimiento</label><input className="nk-input" type="date" value={follow.nextDate} onChange={e => setFollow({ ...follow, nextDate: e.target.value })}/></div><div className="nk-field"><label className="nk-label">Resultado o nota</label><textarea className="nk-input" required rows="4" value={follow.note} onChange={e => setFollow({ ...follow, note: e.target.value })}/></div>{rows(followUp.assignment.recruitmentFollowUps).slice(0, 5).map(item => <p key={item.id} className="nk-control-note"><strong>{item.date || 'Sin fecha'} · {item.owner || 'Sin responsable'}</strong><br/>{item.note}</p>)}</div><footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={() => setFollowUp(null)}>Cancelar</button><button className="nk-button nk-button-primary" disabled={saving === followUp.worker.id}>{saving === followUp.worker.id ? 'Guardando…' : 'Guardar seguimiento'}</button></footer></form></div>}
   </div>
 }
