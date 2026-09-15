@@ -7,6 +7,7 @@ import {
 } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
+import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/ficha-trabajador.css'
 
 const ITEM_TYPES = {
@@ -145,6 +146,8 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
+  const comunas = comunasDeRegion(worker.region)
+  const updateRegion = event => { onChange('region', event.target.value); onChange('ciudad', '') }
 
   return <>
     <CardSection title="Asignación operacional" subtitle="Relaciona la persona con contrato, proyecto/servicio y turno sin perder su documentación.">
@@ -160,8 +163,8 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
     <CardSection title="Datos personales" subtitle="Identificación, contacto y previsión."><div className="nk-person-grid">
       <Field label="Teléfono"><input className="nk-input" value={worker.tel || ''} onChange={e => onChange('tel', e.target.value)} /></Field>
       <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
-      <Field label="Ciudad / comuna"><input className="nk-input" value={worker.ciudad || ''} onChange={e => onChange('ciudad', e.target.value)} /></Field>
-      <Field label="Región"><input className="nk-input" value={worker.region || ''} onChange={e => onChange('region', e.target.value)} /></Field>
+      <Field label="Región"><select className="nk-select" value={worker.region || ''} onChange={updateRegion}><option value="">Seleccionar región</option>{regionesChile.map(region => <option key={region} value={region}>{region}</option>)}</select></Field>
+      <Field label="Ciudad / comuna"><select className="nk-select" value={worker.ciudad || ''} disabled={!worker.region} onChange={e => onChange('ciudad', e.target.value)}><option value="">{worker.region ? 'Seleccionar comuna o ciudad' : 'Primero selecciona una región'}</option>{worker.ciudad && !comunas.includes(worker.ciudad) && <option value={worker.ciudad}>{worker.ciudad}</option>}{comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</select></Field>
       <Field label="Fecha de nacimiento"><input className="nk-input" type="date" value={worker.nacimiento || ''} onChange={e => onChange('nacimiento', e.target.value)} /></Field>
       <Field label="AFP"><input className="nk-input" value={worker.afp || ''} onChange={e => onChange('afp', e.target.value)} /></Field>
       <Field label="Previsión de salud"><input className="nk-input" value={worker.salud || ''} onChange={e => onChange('salud', e.target.value)} /></Field>
