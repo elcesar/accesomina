@@ -1,6 +1,7 @@
 /*
  * NEXO KLAR · Sidebar Layout
  * Navegación lateral de la aplicación privada.
+ * Toda dimensión visual consume tokens canónicos --nk-*.
  */
 
 .nk-sidebar {
@@ -10,16 +11,16 @@
   flex-direction: column;
   flex-shrink: 0;
   background: var(--nk-surface);
-  border-right: 1px solid var(--nk-line);
+  border-right: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-sidebar-brand {
   padding: var(--nk-space-4);
-  border-bottom: 1px solid var(--nk-line);
+  border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-sidebar-brand img {
-  height: 28px;
+  height: var(--nk-row-compact);
   width: auto;
   max-width: 100%;
   display: block;
@@ -27,7 +28,7 @@
 
 .nk-tenant-name {
   padding: var(--nk-space-2) var(--nk-space-4);
-  border-bottom: 1px solid var(--nk-line);
+  border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
   color: var(--nk-ink-2);
   font: var(--nk-font-caption);
   white-space: nowrap;
@@ -51,7 +52,7 @@
 
 .nk-side-group-title {
   width: 100%;
-  min-height: 30px;
+  min-height: var(--nk-row-compact);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,7 +63,6 @@
   background: transparent;
   color: var(--nk-ink-3);
   font: var(--nk-font-overline);
-  letter-spacing: .05em;
   text-align: left;
   text-transform: uppercase;
   transition: background-color var(--nk-motion-normal) var(--nk-motion-curve), color var(--nk-motion-normal) var(--nk-motion-curve);
@@ -84,7 +84,7 @@
 
 .nk-side-group-items {
   display: grid;
-  gap: 2px;
+  gap: var(--nk-space-1);
 }
 
 .nk-side-link,
@@ -128,8 +128,8 @@
 }
 
 .nk-side-badge {
-  min-width: 20px;
-  height: 20px;
+  min-width: var(--nk-space-5);
+  height: var(--nk-space-5);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,9 +144,9 @@
 
 .nk-sidebar-bottom {
   padding: var(--nk-space-3) var(--nk-space-2);
-  border-top: 1px solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
   display: grid;
-  gap: 2px;
+  gap: var(--nk-space-1);
 }
 
 .nk-sidebar-action {
@@ -162,7 +162,7 @@
 
 .nk-sidebar-user {
   padding: var(--nk-space-3) var(--nk-space-4);
-  border-top: 1px solid var(--nk-line);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
 .nk-sidebar-user-row {
@@ -172,8 +172,8 @@
 }
 
 .nk-sidebar-user-avatar {
-  width: 28px;
-  height: 28px;
+  width: var(--nk-row-compact);
+  height: var(--nk-row-compact);
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -203,7 +203,7 @@
 }
 
 .nk-sidebar-user-role {
-  margin-top: 2px;
+  margin-top: var(--nk-space-1);
   color: var(--nk-ink-3);
   font-size: var(--nk-text-xs);
   text-transform: capitalize;
