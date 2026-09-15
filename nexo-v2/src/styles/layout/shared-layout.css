@@ -73,11 +73,19 @@
   );
 }
 
-.nk-card-grid-4 {
+.nk-card-grid-4,
+.nk-kpi-grid,
+.nk-control-kpis {
   grid-template-columns: repeat(
     auto-fit,
     minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr)
   );
+}
+
+.nk-kpi-grid,
+.nk-control-kpis {
+  display: grid;
+  gap: var(--nk-space-3);
 }
 
 /* Encabezados de sección y contenido editorial */
