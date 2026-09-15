@@ -35,15 +35,15 @@ function workerSize(worker, itemName) {
   return ''
 }
 
-function DeliveryDialog({ workers, inventory, onClose, onSaved }) {
-  const [form, setForm] = useState({ workerId: '', inventoryId: '', itemName: '', size: '', brandModel: '', certification: '', deliveredAt: today(), replaceAt: '', notes: '' })
+function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSaved }) {
+  const [form, setForm] = useState({ workerId: '', inventoryId: '', itemName: '', quantity: 1, warehouseId: '', orderId: '', size: '', brandModel: '', certification: '', lotSerial: '', condition: 'nuevo', deliveredBy: '', receivedBy: '', deliveredAt: today(), replaceAt: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const selectedWorker = workers.find(item => item.id === form.workerId)
 
   function chooseInventory(id) {
     const item = inventory.find(current => current.id === id)
-    setForm(current => ({ ...current, inventoryId: id, itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || current.size }))
+    setForm(current => ({ ...current, inventoryId: id, warehouseId: item?.warehouseId || item?.bodegaId || current.warehouseId, itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || current.size }))
   }
 
   function chooseWorker(id) {
@@ -53,15 +53,47 @@ function DeliveryDialog({ workers, inventory, onClose, onSaved }) {
 
   async function save(event) {
     event.preventDefault()
-    if (!form.workerId || !form.itemName.trim() || saving) return
+    const quantity = Number(form.quantity || 0)
+    if (!form.workerId || !form.itemName.trim() || quantity <= 0 || saving) return
+    if (form.inventoryId && !form.warehouseId) {
+      setError('Selecciona la bodega de origen para descontar el EPP entregado.')
+      return
+    }
     setSaving(true); setError('')
     try {
       const response = await api.get('/state')
       const state = response?.state || response || {}
-      const version = response?.moduleVersions?.eppDeliveries ?? response?.moduleVersions?.eppEntregas ?? 0
+      const versions = response?.moduleVersions || {}
+      const version = versions.eppDeliveries ?? versions.eppEntregas ?? 0
       const current = asRows(state.eppDeliveries || state.eppEntregas)
-      const record = { id: `epp_${Date.now()}`, workerId: form.workerId, inventoryId: form.inventoryId || undefined, itemName: form.itemName.trim(), size: form.size.trim(), brandModel: form.brandModel.trim(), certification: form.certification.trim(), deliveredAt: form.deliveredAt, replaceAt: form.replaceAt, notes: form.notes.trim(), createdAt: new Date().toISOString() }
-      await api.put('/state/modules', { reason: `Entrega EPP registrada para ${workers.find(item => item.id === form.workerId)?.nombre || 'persona'}`, changes: { eppDeliveries: { version, data: [...current, record] } } })
+      const record = { id: `epp_${Date.now()}`, workerId: form.workerId, inventoryId: form.inventoryId || undefined, itemName: form.itemName.trim(), quantity, warehouseId: form.warehouseId || undefined, orderId: form.orderId || undefined, size: form.size.trim(), brandModel: form.brandModel.trim(), certification: form.certification.trim(), lotSerial: form.lotSerial.trim(), condition: form.condition, deliveredBy: form.deliveredBy.trim(), receivedBy: form.receivedBy.trim(), deliveredAt: form.deliveredAt, replaceAt: form.replaceAt, notes: form.notes.trim(), createdAt: new Date().toISOString() }
+      const changes = { eppDeliveries: { version, data: [...current, record] } }
+
+      if (form.inventoryId) {
+        const inventoryItems = asRows(state.inventoryItems)
+        const selectedItem = inventoryItems.find(item => String(item.id) === String(form.inventoryId))
+        if (!selectedItem) throw new Error('No se encontró el EPP seleccionado en inventario.')
+
+        const stockByLocation = { ...(selectedItem.stockByLocation || {}) }
+        if (!Object.keys(stockByLocation).length) {
+          stockByLocation[selectedItem.warehouseId || selectedItem.bodegaId || form.warehouseId] = Number(selectedItem.stock || 0)
+        }
+        const available = Number(stockByLocation[form.warehouseId] || 0)
+        if (available < quantity) throw new Error(`Stock insuficiente en la bodega seleccionada. Disponible: ${available}`)
+        stockByLocation[form.warehouseId] = available - quantity
+        const nextItems = inventoryItems.map(item => String(item.id) === String(selectedItem.id) ? {
+          ...item,
+          stockByLocation,
+          stock: Object.values(stockByLocation).reduce((total, value) => total + Number(value || 0), 0),
+          updatedAt: new Date().toISOString(),
+        } : item)
+        const movements = asRows(state.inventoryMovements)
+        const movement = { id: `mov_epp_${Date.now()}`, itemId: selectedItem.id, warehouseId: form.warehouseId, type: 'entrega', qty: quantity, stockBefore: available, stockAfter: Number(stockByLocation[form.warehouseId] || 0), workerId: form.workerId, projectId: form.orderId || '', referenceType: 'epp_delivery', referenceId: record.id, lotSerial: form.lotSerial.trim(), notes: form.notes.trim(), at: form.deliveredAt ? `${form.deliveredAt}T12:00:00` : new Date().toISOString() }
+        changes.inventoryItems = { version: Number(versions.inventoryItems || 0), data: nextItems }
+        changes.inventoryMovements = { version: Number(versions.inventoryMovements || 0), data: [movement, ...movements] }
+      }
+
+      await api.put('/state/modules', { reason: `Entrega de EPP registrada para ${workers.find(item => item.id === form.workerId)?.nombre || 'persona'}`, changes })
       onSaved()
     } catch (cause) {
       setError(cause.message || 'No fue posible registrar la entrega de EPP.')
@@ -75,19 +107,26 @@ function DeliveryDialog({ workers, inventory, onClose, onSaved }) {
         <div className="nk-field nk-epp-dialog-wide"><label className="nk-label">Persona</label><select className="nk-select" required value={form.workerId} onChange={event => chooseWorker(event.target.value)}><option value="">Seleccionar persona</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{worker.nombre} · {worker.rut || 'Sin RUT'}</option>)}</select></div>
         <div className="nk-field nk-epp-dialog-wide"><label className="nk-label">EPP del inventario</label><select className="nk-select" value={form.inventoryId} onChange={event => chooseInventory(event.target.value)}><option value="">Registrar manualmente / sin ítem asociado</option>{inventory.map(item => <option key={item.id} value={item.id}>{item.nombre || item.name || item.itemName || item.codigo || 'Equipo EPP'}</option>)}</select></div>
         <div className="nk-field"><label className="nk-label">Equipo de protección</label><input className="nk-input" required value={form.itemName} onChange={event => setForm(current => ({ ...current, itemName: event.target.value, size: workerSize(selectedWorker, event.target.value) || current.size }))} placeholder="Ej.: Casco de seguridad" /></div>
+        <div className="nk-field"><label className="nk-label">Cantidad</label><input className="nk-input" type="number" min="1" required value={form.quantity} onChange={event => setForm(current => ({ ...current, quantity: event.target.value }))} /></div>
+        <div className="nk-field"><label className="nk-label">Bodega de origen</label><select className="nk-select" disabled={!form.inventoryId} value={form.warehouseId} onChange={event => setForm(current => ({ ...current, warehouseId: event.target.value }))}><option value="">{form.inventoryId ? 'Seleccionar bodega' : 'Sin descuento de inventario'}</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.nombre || warehouse.name || warehouse.codigo || 'Bodega'}</option>)}</select></div>
+        <div className="nk-field"><label className="nk-label">Orden de servicio</label><select className="nk-select" value={form.orderId} onChange={event => setForm(current => ({ ...current, orderId: event.target.value }))}><option value="">Sin orden asociada</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo ? `${order.codigo} · ` : ''}{order.nombre || order.name || 'Orden de servicio'}</option>)}</select></div>
         <div className="nk-field"><label className="nk-label">Talla / medida</label><input className="nk-input" value={form.size} onChange={event => setForm(current => ({ ...current, size: event.target.value }))} placeholder="Ej.: M, 42, universal" />{selectedWorker && <span className="nk-epp-size-hint">Se sugiere la talla registrada en la ficha cuando existe.</span>}</div>
         <div className="nk-field"><label className="nk-label">Marca / modelo</label><input className="nk-input" value={form.brandModel} onChange={event => setForm(current => ({ ...current, brandModel: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Certificación</label><input className="nk-input" value={form.certification} onChange={event => setForm(current => ({ ...current, certification: event.target.value }))} /></div>
+        <div className="nk-field"><label className="nk-label">Lote / serie</label><input className="nk-input" value={form.lotSerial} onChange={event => setForm(current => ({ ...current, lotSerial: event.target.value }))} placeholder="Opcional" /></div>
+        <div className="nk-field"><label className="nk-label">Condición de entrega</label><select className="nk-select" value={form.condition} onChange={event => setForm(current => ({ ...current, condition: event.target.value }))}><option value="nuevo">Nuevo</option><option value="buen_estado">Buen estado</option><option value="usado">Usado</option><option value="observado">Con observación</option></select></div>
         <div className="nk-field"><label className="nk-label">Fecha de entrega</label><input className="nk-input" type="date" required value={form.deliveredAt} onChange={event => setForm(current => ({ ...current, deliveredAt: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Fecha de reposición</label><input className="nk-input" type="date" value={form.replaceAt} onChange={event => setForm(current => ({ ...current, replaceAt: event.target.value }))} /></div>
+        <div className="nk-field"><label className="nk-label">Entregado por</label><input className="nk-input" value={form.deliveredBy} onChange={event => setForm(current => ({ ...current, deliveredBy: event.target.value }))} placeholder="Responsable de la entrega" /></div>
+        <div className="nk-field"><label className="nk-label">Recibido por</label><input className="nk-input" value={form.receivedBy} onChange={event => setForm(current => ({ ...current, receivedBy: event.target.value }))} placeholder="Nombre de quien recibe" /></div>
         <div className="nk-field nk-epp-dialog-wide"><label className="nk-label">Observaciones</label><input className="nk-input" value={form.notes} onChange={event => setForm(current => ({ ...current, notes: event.target.value }))} placeholder="Condición de entrega, lote u observaciones" /></div>
       </div>{error && <p className="nk-form-error">{error}</p>}</div>
-      <footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button><button className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.itemName.trim()}>{saving ? 'Guardando…' : 'Registrar entrega'}</button></footer>
+      <footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button><button className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.itemName.trim() || Number(form.quantity || 0) <= 0}>{saving ? 'Guardando…' : 'Registrar entrega'}</button></footer>
     </form>
   </div>
 }
 
-const SEGMENTS=[['todos','Todas'],['permanente','Personal fijo'],['esporadico','Por proyecto'],['disponible','Disponibles'],['bloqueado','Restringidos']]
+const SEGMENTS=[['todos','Todas'],['permanente','Trabajador fijo'],['esporadico','Trabajador por proyecto'],['disponible','Trabajador disponible'],['bloqueado','Restringidos']]
 
 export default function ProteccionEppPage() {
   const navigate = useNavigate()
@@ -107,6 +146,8 @@ export default function ProteccionEppPage() {
   const state = response?.state || response || {}
   const workers = asRows(state.trabajadores)
   const inventory = asRows(state.inventoryItems).filter(item => /epp|protecci|casco|guante|arn[eé]s|respir|calzad|bot|overol|lente/i.test(JSON.stringify(item)))
+  const warehouses = asRows(state.warehouses).length ? asRows(state.warehouses) : asRows(state.bodegas)
+  const orders = asRows(state.mantenciones).length ? asRows(state.mantenciones) : asRows(state.proyectos)
   const deliveries = asRows(state.eppDeliveries || state.eppEntregas)
   const records = useMemo(() => deliveries.map(item => { const worker = workers.find(person => person.id === (item.workerId || item.trabId)); return { ...item, workerId: item.workerId || item.trabId, workerName: worker?.nombre || item.workerName || 'Persona no identificada', workerRut: worker?.rut || item.rut || '', workerRole: worker?.cargo || worker?.especialidad || '', workerType:worker?.tipo||'',workerAvailability:worker?.disponibilidad||'',workerBlocked:Boolean(worker?.bloqueado), itemName: item.itemName || item.nombre || item.epp || 'EPP registrado' } }), [deliveries, workers])
   const workerMatchesSegment=worker=>segment==='todos'||(segment==='permanente'&&worker.tipo==='permanente'&&!worker.bloqueado)||(segment==='esporadico'&&worker.tipo==='esporadico'&&!worker.bloqueado)||(segment==='disponible'&&worker.disponibilidad==='disponible'&&!worker.bloqueado)||(segment==='bloqueado'&&worker.bloqueado)
@@ -124,7 +165,7 @@ export default function ProteccionEppPage() {
     <div className="nk-tabs nk-epp-tabs"><button className={`nk-tab ${view==='personas'?'active':''}`} onClick={()=>setView('personas')}><IconUsers size={14}/>Personas</button><button className={`nk-tab ${view==='matriz'?'active':''}`} onClick={()=>setView('matriz')}><IconShield size={14}/>Matriz por función</button><button className={`nk-tab ${view==='historial'?'active':''}`} onClick={()=>setView('historial')}><IconPackage size={14}/>Historial de entregas</button></div>
     {view==='personas'&&<section className="nk-card nk-epp-table-card">{loading?<div className="nk-empty nk-epp-empty"><IconUsers size={30}/><p className="nk-empty-title">Cargando personas…</p></div>:!personRows.length?<div className="nk-empty nk-epp-empty"><p className="nk-empty-title">Sin personas para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Persona</th><th>Función</th><th>Entregas</th><th>Pendientes / reposición</th><th>Tallas registradas</th><th/></tr></thead><tbody>{personRows.map(({worker,own,pending,sizes})=><tr key={worker.id}><td><div className="nk-epp-person"><strong>{worker.nombre}</strong><span className="nk-epp-subtle">{worker.rut||'Sin RUT'}</span></div></td><td>{worker.cargo||worker.especialidad||'—'}</td><td>{own.length}</td><td><span className={`nk-badge ${pending.length?'nk-badge-warn':'nk-badge-ok'}`}>{pending.length?`${pending.length} por revisar`:'Al día'}</span></td><td>{sizes||'Sin tallas'}</td><td><button className="nk-button nk-button-quiet" onClick={()=>navigate(`/app/trabajadores/${worker.id}`)}>Ver persona</button></td></tr>)}</tbody></table></div>}</section>}
     {view==='matriz'&&<section className="nk-card nk-epp-table-card">{!matrixRows.length?<div className="nk-empty nk-epp-empty"><p className="nk-empty-title">Sin funciones para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Función / especialidad</th><th>Personas</th><th>EPP observados en entregas</th><th>Cobertura registrada</th></tr></thead><tbody>{matrixRows.map(row=><tr key={row.role}><td><strong>{row.role}</strong></td><td>{row.people}</td><td>{[...row.items.keys()].slice(0,6).join(' · ')||'Sin entregas registradas'}</td><td>{row.items.size?`${row.items.size} tipos de EPP`:'Sin información'}</td></tr>)}</tbody></table></div>}</section>}
-    {view==='historial'&&<section className="nk-card nk-epp-table-card">{loading?<div className="nk-empty nk-epp-empty"><IconShield size={30}/><p className="nk-empty-title">Cargando entregas…</p></div>:filtered.length===0?<div className="nk-empty nk-epp-empty"><IconPackage size={30}/><p className="nk-empty-title">Sin entregas para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Persona</th><th>EPP</th><th>Talla</th><th>Entrega</th><th>Reposición</th><th>Estado</th><th/></tr></thead><tbody>{filtered.map((item,index)=>{const status=replaceStatus(item.replaceAt);return<tr key={item.id||index}><td><div className="nk-epp-person"><strong>{item.workerName}</strong><span className="nk-epp-subtle">{item.workerRut||item.workerRole||'Sin información'}</span></div></td><td><div className="nk-epp-item"><strong>{item.itemName}</strong><span className="nk-epp-subtle">{item.brandModel||'Sin marca/modelo'}{item.certification?` · ${item.certification}`:''}</span></div></td><td>{item.size||'—'}</td><td>{item.deliveredAt||'—'}</td><td>{item.replaceAt||'Según inspección'}</td><td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td><td>{item.workerId?<button className="nk-button nk-button-quiet" onClick={()=>navigate(`/app/trabajadores/${item.workerId}`)}>Ver persona</button>:'—'}</td></tr>})}</tbody></table></div>}</section>}
-    {creating && <DeliveryDialog workers={workers} inventory={inventory} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
+    {view==='historial'&&<section className="nk-card nk-epp-table-card">{loading?<div className="nk-empty nk-epp-empty"><IconShield size={30}/><p className="nk-empty-title">Cargando entregas…</p></div>:filtered.length===0?<div className="nk-empty nk-epp-empty"><IconPackage size={30}/><p className="nk-empty-title">Sin entregas para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Persona</th><th>EPP</th><th>Cantidad</th><th>Bodega / orden</th><th>Entrega</th><th>Reposición</th><th>Estado</th><th/></tr></thead><tbody>{filtered.map((item,index)=>{const status=replaceStatus(item.replaceAt);const warehouse=warehouses.find(entry=>String(entry.id)===String(item.warehouseId));const order=orders.find(entry=>String(entry.id)===String(item.orderId));return<tr key={item.id||index}><td><div className="nk-epp-person"><strong>{item.workerName}</strong><span className="nk-epp-subtle">{item.workerRut||item.workerRole||'Sin información'}</span></div></td><td><div className="nk-epp-item"><strong>{item.itemName}</strong><span className="nk-epp-subtle">{item.brandModel||'Sin marca/modelo'}{item.certification?` · ${item.certification}`:''}</span></div></td><td>{item.quantity || 1}{item.size ? ` · ${item.size}` : ''}</td><td><span className="nk-epp-subtle">{warehouse?.nombre || warehouse?.name || 'Sin bodega'}{order ? ` · ${order.codigo || order.nombre || order.name}` : ''}</span></td><td>{item.deliveredAt||'—'}</td><td>{item.replaceAt||'Según inspección'}</td><td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td><td>{item.workerId?<button className="nk-button nk-button-quiet" onClick={()=>navigate(`/app/trabajadores/${item.workerId}`)}>Ver persona</button>:'—'}</td></tr>})}</tbody></table></div>}</section>}
+    {creating && <DeliveryDialog workers={workers} inventory={inventory} warehouses={warehouses} orders={orders} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
   </div>
 }
