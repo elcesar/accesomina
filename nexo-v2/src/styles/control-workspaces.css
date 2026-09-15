@@ -47,7 +47,6 @@
   white-space: nowrap;
 }
 
-.nk-control-kpis,
 .nk-control-project-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr));
