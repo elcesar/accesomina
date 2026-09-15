@@ -42,40 +42,72 @@
   padding: var(--nk-space-3) var(--nk-space-2);
   display: grid;
   align-content: start;
-  gap: var(--nk-space-3);
+  gap: var(--nk-space-2);
 }
 
 .nk-side-group {
   display: grid;
   gap: var(--nk-space-1);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+  background: var(--nk-surface);
+  overflow: hidden;
+  transition:
+    border-color var(--nk-motion-normal) var(--nk-motion-curve),
+    background-color var(--nk-motion-normal) var(--nk-motion-curve),
+    box-shadow var(--nk-motion-normal) var(--nk-motion-curve);
+}
+
+.nk-side-group:hover {
+  border-color: var(--nk-line-strong);
+}
+
+.nk-side-group:has(.nk-side-link.active) {
+  border-color: var(--nk-primary);
+  background: var(--nk-primary-soft);
+  box-shadow: var(--nk-elev-1);
 }
 
 .nk-side-group-title {
   width: 100%;
-  min-height: var(--nk-row-compact);
+  min-height: var(--nk-row-comfortable);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--nk-space-2);
-  padding: var(--nk-space-1) var(--nk-space-3);
+  padding: var(--nk-space-2) var(--nk-space-3);
   border: 0;
-  border-radius: var(--nk-radius-sm);
+  border-radius: var(--nk-radius-lg);
   background: transparent;
-  color: var(--nk-ink-3);
+  color: var(--nk-ink-2);
   font: var(--nk-font-overline);
   text-align: left;
   text-transform: uppercase;
-  transition: background-color var(--nk-motion-normal) var(--nk-motion-curve), color var(--nk-motion-normal) var(--nk-motion-curve);
+  transition:
+    background-color var(--nk-motion-normal) var(--nk-motion-curve),
+    color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
 .nk-side-group-title:hover {
   background: var(--nk-surface-2);
-  color: var(--nk-ink-2);
+  color: var(--nk-ink);
+}
+
+.nk-side-group:has(.nk-side-link.active) > .nk-side-group-title {
+  color: var(--nk-primary);
+  font-weight: var(--nk-weight-bold);
 }
 
 .nk-side-group-title svg {
   flex-shrink: 0;
-  transition: transform var(--nk-motion-normal) var(--nk-motion-curve);
+  color: var(--nk-ink-3);
+  transition:
+    transform var(--nk-motion-normal) var(--nk-motion-curve),
+    color var(--nk-motion-normal) var(--nk-motion-curve);
+}
+
+.nk-side-group:has(.nk-side-link.active) > .nk-side-group-title svg {
+  color: var(--nk-primary);
 }
 
 .nk-side-group-title[aria-expanded='false'] svg {
@@ -85,6 +117,9 @@
 .nk-side-group-items {
   display: grid;
   gap: var(--nk-space-1);
+  padding: var(--nk-space-1);
+  border-top: var(--nk-stroke-thin) solid var(--nk-line);
+  background: var(--nk-surface);
 }
 
 .nk-side-link,
@@ -98,7 +133,9 @@
   color: var(--nk-ink-2);
   font: var(--nk-font-caption);
   text-decoration: none;
-  transition: background-color var(--nk-motion-normal) var(--nk-motion-curve), color var(--nk-motion-normal) var(--nk-motion-curve);
+  transition:
+    background-color var(--nk-motion-normal) var(--nk-motion-curve),
+    color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
 .nk-side-link:hover,
