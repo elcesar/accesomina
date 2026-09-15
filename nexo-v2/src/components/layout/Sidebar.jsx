@@ -25,7 +25,7 @@ const NAV = [
     items: [
       { to: '/app', label: 'Panel General', icon: IconLayoutDashboard, exact: true },
       { to: '/app/alertas', label: 'Alertas', icon: IconBell, badge: true },
-      { to: '/app/reclutamiento', label: 'Gestión de trabajadores por proyecto', icon: IconClipboardList },
+      { to: '/app/reclutamiento', label: 'Gestión de trabajadores', icon: IconClipboardList },
       { to: '/app/operaciones', label: 'Centro Operativo', icon: IconServer },
     ],
   },
