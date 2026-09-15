@@ -7,7 +7,7 @@ export const publicSections = [
   ['solucion', 'Plataforma'],
   ['resultados', 'Beneficios'],
   ['producto', 'Producto'],
-  ['capacidades', 'Capacidades'],
+  ['capacidades', 'Soluciones'],
   ['industrias', 'Industrias'],
   ['implementacion', 'Implementación y privacidad'],
   ['proposito', 'Propósito'],
