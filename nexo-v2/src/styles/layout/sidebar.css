@@ -51,7 +51,6 @@
   border: var(--nk-stroke-thin) solid var(--nk-line);
   border-radius: var(--nk-radius-lg);
   background: var(--nk-surface);
-  overflow: hidden;
   transition:
     border-color var(--nk-motion-normal) var(--nk-motion-curve),
     background-color var(--nk-motion-normal) var(--nk-motion-curve),
@@ -119,6 +118,7 @@
   gap: var(--nk-space-1);
   padding: var(--nk-space-1);
   border-top: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: 0 0 var(--nk-radius-lg) var(--nk-radius-lg);
   background: var(--nk-surface);
 }
 
