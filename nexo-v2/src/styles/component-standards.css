@@ -1,0 +1,24 @@
+/*
+ * NEXO KLAR · Shared component sizing standards
+ * Normaliza dimensiones de controles y estados en todas las vistas.
+ * Esta capa complementa components.css sin definir identidad visual propia.
+ */
+
+.nk-button {
+  min-height: var(--nk-control-min);
+  padding: var(--nk-space-2) var(--nk-space-4);
+  font: var(--nk-font-label);
+  white-space: nowrap;
+}
+
+.nk-badge {
+  min-height: var(--nk-row-compact);
+  padding: var(--nk-space-1) var(--nk-space-3);
+  font: var(--nk-font-label);
+  line-height: var(--nk-leading-snug);
+  white-space: nowrap;
+}
+
+.nk-actions .nk-button {
+  flex: 0 0 auto;
+}
