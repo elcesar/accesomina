@@ -5,13 +5,16 @@
  */
 
 .nk-button {
+  height: var(--nk-control-min);
   min-height: var(--nk-control-min);
   padding: var(--nk-space-2) var(--nk-space-4);
   font: var(--nk-font-label);
+  line-height: var(--nk-leading-snug);
   white-space: nowrap;
 }
 
 .nk-badge {
+  height: var(--nk-row-compact);
   min-height: var(--nk-row-compact);
   padding: var(--nk-space-1) var(--nk-space-3);
   font: var(--nk-font-label);
@@ -21,4 +24,21 @@
 
 .nk-actions .nk-button {
   flex: 0 0 auto;
+}
+
+/*
+ * En columnas de acciones tabulares, todos los botones comparten ancho.
+ * La columna define distribución; el componente mantiene su variante visual.
+ */
+.nk-table .nk-actions,
+.nk-table .nk-staffing-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  gap: var(--nk-space-2);
+}
+
+.nk-table .nk-actions .nk-button,
+.nk-table .nk-staffing-actions .nk-button {
+  width: 100%;
 }
