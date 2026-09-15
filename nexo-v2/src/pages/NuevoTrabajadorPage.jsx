@@ -5,6 +5,7 @@ import {
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
 
 const ESPECIALIDADES = [
@@ -12,12 +13,6 @@ const ESPECIALIDADES = [
   'Rigger','Calderero','Maestro Andamios','Operador de equipos',
   'Prevencionista','Supervisor','Técnico electrónico','Pintor industrial',
   'Operadora','Enfermero/a','Paramédico','Conductor','Administrativo','Otro',
-]
-
-const REGIONES = [
-  'Arica y Parinacota','Tarapacá','Antofagasta','Atacama','Coquimbo',
-  'Valparaíso','Metropolitana de Santiago',"O'Higgins",'Maule','Ñuble',
-  'Biobío','Araucanía','Los Ríos','Los Lagos','Aysén','Magallanes',
 ]
 
 const TIPOS = [
@@ -92,6 +87,11 @@ function Stepper({ current }) {
 }
 
 function StepIdentidad({ data, onChange }) {
+  const comunas = comunasDeRegion(data.region)
+  const updateRegion = event => {
+    onChange('region', event.target.value)
+    onChange('ciudad', '')
+  }
   return (
     <div className="nk-person-form-grid">
       <Field label="Nombre completo" required full>
@@ -110,13 +110,17 @@ function StepIdentidad({ data, onChange }) {
         <FInput type="email" value={data.email} onChange={e => onChange('email', e.target.value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
-        <FSelect value={data.region} onChange={e => onChange('region', e.target.value)}>
+        <FSelect value={data.region} onChange={updateRegion}>
           <option value="">Seleccionar región</option>
-          {REGIONES.map(r => <option key={r} value={r}>{r}</option>)}
+          {regionesChile.map(region => <option key={region} value={region}>{region}</option>)}
         </FSelect>
       </Field>
-      <Field label="Comuna / Ciudad" hint="Puedes escribir directamente si tu comuna no aparece">
-        <FInput value={data.ciudad} onChange={e => onChange('ciudad', e.target.value)} placeholder="Ej: Antofagasta" />
+      <Field label="Comuna / Ciudad" hint={data.region ? 'Selecciona una comuna de la región elegida.' : 'Primero selecciona una región.'}>
+        <FSelect value={data.ciudad} disabled={!data.region} onChange={e => onChange('ciudad', e.target.value)}>
+          <option value="">Seleccionar comuna o ciudad</option>
+          {data.ciudad && !comunas.includes(data.ciudad) && <option value={data.ciudad}>{data.ciudad}</option>}
+          {comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}
+        </FSelect>
       </Field>
     </div>
   )
