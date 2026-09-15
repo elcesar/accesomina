@@ -73,19 +73,33 @@
   );
 }
 
-.nk-card-grid-4,
-.nk-kpi-grid,
-.nk-control-kpis {
+.nk-card-grid-4 {
   grid-template-columns: repeat(
     auto-fit,
     minmax(min(100%, calc(var(--nk-space-20) * 3)), 1fr)
   );
 }
 
+/* KPI · cuatro columnas cuando el contenedor dispone de espacio suficiente. */
 .nk-kpi-grid,
 .nk-control-kpis {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--nk-space-3);
+}
+
+@media (max-width: 64rem) {
+  .nk-kpi-grid,
+  .nk-control-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .nk-kpi-grid,
+  .nk-control-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Encabezados de sección y contenido editorial */
