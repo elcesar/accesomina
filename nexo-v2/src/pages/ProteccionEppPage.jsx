@@ -43,7 +43,7 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
 
   function chooseInventory(id) {
     const item = inventory.find(current => current.id === id)
-    setForm(current => ({ ...current, inventoryId: id, warehouseId: item?.warehouseId || item?.bodegaId || current.warehouseId, itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || current.size }))
+    setForm(current => ({ ...current, inventoryId: id, warehouseId: item?.warehouseId || item?.bodegaId || '', itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || current.size }))
   }
 
   function chooseWorker(id) {
@@ -74,10 +74,10 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
         const selectedItem = inventoryItems.find(item => String(item.id) === String(form.inventoryId))
         if (!selectedItem) throw new Error('No se encontró el EPP seleccionado en inventario.')
 
+        const hasLocationStock = Object.keys(selectedItem.stockByLocation || {}).length > 0 || Boolean(selectedItem.warehouseId || selectedItem.bodegaId)
+        if (!hasLocationStock && Number(selectedItem.stock || 0) > 0) throw new Error('Este EPP tiene stock histórico sin bodega definida. Regulariza su ubicación antes de descontar existencias.')
         const stockByLocation = { ...(selectedItem.stockByLocation || {}) }
-        if (!Object.keys(stockByLocation).length) {
-          stockByLocation[selectedItem.warehouseId || selectedItem.bodegaId || form.warehouseId] = Number(selectedItem.stock || 0)
-        }
+        if (!Object.keys(stockByLocation).length && (selectedItem.warehouseId || selectedItem.bodegaId)) stockByLocation[selectedItem.warehouseId || selectedItem.bodegaId] = Number(selectedItem.stock || 0)
         const available = Number(stockByLocation[form.warehouseId] || 0)
         if (available < quantity) throw new Error(`Stock insuficiente en la bodega seleccionada. Disponible: ${available}`)
         stockByLocation[form.warehouseId] = available - quantity
@@ -88,7 +88,8 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
           updatedAt: new Date().toISOString(),
         } : item)
         const movements = asRows(state.inventoryMovements)
-        const movement = { id: `mov_epp_${Date.now()}`, itemId: selectedItem.id, warehouseId: form.warehouseId, type: 'entrega', qty: quantity, stockBefore: available, stockAfter: Number(stockByLocation[form.warehouseId] || 0), workerId: form.workerId, projectId: form.orderId || '', referenceType: 'epp_delivery', referenceId: record.id, lotSerial: form.lotSerial.trim(), notes: form.notes.trim(), at: form.deliveredAt ? `${form.deliveredAt}T12:00:00` : new Date().toISOString() }
+        const now = new Date().toISOString()
+        const movement = { id: `mov_epp_${Date.now()}`, itemId: selectedItem.id, warehouseId: form.warehouseId, type: 'entrega', qty: quantity, stockBefore: available, stockAfter: Number(stockByLocation[form.warehouseId] || 0), workerId: form.workerId, projectId: form.orderId || '', referenceType: 'epp_delivery', referenceId: record.id, lotSerial: form.lotSerial.trim(), notes: form.notes.trim(), effectiveAt: form.deliveredAt || today(), createdAt: now, movementAt: now, at: now }
         changes.inventoryItems = { version: Number(versions.inventoryItems || 0), data: nextItems }
         changes.inventoryMovements = { version: Number(versions.inventoryMovements || 0), data: [movement, ...movements] }
       }
