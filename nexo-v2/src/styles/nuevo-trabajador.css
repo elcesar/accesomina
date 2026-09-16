@@ -147,6 +147,10 @@
   gap: var(--space-4);
 }
 
+.nk-person-form-grid > .nk-field {
+  align-content: start;
+}
+
 .nk-person-field-full {
   grid-column: 1 / -1;
 }
