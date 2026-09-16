@@ -13,13 +13,23 @@ const stage = item => {
   const legacy = { candidato: 'reclutamiento', contactado: 'convocado', confirmado: 'en_validacion', asignado: 'contrato_enviado', habilitado: 'acreditacion_enviada', contrato_generado: 'contrato_enviado' }
   return FLOW.some(([id]) => id === value) ? value : legacy[value] || (item?.estado === 'confirmado' ? 'contrato_firmado' : '')
 }
-const typeFor = worker => /proyecto|temporal|plazo/i.test(String(worker.tipoTrabajador || worker.tipoContrato || worker.modalidad || '')) ? 'Trabajador por proyecto' : 'Trabajador fijo'
-function validation(worker) {
+const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const CORE_REQUIREMENTS = ['Cédula de identidad', 'Contrato de trabajo', 'Examen preocupacional', 'ODI / Derecho a Saber']
+const requirementName = item => item?.nombre || item?.name || item?.descripcion || item?.tipo || item || ''
+const typeFor = worker => /esporadico|proyecto|temporal|plazo/i.test(String(worker.tipo || worker.tipoTrabajador || worker.tipoContrato || worker.modalidad || '')) ? 'Trabajador por proyecto' : 'Trabajador fijo'
+function validation(worker, requiredRequirements) {
   if (worker.disponibilidad === 'bloqueado' || worker.restringido) return { label: 'Restringido', cls: 'nk-badge-error', pct: 0, issues: ['Persona restringida'], ready: false }
   const all = rows(worker.workerItems).filter(item => ['documento', 'examen', 'curso', 'certificacion', 'contrato'].includes(item.type))
-  const issues = all.filter(item => item.estado === 'rechazado' || item.estado === 'faltante' || (item.vence && new Date(item.vence) < new Date())).map(item => item.nombre || item.name || 'Antecedente pendiente')
-  const pct = all.length ? Math.round(((all.length - issues.length) / all.length) * 100) : 0
-  return issues.length ? { label: 'Requiere revisión', cls: 'nk-badge-warn', pct, issues, ready: false } : { label: all.length ? 'Habilitada' : 'Sin información', cls: all.length ? 'nk-badge-ok' : 'nk-badge-neutral', pct, issues: all.length ? [] : ['Sin antecedentes cargados'], ready: all.length > 0 }
+  const invalid = all.filter(item => item.estado === 'rechazado' || item.estado === 'faltante' || (item.vence && new Date(item.vence) < new Date())).map(item => item.nombre || item.name || 'Antecedente pendiente')
+  const required = [...new Set((requiredRequirements.length ? requiredRequirements : CORE_REQUIREMENTS).map(requirementName).map(normalize).filter(Boolean))]
+  const missing = required.filter(requirement => !all.some(item => {
+    const name = normalize(item.nombre || item.name)
+    return name && (name.includes(requirement) || requirement.includes(name)) && !invalid.includes(item.nombre || item.name || 'Antecedente pendiente')
+  })).map(requirement => `Falta ${requirement}`)
+  const issues = [...new Set([...invalid, ...missing])]
+  const completed = Math.max(0, required.length - missing.length)
+  const pct = required.length ? Math.round((completed / required.length) * 100) : 0
+  return issues.length ? { label: 'Requiere revisión', cls: 'nk-badge-warn', pct, issues, ready: false } : { label: 'Habilitada', cls: 'nk-badge-ok', pct, issues: [], ready: true }
 }
 function csv(name, data) { const text = data.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n'); const url = URL.createObjectURL(new Blob([`\uFEFF${text}`], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url) }
 
@@ -31,28 +41,31 @@ export default function GestionPersonalProyectoPage() {
   useEffect(() => { load() }, [])
   const state = response?.state || response || {}, workers = rows(state.trabajadores), projects = rows(state.mantenciones).filter(item => item.estado !== 'cerrada'), assignments = rows(state.asignaciones), clients = rows(state.minas).length ? rows(state.minas) : rows(state.clientes), contracts = rows(state.contratos)
   const projectId = params.get('proyecto') || projects[0]?.id || '', project = projects.find(item => String(item.id) === String(projectId))
+  const client = clients.find(item => String(item.id) === String(project?.minaId || project?.clienteId))
+  const contract = contracts.find(item => String(item.id) === String(project?.contratoId))
+  const requiredRequirements = [...rows(client?.requisitos), ...rows(contract?.requisitos), ...rows(project?.requisitos)]
   useEffect(() => { if (!params.get('proyecto') && projects[0]?.id) setParams({ proyecto: projects[0].id }, { replace: true }) }, [projects, params, setParams])
   const related = useMemo(() => assignments.filter(item => String(item.mantId) === String(projectId)), [assignments, projectId])
   const relation = useMemo(() => new Map(related.map(item => [String(item.trabId), item])), [related])
   const specialties = useMemo(() => [...new Set(workers.map(w => w.especialidad || w.cargo).filter(Boolean))].sort(), [workers])
   const roster = useMemo(() => workers.map(worker => {
-    const assignment = relation.get(String(worker.id)), current = stage(assignment), check = validation(worker)
-    const elsewhere = assignments.some(item => String(item.trabId) === String(worker.id) && String(item.mantId) !== String(projectId) && ['contrato_firmado', 'acreditacion_enviada'].includes(stage(item)))
+    const assignment = relation.get(String(worker.id)), current = stage(assignment), check = validation(worker, requiredRequirements)
+    const elsewhere = assignments.some(item => String(item.trabId) === String(worker.id) && String(item.mantId) !== String(projectId) && ['contrato_enviado', 'contrato_firmado', 'acreditacion_enviada'].includes(stage(item)))
     return { worker, assignment, current, check, elsewhere }
   }).filter(item => {
     const text = query.trim().toLowerCase(), matches = !text || [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(v => String(v || '').toLowerCase().includes(text))
     const free = !item.assignment && !item.elsewhere && item.worker.disponibilidad !== 'bloqueado'
     return matches && (!specialty || (item.worker.especialidad || item.worker.cargo) === specialty) && (!stageFilter || item.current === stageFilter) && (availability === 'todos' || availability === 'califican' && item.check.ready && !item.elsewhere || availability === 'libres' && free || availability === 'asignados' && Boolean(item.assignment))
-  }), [workers, relation, assignments, projectId, query, specialty, stageFilter, availability])
-  const client = clients.find(item => String(item.id) === String(project?.minaId || project?.clienteId)), contract = contracts.find(item => String(item.id) === String(project?.contratoId)), required = Number(project?.personalReq || project?.dotacionRequerida || 0), signed = related.filter(a => ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))).length, gap = Math.max(0, required - signed)
+  }), [workers, relation, assignments, projectId, query, specialty, stageFilter, availability, requiredRequirements])
+  const required = Number(project?.personalReq || project?.dotacionRequerida || 0), signed = related.filter(a => ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))).length, gap = Math.max(0, required - signed)
 
   async function persist(worker, transform, reason, message) {
     if (!project || saving) return; setSaving(worker.id); setError(''); setNotice('')
     try { const latest = await api.get('/state'), current = latest?.state || latest || {}, result = transform(rows(current.asignaciones), rows(current.trabajadores)); await api.put('/state/modules', { reason, changes: { asignaciones: { version: latest?.moduleVersions?.asignaciones ?? 0, data: result.assignments }, trabajadores: { version: latest?.moduleVersions?.trabajadores ?? 0, data: result.workers } } }); setNotice(message); await load() } catch (cause) { setError(cause.message || 'No fue posible guardar el cambio.') } finally { setSaving('') }
   }
   function begin(worker) { persist(worker, (current, currentWorkers) => { if (current.some(a => String(a.mantId) === String(project.id) && String(a.trabId) === String(worker.id))) throw new Error('La persona ya está incorporada a esta orden de servicio.'); return { assignments: [...current, { id: `asig_${Date.now()}`, mantId: project.id, trabId: worker.id, turno: 'Por definir', estado: 'pendiente', recruitmentStage: 'reclutamiento', recruitmentUpdatedAt: new Date().toISOString(), recruitmentFollowUps: [] }], workers: currentWorkers } }, `Inicio de gestión de ${worker.nombre} en ${project.nombre}`, `${worker.nombre} fue incorporada al flujo de esta orden de servicio.`) }
-  function advance(worker, assignment) { const target = next(stage(assignment)); if (!target) return; if (target === 'acreditacion_enviada' && !validation(worker).ready) { setError(`${worker.nombre} no puede enviarse a acreditación mientras tenga antecedentes pendientes.`); return } persist(worker, (current, currentWorkers) => ({ assignments: current.map(a => a.id === assignment.id ? { ...a, recruitmentStage: target, estado: ['contrato_firmado', 'acreditacion_enviada'].includes(target) ? 'confirmado' : 'pendiente', recruitmentUpdatedAt: new Date().toISOString() } : a), workers: currentWorkers.map(w => w.id === worker.id && ['contrato_firmado', 'acreditacion_enviada'].includes(target) ? { ...w, disponibilidad: 'asignado' } : w) }), `${label(target)}: ${worker.nombre} en ${project.nombre}`, `${worker.nombre} avanzó a ${label(target)}.`) }
-  function remove(worker, assignment) { persist(worker, (current, currentWorkers) => { const nextRows = current.filter(a => a.id !== assignment.id), remains = nextRows.some(a => String(a.trabId) === String(worker.id) && ['contrato_firmado', 'acreditacion_enviada'].includes(stage(a))); return { assignments: nextRows, workers: currentWorkers.map(w => w.id === worker.id ? { ...w, disponibilidad: remains ? 'asignado' : 'disponible' } : w) } }, `Retiro de ${worker.nombre} de ${project.nombre}`, `${worker.nombre} fue retirada de la gestión de esta orden.`) }
+  function advance(worker, assignment) { const target = next(stage(assignment)); if (!target) return; if (target === 'acreditacion_enviada' && !validation(worker, requiredRequirements).ready) { setError(`${worker.nombre} no puede enviarse a acreditación mientras tenga antecedentes pendientes.`); return } persist(worker, (current, currentWorkers) => ({ assignments: current.map(a => a.id === assignment.id ? { ...a, recruitmentStage: target, estado: ['contrato_firmado', 'acreditacion_enviada'].includes(target) ? 'confirmado' : 'pendiente', recruitmentUpdatedAt: new Date().toISOString() } : a), workers: currentWorkers.map(w => w.id === worker.id && ['contrato_enviado', 'contrato_firmado', 'acreditacion_enviada'].includes(target) ? { ...w, disponibilidad: 'asignado' } : w) }), `${label(target)}: ${worker.nombre} en ${project.nombre}`, `${worker.nombre} avanzó a ${label(target)}.`) }
+  function remove(worker, assignment) { persist(worker, (current, currentWorkers) => { const nextRows = current.filter(a => a.id !== assignment.id), remains = nextRows.some(a => String(a.trabId) === String(worker.id) && ['contrato_enviado', 'contrato_firmado', 'acreditacion_enviada'].includes(stage(a))); return { assignments: nextRows, workers: currentWorkers.map(w => w.id === worker.id ? { ...w, disponibilidad: remains ? 'asignado' : 'disponible' } : w) } }, `Retiro de ${worker.nombre} de ${project.nombre}`, `${worker.nombre} fue retirada de la gestión de esta orden.`) }
   function saveFollow(event) { event.preventDefault(); if (!follow.owner.trim() || !follow.note.trim()) { setError('Indica responsable y resultado del seguimiento.'); return } const { worker, assignment } = followUp; persist(worker, (current, currentWorkers) => ({ assignments: current.map(a => a.id === assignment.id ? { ...a, recruitmentOwner: follow.owner.trim(), recruitmentNextDate: follow.nextDate, recruitmentUpdatedAt: new Date().toISOString(), recruitmentFollowUps: [{ id: `rf_${Date.now()}`, date: new Date().toISOString().slice(0, 10), owner: follow.owner.trim(), nextDate: follow.nextDate, note: follow.note.trim() }, ...rows(a.recruitmentFollowUps)] } : a), workers: currentWorkers }), `Seguimiento de ${worker.nombre} en ${project.nombre}`, 'Seguimiento guardado.'); setFollowUp(null) }
   function exportView() { if (project) csv(`gestion_trabajadores_${String(project.nombre || 'proyecto').replaceAll(/[^a-z0-9]+/gi, '_')}.csv`, [['Orden de servicio', 'Cliente', 'Persona', 'RUT', 'Cargo', 'Especialidad', 'Etapa', 'Habilitación', 'Pendientes', 'Responsable', 'Próximo seguimiento'], ...roster.map(({ worker, assignment, current, check }) => [project.nombre, client?.nombre || '', worker.nombre, worker.rut, worker.cargo, worker.especialidad, label(current), check.label, check.issues.join(' | '), assignment?.recruitmentOwner || '', assignment?.recruitmentNextDate || ''])]) }
 
