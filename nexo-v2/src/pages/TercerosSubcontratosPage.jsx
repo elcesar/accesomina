@@ -6,6 +6,8 @@ import '../styles/terceros-subcontratos.css'
 
 const EMPTY_FORM = {
   razon: '', rut: '', contratoId: '', servicios: '', responsable: '', contacto: '', personal: 0,
+  contratoRef: '', ocs: '', requirementProfile: 'estandar', approvalStatus: 'pendiente',
+  availableCapacity: '', nextAction: '', nextActionDue: '', nextActionOwner: '',
   f30: '', f301: '', cotizaciones: '', seguro: '', estado: 'vigente', observaciones: '',
 }
 
@@ -99,6 +101,8 @@ export default function TercerosSubcontratosPage() {
   const moduleVersions = response?.moduleVersions || {}
   const rows = Array.isArray(state.subcontratos) ? state.subcontratos : []
   const contracts = Array.isArray(state.contratos) ? state.contratos : []
+  const contractorPeople = Array.isArray(state.personalContratista) ? state.personalContratista : []
+  const workers = Array.isArray(state.trabajadores) ? state.trabajadores : []
 
   const selected = rows.find(item => String(item.id) === String(selectedId)) || null
 
@@ -113,6 +117,14 @@ export default function TercerosSubcontratosPage() {
         responsable: selected.responsable || '',
         contacto: selected.contacto || selected.email || selected.telefono || '',
         personal: Number(selected.personal || selected.dotacion || 0),
+        contratoRef: selected.contratoRef || selected.contractReference || '',
+        ocs: Array.isArray(selected.ocs) ? selected.ocs.join(', ') : selected.ocs || '',
+        requirementProfile: selected.requirementProfile || selected.profile || 'estandar',
+        approvalStatus: selected.approvalStatus || selected.approval || 'pendiente',
+        availableCapacity: selected.availableCapacity ?? '',
+        nextAction: selected.nextAction || '',
+        nextActionDue: selected.nextActionDue || '',
+        nextActionOwner: selected.nextActionOwner || '',
         f30: selected.f30 || '',
         f301: selected.f301 || '',
         cotizaciones: selected.cotizaciones || '',
@@ -132,13 +144,22 @@ export default function TercerosSubcontratosPage() {
     })
   }, [rows, query, contractFilter, statusFilter])
 
+  const peopleFor = item => {
+    const linked = contractorPeople.filter(row => String(row.subcontratoId || row.terceroId) === String(item.id))
+    const linkedIds = new Set(linked.map(row => String(row.trabId || row.workerId)).filter(Boolean))
+    return workers.filter(worker => (
+      linkedIds.has(String(worker.id)) ||
+      String(worker.subcontratoId || worker.subcontractId || '') === String(item.id)
+    ))
+  }
+
   const summary = useMemo(() => filtered.reduce((acc, item) => {
     acc.total += 1
     if (!complianceAlertCount(item)) acc.ok += 1
     else acc.alerts += 1
-    acc.people += Number(item.personal || item.dotacion || 0)
+    acc.people += peopleFor(item).length || Number(item.personal || item.dotacion || 0)
     return acc
-  }, { total: 0, ok: 0, alerts: 0, people: 0 }), [filtered])
+  }, { total: 0, ok: 0, alerts: 0, people: 0 }), [filtered, contractorPeople, workers])
 
   const contractName = id => {
     const item = contracts.find(contract => String(contract.id) === String(id))
@@ -177,6 +198,14 @@ export default function TercerosSubcontratosPage() {
         responsable: form.responsable.trim(),
         contacto: form.contacto.trim(),
         personal: Number(form.personal) || 0,
+        contratoRef: form.contratoRef.trim(),
+        ocs: form.ocs.split(',').map(item => item.trim()).filter(Boolean),
+        requirementProfile: form.requirementProfile,
+        approvalStatus: form.approvalStatus,
+        availableCapacity: form.availableCapacity === '' ? undefined : Number(form.availableCapacity),
+        nextAction: form.nextAction.trim(),
+        nextActionDue: form.nextActionDue,
+        nextActionOwner: form.nextActionOwner.trim(),
         f30: form.f30,
         f301: form.f301,
         cotizaciones: form.cotizaciones,
@@ -265,8 +294,8 @@ export default function TercerosSubcontratosPage() {
                       <ExpiryCell label="Seguro" value={item.seguro} />
                     </div>
                   </td>
-                  <td>{Number(item.personal || item.dotacion || 0)}</td>
-                  <td><StatusBadge value={item.estado} /></td>
+                  <td>{peopleFor(item).length || Number(item.personal || item.dotacion || 0)}</td>
+                  <td><StatusBadge value={item.approvalStatus === 'restringido' ? 'bloqueado' : item.estado} /><div className="nk-third-table-note">{item.nextAction || 'Sin próxima gestión'}</div></td>
                   <td><button className="nk-button nk-button-quiet" type="button" onClick={() => openDetail(item.id)}>Abrir ficha</button></td>
                 </tr>
               ))}</tbody>
@@ -287,7 +316,9 @@ export default function TercerosSubcontratosPage() {
             <div className="nk-field"><label className="nk-label">RUT</label><input className="nk-input" value={form.rut} onChange={e => setForm(current => ({ ...current, rut: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
+            <div className="nk-field"><label className="nk-label">Referencia contractual</label><input className="nk-input" value={form.contratoRef} onChange={e => setForm(current => ({ ...current, contratoRef: e.target.value }))} placeholder="N° de contrato o acuerdo" /></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label">Órdenes de compra</label><input className="nk-input" value={form.ocs} onChange={e => setForm(current => ({ ...current, ocs: e.target.value }))} placeholder="OC-001, OC-002" /></div>
             <div className="nk-field nk-third-wide"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">Responsable</label><input className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">Contacto</label><input className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
@@ -301,6 +332,18 @@ export default function TercerosSubcontratosPage() {
             <div className="nk-field"><label className="nk-label">Seguro</label><input className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
             <div className="nk-field nk-third-wide"><label className="nk-label">Observaciones</label><textarea className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
           </div>
+
+          <div className="nk-third-section-title"><h3>Control operativo</h3><p>Define exigencia, capacidad y el siguiente paso para la habilitación de esta empresa.</p></div>
+          <div className="nk-third-form nk-third-control-grid">
+            <div className="nk-field"><label className="nk-label">Perfil de requisitos</label><select className="nk-select" value={form.requirementProfile} onChange={e => setForm(current => ({ ...current, requirementProfile: e.target.value }))}><option value="estandar">Estándar</option><option value="alto_riesgo">Alto riesgo</option><option value="critico">Crítico</option></select></div>
+            <div className="nk-field"><label className="nk-label">Estado de habilitación</label><select className="nk-select" value={form.approvalStatus} onChange={e => setForm(current => ({ ...current, approvalStatus: e.target.value }))}><option value="pendiente">Pendiente de revisión</option><option value="observado">Observado</option><option value="habilitado">Habilitado</option><option value="restringido">Restringido</option></select></div>
+            <div className="nk-field"><label className="nk-label">Capacidad disponible</label><input className="nk-input" type="number" min="0" value={form.availableCapacity} onChange={e => setForm(current => ({ ...current, availableCapacity: e.target.value }))} placeholder="Personas disponibles" /></div>
+            <div className="nk-field"><label className="nk-label">Fecha compromiso</label><input className="nk-input" type="date" value={form.nextActionDue} onChange={e => setForm(current => ({ ...current, nextActionDue: e.target.value }))} /></div>
+            <div className="nk-field nk-third-wide"><label className="nk-label">Próxima gestión</label><input className="nk-input" value={form.nextAction} onChange={e => setForm(current => ({ ...current, nextAction: e.target.value }))} placeholder="Ej: renovar F30-1 y confirmar póliza" /></div>
+            <div className="nk-field nk-third-wide"><label className="nk-label">Responsable interno</label><input className="nk-input" value={form.nextActionOwner} onChange={e => setForm(current => ({ ...current, nextActionOwner: e.target.value }))} placeholder="Nombre o correo" /></div>
+          </div>
+
+          {!creating && <div className="nk-third-related-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => navigate('/app/personal-contratista')}>Personas asociadas</button><button className="nk-button nk-button-secondary" type="button" onClick={() => navigate('/app/convenios')}>Contratos y convenios</button><button className="nk-button nk-button-secondary" type="button" onClick={() => navigate('/app/habilitaciones-contratistas')}>Habilitaciones</button><button className="nk-button nk-button-secondary" type="button" onClick={() => navigate('/app/evaluacion-desempeno')}>Evaluación</button></div>}
 
           <div className="nk-third-detail-actions">
             <button className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</button>
