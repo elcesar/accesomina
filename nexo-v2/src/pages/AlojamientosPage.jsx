@@ -21,6 +21,7 @@ const stayState = stay => {
   if (stay.checkin && stay.checkin > current) return 'futura'
   return 'ocupada'
 }
+const isRestricted = worker => worker?.bloqueado === true || ['bloqueado', 'restringido'].includes(normalize(worker?.disponibilidad)) || ['bloqueado', 'restringido'].includes(normalize(worker?.operationalStatus))
 
 export default function AlojamientosPage() {
   const { session } = useAuth()
@@ -73,7 +74,7 @@ export default function AlojamientosPage() {
   const eligibleWorkers = useMemo(() => {
     if (!stayDraft.mantId) return []
     const ids = new Set(assignments.filter(a => String(a.mantId) === String(stayDraft.mantId)).map(a => String(a.trabId)))
-    return workers.filter(worker => ids.has(String(worker.id)))
+    return workers.filter(worker => ids.has(String(worker.id)) && !isRestricted(worker))
   }, [assignments, workers, stayDraft.mantId])
 
   const updateHotel = key => event => setHotelDraft(current => ({ ...current, [key]: event.target.value }))
@@ -126,7 +127,9 @@ export default function AlojamientosPage() {
     if (!canAssign) return
     if (!stayDraft.hotelId || !stayDraft.mantId || !stayDraft.trabId || !stayDraft.checkin || !stayDraft.checkout) { setMessage('Selecciona alojamiento, orden, persona y fechas de estadía.'); setMessageTone('error'); return }
     if (stayDraft.checkin > stayDraft.checkout) { setMessage('La fecha de check-out no puede ser anterior al check-in.'); setMessageTone('error'); return }
-    if (!eligibleWorkers.some(worker => String(worker.id) === String(stayDraft.trabId))) { setMessage('La persona debe estar asignada a la orden antes de registrar su estadía.'); setMessageTone('error'); return }
+    if (!eligibleWorkers.some(worker => String(worker.id) === String(stayDraft.trabId))) { setMessage('La persona debe estar asignada y habilitada en la orden antes de registrar su estadía.'); setMessageTone('error'); return }
+    const hotelClients = rows(stayHotel?.minaIds)
+    if (selectedOrder?.minaId && hotelClients.length && !hotelClients.some(id => String(id) === String(selectedOrder.minaId))) { setMessage('El alojamiento no está habilitado para el cliente o faena de la orden seleccionada.'); setMessageTone('error'); return }
     if (stayDraft.pieza && !rows(stayHotel?.rooms).some(room => String(room.number) === String(stayDraft.pieza))) { setMessage('La habitación seleccionada no pertenece al alojamiento.'); setMessageTone('error'); return }
     setSaving(true); setMessage('')
     try {
