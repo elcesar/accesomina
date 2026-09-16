@@ -35,7 +35,7 @@ const INITIAL = {
   tipo:'permanente', regimen:'5x2',
   cargo:'', rol:'', especialidad:'', calificacion:'7',
   mantId:'',
-  afp:'', salud:'', mutual:'',
+  afp:'', salud:'',
   eppCasco:'', eppPolera:'', eppPantalon:'', eppZapato:'',
 }
 
@@ -129,7 +129,7 @@ function StepIdentidad({ data, onChange }) {
 function StepContrato({ data, onChange, mantenciones }) {
   return (
     <div className="nk-person-form-grid">
-      <Field label="Tipo de persona" required full>
+      <Field label="Tipo de trabajador" required full>
         <div className="nk-person-type-grid">
           {TIPOS.map(tipo => {
             const active = data.tipo === tipo.value
@@ -154,8 +154,9 @@ function StepContrato({ data, onChange, mantenciones }) {
           <option value="5x2">5x2</option>
           <option value="4x3">4x3</option>
           <option value="7x7">7x7</option>
-          <option value="6x1">6x1</option>
-          <option value="turno_especial">Turno especial</option>
+          <option value="10x10">10x10</option>
+          <option value="14x14">14x14</option>
+          <option value="otro">Otro tipo de turno</option>
         </FSelect>
       </Field>
 
@@ -201,9 +202,6 @@ function StepSalud({ data, onChange }) {
       <Field label="Previsión de salud">
         <FInput value={data.salud} onChange={e => onChange('salud', e.target.value)} placeholder="Fonasa / Isapre…" />
       </Field>
-      <Field label="Mutual de seguridad" full>
-        <FInput value={data.mutual} onChange={e => onChange('mutual', e.target.value)} placeholder="Mutual / ACHS / IST" />
-      </Field>
     </div>
   )
 }
@@ -232,10 +230,10 @@ function StepResumen({ data, mantenciones }) {
   const mantLabel = mantenciones.find(m => m.id === data.mantId)?.nombre
   const rows = [
     ['Nombre', data.nombre], ['RUT', data.rut], ['Teléfono', data.tel], ['Correo', data.email],
-    ['Región', data.region], ['Ciudad / Comuna', data.ciudad], ['Tipo de persona', tipoLabel],
+    ['Región', data.region], ['Ciudad / Comuna', data.ciudad], ['Tipo de trabajador', tipoLabel],
     ['Turno / Jornada', data.regimen], ['Cargo', data.cargo], ['Rol operacional', data.rol],
     ['Especialidad', data.especialidad], ['Calificación', data.calificacion], ['Proyecto inicial', mantLabel],
-    ['AFP', data.afp], ['Previsión salud', data.salud], ['Mutual', data.mutual],
+    ['AFP', data.afp], ['Previsión salud', data.salud],
     ['Casco', data.eppCasco], ['Polera', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato', data.eppZapato],
   ].filter(([, value]) => value)
 
@@ -311,7 +309,6 @@ export default function NuevoTrabajadorPage() {
         disponibilidad,
         afp: data.afp || undefined,
         salud: data.salud || undefined,
-        mutual: data.mutual || undefined,
         epp: {
           casco: data.eppCasco || undefined,
           polera: data.eppPolera || undefined,

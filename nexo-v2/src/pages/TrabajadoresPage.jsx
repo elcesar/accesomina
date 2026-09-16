@@ -90,6 +90,42 @@ function workerProjectIds(persona, asignaciones) {
     .map(asignacion => asignacion.mantId)
 }
 
+function projectIsActive(project) {
+  const status = String(project?.estado || '').toLocaleLowerCase()
+  return !['cerrada', 'cerrado', 'cancelada', 'cancelado', 'finalizada', 'finalizado'].includes(status)
+}
+
+function hasActiveProjectAssignment(persona, asignaciones, proyectos) {
+  return asignaciones.some(asignacion => (
+    asignacion.trabId === persona.id &&
+    !['retirado', 'cancelado', 'cancelada', 'finalizado', 'finalizada'].includes(String(asignacion.estado || '').toLocaleLowerCase()) &&
+    projectIsActive(proyectos.find(proyecto => proyecto.id === asignacion.mantId))
+  ))
+}
+
+function workerSegment(persona, asignaciones, proyectos) {
+  if (persona.bloqueado || persona.disponibilidad === 'bloqueado') return 'bloqueados'
+  if (hasActiveProjectAssignment(persona, asignaciones, proyectos)) return 'esporadico'
+
+  const profile = String(persona.employmentProfile || persona.tipo || '').toLocaleLowerCase()
+  if (['permanente', 'fijo', 'planta'].includes(profile)) return 'planta'
+  if (['esporadico', 'temporal', 'proyecto', 'por_proyecto'].includes(profile)) return 'esporadico'
+  return 'disponible'
+}
+
+function restrictionIsActive(restriction) {
+  if (restriction?.activa === false) return false
+  if (restriction?.hasta && new Date(`${restriction.hasta}T23:59:59`) < new Date()) return false
+  return !['levantada', 'cerrada', 'inactiva'].includes(String(restriction?.estado || '').toLocaleLowerCase())
+}
+
+function currentRestriction(persona, restrictions) {
+  return restrictions.find(restriction => (
+    restrictionIsActive(restriction) &&
+    (restriction.workerId || restriction.trabId || restriction.personaId) === persona.id
+  ))
+}
+
 function workerContractIds(persona, asignaciones, mantenciones) {
   const projectIds = workerProjectIds(persona, asignaciones)
   return [...new Set(
@@ -104,8 +140,9 @@ function AvailabilityBadge({ value, blocked }) {
   return <StatusBadge value={value || 'sin_informacion'} />
 }
 
-function LinkTypeBadge({ type }) {
-  return type === 'permanente'
+function LinkTypeBadge({ segment }) {
+  if (segment === 'disponible') return <span className="nk-badge nk-badge-ok">Disponible</span>
+  return segment === 'planta'
     ? <span className="nk-badge nk-badge-none">Trabajador fijo</span>
     : <span className="nk-badge nk-badge-warn">Trabajador por proyecto</span>
 }
@@ -182,6 +219,7 @@ export default function TrabajadoresPage() {
   const proyectos = state?.mantenciones || []
   const contratos = state?.contratos || []
   const asignaciones = state?.asignaciones || []
+  const restrictions = state?.restricted || []
 
   const specialties = useMemo(() => (
     [...new Set(personas.map(persona => persona.especialidad).filter(Boolean))].sort()
@@ -207,10 +245,7 @@ export default function TrabajadoresPage() {
   }, [availableProjects, projectId])
 
   const tabCount = key => {
-    if (key === 'planta') return personas.filter(p => p.tipo === 'permanente' && !p.bloqueado).length
-    if (key === 'esporadico') return personas.filter(p => p.tipo === 'esporadico' && !p.bloqueado).length
-    if (key === 'disponible') return personas.filter(p => !p.bloqueado && p.disponibilidad === 'disponible').length
-    return personas.filter(p => p.bloqueado).length
+    return personas.filter(persona => workerSegment(persona, asignaciones, proyectos) === key).length
   }
 
   const getContext = persona => {
@@ -226,16 +261,14 @@ export default function TrabajadoresPage() {
     return {
       clients: clientNames,
       projects: projectNames,
+      restriction: currentRestriction(persona, restrictions),
     }
   }
 
   const filtered = useMemo(() => {
     let list = personas
 
-    if (tab === 'planta') list = list.filter(p => p.tipo === 'permanente' && !p.bloqueado)
-    if (tab === 'esporadico') list = list.filter(p => p.tipo === 'esporadico' && !p.bloqueado)
-    if (tab === 'disponible') list = list.filter(p => !p.bloqueado && p.disponibilidad === 'disponible')
-    if (tab === 'bloqueados') list = list.filter(p => p.bloqueado)
+    list = list.filter(persona => workerSegment(persona, asignaciones, proyectos) === tab)
 
     if (search) {
       const term = search.toLocaleLowerCase()
@@ -412,7 +445,7 @@ export default function TrabajadoresPage() {
                 <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
                 <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
                 <th>Tipo</th>
-                <th>Contexto operacional</th>
+                <th>{tab === 'bloqueados' ? 'Motivo de restricción' : 'Contexto operacional'}</th>
                 <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
                 <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
                 <th aria-label="Acciones" />
@@ -437,6 +470,7 @@ export default function TrabajadoresPage() {
                 const primaryClient = context.clients[0]
                 const primaryProject = context.projects[0]
                 const extraContext = Math.max(context.clients.length, context.projects.length) - 1
+                const segment = workerSegment(persona, asignaciones, proyectos)
 
                 return (
                   <tr className="nk-people-row" key={persona.id} tabIndex={0} onClick={() => navigate(`/app/trabajadores/${persona.id}`)} onKeyDown={event => {
@@ -455,10 +489,19 @@ export default function TrabajadoresPage() {
                       </div>
                     </td>
                     <td className="nk-people-cell-muted">{persona.especialidad || '—'}</td>
-                    <td><LinkTypeBadge type={persona.tipo} /></td>
+                    <td><LinkTypeBadge segment={segment} /></td>
                     <td>
-                      <div className="nk-people-context-primary">{primaryClient || '—'}</div>
-                      {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
+                      {tab === 'bloqueados' ? (
+                        <>
+                          <div className="nk-people-context-primary">{context.restriction?.motivo || 'Restricción vigente'}</div>
+                          <div className="nk-people-muted">{context.restriction?.alcance ? `Alcance: ${context.restriction.alcance}` : 'Revisar detalle en la ficha'}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="nk-people-context-primary">{primaryClient || '—'}</div>
+                          {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
+                        </>
+                      )}
                     </td>
                     <td><AvailabilityBadge value={persona.disponibilidad} blocked={persona.bloqueado} /></td>
                     <td><ProgressBar pct={pct} expiry={expiry} /></td>
