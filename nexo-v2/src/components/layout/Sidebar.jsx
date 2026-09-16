@@ -58,7 +58,7 @@ const NAV = [
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
       { to: '/app/convenios', label: 'Contratos y convenios', icon: IconFileText },
-      { to: '/app/personal-contratista', label: 'Personal del contratista', icon: IconUsers },
+      { to: '/app/personal-contratista', label: 'Personas de empresas colaboradoras', icon: IconUsers },
       { to: '/app/habilitaciones-contratistas', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
       { to: '/app/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
     ],
