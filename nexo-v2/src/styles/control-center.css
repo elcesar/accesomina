@@ -18,7 +18,8 @@
 .nk-module-header > div:first-child { min-width: 0; }
 .nk-module-kicker { margin: 0 0 var(--space-1); color: var(--pri); font-size: var(--text-xs); font-weight: var(--weight-bold); line-height: var(--leading-normal); letter-spacing: .06em; text-transform: uppercase; }
 .nk-module-header h1 { margin: 0 0 var(--space-2); font-family: var(--font-brand); font-size: var(--text-3xl); font-weight: var(--weight-bold); line-height: var(--leading-tight); color: var(--ink); }
-.nk-module-header > div > p:last-child { max-width: 760px; margin: 0; color: var(--mut); font-size: var(--text-md); line-height: var(--leading-normal); }
+.nk-module-header > div > p { max-width: 760px; margin: 0; color: var(--mut); font-size: var(--text-md); line-height: var(--leading-normal); }
+.nk-dashboard-updated { display: block; margin-top: var(--space-2); color: var(--mut); font-size: var(--text-xs); }
 .nk-module-card { min-width: 0; padding: var(--space-5); background: var(--surf); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .nk-module-card h2 { margin: 0 0 var(--space-1); font-family: var(--font-brand); font-size: var(--text-lg); font-weight: var(--weight-bold); line-height: var(--leading-snug); color: var(--ink); }
 .nk-module-card > p { margin: 0; color: var(--mut); font-size: var(--text-sm); line-height: var(--leading-normal); }
@@ -28,6 +29,9 @@
 .nk-module-empty span { max-width: 420px; color: var(--mut); font-size: var(--text-sm); line-height: var(--leading-normal); }
 .nk-dashboard-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
 .nk-dashboard-metric { display: flex; align-items: center; gap: var(--space-3); min-width: 0; padding: var(--space-4); background: var(--surf); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.nk-dashboard-metric-action { width: 100%; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.nk-dashboard-metric-action:hover { border-color: var(--pri); box-shadow: var(--shadow-md); }
+.nk-dashboard-metric-action:focus-visible { outline: 0; box-shadow: var(--focus-ring); }
 .nk-dashboard-metric > svg { flex: none; color: var(--pri); }
 .nk-dashboard-metric.teal > svg { color: var(--acc-ink); }
 .nk-dashboard-metric.amber > svg { color: var(--warn-ink); }

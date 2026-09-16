@@ -3,17 +3,20 @@ import { IconAlertTriangle, IconArrowRight, IconClipboardCheck, IconRefresh, Ico
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
-import { alertKind, daysUntil, operationalAlerts, rows } from '../services/operational-alerts.js'
+import { alertKind, daysUntil, isRestricted, operationalAlerts, rows } from '../services/operational-alerts.js'
 import '../styles/control-center.css'
 
-const ACTIVE_ASSIGNMENT_STAGES = new Set(['asignado', 'habilitado'])
+const ACTIVE_ASSIGNMENT_STAGES = new Set(['asignado', 'habilitado', 'contrato_firmado', 'acreditacion_enviada'])
 
-function Metric({ icon: Icon, label, value, tone = '' }) {
-  return <article className={`nk-dashboard-metric ${tone}`}><Icon size={18}/><div><b>{value}</b><span>{label}</span></div></article>
+function Metric({ icon: Icon, label, value, tone = '', onClick }) {
+  const content = <><Icon size={18}/><div><b>{value}</b><span>{label}</span></div></>
+  return onClick
+    ? <button className={`nk-dashboard-metric nk-dashboard-metric-action ${tone}`} type="button" onClick={onClick}>{content}</button>
+    : <article className={`nk-dashboard-metric ${tone}`}>{content}</article>
 }
 
 function assignmentStage(assignment) {
-  const explicit = String(assignment?.estadoGestion || '').toLowerCase()
+  const explicit = String(assignment?.recruitmentStage || assignment?.estadoGestion || '').toLowerCase()
   if (explicit) return explicit
   return String(assignment?.estado || '').toLowerCase() === 'confirmado' ? 'asignado' : ''
 }
@@ -33,11 +36,12 @@ export default function DashboardPage() {
   const [response, setResponse] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [updatedAt, setUpdatedAt] = useState(null)
 
   async function load() {
     setLoading(true)
     setError('')
-    try { setResponse(await api.get('/state')) }
+    try { setResponse(await api.get('/state')); setUpdatedAt(new Date()) }
     catch (cause) { setError(cause.message || 'No fue posible cargar el panel de control.') }
     finally { setLoading(false) }
   }
@@ -56,9 +60,7 @@ export default function DashboardPage() {
     const today = new Date().toISOString().slice(0, 10)
 
     const restrictedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
-    people.forEach(person => {
-      if (person.bloqueado || String(person.disponibilidad || '').toLowerCase() === 'bloqueado' || String(person.operationalStatus || '').toLowerCase() === 'bloqueado') restrictedIds.add(String(person.id))
-    })
+    people.forEach(person => { if (isRestricted(person)) restrictedIds.add(String(person.id)) })
 
     const assignedIds = new Set(assignments.filter(item => ACTIVE_ASSIGNMENT_STAGES.has(assignmentStage(item))).map(item => String(item.trabId)).filter(Boolean))
     const presentIds = new Set(shifts.filter(item => (item.fecha || item.date) === today && String(item.asistencia || item.estado || item.status || '').toLowerCase() === 'presente').map(item => String(item.trabId || item.workerId)).filter(Boolean))
@@ -85,11 +87,11 @@ export default function DashboardPage() {
   }, [state])
 
   const priorities = [
-    derived.alertCounts.critical > 0 && { label: `${derived.alertCounts.critical} alerta${derived.alertCounts.critical === 1 ? '' : 's'} crítica${derived.alertCounts.critical === 1 ? '' : 's'} o vencida${derived.alertCounts.critical === 1 ? '' : 's'}`, to: '/app/alertas' },
+    derived.alertCounts.critical > 0 && { label: `${derived.alertCounts.critical} alerta${derived.alertCounts.critical === 1 ? '' : 's'} crítica${derived.alertCounts.critical === 1 ? '' : 's'} o vencida${derived.alertCounts.critical === 1 ? '' : 's'}`, to: '/app/alertas?categoria=critical' },
     derived.restricted > 0 && { label: `${derived.restricted} persona${derived.restricted === 1 ? '' : 's'} restringida${derived.restricted === 1 ? '' : 's'}`, to: '/app/bloqueados' },
-    derived.alertCounts.upcoming > 0 && { label: `${derived.alertCounts.upcoming} alerta${derived.alertCounts.upcoming === 1 ? '' : 's'} próxima${derived.alertCounts.upcoming === 1 ? '' : 's'} a vencer`, to: '/app/alertas' },
+    derived.alertCounts.upcoming > 0 && { label: `${derived.alertCounts.upcoming} alerta${derived.alertCounts.upcoming === 1 ? '' : 's'} próxima${derived.alertCounts.upcoming === 1 ? '' : 's'} a vencer`, to: '/app/alertas?categoria=upcoming' },
     derived.eppDue > 0 && { label: `${derived.eppDue} entrega${derived.eppDue === 1 ? '' : 's'} EPP requiere${derived.eppDue === 1 ? '' : 'n'} reposición`, to: '/app/epp' },
-    derived.alertCounts.operation > 0 && { label: `${derived.alertCounts.operation} pendiente${derived.alertCounts.operation === 1 ? '' : 's'} operacional${derived.alertCounts.operation === 1 ? '' : 'es'}`, to: '/app/alertas' },
+    derived.alertCounts.operation > 0 && { label: `${derived.alertCounts.operation} pendiente${derived.alertCounts.operation === 1 ? '' : 's'} operacional${derived.alertCounts.operation === 1 ? '' : 'es'}`, to: '/app/alertas?categoria=operation' },
   ].filter(Boolean).slice(0, 5)
 
   const role = session?.user?.role || 'consulta'
@@ -103,9 +105,9 @@ export default function DashboardPage() {
   }[role] || { title: 'Control de la empresa', copy: 'Revisa brechas y prioridades operativas.', action: 'Ver centro operativo', to: '/app/operaciones' }
 
   return <section className="nk-dashboard">
-    <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p></div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
+    <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p>{updatedAt && <small className="nk-dashboard-updated">Actualizado a las {updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small>}</div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
     {error && <div className="nk-control-feedback"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
-    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length}/><Metric icon={IconShield} label="Personas restringidas" value={loading ? '…' : derived.restricted} tone="error"/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal"/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber"/></div>
+    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas restringidas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
     <section className="nk-role-focus"><div><p className="nk-module-kicker">Tu prioridad hoy</p><h2>{roleFocus.title}</h2><span>{roleFocus.copy}</span></div><button className="nk-button nk-button-primary" type="button" onClick={() => navigate(roleFocus.to)}>{roleFocus.action}<IconArrowRight size={16}/></button></section>
     <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <div className="nk-module-empty"><IconClipboardCheck size={26}/><b>Sin brechas críticas detectadas</b><span>Las restricciones, vencimientos y reposiciones aparecerán aquí.</span></div>}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
   </section>
