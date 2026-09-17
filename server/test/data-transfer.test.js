@@ -10,6 +10,16 @@ test('mass import parser supports Excel CSV quoting and maps workers',async()=>{
   const worker=definitions.trabajadores.map(parsed.data[0]);assert.equal(worker.rut,'14.567.890-1');assert.equal(worker.cargo,'Supervisora, turno A');assert.match(worker.id,/^t_/);
 });
 
+test('worker CSV imports keep historical project types available without an assignment',async()=>{
+  process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
+  const {definitions}=await import('../routes/data-transfer.js');
+  const legacy=definitions.trabajadores.map({nombre:'Persona histórica',rut:'14.567.890-1',tipo:'esporadico'});
+  const fixed=definitions.trabajadores.map({nombre:'Persona fija',rut:'12.345.678-5',tipo:'permanente'});
+  assert.equal(legacy.tipo,'disponible');
+  assert.equal(legacy.disponibilidad,'disponible');
+  assert.equal(fixed.tipo,'permanente');
+});
+
 test('CSV templates declare required business columns',async()=>{
   process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
   const {definitions}=await import('../routes/data-transfer.js');
