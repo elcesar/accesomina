@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { IconAlertTriangle, IconPaperclip, IconRefresh, IconUser } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
 import { alertKind, operationalAlerts, rows } from '../services/operational-alerts.js'
@@ -65,7 +65,7 @@ export default function AlertasPage() {
   const [response, setResponse] = useState(null)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
+  const [params, setParams] = useSearchParams()
   const [openGroups, setOpenGroups] = useState(new Set())
 
   async function load() {
@@ -102,12 +102,21 @@ export default function AlertasPage() {
     return pa - pb || b.items.length - a.items.length || a.label.localeCompare(b.label, 'es')
   }), [allAlerts, people, state])
 
+  const requestedFilter = params.get('categoria')
+  const filter = CATEGORY[requestedFilter] ? requestedFilter : 'all'
   const counts = useMemo(() => allAlerts.reduce((out, item) => { out[alertKind(item)] += 1; return out }, { critical: 0, upcoming: 0, operation: 0 }), [allAlerts])
   const visible = filter === 'all' ? groups : groups.filter(group => group.kinds.has(filter))
 
   const toggleGroup = key => setOpenGroups(current => { const next = new Set(current); next.has(key) ? next.delete(key) : next.add(key); return next })
   const expandAll = () => setOpenGroups(new Set(visible.map(group => group.key)))
   const collapseAll = () => setOpenGroups(new Set())
+  const selectFilter = key => {
+    const next = new URLSearchParams(params)
+    if (filter === key) next.delete('categoria')
+    else next.set('categoria', key)
+    setParams(next, { replace: true })
+    setOpenGroups(new Set())
+  }
 
   async function upload(event, group) {
     const file = event.target.files?.[0]
@@ -121,7 +130,7 @@ export default function AlertasPage() {
   return <section className="nk-alerts-page">
     <header className="nk-module-header"><div><h1>Alertas</h1><p>Prioriza vencimientos, restricciones y pendientes derivados de la información operacional y abre el contexto donde deben resolverse.</p></div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
 
-    <div className="nk-alert-summary">{Object.entries(CATEGORY).map(([key, [label, copy]]) => <button key={key} type="button" aria-pressed={filter === key} className={filter === key ? 'active' : ''} onClick={() => { setFilter(filter === key ? 'all' : key); setOpenGroups(new Set()) }}><b>{loading ? '…' : counts[key]}</b><span>{label}</span><small>{copy}</small></button>)}</div>
+    <div className="nk-alert-summary">{Object.entries(CATEGORY).map(([key, [label, copy]]) => <button key={key} type="button" aria-pressed={filter === key} className={filter === key ? 'active' : ''} onClick={() => selectFilter(key)}><b>{loading ? '…' : counts[key]}</b><span>{label}</span><small>{copy}</small></button>)}</div>
     {status && <div className="nk-control-feedback"><span>{status}</span><button className="nk-button nk-button-quiet" type="button" onClick={() => setStatus('')}>Cerrar</button></div>}
 
     {!loading && visible.length > 0 && <div className="nk-alert-bulk-actions"><span>{visible.length} {visible.length === 1 ? 'contexto con alertas' : 'contextos con alertas'}</span><div><button type="button" className="nk-button nk-button-quiet" onClick={expandAll}>Expandir todo</button><button type="button" className="nk-button nk-button-quiet" onClick={collapseAll}>Contraer todo</button></div></div>}
