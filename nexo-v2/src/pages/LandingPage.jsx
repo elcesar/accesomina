@@ -22,7 +22,7 @@ const publicSections = {
   industrias: IndustriesSection,
   implementacion: ImplementationSection,
   proposito: PurposeSection,
-  'clientes-access': CustomerAccessSection,
+  'registro-empresa': CustomerAccessSection,
   contacto: ContactSection,
 }
 
@@ -69,7 +69,7 @@ export default function LandingPage() {
   }
 
   const openCompanyRegistration = () => {
-    goTo('clientes-access')
+    goTo('registro-empresa')
   }
 
   const ActiveSection = publicSections[active] || HomeSection
