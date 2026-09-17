@@ -11,6 +11,7 @@ export const publicSections = [
   ['industrias', 'Industrias'],
   ['implementacion', 'Implementación y privacidad'],
   ['proposito', 'Propósito'],
+  ['clientes-access', 'Acceso clientes'],
 ]
 
 export default function PublicNavigation({ active = 'inicio', onNavigate, onCreateCompany }) {
