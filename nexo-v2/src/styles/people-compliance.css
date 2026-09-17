@@ -1,18 +1,162 @@
-.nk-compliance-page{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6)}
-.nk-compliance-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
-.nk-compliance-header .nk-actions{display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:var(--space-2);flex:0 0 auto}
-.nk-compliance-header .nk-actions .nk-button{white-space:nowrap}
-.nk-compliance-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem)}
-.nk-compliance-header p{margin:.35rem 0 0;color:var(--mut);max-width:760px}
-.nk-compliance-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
-.nk-compliance-kpi{display:flex;flex-direction:row;align-items:center;gap:var(--space-3);min-height:72px;padding:var(--space-3) var(--space-4);background:var(--surf);border:1px solid var(--line);border-radius:var(--radius-lg)}
-.nk-compliance-kpi strong{flex:0 0 auto;font-size:1.45rem;line-height:1;color:var(--ink)}
-.nk-compliance-kpi span{color:var(--mut);font-size:.85rem;line-height:1.25}
-.nk-compliance-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) minmax(160px,190px) minmax(160px,190px);gap:var(--space-3);align-items:end;padding:var(--space-3)}
-.nk-compliance-toolbar-context{grid-template-columns:minmax(260px,1fr) minmax(170px,210px) auto}
-.nk-compliance-toolbar .nk-field{margin:0}.nk-compliance-toolbar .nk-search,.nk-compliance-toolbar .nk-select{min-height:40px;width:100%;min-width:0}
-.nk-compliance-more{position:relative}.nk-compliance-more>summary{list-style:none;display:flex;align-items:center;justify-content:center;min-height:40px;padding:0 var(--space-3);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf);color:var(--ink);font-weight:var(--weight-semibold);cursor:pointer;white-space:nowrap}.nk-compliance-more>summary::-webkit-details-marker{display:none}.nk-compliance-more[open]>summary{border-color:var(--pri);color:var(--pri)}.nk-compliance-more-panel{position:absolute;z-index:20;right:0;top:calc(100% + var(--space-2));display:grid;grid-template-columns:repeat(2,minmax(180px,220px));gap:var(--space-3);width:max-content;max-width:min(520px,calc(100vw - 48px));padding:var(--space-3);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surf);box-shadow:var(--shadow-lg)}.nk-compliance-filter-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;margin-left:var(--space-2);padding:0 6px;border-radius:999px;background:var(--pri);color:white;font-size:.72rem}
-.nk-compliance-feedback{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}.nk-compliance-feedback.error{border-color:var(--state-error)}.nk-compliance-feedback.ok{border-color:var(--state-ok)}
-.nk-compliance-empty{padding:var(--space-8)}.nk-compliance-person{display:flex;flex-direction:column;gap:.15rem}.nk-compliance-person strong{color:var(--ink)}.nk-compliance-person span,.nk-compliance-subtle{color:var(--mut);font-size:.82rem}.nk-compliance-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}.nk-compliance-dialog-wide{grid-column:1/-1}
-@media(max-width:900px){.nk-compliance-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-compliance-toolbar,.nk-compliance-toolbar-context{grid-template-columns:1fr}.nk-compliance-more-panel{position:static;width:100%;max-width:none;margin-top:var(--space-2);grid-template-columns:1fr 1fr}.nk-compliance-header{flex-direction:column}.nk-compliance-header .nk-actions{width:100%;flex-wrap:wrap;justify-content:flex-start}}
-@media(max-width:600px){.nk-compliance-page{padding:var(--space-4)}.nk-compliance-summary{grid-template-columns:1fr}.nk-compliance-kpi{min-height:64px}.nk-compliance-dialog-grid{grid-template-columns:1fr}.nk-compliance-dialog-wide{grid-column:auto}.nk-compliance-more-panel{grid-template-columns:1fr}}
+/* NEXO KLAR · Capital Humano · Compliance de personas
+ * Compartido por Exámenes y aptitudes, Salud Ocupacional y Restringidos.
+ */
+
+.nk-compliance-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nk-space-3);
+  padding: var(--nk-page-padding);
+}
+
+.nk-compliance-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nk-space-4);
+}
+.nk-compliance-header > div:first-child { min-width: 0; flex: 1; }
+.nk-compliance-header .nk-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--nk-space-2);
+  flex: 0 0 auto;
+}
+.nk-compliance-header .nk-actions .nk-button { white-space: nowrap; }
+.nk-compliance-header h1 { margin: 0; color: var(--nk-ink); font: var(--nk-font-title-1); }
+.nk-compliance-header p {
+  margin: var(--nk-space-1) 0 0;
+  max-width: calc(var(--nk-content-max-width) * .6333);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-sm);
+}
+
+.nk-compliance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--nk-space-3);
+}
+.nk-compliance-kpi {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--nk-space-3);
+  min-height: calc(var(--nk-space-16) + var(--nk-space-2));
+  padding: var(--nk-space-3) var(--nk-space-4);
+  background: var(--nk-surface);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+}
+.nk-compliance-kpi strong {
+  flex: 0 0 auto;
+  color: var(--nk-ink);
+  font-family: var(--nk-family-brand);
+  font-size: var(--nk-text-2xl);
+  font-weight: var(--nk-weight-extrabold);
+  line-height: var(--nk-leading-tight);
+}
+.nk-compliance-kpi span { color: var(--nk-ink-2); font: var(--nk-font-caption); }
+
+.nk-compliance-toolbar {
+  display: grid;
+  grid-template-columns: minmax(calc(var(--nk-space-20) * 3 + var(--nk-space-5)), 1fr) repeat(2, minmax(calc(var(--nk-space-20) * 2), calc(var(--nk-space-20) * 2 + var(--nk-space-8))));
+  gap: var(--nk-space-3);
+  align-items: end;
+  padding: var(--nk-space-3);
+}
+.nk-compliance-toolbar-context {
+  grid-template-columns: minmax(calc(var(--nk-space-20) * 3 + var(--nk-space-5)), 1fr) minmax(calc(var(--nk-space-20) * 2 + var(--nk-space-3)), calc(var(--nk-space-20) * 2 + var(--nk-space-10) + var(--nk-space-2))) auto;
+}
+.nk-compliance-toolbar .nk-field { margin: 0; }
+.nk-compliance-toolbar .nk-search,
+.nk-compliance-toolbar .nk-select { min-height: var(--nk-control-min); width: 100%; min-width: 0; }
+
+.nk-compliance-more { position: relative; }
+.nk-compliance-more > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--nk-control-min);
+  padding: 0 var(--nk-space-3);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+  color: var(--nk-ink);
+  font: var(--nk-font-label);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nk-compliance-more > summary::-webkit-details-marker { display: none; }
+.nk-compliance-more > summary:focus-visible { outline: var(--nk-focus-width) solid var(--nk-focus); outline-offset: var(--nk-focus-offset); }
+.nk-compliance-more[open] > summary { border-color: var(--nk-primary); color: var(--nk-primary); }
+.nk-compliance-more-panel {
+  position: absolute;
+  z-index: var(--nk-layer-popover);
+  right: 0;
+  top: calc(100% + var(--nk-space-2));
+  display: grid;
+  grid-template-columns: repeat(2, minmax(calc(var(--nk-space-20) * 2 + var(--nk-space-5)), calc(var(--nk-space-20) * 2 + var(--nk-space-12) + var(--nk-space-3))));
+  gap: var(--nk-space-3);
+  width: max-content;
+  max-width: min(calc(var(--nk-space-20) * 6 + var(--nk-space-10)), calc(100vw - var(--nk-space-12)));
+  padding: var(--nk-space-3);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+  background: var(--nk-surface);
+  box-shadow: var(--nk-elev-3);
+}
+.nk-compliance-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--nk-space-5);
+  height: var(--nk-space-5);
+  margin-left: var(--nk-space-2);
+  padding: 0 var(--nk-space-2);
+  border-radius: var(--nk-radius-pill);
+  background: var(--nk-primary);
+  color: var(--nk-on-primary);
+  font: var(--nk-font-overline);
+}
+
+.nk-compliance-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nk-space-3);
+  padding: var(--nk-space-3) var(--nk-space-4);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+}
+.nk-compliance-feedback.error { border-color: var(--nk-state-error); background: var(--nk-state-error-soft); color: var(--nk-state-error); }
+.nk-compliance-feedback.ok { border-color: var(--nk-state-ok); background: var(--nk-state-ok-soft); color: var(--nk-state-ok); }
+
+.nk-compliance-empty { padding: var(--nk-space-8); }
+.nk-compliance-person { display: flex; flex-direction: column; gap: calc(var(--nk-space-1) / 2); }
+.nk-compliance-person strong { color: var(--nk-ink); }
+.nk-compliance-person span,
+.nk-compliance-subtle { color: var(--nk-ink-2); font: var(--nk-font-caption); }
+.nk-compliance-dialog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--nk-space-3); }
+.nk-compliance-dialog-wide { grid-column: 1 / -1; }
+
+@media (max-width: 56.25rem) {
+  .nk-compliance-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nk-compliance-toolbar,
+  .nk-compliance-toolbar-context { grid-template-columns: 1fr; }
+  .nk-compliance-more-panel { position: static; width: 100%; max-width: none; margin-top: var(--nk-space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nk-compliance-header { flex-direction: column; }
+  .nk-compliance-header .nk-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
+}
+
+@media (max-width: 37.5rem) {
+  .nk-compliance-page { padding: var(--nk-space-4); }
+  .nk-compliance-summary { grid-template-columns: 1fr; }
+  .nk-compliance-kpi { min-height: var(--nk-space-16); }
+  .nk-compliance-dialog-grid { grid-template-columns: 1fr; }
+  .nk-compliance-dialog-wide { grid-column: auto; }
+  .nk-compliance-more-panel { grid-template-columns: 1fr; }
+}

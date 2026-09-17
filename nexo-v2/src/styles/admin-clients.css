@@ -1,39 +1,61 @@
-.nk-admin-clients-page{display:flex;flex-direction:column;gap:var(--nk-space-4);min-width:var(--nk-space-0);padding:var(--nk-page-padding)}
+/* NEXO KLAR · Administración de clientes
+ * Estilos específicos del módulo administrativo.
+ * Valores visuales alineados con tokens canónicos --nk-*.
+ */
+
+.nk-admin-clients-page{display:flex;min-width:0;width:100%;box-sizing:border-box;flex-direction:column;gap:var(--nk-space-4);padding:var(--nk-page-padding);background:var(--nk-base)}
 .nk-admin-clients-page .nk-module-header{margin:var(--nk-space-0)}
+
 .nk-admin-clients-card{padding:var(--nk-space-0);overflow:hidden}
 .nk-admin-clients-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--nk-space-4);padding:var(--nk-space-4);border-bottom:var(--nk-stroke-thin) solid var(--nk-line)}
-.nk-admin-clients-card-head h2{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-1);font-family:var(--nk-family-brand);font-size:var(--nk-text-lg);color:var(--nk-ink)}
-.nk-admin-clients-card-head p{margin:var(--nk-space-0);color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
-.nk-admin-clients-table-wrap{overflow-x:auto}
+.nk-admin-clients-card-head>div{min-width:0}
+.nk-admin-clients-card-head h2{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-1);color:var(--nk-ink);font:var(--nk-font-title-2)}
+.nk-admin-clients-card-head p{margin:var(--nk-space-0);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
+
+.nk-admin-clients-table-wrap{width:100%;overflow-x:auto}
 .nk-admin-clients-table{width:100%;table-layout:fixed}
-.nk-admin-clients-table th:nth-child(1){width:24%}.nk-admin-clients-table th:nth-child(2){width:15%}.nk-admin-clients-table th:nth-child(3){width:24%}.nk-admin-clients-table th:nth-child(4){width:12%}.nk-admin-clients-table th:nth-child(5){width:25%}
+.nk-admin-clients-table th:nth-child(1){width:24%}
+.nk-admin-clients-table th:nth-child(2){width:15%}
+.nk-admin-clients-table th:nth-child(3){width:24%}
+.nk-admin-clients-table th:nth-child(4){width:12%}
+.nk-admin-clients-table th:nth-child(5){width:25%}
 .nk-admin-clients-table td strong{display:block;color:var(--nk-ink)}
 .nk-admin-clients-table td small{display:block;margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
+
 .nk-admin-clients-actions{display:flex;align-items:center;gap:var(--nk-space-1);flex-wrap:wrap}
-.nk-admin-clients-status{display:inline-flex;align-items:center;min-height:calc(var(--nk-space-6) + var(--nk-space-1));padding:var(--nk-space-0) var(--nk-space-2);border-radius:var(--nk-radius-pill);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-semibold);white-space:nowrap;background:var(--nk-surface-2);border:var(--nk-stroke-thin) solid var(--nk-line);color:var(--nk-ink-2)}
+
+.nk-admin-clients-status{display:inline-flex;align-items:center;min-height:var(--nk-space-6);padding:var(--nk-space-0) var(--nk-space-2);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-pill);background:var(--nk-surface-2);color:var(--nk-ink-2);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-semibold);white-space:nowrap}
 .nk-admin-clients-status.active{border-color:var(--nk-state-ok);color:var(--nk-state-ok)}
 .nk-admin-clients-status.pending{border-color:var(--nk-state-warn);color:var(--nk-state-warn-ink)}
-.nk-admin-clients-status.suspended,.nk-admin-clients-status.deleted{color:var(--nk-ink-2)}
+.nk-admin-clients-status.suspended,.nk-admin-clients-status.deleted{border-color:var(--nk-line);color:var(--nk-ink-2)}
+
 .nk-admin-clients-users-cell{padding:var(--nk-space-0)!important;background:var(--nk-surface-2)}
 .nk-admin-clients-users-panel{padding:var(--nk-space-3) var(--nk-space-4)}
-.nk-admin-clients-users-table{width:100%;background:var(--nk-surface);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);overflow:hidden}
+.nk-admin-clients-users-table{width:100%;overflow:hidden;border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface)}
 .nk-admin-clients-users-table td small{display:block;margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
-.nk-admin-clients-empty{padding:var(--nk-space-5);color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+.nk-admin-clients-empty{padding:var(--nk-space-5);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
+
 .nk-admin-control-dialog{width:min(calc(var(--nk-space-20) * 13),100%)}
 .nk-admin-control-body{display:grid;gap:var(--nk-space-5)}
 .nk-admin-control-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(var(--nk-space-20) * 3)),1fr));gap:var(--nk-space-3);align-items:center;padding:var(--nk-space-3);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface-2)}
-.nk-admin-control-summary strong,.nk-admin-control-summary small{display:block}.nk-admin-control-summary small{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
+.nk-admin-control-summary strong,.nk-admin-control-summary small{display:block}
+.nk-admin-control-summary small{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
 .nk-admin-health{display:inline-flex;align-items:center;min-height:var(--nk-space-6);padding:var(--nk-space-0) var(--nk-space-2);border-radius:var(--nk-radius-pill);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-semibold);white-space:nowrap;border:var(--nk-stroke-thin) solid var(--nk-line);color:var(--nk-ink-2)}
-.nk-admin-health.verde{border-color:var(--nk-state-ok);color:var(--nk-state-ok)}.nk-admin-health.amarillo{border-color:var(--nk-state-warn);color:var(--nk-state-warn-ink)}.nk-admin-health.rojo{border-color:var(--nk-state-error);color:var(--nk-state-error)}
+.nk-admin-health.verde{border-color:var(--nk-state-ok);color:var(--nk-state-ok)}
+.nk-admin-health.amarillo{border-color:var(--nk-state-warn);color:var(--nk-state-warn-ink)}
+.nk-admin-health.rojo{border-color:var(--nk-state-error);color:var(--nk-state-error)}
 .nk-admin-control-form{display:grid;gap:var(--nk-space-5)}
 .nk-admin-control-form section,.nk-admin-tickets{padding:var(--nk-space-4);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface)}
-.nk-admin-control-form h3,.nk-admin-tickets h3{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-3);font-family:var(--nk-family-brand);font-size:var(--nk-text-lg);color:var(--nk-ink)}
+.nk-admin-control-form h3,.nk-admin-tickets h3{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-3);color:var(--nk-ink);font:var(--nk-font-title-2)}
 .nk-admin-control-form label{display:grid;gap:var(--nk-space-1)}
 .nk-admin-control-form label>span{font-size:var(--nk-text-sm);font-weight:var(--nk-weight-semibold);color:var(--nk-ink)}
 .nk-admin-full-field{margin-top:var(--nk-space-3)}
-.nk-admin-tickets header p{margin:calc(var(--nk-space-1) * -2) var(--nk-space-0) var(--nk-space-3);color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+.nk-admin-tickets header p{margin:calc(var(--nk-space-1) * -2) var(--nk-space-0) var(--nk-space-3);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
 .nk-admin-ticket-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(var(--nk-space-20) * 2)),1fr));gap:var(--nk-space-2);margin-bottom:var(--nk-space-3)}
 .nk-admin-ticket-list{display:grid;gap:var(--nk-space-2)}
 .nk-admin-ticket-list article{display:flex;align-items:center;justify-content:space-between;gap:var(--nk-space-3);flex-wrap:wrap;padding:var(--nk-space-3);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface-2)}
-.nk-admin-ticket-list strong,.nk-admin-ticket-list small{display:block}.nk-admin-ticket-list small{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
+.nk-admin-ticket-list strong,.nk-admin-ticket-list small{display:block}
+.nk-admin-ticket-list small{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
 .nk-admin-ticket-list select{width:min(100%,calc(var(--nk-space-20) * 2))}
+
+@media(max-width:56.25rem){.nk-admin-clients-card-head{flex-direction:column}.nk-admin-clients-table{min-width:calc(var(--nk-space-20) * 11)}}

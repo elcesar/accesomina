@@ -51,7 +51,7 @@ export default function MovimientosInventarioPage() {
   const orders = rows(state.mantenciones).length ? rows(state.mantenciones) : rows(state.proyectos)
   const movements = rows(state.inventoryMovements).length ? rows(state.inventoryMovements) : rows(state.movimientosInventario)
 
-  const sorted = useMemo(() => [...movements].sort((a, b) => String(b.at || b.date || '').localeCompare(String(a.at || a.date || ''))), [movements])
+  const sorted = useMemo(() => [...movements].sort((a, b) => String(b.movementAt || b.createdAt || b.at || b.date || '').localeCompare(String(a.movementAt || a.createdAt || a.at || a.date || ''))), [movements])
 
   const filtered = useMemo(() => sorted.filter(row => {
     const term = query.trim().toLowerCase()
@@ -62,7 +62,7 @@ export default function MovimientosInventarioPage() {
     return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) &&
       (!typeFilter || row.type === typeFilter) &&
       (!warehouseFilter || String(row.warehouseId) === warehouseFilter || String(row.warehouseToId) === warehouseFilter) &&
-      (!dateFilter || String(row.at || row.date || '').slice(0, 10) === dateFilter)
+      (!dateFilter || String(row.effectiveAt || row.at || row.date || '').slice(0, 10) === dateFilter)
   }), [sorted, query, typeFilter, warehouseFilter, dateFilter, items, workers, orders])
 
   const summary = useMemo(() => ({
@@ -120,7 +120,10 @@ export default function MovimientosInventarioPage() {
       const item = items.find(entry => String(entry.id) === String(form.itemId))
       if (!item) throw new Error('No se encontró el recurso seleccionado.')
 
+      const hasLocationStock = Object.keys(item.stockByLocation || {}).length > 0 || Boolean(item.warehouseId)
+      if (!hasLocationStock && Number(item.stock || 0) > 0) throw new Error('Este recurso tiene stock histórico sin bodega definida. Regulariza la ubicación antes de registrar movimientos.')
       const stockByLocation = { ...(item.stockByLocation || {}) }
+      if (!Object.keys(stockByLocation).length && item.warehouseId) stockByLocation[item.warehouseId] = Number(item.stock || 0)
       const beforeOrigin = Number(stockByLocation[form.warehouseId] || 0)
       const beforeDestination = Number(stockByLocation[form.warehouseToId] || 0)
       const subtract = ['entrega', 'traslado', 'perdida', 'dano', 'egreso', 'prestamo'].includes(form.type)
@@ -140,6 +143,7 @@ export default function MovimientosInventarioPage() {
         updatedAt: new Date().toISOString(),
       }
       const nextItems = items.map(entry => String(entry.id) === String(item.id) ? updatedItem : entry)
+      const now = new Date().toISOString()
       const movement = {
         id: `mov_${Date.now()}`,
         itemId: item.id,
@@ -154,7 +158,10 @@ export default function MovimientosInventarioPage() {
         notes: form.notes?.trim() || '',
         signed: Boolean(form.signed),
         fileName: '',
-        at: form.at ? `${form.at}T12:00:00` : new Date().toISOString(),
+        effectiveAt: form.at || today(),
+        createdAt: now,
+        movementAt: now,
+        at: now,
       }
       const nextMovements = [movement, ...movements]
       const result = await api.put('/state/modules', {
@@ -194,7 +201,7 @@ export default function MovimientosInventarioPage() {
 
     <section className="nk-mov-kpis"><article><strong>{summary.total}</strong><span>Movimientos registrados</span></article><article><strong>{summary.inbound}</strong><span>Ingresos / devoluciones</span></article><article><strong>{summary.outbound}</strong><span>Salidas / entregas</span></article><article><strong>{summary.transfers}</strong><span>Traslados entre bodegas</span></article></section>
 
-    <section className="nk-card nk-mov-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-mov-table"><thead><tr><th>Recurso</th><th>Movimiento</th><th>Cantidad</th><th>Bodega / destino</th><th>Fecha</th><th>Referencia</th></tr></thead><tbody>{loading ? <tr><td colSpan="6">Cargando movimientos…</td></tr> : filtered.length ? filtered.map(row => { const ref = reference(row); return <tr key={row.id}><td className="nk-mov-resource"><strong>{itemName(row.itemId)}</strong><small>{itemCode(row.itemId)}</small></td><td><span className="nk-badge nk-badge-blue">{movementLabel(row.type)}</span></td><td>{Number(row.qty || 0)}</td><td>{row.type === 'traslado' ? `${warehouseName(row.warehouseId)} → ${warehouseName(row.warehouseToId)}` : warehouseName(row.warehouseId)}</td><td>{String(row.at || row.date || '').slice(0, 10) || '—'}</td><td className="nk-mov-ref"><strong>{ref.main}</strong><small>{ref.sub}</small></td></tr> }) : <tr><td colSpan="6" className="nk-mov-empty">No hay movimientos para los filtros seleccionados.</td></tr>}</tbody></table></div></section>
+    <section className="nk-card nk-mov-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-mov-table"><thead><tr><th>Recurso</th><th>Movimiento</th><th>Cantidad</th><th>Bodega / destino</th><th>Fecha efectiva</th><th>Referencia</th></tr></thead><tbody>{loading ? <tr><td colSpan="6">Cargando movimientos…</td></tr> : filtered.length ? filtered.map(row => { const ref = reference(row); return <tr key={row.id}><td className="nk-mov-resource"><strong>{itemName(row.itemId)}</strong><small>{itemCode(row.itemId)}</small></td><td><span className="nk-badge nk-badge-blue">{movementLabel(row.type)}</span></td><td>{Number(row.qty || 0)}</td><td>{row.type === 'traslado' ? `${warehouseName(row.warehouseId)} → ${warehouseName(row.warehouseToId)}` : warehouseName(row.warehouseId)}</td><td>{String(row.effectiveAt || row.at || row.date || '').slice(0, 10) || '—'}</td><td className="nk-mov-ref"><strong>{ref.main}</strong><small>{ref.sub}</small></td></tr> }) : <tr><td colSpan="6" className="nk-mov-empty">No hay movimientos para los filtros seleccionados.</td></tr>}</tbody></table></div></section>
 
     {open && <section className="nk-card nk-mov-editor"><div className="nk-mov-editor-head"><h2>Registrar movimiento</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setOpen(false)}>Cerrar</button></div><div className="nk-mov-form">
       <label><span>Recurso</span><select className="nk-select" value={form.itemId || ''} onChange={event => setForm({ ...form, itemId: event.target.value })}><option value="">Seleccionar</option>{items.map(item => <option key={item.id} value={item.id}>{item.name} · stock {Number(item.stock || 0)}</option>)}</select></label>
