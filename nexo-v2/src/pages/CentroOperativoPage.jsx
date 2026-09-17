@@ -9,11 +9,11 @@ const rows=value=>Array.isArray(value)?value:[]
 const today=()=>new Date().toISOString().slice(0,10)
 const text=value=>String(value||'').trim()
 const norm=value=>String(value||'').trim().toLowerCase()
-const ACTIVE_STAGES=new Set(['asignado','habilitado'])
+const ACTIVE_STAGES=new Set(['asignado','habilitado','contrato_firmado','acreditacion_enviada'])
 
 function daysUntil(value){if(!value)return null;const target=new Date(`${value}T23:59:59`);if(Number.isNaN(target.getTime()))return null;return Math.ceil((target-new Date())/86400000)}
-function managementStage(assignment){const explicit=norm(assignment?.estadoGestion);if(explicit)return explicit;return norm(assignment?.estado)==='confirmado'?'asignado':''}
-function workerHasIssue(worker){if(!worker)return false;if(worker.bloqueado||worker.operationalStatus==='bloqueado'||worker.disponibilidad==='bloqueado')return true;return rows(worker.workerItems).some(item=>{if(!['examen','curso','certificacion'].includes(item.type))return false;const left=daysUntil(item.vence);return item.estado==='rechazado'||(left!==null&&left<0)})}
+function managementStage(assignment){const explicit=norm(assignment?.recruitmentStage||assignment?.estadoGestion);if(explicit)return explicit;return norm(assignment?.estado)==='confirmado'?'asignado':''}
+function workerHasIssue(worker){if(!worker)return false;if(worker.bloqueado||worker.restringido||/bloquead|restringid/.test(norm(worker.operationalStatus||worker.disponibilidad)))return true;return rows(worker.workerItems).some(item=>{if(!['documento','contrato','examen','curso','certificacion'].includes(item.type))return false;const left=daysUntil(item.vence);return ['rechazado','faltante'].includes(norm(item.estado))||(left!==null&&left<0)})}
 function urgencyFor(item){const value=norm(item.urgencia||item.estado);if(value.includes('venc')||value.includes('crit')||value.includes('bloq'))return'critical';if(value.includes('proxim')||value.includes('pend')||value.includes('alert'))return'warning';return'info'}
 
 export default function CentroOperativoPage(){
