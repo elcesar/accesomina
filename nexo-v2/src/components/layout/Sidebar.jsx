@@ -70,10 +70,10 @@ const NAV = [
   },
   {
     key: 'cumplimiento-calidad',
-    label: 'Cumplimiento y Calidad',
+    label: 'Cumplimiento y calidad',
     items: [
       { to: '/app/acreditacion-empresa', label: 'Documentación de la empresa', icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente', icon: IconCircleCheck },
+      { to: '/app/acreditacion-mandante', label: 'Habilitación del cliente', icon: IconCircleCheck },
       { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
       { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
     ],
