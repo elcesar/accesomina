@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { IconRefresh } from '@tabler/icons-react'
+import { IconKey, IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import '../styles/admin-clients.css'
@@ -18,6 +18,7 @@ export default function AdministracionClientesPage() {
   const [loading, setLoading] = useState(true)
   const [changingStatus, setChangingStatus] = useState('')
   const [deleting, setDeleting] = useState('')
+  const [resettingAccess, setResettingAccess] = useState('')
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const load = async () => {
@@ -37,20 +38,34 @@ export default function AdministracionClientesPage() {
     else setLoading(false)
   }, [isNexoAdmin])
 
-  const activate = async tenant => {
-    if (!window.confirm(`¿Deseas activar la cuenta de ${tenant.company_name}?`)) return
+  const changeStatus = async (tenant, status) => {
+    const action = status === 'active' ? 'activar' : 'suspender'
+    if (!window.confirm(`¿Deseas ${action} la cuenta de ${tenant.company_name}?`)) return
 
     setChangingStatus(tenant.id)
     setMessage('')
     try {
-      const updated = await api.patch(`/tenants/${tenant.id}`, { status: 'active' })
+      const updated = await api.patch(`/tenants/${tenant.id}`, { status })
       setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item))
-      setMessage(`La cuenta de ${tenant.company_name} fue activada correctamente.`)
+      setMessage(`La cuenta de ${tenant.company_name} fue ${status === 'active' ? 'activada' : 'suspendida'} correctamente.`)
     } catch (error) {
-      setMessage(error.message || 'No fue posible activar la empresa.')
+      setMessage(error.message || `No fue posible ${action} la empresa.`)
     } finally {
       setChangingStatus('')
     }
+  }
+
+  const resetAdminAccess = async tenant => {
+    if (!window.confirm(`Se restablecerá el acceso del administrador de ${tenant.company_name}. Las sesiones activas se cerrarán. ¿Continuar?`)) return
+    setResettingAccess(tenant.id)
+    setMessage('')
+    try {
+      const result = await api.post(`/tenants/${tenant.id}/reset-admin-password`, {})
+      setMessage(result?.temporaryPassword
+        ? `Acceso restablecido para ${tenant.company_name}. Contraseña temporal: ${result.temporaryPassword}`
+        : `Acceso restablecido para ${tenant.company_name}.`)
+    } catch (error) { setMessage(error.message || 'No fue posible restablecer el acceso del administrador.') }
+    finally { setResettingAccess('') }
   }
 
   const deleteTenant = async tenant => {
@@ -133,15 +148,19 @@ export default function AdministracionClientesPage() {
                   </td>
                   <td>
                     <div className="nk-admin-clients-actions">
-                      {tenant.status === 'pending' && (
+                      {['pending', 'suspended'].includes(tenant.status) && (
                         <button
                           className="nk-button nk-button-primary nk-button-sm"
                           disabled={changingStatus === tenant.id}
-                          onClick={() => activate(tenant)}
+                          onClick={() => changeStatus(tenant, 'active')}
                         >
                           {changingStatus === tenant.id ? 'Activando…' : 'Activar cuenta'}
                         </button>
                       )}
+
+                      {tenant.status === 'active' && <button className="nk-button nk-button-secondary nk-button-sm" disabled={changingStatus === tenant.id} onClick={() => changeStatus(tenant, 'suspended')}>{changingStatus === tenant.id ? 'Suspendiendo…' : 'Suspender cuenta'}</button>}
+
+                      {tenant.status !== 'deleted' && <button className="nk-button nk-button-secondary nk-button-sm" disabled={resettingAccess === tenant.id} onClick={() => resetAdminAccess(tenant)}><IconKey size={14}/>{resettingAccess === tenant.id ? 'Restableciendo…' : 'Restablecer acceso'}</button>}
 
                       {tenant.status !== 'deleted' && (
                         <button
