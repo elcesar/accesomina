@@ -10,6 +10,7 @@ import IndustriesSection from '../components/public/sections/IndustriesSection.j
 import ImplementationSection from '../components/public/sections/ImplementationSection.jsx'
 import PurposeSection from '../components/public/sections/PurposeSection.jsx'
 import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
+import ContactSection from '../components/public/sections/ContactSection.jsx'
 import { DemoRequestDialog } from '../components/public/PublicDialogs.jsx'
 
 const publicSections = {
@@ -22,6 +23,7 @@ const publicSections = {
   implementacion: ImplementationSection,
   proposito: PurposeSection,
   'clientes-access': CustomerAccessSection,
+  contacto: ContactSection,
 }
 
 function ProductPreview({ onClose }) {
@@ -79,6 +81,11 @@ export default function LandingPage() {
     }
     : active === 'producto'
       ? { openPreview: () => setPreview(true) }
+      : active === 'contacto'
+        ? {
+          openDemo: () => setDialog('demo'),
+          openCompanyRegistration,
+        }
       : {}
 
   return (
