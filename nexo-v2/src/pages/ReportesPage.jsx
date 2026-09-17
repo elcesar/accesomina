@@ -17,7 +17,7 @@ function workerItems(state, kind) {
 const MODULES = {
   personas: { label: 'Personas', get: state => rows(state.trabajadores) },
   turnos: { label: 'Turnos y asistencia', get: state => rows(state.turnos) },
-  epp: { label: 'Entregas de EPP', get: state => rows(state.eppDeliveries) },
+  epp: { label: 'Entregas de EPP', get: state => firstRows(state, 'eppDeliveries', 'eppEntregas') },
   formacion: { label: 'Formación y certificaciones', get: state => workerItems(state, 'curso').concat(workerItems(state, 'formac'), workerItems(state, 'certif')) },
   examenes: { label: 'Exámenes y aptitudes', get: state => workerItems(state, 'examen').concat(workerItems(state, 'aptitud')) },
   salud: { label: 'Salud ocupacional', get: state => rows(state.protocolosSalud) },
@@ -26,7 +26,7 @@ const MODULES = {
   clientes: { label: 'Clientes', get: state => firstRows(state, 'minas', 'clientes') },
   contratos: { label: 'Contratos', get: state => rows(state.contratos) },
   ordenes: { label: 'Órdenes de servicio', get: state => firstRows(state, 'mantenciones', 'proyectos') },
-  prospectos: { label: 'Prospectos y oportunidades', get: state => firstRows(state, 'prospectos', 'oportunidades') },
+  prospectos: { label: 'Prospectos y oportunidades', get: state => rows(state.prospectos).length ? rows(state.prospectos) : rows(state.oportunidades).length ? rows(state.oportunidades) : rows(state.opportunities) },
   estadias: { label: 'Alojamientos y estadías', get: state => rows(state.hotelAsig) },
   comunicaciones: { label: 'Comunicaciones y convocatorias', get: state => rows(state.callouts) },
   incidentes: { label: 'Incidentes y no conformidades', get: state => rows(state.incidentes) },
@@ -49,13 +49,13 @@ const MODULES = {
 }
 
 const CATEGORIES = [
-  { id: 'personas', name: 'Capital Humano', description: 'Personas, asistencia, habilitación y protección.', modules: ['personas', 'turnos', 'epp', 'formacion', 'examenes', 'salud', 'restricciones', 'credenciales'] },
-  { id: 'comercial', name: 'Relación Comercial', description: 'Clientes, contratos, órdenes y oportunidades.', modules: ['clientes', 'contratos', 'ordenes', 'prospectos'] },
-  { id: 'operacion', name: 'Gestión Operacional', description: 'Ejecución diaria, comunicaciones, estadías e incidentes.', modules: ['estadias', 'comunicaciones', 'incidentes', 'libroDiario', 'capa'] },
+  { id: 'personas', name: 'Reportes trabajadores', description: 'Nómina, documentos, formación, exámenes, personal por proyecto, turnos, credenciales y salud ocupacional.', modules: ['personas', 'turnos', 'epp', 'formacion', 'examenes', 'salud', 'restricciones', 'credenciales'] },
+  { id: 'comercial', name: 'Reportes clientes, contratos y proyectos', description: 'Clientes, contratos y firmas, órdenes de servicio, oportunidades y Libro de Obra.', modules: ['clientes', 'contratos', 'ordenes', 'prospectos'] },
+  { id: 'operacion', name: 'Reportes operación y servicios', description: 'Alojamientos, comunicaciones, incidentes y avance de ejecución.', modules: ['estadias', 'comunicaciones', 'incidentes', 'libroDiario', 'capa'] },
   { id: 'ejecutivos', name: 'Reportes Ejecutivos', description: 'Indicadores transversales para gestión y control.', modules: ['clientes', 'contratos', 'ordenes', 'personas', 'alertas'] },
-  { id: 'activos', name: 'Activos e Inventario', description: 'Flota, existencias, movimientos, bodegas y mantenimiento.', modules: ['vehiculos', 'inventario', 'movimientos', 'bodegas', 'mantenimiento'] },
-  { id: 'cumplimiento', name: 'Cumplimiento y Auditoría', description: 'Documentación, acreditación, incidentes y auditoría.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones'] },
-  { id: 'contratistas', name: 'Contratistas', description: 'Empresas colaboradoras, habilitación y desempeño.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
+  { id: 'activos', name: 'Reportes flota y maquinaria', description: 'Flota, maquinaria, inventario, movimientos, mantenimiento, préstamos y bodegas.', modules: ['vehiculos', 'inventario', 'movimientos', 'bodegas', 'mantenimiento'] },
+  { id: 'cumplimiento', name: 'Reportes auditoría y cumplimiento', description: 'Auditoría documental, requisitos del cliente, alertas, vencimientos e incidentes.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones', 'alertas'] },
+  { id: 'contratistas', name: 'Reportes contratistas', description: 'Terceros, convenios, personal colaborador, habilitación y evaluación.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
 ]
 
 const csvEscape = value => `"${String(value ?? '').replaceAll('"', '""')}"`
