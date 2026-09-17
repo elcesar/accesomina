@@ -1,5 +1,6 @@
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
 export const normalize = value => String(value || '').trim().toLowerCase()
+export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
 
 export function daysUntil(value) {
   if (!value) return null
@@ -28,13 +29,15 @@ export function deriveOperationalAlerts(state) {
     rows(person.workerItems).forEach(item => {
       const left = daysUntil(item.vence)
       const rejected = normalize(item.estado) === 'rechazado'
+      const missing = normalize(item.estado) === 'faltante'
       if (rejected) derived.push({ id: `derived-person-rejected-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} rechazado`, derived: true })
+      if (missing) derived.push({ id: `derived-person-missing-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: falta ${item.name || 'antecedente'}`, derived: true })
       if (left !== null && left < 0) derived.push({ id: `derived-person-expired-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'vencido', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vencido`, derived: true })
       else if (left !== null && left <= 7) derived.push({ id: `derived-person-critical-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
       else if (left !== null && left <= 30) derived.push({ id: `derived-person-upcoming-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'proximo', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
     })
 
-    if (person.bloqueado || normalize(person.disponibilidad) === 'bloqueado' || normalize(person.operationalStatus) === 'bloqueado') {
+    if (isRestricted(person)) {
       derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona restringida para operar`, derived: true })
     }
   })
