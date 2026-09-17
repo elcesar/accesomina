@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconCategory, IconChartBar, IconDownload, IconFiles, IconRefresh, IconStack2 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { operationalAlerts } from '../services/operational-alerts.js'
+import { mergeReportCollections, rows } from '../services/report-collections.js'
 import '../styles/reportes.css'
 
-const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
-const firstRows = (state, primary, fallback) => rows(state?.[primary]).length ? rows(state?.[primary]) : rows(state?.[fallback])
 const norm = value => String(value ?? '').trim().toLowerCase()
 
 function workerItems(state, kind) {
@@ -19,7 +18,7 @@ function inventoryByType(state, type) {
 }
 
 function loans(state) {
-  return firstRows(state, 'inventoryMovements', 'movimientosInventario')
+  return mergeReportCollections(state, 'inventoryMovements', 'movimientosInventario')
     .filter(item => ['prestamo', 'préstamo', 'loan'].includes(norm(item?.type || item?.tipo)))
 }
 
@@ -28,17 +27,17 @@ const MODULES = {
   documentos: { label: 'Documentos de personas', get: state => workerItems(state, 'document').concat(workerItems(state, 'contrato')) },
   asignaciones: { label: 'Asignaciones por proyecto', get: state => rows(state.asignaciones) },
   turnos: { label: 'Turnos y asistencia', get: state => rows(state.turnos) },
-  epp: { label: 'Entregas de EPP', get: state => firstRows(state, 'eppDeliveries', 'eppEntregas') },
+  epp: { label: 'Entregas de EPP', get: state => mergeReportCollections(state, 'eppDeliveries', 'eppEntregas') },
   formacion: { label: 'Formación y certificaciones', get: state => workerItems(state, 'curso').concat(workerItems(state, 'formac'), workerItems(state, 'certif')) },
   examenes: { label: 'Exámenes y aptitudes', get: state => workerItems(state, 'examen').concat(workerItems(state, 'aptitud')) },
   salud: { label: 'Salud ocupacional', get: state => rows(state.protocolosSalud) },
   restricciones: { label: 'Restricciones', get: state => rows(state.restricted) },
   credenciales: { label: 'Credenciales', get: state => rows(state.credenciales) },
-  clientes: { label: 'Clientes', get: state => firstRows(state, 'minas', 'clientes') },
+  clientes: { label: 'Clientes', get: state => mergeReportCollections(state, 'minas', 'clientes') },
   contratos: { label: 'Contratos', get: state => rows(state.contratos) },
   firmas: { label: 'Contratos y firmas', get: state => rows(state.firmas) },
-  ordenes: { label: 'Órdenes de servicio', get: state => firstRows(state, 'mantenciones', 'proyectos') },
-  prospectos: { label: 'Prospectos y oportunidades', get: state => rows(state.prospectos).length ? rows(state.prospectos) : rows(state.oportunidades).length ? rows(state.oportunidades) : rows(state.opportunities) },
+  ordenes: { label: 'Órdenes de servicio', get: state => mergeReportCollections(state, 'mantenciones', 'proyectos') },
+  prospectos: { label: 'Prospectos y oportunidades', get: state => mergeReportCollections(state, 'prospectos', 'oportunidades', 'opportunities') },
   libroObra: { label: 'Libro de obra', get: state => rows(state.workBookEntries) },
   estadias: { label: 'Alojamientos y estadías', get: state => rows(state.hotelAsig) },
   comunicaciones: { label: 'Comunicaciones y convocatorias', get: state => rows(state.callouts) },
@@ -48,11 +47,11 @@ const MODULES = {
   vehiculos: { label: 'Vehículos', get: state => rows(state.vehiculos) },
   maquinaria: { label: 'Maquinaria', get: state => inventoryByType(state, 'maquinaria') },
   inventario: { label: 'Inventario y existencias', get: state => rows(state.inventoryItems) },
-  movimientos: { label: 'Movimientos de inventario', get: state => firstRows(state, 'inventoryMovements', 'movimientosInventario') },
-  bodegas: { label: 'Bodegas', get: state => firstRows(state, 'warehouses', 'bodegas') },
+  movimientos: { label: 'Movimientos de inventario', get: state => mergeReportCollections(state, 'inventoryMovements', 'movimientosInventario') },
+  bodegas: { label: 'Bodegas', get: state => mergeReportCollections(state, 'warehouses', 'bodegas') },
   mantenimiento: { label: 'Mantenimiento', get: state => rows(state.assetMaintenanceRecords).concat(rows(state.assetMaintenancePlans)) },
   prestamos: { label: 'Asignaciones y préstamos', get: state => loans(state) },
-  empresaDocs: { label: 'Documentación corporativa', get: state => firstRows(state, 'empresaDocs', 'documentosEmpresa') },
+  empresaDocs: { label: 'Documentación corporativa', get: state => mergeReportCollections(state, 'empresaDocs', 'documentosEmpresa') },
   acreditaciones: { label: 'Habilitación del cliente', get: state => rows(state.acreditacionesMandante) },
   auditoria: { label: 'Auditoría', get: state => rows(state.auditorias) },
   subcontratos: { label: 'Terceros y subcontratos', get: state => rows(state.subcontratos) },
