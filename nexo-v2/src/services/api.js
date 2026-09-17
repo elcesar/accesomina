@@ -15,6 +15,13 @@ const ERROR_MESSAGES = {
   ORIGIN_REQUIRED: 'No fue posible validar el origen de la solicitud.',
   ORIGIN_NOT_ALLOWED: 'Esta solicitud no está autorizada desde este origen.',
   PERMISSION_DENIED: 'No tienes permisos para realizar esta acción.',
+  FILE_REQUIRED: 'Selecciona un archivo antes de continuar.',
+  FILE_TYPE_NOT_ALLOWED: 'El formato no está permitido. Usa PDF, JPG, PNG, Word o Excel.',
+  STORAGE_NOT_CONFIGURED: 'La carga de archivos aún no está configurada en este ambiente. Contacta a soporte.',
+  VIRUS_SCAN_REQUIRED: 'La carga de archivos está temporalmente suspendida mientras se configura la revisión de seguridad.',
+  VIRUS_SCAN_UNAVAILABLE: 'La revisión de seguridad de archivos no está disponible. Inténtalo nuevamente en unos minutos.',
+  MALWARE_DETECTED: 'El archivo fue rechazado por la revisión de seguridad.',
+  LIMIT_FILE_SIZE: 'El archivo supera el tamaño máximo permitido de 25 MB.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
