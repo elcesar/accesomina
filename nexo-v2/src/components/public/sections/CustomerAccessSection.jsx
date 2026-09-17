@@ -198,7 +198,7 @@ export function CustomerAccessPanel() {
 
 export default function CustomerAccessSection() {
   return (
-    <section id="clientes-access" className="nk-public-section">
+    <section id="registro-empresa" className="nk-public-section">
       <div className="nk-access-layout">
         <div>
           <p className="nk-eyebrow">Nuevo cliente</p>

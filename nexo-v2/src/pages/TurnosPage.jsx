@@ -4,11 +4,12 @@ import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/turnos.css'
 
-const REGIMENES = ['7x7', '4x3', '5x2', '6x1', 'turno_especial']
+const REGIMENES = ['5x2', '4x3', '7x7', '10x10', '14x14', 'Otro tipo de turno']
 const TURNOS = ['día', 'noche', 'ambos']
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
 
 const hoy = () => new Date().toISOString().slice(0, 10)
+const isRestricted = trabajador => Boolean(trabajador?.bloqueado || trabajador?.restringido || /bloquead|restringid/.test(String(trabajador?.operationalStatus || trabajador?.disponibilidad || '').toLowerCase()))
 
 function AsistenciaBadge({ value }) {
   const classes = {
@@ -153,6 +154,7 @@ export default function TurnosPage() {
   }, [])
 
   const trabajadores = state?.trabajadores || []
+  const trabajadoresProgramables = trabajadores.filter(trabajador => !isRestricted(trabajador))
   const mantenciones = state?.mantenciones || []
   const minas = state?.minas || []
   const turnos = state?.turnos || []
@@ -190,6 +192,11 @@ export default function TurnosPage() {
   const mantNombre = id => mantenciones.find(m => m.id === id)?.nombre || id
 
   const handleSave = async form => {
+    const trabajador = trabajadores.find(item => String(item.id) === String(form.trabId))
+    if (isRestricted(trabajador)) {
+      window.alert('La persona está restringida y no puede programarse en un turno.')
+      return
+    }
     setSaving(true)
     try {
       const nuevo = { id: `turno_${Date.now()}`, ...form, hh: Number(form.hh) || 0 }
@@ -219,7 +226,7 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => setShowModal(true)} disabled={!trabajadores.length || !mantenciones.length}>
+        <button className="nk-button nk-button-primary" type="button" onClick={() => setShowModal(true)} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
         </button>
       </header>
@@ -306,7 +313,7 @@ export default function TurnosPage() {
         )}
       </div>
 
-      {showModal && <ModalNuevoTurno trabajadores={trabajadores} mantenciones={mantenciones} saving={saving} onSave={handleSave} onClose={() => setShowModal(false)} />}
+      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} saving={saving} onSave={handleSave} onClose={() => setShowModal(false)} />}
     </div>
   )
 }

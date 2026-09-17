@@ -3,6 +3,8 @@ import { IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/audit-log.css'
 
+const PAGE_SIZE = 200
+
 function formatDate(value) {
   if (!value) return '—'
   const date = new Date(value)
@@ -55,13 +57,17 @@ export default function BitacoraCambiosPage() {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [hasMore, setHasMore] = useState(false)
 
-  const loadAudit = useCallback(async () => {
+  const loadAudit = useCallback(async (append = false) => {
     setLoading(true)
     setError('')
     try {
-      const data = await api.get('/audit?limit=200')
-      setRows(Array.isArray(data) ? data : [])
+      const offset = append ? rows.length : 0
+      const data = await api.get(`/audit?limit=${PAGE_SIZE}&offset=${offset}`)
+      const next = Array.isArray(data) ? data : []
+      setRows(current => append ? [...current, ...next] : next)
+      setHasMore(next.length === PAGE_SIZE)
     } catch (err) {
       setError(err?.message || 'No fue posible cargar la bitácora.')
     } finally {
@@ -69,7 +75,7 @@ export default function BitacoraCambiosPage() {
     }
   }, [])
 
-  useEffect(() => { loadAudit() }, [loadAudit])
+  useEffect(() => { loadAudit() }, [])
 
   const total = rows.length
   const users = useMemo(() => new Set(rows.map(row => row.user_email || row.user_name).filter(Boolean)).size, [rows])
@@ -134,6 +140,7 @@ export default function BitacoraCambiosPage() {
             </tbody>
           </table>
         </div>
+        {!loading && hasMore && <footer className="nk-audit-card-footer"><button className="nk-button nk-button-secondary" type="button" onClick={() => loadAudit(true)}>Cargar más eventos</button></footer>}
       </section>
     </section>
   )

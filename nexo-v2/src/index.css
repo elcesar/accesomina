@@ -4,9 +4,4 @@
  * Esta capa no define valores visuales ni componentes.
  * Los estilos globales viven en tokens.css, base.css, theme.css,
  * components.css y las capas de layout/página correspondientes.
- *
- * Import transitorio: Centro de Control se mantiene aquí hasta
- * migrarlo a su CSS de página dentro de styles/pages/.
  */
-
-@import './styles/control-center-operational.css';

@@ -92,8 +92,11 @@ export default function AsignacionesPrestamosPage() {
     if (qty <= 0) { setError('La cantidad debe ser mayor que cero.'); return }
 
     const item = items.find(entry => String(entry.id) === String(form.itemId))
+    const hasLocationStock = Object.keys(item?.stockByLocation || {}).length > 0 || Boolean(item?.warehouseId)
+    if (!hasLocationStock && Number(item?.stock || 0) > 0) { setError('Este recurso tiene stock histórico sin bodega definida. Regulariza la ubicación antes de asignarlo.'); return }
     const stockByLocation = { ...(item?.stockByLocation || {}) }
-    const available = Number(stockByLocation[form.warehouseId] ?? item?.stock ?? 0)
+    if (!Object.keys(stockByLocation).length && item?.warehouseId) stockByLocation[item.warehouseId] = Number(item.stock || 0)
+    const available = Number(stockByLocation[form.warehouseId] || 0)
     if (available < qty) { setError(`Stock insuficiente en la bodega seleccionada. Disponible: ${available}.`); return }
 
     setSaving(true)
@@ -104,6 +107,7 @@ export default function AsignacionesPrestamosPage() {
       stockByLocation[form.warehouseId] = available - qty
       const nextStock = Object.keys(stockByLocation).length ? Object.values(stockByLocation).reduce((sum, value) => sum + Number(value || 0), 0) : Math.max(0, Number(item?.stock || 0) - qty)
       const nextItems = items.map(entry => String(entry.id) === String(form.itemId) ? { ...entry, stockByLocation, stock: nextStock, status: 'Asignado', updatedAt: new Date().toISOString() } : entry)
+      const now = new Date().toISOString()
       const record = {
         id,
         itemId: form.itemId,
@@ -117,7 +121,10 @@ export default function AsignacionesPrestamosPage() {
         status: 'activo',
         stockBefore,
         stockAfter: Number(stockByLocation[form.warehouseId] || 0),
-        at: new Date().toISOString(),
+        effectiveAt: today(),
+        createdAt: now,
+        movementAt: now,
+        at: now,
       }
       const nextMovements = [record, ...movements]
       const result = await api.put('/state/modules', {
