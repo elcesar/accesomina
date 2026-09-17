@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { IconCheck, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/vehiculos.css'
 
 const rows=value=>Array.isArray(value)?value:[]
@@ -22,8 +23,8 @@ export default function VehiculosPage(){
  const state=response?.state||response||{}
  const vehicles=useMemo(()=>rows(state.vehiculos),[state.vehiculos])
  const workers=useMemo(()=>rows(state.trabajadores),[state.trabajadores])
- const clients=useMemo(()=>{const canonical=rows(state.minas);return canonical.length||state.minas?canonical:rows(state.clientes)},[state.minas,state.clientes])
- const orders=useMemo(()=>{const canonical=rows(state.mantenciones);return canonical.length||state.mantenciones?canonical:rows(state.proyectos)},[state.mantenciones,state.proyectos])
+ const clients=useMemo(()=>mergeCollections(state,'minas','clientes'),[state.minas,state.clientes])
+ const orders=useMemo(()=>mergeCollections(state,'mantenciones','proyectos'),[state.mantenciones,state.proyectos])
  const workerById=useMemo(()=>new Map(workers.map(x=>[String(x.id),x])),[workers])
  const clientById=useMemo(()=>new Map(clients.map(x=>[String(x.id),x])),[clients])
  const orderById=useMemo(()=>new Map(orders.map(x=>[String(x.id),x])),[orders])

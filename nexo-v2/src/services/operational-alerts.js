@@ -22,7 +22,7 @@ export function deriveOperationalAlerts(state) {
   const derived = []
   const people = rows(state.trabajadores)
   const contracts = rows(state.contratos)
-  const orders = rows(state.mantenciones).length || state.mantenciones ? rows(state.mantenciones) : rows(state.proyectos)
+  const orders = mergeCollections(state, 'mantenciones', 'proyectos')
 
   people.forEach(person => {
     rows(person.workerItems).forEach(item => {
@@ -57,3 +57,4 @@ export function deriveOperationalAlerts(state) {
 export function operationalAlerts(state) {
   return [...rows(state.alertas), ...deriveOperationalAlerts(state)]
 }
+import { mergeCollections } from './report-collections.js'

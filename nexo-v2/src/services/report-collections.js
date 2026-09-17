@@ -16,10 +16,13 @@ function recordKey(record) {
 }
 
 // Read legacy data first, then let a canonical record with the same stable id prevail.
-export function mergeReportCollections(state, ...collectionNames) {
+// It is intentionally shared by reports and operational pages while legacy state exists.
+export function mergeCollections(state, ...collectionNames) {
   const merged = new Map()
   collectionNames.slice().reverse().forEach(collectionName => {
     rows(state?.[collectionName]).forEach(record => merged.set(recordKey(record), record))
   })
   return [...merged.values()]
 }
+
+export const mergeReportCollections = mergeCollections

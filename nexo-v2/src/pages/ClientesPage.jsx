@@ -4,6 +4,7 @@ import { IconArrowLeft, IconBuilding, IconCheck, IconFileText, IconLoader2, Icon
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/clientes.css'
 
 const emptyClient=()=>({nombre:'',mandante:'',rut:'',region:'',comuna:'',telefonoMandante:'',emailMandante:'',observacion:'',estado:'activo',contactos:[],requisitos:[]})
@@ -19,10 +20,10 @@ export default function ClientesPage({createMode=false}){
  async function load(){setLoading(true);setMessage('');setMessageTone('');try{setResponse(await api.get('/state'))}catch{setMessage('No fue posible cargar los clientes. Revisa tu conexión e inténtalo nuevamente.');setMessageTone('error')}finally{setLoading(false)}}
  useEffect(()=>{load()},[])
  const state=response?.state||response||{}
- const clients=useMemo(()=>{const canonical=rows(state.minas);return canonical.length||state.minas?canonical:rows(state.clientes)},[state.minas,state.clientes])
+ const clients=useMemo(()=>mergeCollections(state,'minas','clientes'),[state.minas,state.clientes])
  const visibleClients=useMemo(()=>{const term=search.trim().toLowerCase();return clients.filter(client=>{const matchesStatus=!statusFilter||(client.estado||'activo')===statusFilter;if(!matchesStatus)return false;if(!term)return true;return[client.nombre,client.mandante,client.rut,client.region,client.comuna].filter(Boolean).some(value=>String(value).toLowerCase().includes(term))})},[clients,search,statusFilter])
  const selected=clients.find(client=>String(client.id)===String(selectedId))||null
- const contracts=useMemo(()=>rows(state.contratos),[state.contratos]);const orders=useMemo(()=>rows(state.mantenciones||state.proyectos),[state.mantenciones,state.proyectos])
+ const contracts=useMemo(()=>rows(state.contratos),[state.contratos]);const orders=useMemo(()=>mergeCollections(state,'mantenciones','proyectos'),[state.mantenciones,state.proyectos])
  useEffect(()=>{if(creating){if(selectedId!==null)setSelectedId(null);return}if(!clients.length){setSelectedId(null);setDraft(emptyClient());return}if(clientId){const requested=clients.find(client=>String(client.id)===String(clientId));if(!requested){setSelectedId(null);setDraft(emptyClient());setMessage('El cliente solicitado no existe o ya no está disponible.');setMessageTone('error');return}if(String(requested.id)!==String(selectedId))setSelectedId(requested.id);setDraft({...emptyClient(),...requested,contactos:rows(requested.contactos),requisitos:rows(requested.requisitos)});return}if(selectedId){const current=clients.find(client=>String(client.id)===String(selectedId));if(current){setDraft({...emptyClient(),...current,contactos:rows(current.contactos),requisitos:rows(current.requisitos)});return}}setSelectedId(null);setDraft(emptyClient())},[clients,selectedId,creating,clientId])
  const relatedContracts=selected?contracts.filter(item=>String(item.minaId)===String(selected.id)):[];const relatedOrders=selected?orders.filter(item=>String(item.minaId)===String(selected.id)):[];const update=key=>event=>setDraft(current=>({...current,[key]:event.target.value}));const updateRegion=event=>setDraft(current=>({...current,region:event.target.value,comuna:''}));const comunas=comunasDeRegion(draft.region)
  const selectClient=id=>{setCreating(false);setSelectedId(id);setRequirementError('');setMessage('');setMessageTone('');navigate(`/app/clientes/${encodeURIComponent(id)}`)}

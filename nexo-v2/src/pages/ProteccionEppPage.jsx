@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconPackage, IconPlus, IconRefresh, IconSearch, IconShield, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/proteccion-epp.css'
 
 const asRows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
@@ -65,7 +66,7 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
       const state = response?.state || response || {}
       const versions = response?.moduleVersions || {}
       const version = versions.eppDeliveries ?? versions.eppEntregas ?? 0
-      const current = asRows(state.eppDeliveries || state.eppEntregas)
+      const current = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
       const record = { id: `epp_${Date.now()}`, workerId: form.workerId, inventoryId: form.inventoryId || undefined, itemName: form.itemName.trim(), quantity, warehouseId: form.warehouseId || undefined, orderId: form.orderId || undefined, size: form.size.trim(), brandModel: form.brandModel.trim(), certification: form.certification.trim(), lotSerial: form.lotSerial.trim(), condition: form.condition, deliveredBy: form.deliveredBy.trim(), receivedBy: form.receivedBy.trim(), deliveredAt: form.deliveredAt, replaceAt: form.replaceAt, notes: form.notes.trim(), createdAt: new Date().toISOString() }
       const changes = { eppDeliveries: { version, data: [...current, record] } }
 
@@ -146,9 +147,9 @@ export default function ProteccionEppPage() {
   const state = response?.state || response || {}
   const workers = asRows(state.trabajadores)
   const inventory = asRows(state.inventoryItems).filter(item => /epp|protecci|casco|guante|arn[eé]s|respir|calzad|bot|overol|lente/i.test(JSON.stringify(item)))
-  const warehouses = asRows(state.warehouses).length ? asRows(state.warehouses) : asRows(state.bodegas)
-  const orders = asRows(state.mantenciones).length ? asRows(state.mantenciones) : asRows(state.proyectos)
-  const deliveries = asRows(state.eppDeliveries || state.eppEntregas)
+  const warehouses = mergeCollections(state, 'warehouses', 'bodegas')
+  const orders = mergeCollections(state, 'mantenciones', 'proyectos')
+  const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
   const records = useMemo(() => deliveries.map(item => { const worker = workers.find(person => person.id === (item.workerId || item.trabId)); return { ...item, workerId: item.workerId || item.trabId, workerName: worker?.nombre || item.workerName || 'Persona no identificada', workerRut: worker?.rut || item.rut || '', workerRole: worker?.cargo || worker?.especialidad || '', workerType:worker?.tipo||'',workerAvailability:worker?.disponibilidad||'',workerBlocked:Boolean(worker?.bloqueado), itemName: item.itemName || item.nombre || item.epp || 'EPP registrado' } }), [deliveries, workers])
   const workerMatchesSegment=worker=>segment==='todos'||(segment==='permanente'&&worker.tipo==='permanente'&&!worker.bloqueado)||(segment==='esporadico'&&worker.tipo==='esporadico'&&!worker.bloqueado)||(segment==='disponible'&&worker.disponibilidad==='disponible'&&!worker.bloqueado)||(segment==='bloqueado'&&worker.bloqueado)
   const visibleWorkers=useMemo(()=>workers.filter(worker=>workerMatchesSegment(worker)&&(!query.trim()||[worker.nombre,worker.rut,worker.cargo,worker.especialidad].some(v=>String(v||'').toLowerCase().includes(query.trim().toLowerCase())))),[workers,segment,query])

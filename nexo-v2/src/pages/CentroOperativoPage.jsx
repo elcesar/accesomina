@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconAlertTriangle, IconBook2, IconCheck, IconChevronRight, IconClipboardCheck, IconHistory, IconRefresh, IconShieldCheck } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/control-center.css'
 
 const rows=value=>Array.isArray(value)?value:[]
@@ -19,7 +20,7 @@ export default function CentroOperativoPage(){
  const navigate=useNavigate();const[response,setResponse]=useState(null);const[loading,setLoading]=useState(true);const[error,setError]=useState('');const[ok,setOk]=useState('');const[tab,setTab]=useState('libro');const[saving,setSaving]=useState(false);const[logForm,setLogForm]=useState({mantId:'',fecha:today(),hh:'',personas:'',avance:'',riesgos:''});const[capaForm,setCapaForm]=useState({source:'',title:'',owner:'',due:'',rootCause:'',action:''})
  async function load(){setLoading(true);setError('');try{setResponse(await api.get('/state'))}catch(cause){setError(cause.message||'No fue posible cargar el Centro Operativo.')}finally{setLoading(false)}}
  useEffect(()=>{load()},[])
- const state=response?.state||response||{};const projects=rows(state.mantenciones).filter(item=>!['cerrada','cancelada'].includes(norm(item.estado)));const workers=rows(state.trabajadores);const assignments=rows(state.asignaciones);const clients=rows(state.minas);const contracts=rows(state.contratos);const alerts=[...rows(state.alertas),...rows(state.callouts)];const stays=rows(state.hotelAsig);const vehicles=rows(state.vehiculos);const eppDeliveries=rows(state.eppDeliveries||state.eppEntregas);const dailyLogs=rows(state.dailyLogs);const capaActions=rows(state.capaActions)
+ const state=response?.state||response||{};const projects=mergeCollections(state,'mantenciones','proyectos').filter(item=>!['cerrada','cancelada'].includes(norm(item.estado)));const workers=rows(state.trabajadores);const assignments=rows(state.asignaciones);const clients=mergeCollections(state,'minas','clientes');const contracts=rows(state.contratos);const alerts=[...rows(state.alertas),...rows(state.callouts)];const stays=rows(state.hotelAsig);const vehicles=rows(state.vehiculos);const eppDeliveries=mergeCollections(state,'eppDeliveries','eppEntregas');const dailyLogs=rows(state.dailyLogs);const capaActions=rows(state.capaActions)
  useEffect(()=>{if(!logForm.mantId&&projects[0]?.id)setLogForm(current=>({...current,mantId:projects[0].id}))},[projects,logForm.mantId])
 
  const serviceRows=useMemo(()=>projects.map(project=>{
