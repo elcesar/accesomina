@@ -12,6 +12,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { workerSegment } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
@@ -88,29 +89,6 @@ function workerProjectIds(persona, asignaciones) {
   return asignaciones
     .filter(asignacion => asignacion.trabId === persona.id)
     .map(asignacion => asignacion.mantId)
-}
-
-function projectIsActive(project) {
-  const status = String(project?.estado || '').toLocaleLowerCase()
-  return !['cerrada', 'cerrado', 'cancelada', 'cancelado', 'finalizada', 'finalizado'].includes(status)
-}
-
-function hasActiveProjectAssignment(persona, asignaciones, proyectos) {
-  return asignaciones.some(asignacion => (
-    asignacion.trabId === persona.id &&
-    !['retirado', 'cancelado', 'cancelada', 'finalizado', 'finalizada'].includes(String(asignacion.estado || '').toLocaleLowerCase()) &&
-    projectIsActive(proyectos.find(proyecto => proyecto.id === asignacion.mantId))
-  ))
-}
-
-function workerSegment(persona, asignaciones, proyectos) {
-  if (persona.bloqueado || persona.disponibilidad === 'bloqueado') return 'bloqueados'
-  if (hasActiveProjectAssignment(persona, asignaciones, proyectos)) return 'esporadico'
-
-  const profile = String(persona.employmentProfile || persona.tipo || '').toLocaleLowerCase()
-  if (['permanente', 'fijo', 'planta'].includes(profile)) return 'planta'
-  if (['esporadico', 'temporal', 'proyecto', 'por_proyecto'].includes(profile)) return 'esporadico'
-  return 'disponible'
 }
 
 function restrictionIsActive(restriction) {

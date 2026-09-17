@@ -287,7 +287,6 @@ export default function NuevoTrabajadorPage() {
       const versionT = stateRes?.moduleVersions?.trabajadores ?? 0
       const versionA = stateRes?.moduleVersions?.asignaciones ?? 0
 
-      const tipoInterno = data.tipo === 'disponible' ? 'esporadico' : data.tipo
       const disponibilidad = data.tipo === 'disponible' ? 'disponible' : data.mantId ? 'asignado' : 'disponible'
       const newId = `t_${Date.now()}`
       const nuevo = {
@@ -299,7 +298,7 @@ export default function NuevoTrabajadorPage() {
         email: data.email || undefined,
         region: data.region || undefined,
         ciudad: data.ciudad || undefined,
-        tipo: tipoInterno,
+        tipo: data.tipo,
         employmentProfile: data.tipo,
         regimen: data.regimen,
         cargo: data.cargo,
