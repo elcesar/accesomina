@@ -17,6 +17,7 @@ const rows=value=>Array.isArray(value)?value:[]
 const newId=()=>globalThis.crypto?.randomUUID?.()||`callout-${Date.now()}-${Math.random().toString(16).slice(2)}`
 const editors=new Set(['domian_admin','client_admin','rrhh'])
 const normalize=value=>String(value||'').trim().toLowerCase()
+const isRestricted=worker=>Boolean(worker?.bloqueado||worker?.restringido||/bloquead|restringid/.test(normalize(worker?.operationalStatus||worker?.disponibilidad)))
 const emptyDraft=()=>({
   tipo:'convocatoria',titulo:'',mensaje:'',mantId:'',trabId:'',fecha:'',estado:'pendiente',
   especialidades:[],turno:'ambos',cupos:0,canal:'WhatsApp',prioridad:'Normal',responderAntes:'',responsable:'',
@@ -52,7 +53,7 @@ export default function ComunicacionesPage(){
    if(draft.tipo!=='convocatoria'||!rows(draft.especialidades).length)return[]
    const required=new Set(draft.especialidades)
    return workers.filter(worker=>{
-     const enabled=!worker.bloqueado&&worker.operationalStatus!=='restringido'&&worker.operationalStatus!=='bloqueado'
+     const enabled=!isRestricted(worker)
      const available=worker.disponibilidad==='disponible'
      const specialty=required.has(worker.especialidad)
      const consent=worker.communicationConsent!==false
