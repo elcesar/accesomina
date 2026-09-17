@@ -9,6 +9,11 @@ test('keeps an available worker only in the available segment', () => {
   assert.equal(workerSegment(worker, [], [order]), 'disponible')
 })
 
+test('keeps a legacy project-type worker available until an effective assignment exists', () => {
+  const worker = { id: 'raul', tipo: 'esporadico', disponibilidad: 'disponible' }
+  assert.equal(workerSegment(worker, [], [order]), 'disponible')
+})
+
 test('does not treat a preassignment as an effective project assignment', () => {
   const worker = { id: 'raul', tipo: 'disponible', disponibilidad: 'disponible' }
   const assignments = [{ trabId: 'raul', mantId: 'os-1', estado: 'preasignado' }]
