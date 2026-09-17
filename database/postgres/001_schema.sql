@@ -78,7 +78,6 @@ CREATE TABLE IF NOT EXISTS workers (
   availability TEXT DEFAULT 'disponible' CHECK (availability IN ('disponible','asignado','no_disponible','bloqueado')),
   afp TEXT,
   health_system TEXT,
-  mutual TEXT,
   shirt_size TEXT,
   shoe_size TEXT,
   blocked BOOLEAN NOT NULL DEFAULT FALSE,

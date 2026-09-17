@@ -78,6 +78,18 @@ export default function UsuariosPermisosPage() {
     finally { setBusy('') }
   }
 
+  const resetMfa = async user => {
+    if (!window.confirm(`Se restablecerá la verificación adicional de ${user.email}. Deberá configurarla nuevamente al ingresar. ¿Continuar?`)) return
+    setBusy(user.id)
+    setMessage('')
+    try {
+      const result = await api.post(`/users/${user.id}/reset-mfa`, {})
+      setUsers(current => current.map(item => item.id === user.id ? { ...item, ...result.user } : item))
+      setMessage(result?.message || `Verificación adicional restablecida para ${user.email}.`)
+    } catch (error) { setMessage(error.message || 'No fue posible restablecer la verificación adicional.') }
+    finally { setBusy('') }
+  }
+
   return (
     <section className="nk-module-page nk-users-page">
       <header className="nk-module-header">
@@ -125,6 +137,7 @@ export default function UsuariosPermisosPage() {
                       <div className="nk-user-actions">
                         {admin && !self && !protectedUser ? <>
                           <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => reset(user)}><IconKey size={14}/> Restablecer acceso</button>
+                          {user.mfa_enabled && <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => resetMfa(user)}>Restablecer MFA</button>}
                           <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</button>
                         </> : <span>—</span>}
                       </div>
