@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { IconAlertTriangle, IconPaperclip, IconRefresh, IconUser } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
 import { alertKind, operationalAlerts, rows } from '../services/operational-alerts.js'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/control-center.css'
 
 const titleFor = item => item.nombre || item.title || item.tipo || item.descripcion || item.msg || 'Pendiente operativo'
@@ -43,7 +44,7 @@ function contextPath(item, group) {
 function personServiceContext(person, state) {
   if (!person) return ''
   const assignments = rows(state.asignaciones)
-  const orders = rows(state.mantenciones).length || state.mantenciones ? rows(state.mantenciones) : rows(state.proyectos)
+  const orders = mergeCollections(state, 'mantenciones', 'proyectos')
   const personAssignments = assignments.filter(assignment => String(assignment.trabajadorId || assignment.personaId || assignment.workerId || assignment.trabId || '') === String(person.id))
   const names = [...new Set(personAssignments.map(assignment => {
     const orderId = assignment.mantId || assignment.ordenServicioId || assignment.proyectoId || assignment.servicioId

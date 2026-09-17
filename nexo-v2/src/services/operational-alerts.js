@@ -1,3 +1,4 @@
+import { mergeCollections } from './report-collections.js'
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
 export const normalize = value => String(value || '').trim().toLowerCase()
 export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
@@ -23,7 +24,7 @@ export function deriveOperationalAlerts(state) {
   const derived = []
   const people = rows(state.trabajadores)
   const contracts = rows(state.contratos)
-  const orders = rows(state.mantenciones).length || state.mantenciones ? rows(state.mantenciones) : rows(state.proyectos)
+  const orders = mergeCollections(state, 'mantenciones', 'proyectos')
 
   people.forEach(person => {
     rows(person.workerItems).forEach(item => {

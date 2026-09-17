@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { IconBed, IconCheck, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/alojamientos.css'
 
 const rows = value => Array.isArray(value) ? value : []
@@ -53,8 +54,8 @@ export default function AlojamientosPage() {
   const stays = useMemo(() => rows(state.hotelAsig), [state.hotelAsig])
   const workers = useMemo(() => rows(state.trabajadores), [state.trabajadores])
   const assignments = useMemo(() => rows(state.asignaciones), [state.asignaciones])
-  const clients = useMemo(() => { const canonical = rows(state.minas); return canonical.length || state.minas ? canonical : rows(state.clientes) }, [state.minas, state.clientes])
-  const orders = useMemo(() => { const canonical = rows(state.mantenciones); return canonical.length || state.mantenciones ? canonical : rows(state.proyectos) }, [state.mantenciones, state.proyectos])
+  const clients = useMemo(() => mergeCollections(state, 'minas', 'clientes'), [state.minas, state.clientes])
+  const orders = useMemo(() => mergeCollections(state, 'mantenciones', 'proyectos'), [state.mantenciones, state.proyectos])
   const workerById = useMemo(() => new Map(workers.map(x => [String(x.id), x])), [workers])
   const clientById = useMemo(() => new Map(clients.map(x => [String(x.id), x])), [clients])
   const orderById = useMemo(() => new Map(orders.map(x => [String(x.id), x])), [orders])

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import { alertKind, daysUntil, isRestricted, operationalAlerts, rows } from '../services/operational-alerts.js'
+import { mergeCollections } from '../services/report-collections.js'
 import '../styles/control-center.css'
 
 const ACTIVE_ASSIGNMENT_STAGES = new Set(['asignado', 'habilitado', 'contrato_firmado', 'acreditacion_enviada'])
@@ -53,7 +54,7 @@ export default function DashboardPage() {
     const people = rows(state.trabajadores)
     const alerts = operationalAlerts(state)
     const restrictions = rows(state.restricted).filter(activeRestriction)
-    const deliveries = rows(state.eppDeliveries || state.eppEntregas)
+    const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
     const assignments = rows(state.asignaciones)
     const shifts = rows(state.turnos)
     const orders = rows(state.mantenciones).filter(item => !['cerrada', 'cancelada'].includes(String(item.estado || '').toLowerCase()))
