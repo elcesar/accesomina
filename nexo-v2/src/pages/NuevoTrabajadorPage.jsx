@@ -35,7 +35,7 @@ const INITIAL = {
   tipo:'permanente', regimen:'5x2',
   cargo:'', rol:'', especialidad:'', calificacion:'7',
   mantId:'',
-  afp:'', salud:'', mutual:'',
+  afp:'', salud:'',
   eppCasco:'', eppPolera:'', eppPantalon:'', eppZapato:'',
 }
 
@@ -193,7 +193,6 @@ function StepSalud({ data, onChange }) {
       <p className="nk-person-step-intro">Información previsional para gestión documental y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
       <Field label="AFP"><FInput value={data.afp} onChange={e => onChange('afp', e.target.value)} placeholder="AFP Habitat, Capital, Provida…" /></Field>
       <Field label="Previsión de salud"><FInput value={data.salud} onChange={e => onChange('salud', e.target.value)} placeholder="Fonasa / Isapre…" /></Field>
-      <Field label="Mutual de seguridad" full><FInput value={data.mutual} onChange={e => onChange('mutual', e.target.value)} placeholder="Mutual / ACHS / IST" /></Field>
     </div>
   )
 }
@@ -218,7 +217,7 @@ function StepResumen({ data, mantenciones }) {
     ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo', data.cargo], ['Rol operacional', data.rol], ['Especialidad', data.especialidad], ['Calificación', data.calificacion],
-    ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud], ['Mutual', data.mutual],
+    ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
   ].filter(([, value]) => value)
 
@@ -308,7 +307,7 @@ export default function NuevoTrabajadorPage() {
         tipo: tipoInterno, employmentProfile: data.tipo, regimen: data.regimen,
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
         calificacion: Number(data.calificacion), disponibilidad,
-        afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined, mutual: data.mutual.trim() || undefined,
+        afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
         epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
         bloqueado: false, mineras: [], workerItems: [], creado: new Date().toISOString().split('T')[0],
       }
