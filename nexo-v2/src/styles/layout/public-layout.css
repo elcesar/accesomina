@@ -74,10 +74,11 @@
 
 .nk-public-section-tabs button {
   flex: 0 0 auto;
-  min-height: var(--nk-space-12);
+  min-height: var(--nk-space-10);
+  margin-block: var(--nk-space-1);
   padding: var(--nk-space-0) var(--nk-space-4);
-  border: 0;
-  border-bottom: var(--nk-stroke-strong) solid transparent;
+  border: var(--nk-stroke-thin) solid transparent;
+  border-radius: var(--nk-radius-md);
   background: transparent;
   color: var(--nk-ink-2);
   font: var(--nk-font-label);
@@ -95,9 +96,9 @@
 }
 
 .nk-public-section-tabs button.is-active {
-  color: var(--nk-primary);
-  border-bottom-color: var(--nk-primary);
-  background: var(--nk-primary-soft);
+  color: var(--nk-surface);
+  border-color: var(--nk-accent-data);
+  background: var(--nk-primary);
 }
 
 .nk-public-site main {

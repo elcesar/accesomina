@@ -10,20 +10,21 @@ import IndustriesSection from '../components/public/sections/IndustriesSection.j
 import ImplementationSection from '../components/public/sections/ImplementationSection.jsx'
 import PurposeSection from '../components/public/sections/PurposeSection.jsx'
 import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
+import ContactSection from '../components/public/sections/ContactSection.jsx'
 import { DemoRequestDialog } from '../components/public/PublicDialogs.jsx'
 
-const trackedSections = [
-  'inicio',
-  'solucion',
-  'resultados',
-  'producto',
-  'capacidades',
-  'industrias',
-  'implementacion',
-  'proposito',
-  'clientes-access',
-  'contacto',
-]
+const publicSections = {
+  inicio: HomeSection,
+  solucion: PlatformSection,
+  resultados: BenefitsSection,
+  producto: ProductSection,
+  capacidades: SolutionsSection,
+  industrias: IndustriesSection,
+  implementacion: ImplementationSection,
+  proposito: PurposeSection,
+  'registro-empresa': CustomerAccessSection,
+  contacto: ContactSection,
+}
 
 function ProductPreview({ onClose }) {
   return (
@@ -49,57 +50,43 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
-    const hash = window.location.hash.replace('#', '')
-
-    if (hash === 'clientes-access') {
-      requestAnimationFrame(() => {
-        document.getElementById('clientes-access')?.scrollIntoView({ block: 'center' })
-      })
-      return
+    const syncSectionFromHash = () => {
+      const hash = window.location.hash.replace('#', '')
+      setActive(publicSections[hash] ? hash : 'inicio')
     }
 
-    if (trackedSections.includes(hash)) {
-      requestAnimationFrame(() => {
-        document.getElementById(hash)?.scrollIntoView({ block: 'start' })
-      })
-    }
-  }, [])
-
-  useEffect(() => {
-    const sections = trackedSections
-      .map(id => document.getElementById(id))
-      .filter(Boolean)
-
-    if (!sections.length || !('IntersectionObserver' in window)) return undefined
-
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries
-        .filter(entry => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-
-      if (visible?.target?.id) setActive(visible.target.id)
-    }, {
-      rootMargin: '-24% 0px -58% 0px',
-      threshold: [0.08, 0.2, 0.45],
-    })
-
-    sections.forEach(section => observer.observe(section))
-    return () => observer.disconnect()
+    syncSectionFromHash()
+    window.addEventListener('hashchange', syncSectionFromHash)
+    return () => window.removeEventListener('hashchange', syncSectionFromHash)
   }, [])
 
   const goTo = id => {
-    const target = document.getElementById(id)
-    if (!target) return
+    if (!publicSections[id]) return
 
     setActive(id)
     window.history.replaceState(null, '', `#${id}`)
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
   const openCompanyRegistration = () => {
-    window.history.replaceState(null, '', '#clientes-access')
-    document.getElementById('clientes-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    goTo('registro-empresa')
   }
+
+  const ActiveSection = publicSections[active] || HomeSection
+  const sectionProps = active === 'inicio'
+    ? {
+      openDemo: () => setDialog('demo'),
+      openPreview: () => setPreview(true),
+      onNavigate: goTo,
+    }
+    : active === 'producto'
+      ? { openPreview: () => setPreview(true) }
+      : active === 'contacto'
+        ? {
+          openDemo: () => setDialog('demo'),
+          openCompanyRegistration,
+        }
+      : {}
 
   return (
     <div className="nk-public-site" data-public-page={active}>
@@ -110,37 +97,7 @@ export default function LandingPage() {
       />
 
       <main>
-        <HomeSection
-          openDemo={() => setDialog('demo')}
-          openPreview={() => setPreview(true)}
-          onNavigate={goTo}
-        />
-        <PlatformSection />
-        <BenefitsSection />
-        <ProductSection openPreview={() => setPreview(true)} />
-        <SolutionsSection />
-        <IndustriesSection />
-        <ImplementationSection />
-        <PurposeSection />
-        <CustomerAccessSection />
-
-        <section className="nk-public-section nk-centered nk-final-cta" id="contacto">
-          <div>
-            <p className="nk-eyebrow">Conversemos</p>
-            <h2>Conecta tu operación sobre una sola base de información.</h2>
-            <p className="nk-lead">
-              Cuéntanos cómo administras hoy tu dotación, documentos, recursos y cumplimiento. Revisaremos contigo qué módulos necesita tu empresa para comenzar.
-            </p>
-            <div className="nk-actions">
-              <button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('demo')}>
-                Solicitar demostración
-              </button>
-              <button className="nk-button nk-button-secondary" type="button" onClick={openCompanyRegistration}>
-                Crear empresa
-              </button>
-            </div>
-          </div>
-        </section>
+        <ActiveSection {...sectionProps} />
       </main>
 
       <footer className="nk-public-footer">

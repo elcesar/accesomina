@@ -43,7 +43,8 @@
 .nk-public-site[data-public-page='resultados'] main,
 .nk-public-site[data-public-page='capacidades'] main,
 .nk-public-site[data-public-page='implementacion'] main,
-.nk-public-site[data-public-page='clientes-access'] main {
+.nk-public-site[data-public-page='clientes-access'] main,
+.nk-public-site[data-public-page='contacto'] main {
   background: var(--nk-surface);
 }
 
@@ -566,7 +567,21 @@
 }
 
 /* =========================================================
-   09. PUBLIC DIALOG CONTENT
+   09. CONTACT
+   ========================================================= */
+
+.nk-final-cta > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.nk-final-cta .nk-actions {
+  margin-top: var(--nk-space-6);
+}
+
+/* =========================================================
+   10. PUBLIC DIALOG CONTENT
    ========================================================= */
 
 .nk-public-dialog > header {
