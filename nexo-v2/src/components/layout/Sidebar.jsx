@@ -14,16 +14,12 @@ import {
 } from '@tabler/icons-react'
 import '../../styles/layout/sidebar.css'
 
-const PRIMARY_NAV = [
-  { to: '/app/reportes', label: 'Reportes y analítica', icon: IconChartBar },
-]
-
 const NAV = [
   {
     key: 'centro-control',
     label: 'Centro de Control',
     items: [
-      { to: '/app', label: 'Panel General', icon: IconLayoutDashboard, exact: true },
+      { to: '/app', label: 'Panel de control', icon: IconLayoutDashboard, exact: true },
       { to: '/app/alertas', label: 'Alertas', icon: IconBell, badge: true },
       { to: '/app/reclutamiento', label: 'Gestión de trabajadores', icon: IconClipboardList },
       { to: '/app/operaciones', label: 'Centro Operativo', icon: IconServer },
@@ -47,9 +43,9 @@ const NAV = [
     label: 'Gestión Operacional',
     items: [
       { to: '/app/llamados', label: 'Comunicaciones y convocatorias', icon: IconBrandWhatsapp },
-      { to: '/app/vehiculos', label: 'Vehículos, activos y equipos', icon: IconCar },
+      { to: '/app/vehiculos', label: 'Flota y equipos móviles', icon: IconCar },
       { to: '/app/hoteleria', label: 'Alojamientos y estadías', icon: IconBed },
-      { to: '/app/credenciales', label: 'Credenciales', icon: IconId },
+      { to: '/app/credenciales', label: 'Credenciales de acceso', icon: IconId },
     ],
   },
   {
@@ -57,8 +53,8 @@ const NAV = [
     label: 'Contratistas',
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
-      { to: '/app/convenios', label: 'Contratos y convenios', icon: IconFileText },
-      { to: '/app/personal-contratista', label: 'Personal del contratista', icon: IconUsers },
+      { to: '/app/convenios', label: 'Convenios y contratos de terceros', icon: IconFileText },
+      { to: '/app/personal-contratista', label: 'Personas de empresas colaboradoras', icon: IconUsers },
       { to: '/app/habilitaciones-contratistas', label: 'Habilitaciones y cumplimiento', icon: IconCircleCheck },
       { to: '/app/evaluacion-desempeno', label: 'Evaluación de desempeño', icon: IconChartBar },
     ],
@@ -76,7 +72,7 @@ const NAV = [
     key: 'cumplimiento-calidad',
     label: 'Cumplimiento y Calidad',
     items: [
-      { to: '/app/acreditacion-empresa', label: 'Documentación de la Empresa', icon: IconBuildingCommunity },
+      { to: '/app/acreditacion-empresa', label: 'Documentación de la empresa', icon: IconBuildingCommunity },
       { to: '/app/acreditacion-mandante', label: 'Habilitación del Cliente', icon: IconCircleCheck },
       { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
       { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
@@ -98,20 +94,28 @@ const NAV = [
       { to: '/app/maquinaria', label: 'Maquinaria', icon: IconTruckDelivery },
       { to: '/app/equipos-instrumentos', label: 'Equipos e instrumentos', icon: IconTool },
       { to: '/app/herramientas', label: 'Herramientas', icon: IconTools },
-      { to: '/app/epp-inventario', label: 'EPP y protección personal', icon: IconShield },
+      { to: '/app/epp-inventario', label: 'Inventario de equipos de protección personal', icon: IconShield },
       { to: '/app/materiales', label: 'Materiales y ferretería', icon: IconBox },
       { to: '/app/insumos', label: 'Insumos y consumibles', icon: IconTestPipe },
-      { to: '/app/bodegas', label: 'Bodegas y almacenes', icon: IconBuildingWarehouse },
+      { to: '/app/bodegas', label: 'Bodegas', icon: IconBuildingWarehouse },
       { to: '/app/movimientos-inventario', label: 'Movimientos de inventario', icon: IconArrowsExchange },
       { to: '/app/mantenimiento', label: 'Mantenimiento', icon: IconTools },
       { to: '/app/asignaciones-prestamos', label: 'Asignaciones y préstamos', icon: IconClipboardList },
     ],
   },
   {
+    key: 'reportes-datos',
+    label: 'Reportes y datos',
+    items: [
+      { to: '/app/reportes', label: 'Reportes', icon: IconChartBar },
+      { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
+    ],
+  },
+  {
     key: 'gestion-administracion',
     label: 'Gestión y Administración',
     items: [
-      { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
+      { to: '/app/configuracion', label: 'Configuración de la empresa', icon: IconSettings },
       { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
       { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
       { to: '/app/privacidad', label: 'Privacidad y datos', icon: IconShieldLock },
@@ -191,16 +195,6 @@ export default function Sidebar() {
       </div>
 
       <nav className="nk-sidebar-nav" aria-label="Navegación principal">
-        <div className="nk-side-group-items">
-          {PRIMARY_NAV.map(item => (
-            <NavItem
-              key={item.to}
-              {...item}
-              badgeCount={badges[item.to] || 0}
-            />
-          ))}
-        </div>
-
         {NAV.map(group => (
           <NavGroup
             key={group.key}
@@ -219,15 +213,6 @@ export default function Sidebar() {
         )}
       </nav>
 
-      <div className="nk-sidebar-bottom">
-        <NavLink
-          to="/app/configuracion"
-          className={({ isActive }) => `nk-sidebar-action ${isActive ? 'active' : ''}`}
-        >
-          <IconSettings size={15} strokeWidth={1.7} />
-          <span>Configuración</span>
-        </NavLink>
-      </div>
     </aside>
   )
 }
