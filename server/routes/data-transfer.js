@@ -13,9 +13,15 @@ export const BACKUP_FORMAT='nexo-klar-backup';
 export const LEGACY_BACKUP_FORMAT='accesomina-backup';
 dataTransferRouter.use(allowRoles('domian_admin','client_admin'));
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
-// A CSV import does not create an order assignment. Historical "esporadico" values
-// therefore remain available until an assignment is explicitly confirmed in the app.
-const importedWorkerType=value=>['permanente','fijo','planta'].includes(String(value||'').trim().toLowerCase())?'permanente':'disponible';
+// Worker category and operational availability are independent. A CSV import never
+// creates an assignment, so every imported person starts available without losing
+// the historical category declared in the source file.
+const importedWorkerType=value=>{
+  const normalized=String(value||'').trim().toLowerCase();
+  if(['permanente','fijo','planta'].includes(normalized))return'permanente';
+  if(['esporadico','esporádico','temporal','proyecto','por proyecto','spot'].includes(normalized))return'esporadico';
+  return'esporadico';
+};
 export const definitions={
   trabajadores:{module:'trabajadores',headers:['nombre','rut','tipo','cargo','rol','especialidad','telefono','email','ciudad','afp','salud'],required:['nombre','rut'],map:(r)=>({id:`t_${crypto.randomUUID()}`,nombre:r.nombre,rut:r.rut,tipo:importedWorkerType(r.tipo),cargo:r.cargo||'',rol:r.rol||'',especialidad:r.especialidad||'',tel:r.telefono||r.tel||'',email:r.email||'',ciudad:r.ciudad||'',afp:r.afp||'',salud:r.salud||'',disponibilidad:'disponible',mineras:[],bloqueado:false,workerItems:[]})},
   minas:{module:'minas',headers:['nombre','mandante','region','altura','sistema','contacto'],required:['nombre'],map:(r)=>({id:`mi_${crypto.randomUUID()}`,nombre:r.nombre,mandante:r.mandante||'',region:r.region||'',altura:Number(r.altura)||0,sistema:r.sistema||'Propio',contacto:r.contacto||'',color:'#f07d36'})},
