@@ -5,7 +5,7 @@ import {
   IconCheck, IconDeviceFloppy, IconDownload, IconFileText, IconHistory,
   IconLoader2, IconPaperclip, IconPlus, IconShield, IconUser, IconX,
 } from '@tabler/icons-react'
-import { api, getCsrf } from '../services/api.js'
+import { api } from '../services/api.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/ficha-trabajador.css'
@@ -185,16 +185,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
 }
 
 async function uploadWorkerFile(workerId, file) {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('entityType', 'worker_document')
-  formData.append('entityId', workerId)
-  const headers = {}
-  const csrf = getCsrf()
-  if (csrf) headers['x-csrf-token'] = csrf
-  const response = await fetch('/api/files', { method: 'POST', credentials: 'same-origin', headers, body: formData })
-  if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.message || err.error || 'No fue posible almacenar el archivo') }
-  return response.json()
+  return api.upload('/files', file, { entityType:'worker_document', entityId:workerId })
 }
 
 function DocsTab({ worker, tabKey, onPersistItems, onError }) {

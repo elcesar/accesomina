@@ -10,9 +10,20 @@ import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
 
 export const filesRouter = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 }, fileFilter: (req,file,cb) => cb(null, /^(application\/pdf|image\/(jpeg|png)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)))$/.test(file.mimetype)) });
+const allowedMime=/^(application\/pdf|image\/(jpeg|png)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)))$/;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 }, fileFilter: (req,file,cb) => {
+  if(allowedMime.test(file.mimetype))return cb(null,true);
+  const error=Object.assign(new Error('Unsupported file type'),{status:400,code:'FILE_TYPE_NOT_ALLOWED'});
+  return cb(error);
+} });
 const s3 = new S3Client({ region: config.aws.region });
 const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
+
+function storageReadiness() {
+  if (config.fileStorage === 's3' && !config.aws.bucket) return { ready:false, code:'STORAGE_NOT_CONFIGURED' };
+  if (config.env === 'production' && !config.virusScan.url && process.env.VIRUS_SCAN_ENABLED !== 'false') return { ready:false, code:'VIRUS_SCAN_REQUIRED' };
+  return { ready:true, provider:config.fileStorage, scan:config.virusScan.url ? 'configured' : 'disabled' };
+}
 
 async function scanFile(file) {
   if (!config.virusScan.url) {
@@ -29,7 +40,14 @@ async function storeFile(storageKey, file) {
 }
 export async function readStoredFile(file){if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return Buffer.from(await object.Body.transformToByteArray());}return fs.readFile(path.join(config.uploadDir,file.storage_key));}
 
+filesRouter.get('/status', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), (req,res) => {
+  const status=storageReadiness();
+  res.status(status.ready ? 200 : 503).json(status);
+});
+
 filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), upload.single('file'), async (req,res) => {
+  const readiness=storageReadiness();
+  if(!readiness.ready)return res.status(503).json({ error:readiness.code });
   if(!req.file)return res.status(400).json({error:'FILE_REQUIRED'});
   const entityType=String(req.body.entityType||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,50),entityId=String(req.body.entityId||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,100);
   const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${sha}`;
