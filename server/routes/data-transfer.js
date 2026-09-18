@@ -13,8 +13,17 @@ export const BACKUP_FORMAT='nexo-klar-backup';
 export const LEGACY_BACKUP_FORMAT='accesomina-backup';
 dataTransferRouter.use(allowRoles('domian_admin','client_admin'));
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
+// Worker category and operational availability are independent. A CSV import never
+// creates an assignment, so every imported person starts available without losing
+// the historical category declared in the source file.
+const importedWorkerType=value=>{
+  const normalized=String(value||'').trim().toLowerCase();
+  if(['permanente','fijo','planta'].includes(normalized))return'permanente';
+  if(['esporadico','esporádico','temporal','proyecto','por proyecto','spot'].includes(normalized))return'esporadico';
+  return'esporadico';
+};
 export const definitions={
-  trabajadores:{module:'trabajadores',headers:['nombre','rut','tipo','cargo','rol','especialidad','telefono','email','ciudad','afp','salud'],required:['nombre','rut'],map:(r)=>({id:`t_${crypto.randomUUID()}`,nombre:r.nombre,rut:r.rut,tipo:r.tipo||'esporadico',cargo:r.cargo||'',rol:r.rol||'',especialidad:r.especialidad||'',tel:r.telefono||r.tel||'',email:r.email||'',ciudad:r.ciudad||'',afp:r.afp||'',salud:r.salud||'',disponibilidad:'disponible',mineras:[],bloqueado:false,workerItems:[]})},
+  trabajadores:{module:'trabajadores',headers:['nombre','rut','tipo','cargo','rol','especialidad','telefono','email','ciudad','afp','salud'],required:['nombre','rut'],map:(r)=>({id:`t_${crypto.randomUUID()}`,nombre:r.nombre,rut:r.rut,tipo:importedWorkerType(r.tipo),cargo:r.cargo||'',rol:r.rol||'',especialidad:r.especialidad||'',tel:r.telefono||r.tel||'',email:r.email||'',ciudad:r.ciudad||'',afp:r.afp||'',salud:r.salud||'',disponibilidad:'disponible',mineras:[],bloqueado:false,workerItems:[]})},
   minas:{module:'minas',headers:['nombre','mandante','region','altura','sistema','contacto'],required:['nombre'],map:(r)=>({id:`mi_${crypto.randomUUID()}`,nombre:r.nombre,mandante:r.mandante||'',region:r.region||'',altura:Number(r.altura)||0,sistema:r.sistema||'Propio',contacto:r.contacto||'',color:'#f07d36'})},
   contratos:{module:'contratos',headers:['nombre','numero','minera','tipo','inicio','termino','estado','alcance'],required:['nombre','numero','minera'],map:(r,state)=>({id:`c_${crypto.randomUUID()}`,nombre:r.nombre,numero:r.numero,minaId:resolveId(state.minas,r.minera),tipo:r.tipo||'permanente',inicio:r.inicio||'',termino:r.termino||'',estado:r.estado||'activo',alcance:r.alcance||''})},
   mantenciones:{module:'mantenciones',headers:['nombre','minera','contrato','tipo','area','inicio','termino','personal_requerido','estado'],required:['nombre','minera'],map:(r,state)=>({id:`mn_${crypto.randomUUID()}`,nombre:r.nombre,minaId:resolveId(state.minas,r.minera),contratoId:resolveId(state.contratos,r.contrato),tipo:r.tipo||'servicio',area:r.area||'',inicio:r.inicio||'',termino:r.termino||'',personalReq:Number(r.personal_requerido)||0,estado:r.estado||'planificada',especialidades:[],zonas:[]})},

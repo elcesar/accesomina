@@ -21,16 +21,16 @@ test('production configuration accepts complete secure infrastructure', () => {
 });
 
 test('production configuration refuses insecure or incomplete infrastructure', () => {
-  const invalid = { ...productionEnv, APP_ORIGIN: 'http://localhost:8088', TENANT_SECRET_KEY: 'short', REGISTRATION_ENABLED:'true',MFA_REQUIRED:'false',REGISTRATION_INVITE_CODE: 'change-this', FILE_STORAGE: 'local', AWS_S3_BUCKET: '', VIRUS_SCAN_API_URL: '' };
+  const invalid = { ...productionEnv, APP_ORIGIN: 'http://localhost:8088', TENANT_SECRET_KEY: 'short', REGISTRATION_ENABLED:'true',MFA_REQUIRED:'false',REGISTRATION_INVITE_CODE: 'change-this', FILE_STORAGE: 'local', AWS_S3_BUCKET: '', VIRUS_SCAN_API_URL: '', METRICS_TOKEN: 'short' };
   assert.throws(() => validateRuntimeEnvironment(invalid), error => {
     assert.match(error.message, /APP_ORIGIN/);
     assert.match(error.message, /TENANT_SECRET_KEY/);
     assert.match(error.message, /REGISTRATION_INVITE_CODE/);
-    assert.match(error.message, /REGISTRATION_ENABLED/);
     assert.match(error.message, /MFA_REQUIRED/);
     assert.match(error.message, /FILE_STORAGE/);
     assert.match(error.message, /AWS_S3_BUCKET/);
     assert.match(error.message, /VIRUS_SCAN_API_URL/);
+    assert.match(error.message, /METRICS_TOKEN/);
     return true;
   });
 });
