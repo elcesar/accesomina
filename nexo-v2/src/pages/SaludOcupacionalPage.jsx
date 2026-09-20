@@ -308,7 +308,7 @@ export default function SaludOcupacionalPage() {
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
         <div>
-          <h1>Salud Ocupacional</h1>
+          <h1>Salud ocupacional</h1>
           <p>Gestiona protocolos y seguimientos asociados a exposición, riesgo y cargo, sin mezclar esta vista con los exámenes de aptitud.</p>
         </div>
         <div className="nk-actions">
