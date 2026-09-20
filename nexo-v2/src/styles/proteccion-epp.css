@@ -103,9 +103,43 @@
 .nk-epp-tabs .nk-tab { display: inline-flex; align-items: center; gap: var(--nk-space-2); }
 
 .nk-epp-table-card { overflow: hidden; }
-.nk-epp-person,
+.nk-epp-person {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nk-space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+button.nk-epp-person { cursor: pointer; }
+button.nk-epp-person:hover .nk-epp-person-name { text-decoration: underline; }
+button.nk-epp-person:focus-visible { outline: var(--nk-focus-width) solid var(--nk-focus); outline-offset: var(--nk-focus-offset); border-radius: var(--nk-radius-sm); }
+.nk-epp-person-avatar {
+  width: var(--nk-space-8);
+  height: var(--nk-space-8);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--nk-radius-pill);
+  background: var(--nk-primary);
+  color: var(--nk-on-primary);
+  font-size: var(--nk-text-xs);
+  font-weight: var(--nk-weight-extrabold);
+}
+.nk-epp-person-copy { min-width: 0; display: flex; flex-direction: column; }
+.nk-epp-person-name {
+  overflow: hidden;
+  color: var(--nk-ink);
+  font-weight: var(--nk-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nk-epp-person-rut { color: var(--nk-ink-3); font-size: var(--nk-text-xs); }
 .nk-epp-item { display: flex; flex-direction: column; gap: calc(var(--nk-space-1) / 2); }
-.nk-epp-person strong,
 .nk-epp-item strong { color: var(--nk-ink); }
 .nk-epp-subtle { color: var(--nk-ink-2); font: var(--nk-font-caption); }
 
