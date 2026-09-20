@@ -370,7 +370,6 @@ export default function SaludOcupacionalPage() {
                   <th>Responsable</th>
                   <th>Estado</th>
                   <th>Evidencia</th>
-                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -390,13 +389,6 @@ export default function SaludOcupacionalPage() {
                       <td>{item.responsable || '—'}</td>
                       <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
                       <td>{item.fileName || '—'}</td>
-                      <td>
-                        {item.workerId && (
-                          <button className="nk-button nk-button-quiet" onClick={() => navigate(`/app/trabajadores/${item.workerId}`)}>
-                            Ver ficha
-                          </button>
-                        )}
-                      </td>
                     </tr>
                   )
                 })}
