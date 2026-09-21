@@ -38,7 +38,7 @@ export default function Header({ branding = {} }) {
   const activeModule = activeModuleForPath(location.pathname)
   const clientDetailMatch = location.pathname.match(/^\/app\/clientes\/([^/]+)$/)
   const contextualClientId = clientDetailMatch && clientDetailMatch[1] !== 'nuevo' ? decodeURIComponent(clientDetailMatch[1]) : ''
-  const createClass = module => `nk-button ${(activeModule === module || (module === 'contratos' && contextualClientId)) ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
+  const createClass = module => { const active = contextualClientId ? module === 'contratos' : activeModule === module; return `nk-button ${active ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create` }
 
   const handleLogout = async () => {
     await logout()
