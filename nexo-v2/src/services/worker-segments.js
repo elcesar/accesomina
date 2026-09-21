@@ -45,3 +45,13 @@ export function hasOperationalProjectAssignment(worker, assignments = [], projec
     projectIsActive(projects.find(project => String(project.id) === String(assignment.mantId)))
   ))
 }
+
+// Each person belongs to one visible segment. Restrictions take precedence.
+export function workerSegment(worker, assignments = [], projects = [], restrictions = []) {
+  if (worker.bloqueado || normalized(worker.disponibilidad) === 'bloqueado' || hasActiveRestriction(worker, restrictions)) return 'bloqueados'
+  if (hasOperationalProjectAssignment(worker, assignments, projects)) return 'esporadico'
+
+  const profile = normalized(worker.employmentProfile || worker.tipo)
+  if (['permanente', 'fijo', 'planta'].includes(profile)) return 'planta'
+  return 'disponible'
+}

@@ -3,6 +3,21 @@ export const rows = value => Array.isArray(value) ? value : value && typeof valu
 export const normalize = value => String(value || '').trim().toLowerCase()
 export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
 
+const REQUIRED_WORKER_ITEMS = [
+  { type: 'documento', name: 'Cédula de identidad', matches: ['cedula', 'cédula'] },
+  { type: 'contrato', name: 'Contrato de trabajo', matches: ['contrato'] },
+  { type: 'documento', name: 'Certificado AFP', matches: ['afp'] },
+  { type: 'documento', name: 'Certificado Fonasa o Isapre', matches: ['fonasa', 'isapre'] },
+  { type: 'examen', name: 'Examen preocupacional', matches: ['preocupacional'] },
+  { type: 'curso', name: 'ODI / Derecho a Saber', matches: ['odi', 'derecho a saber'] },
+  { type: 'curso', name: 'Reglamento Interno', matches: ['reglamento interno'] },
+]
+
+const itemMatchesRequirement = (item, requirement) => {
+  const name = normalize(item?.name || item?.nombre)
+  return (!requirement.type || normalize(item?.type) === requirement.type) && requirement.matches.some(match => name.includes(match))
+}
+
 export function daysUntil(value) {
   if (!value) return null
   const target = new Date(`${String(value).slice(0, 10)}T23:59:59`)
@@ -27,7 +42,14 @@ export function deriveOperationalAlerts(state) {
   const orders = mergeCollections(state, 'mantenciones', 'proyectos')
 
   people.forEach(person => {
-    rows(person.workerItems).forEach(item => {
+    const items = rows(person.workerItems)
+    REQUIRED_WORKER_ITEMS.forEach(requirement => {
+      if (!items.some(item => itemMatchesRequirement(item, requirement))) {
+        derived.push({ id: `derived-person-required-${person.id}-${requirement.name}`, tipo: requirement.type, urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: falta ${requirement.name}`, derived: true })
+      }
+    })
+
+    items.forEach(item => {
       const left = daysUntil(item.vence)
       const rejected = normalize(item.estado) === 'rechazado'
       const missing = normalize(item.estado) === 'faltante'

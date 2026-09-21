@@ -9,6 +9,12 @@ const TURNOS = ['día', 'noche', 'ambos']
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
 
 const hoy = () => new Date().toISOString().slice(0, 10)
+
+function initials(nombre) {
+  if (!nombre) return '?'
+  const parts = nombre.trim().split(/\s+/)
+  return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
+}
 const isRestricted = trabajador => Boolean(trabajador?.bloqueado || trabajador?.restringido || /bloquead|restringid/.test(String(trabajador?.operationalStatus || trabajador?.disponibilidad || '').toLowerCase()))
 
 function AsistenciaBadge({ value }) {
@@ -188,7 +194,7 @@ export default function TurnosPage() {
   const hhTotal = jornadasFiltradas.reduce((sum, turno) => sum + (Number(turno.hh) || 0), 0)
   const presentes = jornadasFiltradas.filter(t => t.asistencia === 'presente').length
   const ausentes = jornadasFiltradas.filter(t => t.asistencia !== 'presente').length
-  const trabNombre = id => trabajadores.find(t => t.id === id)?.nombre || id
+  const trabajadorPorId = id => trabajadores.find(t => String(t.id) === String(id))
   const mantNombre = id => mantenciones.find(m => m.id === id)?.nombre || id
 
   const handleSave = async form => {
@@ -298,7 +304,20 @@ export default function TurnosPage() {
                       <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
                     ) : jornadasFiltradas.map(t => (
                       <tr key={t.id}>
-                        <td><button className="nk-turnos-person" type="button" onClick={() => navigate(`/app/trabajadores/${t.trabId}`)}>{trabNombre(t.trabId)}</button></td>
+                        <td>
+                          {(() => {
+                            const persona = trabajadorPorId(t.trabId)
+                            return (
+                              <button className="nk-turnos-person" type="button" onClick={() => navigate(`/app/trabajadores/${t.trabId}`)} aria-label={`Abrir ficha de ${persona?.nombre || 'persona'}`}>
+                                <span className="nk-turnos-person-avatar" aria-hidden="true">{initials(persona?.nombre)}</span>
+                                <span className="nk-turnos-person-copy">
+                                  <span className="nk-turnos-person-name">{persona?.nombre || 'Sin nombre'}</span>
+                                  <span className="nk-turnos-person-rut">{persona?.rut || 'Sin RUT'}</span>
+                                </span>
+                              </button>
+                            )
+                          })()}
+                        </td>
                         <td>{mantNombre(t.mantId)}</td>
                         <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>

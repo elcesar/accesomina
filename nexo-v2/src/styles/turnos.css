@@ -21,7 +21,7 @@
   border: var(--nk-focus-width) solid var(--nk-primary-soft);
   border-top-color: var(--nk-primary);
   border-radius: var(--nk-radius-pill);
-  animation: nk-turnos-spin .7s linear infinite;
+  animation: nk-turnos-spin var(--nk-motion-slow) linear infinite;
 }
 
 @keyframes nk-turnos-spin { to { transform: rotate(360deg); } }
@@ -119,9 +119,42 @@
 
 .nk-turnos-table-card { padding: 0; overflow: hidden; }
 .nk-turnos-table-card .nk-table-wrapper { border: 0; border-radius: 0; }
-.nk-turnos-person { padding: 0; border: 0; background: transparent; color: var(--nk-primary); font: inherit; font-weight: var(--nk-weight-semibold); cursor: pointer; }
-.nk-turnos-person:hover { text-decoration: underline; }
+.nk-turnos-person {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nk-space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nk-turnos-person:hover .nk-turnos-person-name { text-decoration: underline; }
 .nk-turnos-person:focus-visible { outline: var(--nk-focus-width) solid var(--nk-focus); outline-offset: var(--nk-focus-offset); border-radius: var(--nk-radius-sm); }
+.nk-turnos-person-avatar {
+  width: var(--nk-space-8);
+  height: var(--nk-space-8);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--nk-radius-pill);
+  background: var(--nk-primary);
+  color: var(--nk-on-primary);
+  font-size: var(--nk-text-xs);
+  font-weight: var(--nk-weight-extrabold);
+}
+.nk-turnos-person-copy { min-width: 0; display: flex; flex-direction: column; }
+.nk-turnos-person-name {
+  overflow: hidden;
+  color: var(--nk-ink);
+  font-weight: var(--nk-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nk-turnos-person-rut { color: var(--nk-ink-3); font-size: var(--nk-text-xs); }
 .nk-turnos-primary { color: var(--nk-primary); font-weight: var(--nk-weight-semibold); }
 .nk-turnos-sub { color: var(--nk-ink-3); font-size: var(--nk-text-xs); }
 .nk-turnos-nowrap { white-space: nowrap; }

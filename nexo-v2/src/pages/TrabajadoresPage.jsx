@@ -12,6 +12,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { workerSegment } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
@@ -182,6 +183,7 @@ export default function TrabajadoresPage() {
   const proyectos = state?.mantenciones || []
   const contratos = state?.contratos || []
   const asignaciones = state?.asignaciones || []
+  const restrictions = state?.restricted || []
 
   const specialties = useMemo(() => (
     [...new Set(personas.map(persona => persona.especialidad).filter(Boolean))].sort()
@@ -207,10 +209,7 @@ export default function TrabajadoresPage() {
   }, [availableProjects, projectId])
 
   const tabCount = key => {
-    if (key === 'planta') return personas.filter(p => p.tipo === 'permanente' && !p.bloqueado).length
-    if (key === 'esporadico') return personas.filter(p => p.tipo === 'esporadico' && !p.bloqueado).length
-    if (key === 'disponible') return personas.filter(p => !p.bloqueado && p.disponibilidad === 'disponible').length
-    return personas.filter(p => p.bloqueado).length
+    return personas.filter(persona => workerSegment(persona, asignaciones, proyectos, restrictions) === key).length
   }
 
   const getContext = persona => {
@@ -232,10 +231,7 @@ export default function TrabajadoresPage() {
   const filtered = useMemo(() => {
     let list = personas
 
-    if (tab === 'planta') list = list.filter(p => p.tipo === 'permanente' && !p.bloqueado)
-    if (tab === 'esporadico') list = list.filter(p => p.tipo === 'esporadico' && !p.bloqueado)
-    if (tab === 'disponible') list = list.filter(p => !p.bloqueado && p.disponibilidad === 'disponible')
-    if (tab === 'bloqueados') list = list.filter(p => p.bloqueado)
+    list = list.filter(persona => workerSegment(persona, asignaciones, proyectos, restrictions) === tab)
 
     if (search) {
       const term = search.toLocaleLowerCase()
@@ -260,7 +256,7 @@ export default function TrabajadoresPage() {
       if (valueA > valueB) return sortAsc ? 1 : -1
       return 0
     })
-  }, [personas, proyectos, asignaciones, tab, search, specialty, availability, clientId, projectId, contractId, qualification, sortCol, sortAsc])
+  }, [personas, proyectos, asignaciones, restrictions, tab, search, specialty, availability, clientId, projectId, contractId, qualification, sortCol, sortAsc])
 
   const secondaryFilters = [projectId, contractId, qualification].filter(Boolean).length
   const activeFilters = [search, specialty, availability, clientId, projectId, contractId, qualification].filter(Boolean).length
@@ -431,6 +427,7 @@ export default function TrabajadoresPage() {
                   </td>
                 </tr>
               ) : filtered.map(persona => {
+                const segment = workerSegment(persona, asignaciones, proyectos, restrictions)
                 const pct = acreditacionPct(persona)
                 const expiry = nextExpiry(persona)
                 const context = getContext(persona)
@@ -455,12 +452,12 @@ export default function TrabajadoresPage() {
                       </div>
                     </td>
                     <td className="nk-people-cell-muted">{persona.especialidad || '—'}</td>
-                    <td><LinkTypeBadge type={persona.tipo} /></td>
+                    <td><LinkTypeBadge type={segment === 'esporadico' ? 'esporadico' : 'permanente'} /></td>
                     <td>
                       <div className="nk-people-context-primary">{primaryClient || '—'}</div>
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
-                    <td><AvailabilityBadge value={persona.disponibilidad} blocked={persona.bloqueado} /></td>
+                    <td><AvailabilityBadge value={persona.disponibilidad} blocked={segment === 'bloqueados'} /></td>
                     <td><ProgressBar pct={pct} expiry={expiry} /></td>
                     <td onClick={event => event.stopPropagation()}>
                       <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>

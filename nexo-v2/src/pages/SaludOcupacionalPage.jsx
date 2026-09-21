@@ -11,6 +11,24 @@ import {
 import { api, getCsrf } from '../services/api.js'
 import '../styles/people-compliance.css'
 
+const initials = nombre => {
+  if (!nombre) return '?'
+  const parts = nombre.trim().split(/\s+/)
+  return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
+}
+
+function PersonCell({ name, rut, onClick }) {
+  return (
+    <button className="nk-compliance-person" type="button" onClick={onClick} disabled={!onClick} aria-label={onClick ? `Abrir ficha de ${name || 'persona'}` : undefined}>
+      <span className="nk-compliance-person-avatar" aria-hidden="true">{initials(name)}</span>
+      <span className="nk-compliance-person-copy">
+        <span className="nk-compliance-person-name">{name || 'Sin nombre'}</span>
+        <span className="nk-compliance-person-rut">{rut || 'Sin RUT'}</span>
+      </span>
+    </button>
+  )
+}
+
 const statusFor = item => {
   const raw = String(item.estado || '').toLowerCase()
   if (/cerrad|finalizad|resuelt/.test(raw)) return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
@@ -290,7 +308,7 @@ export default function SaludOcupacionalPage() {
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
         <div>
-          <h1>Salud Ocupacional</h1>
+          <h1>Salud ocupacional</h1>
           <p>Gestiona protocolos y seguimientos asociados a exposición, riesgo y cargo, sin mezclar esta vista con los exámenes de aptitud.</p>
         </div>
         <div className="nk-actions">
@@ -352,7 +370,6 @@ export default function SaludOcupacionalPage() {
                   <th>Responsable</th>
                   <th>Estado</th>
                   <th>Evidencia</th>
-                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -361,23 +378,17 @@ export default function SaludOcupacionalPage() {
                   return (
                     <tr key={item.id || index}>
                       <td>
-                        <div className="nk-compliance-person">
-                          <strong>{item.workerName}</strong>
-                          <span>{item.workerRut || 'Sin RUT'} · {item.workerRole || 'Sin cargo'}</span>
-                        </div>
+                        <PersonCell
+                          name={item.workerName}
+                          rut={item.workerRut}
+                          onClick={item.workerId ? () => navigate(`/app/trabajadores/${item.workerId}`) : undefined}
+                        />
                       </td>
                       <td>{item.protocolo}</td>
                       <td>{item.riesgo || '—'}</td>
                       <td>{item.responsable || '—'}</td>
                       <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
                       <td>{item.fileName || '—'}</td>
-                      <td>
-                        {item.workerId && (
-                          <button className="nk-button nk-button-quiet" onClick={() => navigate(`/app/trabajadores/${item.workerId}`)}>
-                            Ver ficha
-                          </button>
-                        )}
-                      </td>
                     </tr>
                   )
                 })}
