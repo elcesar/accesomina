@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   IconCheck,
   IconMessageCircle,
+  IconPlus,
   IconRefresh,
   IconSearch,
   IconSend,
@@ -95,7 +96,7 @@ export default function ComunicacionesPage({createMode=false}){
    }catch(error){setMessage(error.message||'No fue posible guardar la comunicación.');setMessageTone('error')}finally{setSaving(false)}
  }
  return <section className="nk-comms-page">
-  <header className="nk-comms-header"><div><h1>Comunicaciones y convocatorias</h1><p>Coordina mensajes, convocatorias y confirmaciones vinculadas a personas y órdenes de servicio.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></div></header>
+  <header className="nk-comms-header"><div><h1>Comunicaciones y convocatorias</h1><p>Coordina mensajes, convocatorias y confirmaciones vinculadas a personas y órdenes de servicio.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button>{canEdit&&<button className="nk-button nk-button-primary" type="button" onClick={()=>{setCreating(true);setSelectedId(null);setDraft({...emptyDraft(),id:newId(),responsable:session?.user?.nombre||session?.user?.name||''});setMessage('');setMessageTone('')}}><IconPlus size={16}/>Nueva comunicación</button>}</div></header>
   {message&&<div className={`nk-comms-feedback ${messageTone}`}>{message}</div>}
   <section className="nk-comms-filters nk-card"><label className="nk-search"><IconSearch size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar comunicación, OS o persona..." aria-label="Buscar comunicaciones"/></label><select className="nk-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} aria-label="Filtrar por estado"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="enviado">Enviado</option><option value="confirmado">Confirmado</option><option value="cancelado">Cancelado</option></select></section>
   <section className="nk-comms-summary"><article><IconMessageCircle size={18}/><b>{callouts.length}</b><span>Total</span></article><article><IconUsers size={18}/><b>{pendingCount}</b><span>Pendientes</span></article><article><IconSend size={18}/><b>{sentCount}</b><span>Enviadas</span></article><article><IconCheck size={18}/><b>{confirmedCount}</b><span>Confirmadas</span></article></section>
