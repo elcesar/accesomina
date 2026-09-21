@@ -8,7 +8,6 @@ const OPERATIONAL_ASSIGNMENT_STATES = new Set([
 ])
 
 const CLOSED_RESTRICTION_STATES = new Set(['levantada', 'cerrada', 'inactiva'])
-
 const normalized = value => String(value || '').trim().toLocaleLowerCase()
 
 export function restrictionIsActive(restriction) {
