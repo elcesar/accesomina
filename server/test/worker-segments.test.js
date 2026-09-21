@@ -5,6 +5,14 @@ import { workerSegment } from '../../nexo-v2/src/services/worker-segments.js'
 const order = { id: 'os-1', estado: 'activo' }
 const available = { id: 'person-1', nombre: 'Persona disponible', tipo: 'esporadico', disponibilidad: 'disponible' }
 
+test('a legacy project type remains available when its lifecycle says available', () => {
+  assert.equal(workerSegment(available, [], [order]), 'disponible')
+})
+
+test('a fixed worker remains in the fixed segment without an operational assignment', () => {
+  assert.equal(workerSegment({ ...available, employmentProfile: 'permanente', tipo: 'permanente' }, [], [order]), 'planta')
+})
+
 test('a current restriction takes priority over a worker availability value', () => {
   const restrictions = [{ id: 'restriction-1', workerId: available.id, estado: 'vigente', activa: true }]
   assert.equal(workerSegment(available, [], [order], restrictions), 'bloqueados')

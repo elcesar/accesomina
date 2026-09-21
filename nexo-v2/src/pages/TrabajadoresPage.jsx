@@ -105,10 +105,15 @@ function AvailabilityBadge({ value, blocked }) {
   return <StatusBadge value={value || 'sin_informacion'} />
 }
 
-function LinkTypeBadge({ type }) {
-  return type === 'permanente'
-    ? <span className="nk-badge nk-badge-none">Trabajador fijo</span>
-    : <span className="nk-badge nk-badge-warn">Trabajador por proyecto</span>
+function LinkTypeBadge({ segment }) {
+  const labels = {
+    planta: ['nk-badge-none', 'Trabajador fijo'],
+    esporadico: ['nk-badge-warn', 'Trabajador por proyecto'],
+    disponible: ['nk-badge-ok', 'Trabajador disponible'],
+    bloqueados: ['nk-badge-error', 'Restringido'],
+  }
+  const [className, label] = labels[segment] || labels.disponible
+  return <span className={`nk-badge ${className}`}>{label}</span>
 }
 
 function ProgressBar({ pct, expiry }) {
@@ -452,7 +457,7 @@ export default function TrabajadoresPage() {
                       </div>
                     </td>
                     <td className="nk-people-cell-muted">{persona.especialidad || '—'}</td>
-                    <td><LinkTypeBadge type={segment === 'esporadico' ? 'esporadico' : 'permanente'} /></td>
+                    <td><LinkTypeBadge segment={segment} /></td>
                     <td>
                       <div className="nk-people-context-primary">{primaryClient || '—'}</div>
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
