@@ -32,7 +32,8 @@
 .nk-client-workspace-head h2{margin:0;color:var(--nk-ink);font:var(--nk-font-title-2)}
 .nk-client-workspace-head p:last-child{margin:var(--nk-space-1) 0 0;color:var(--nk-ink-2);font:var(--nk-font-body)}
 .nk-client-workspace-head>.nk-button{flex:0 0 auto}
-.nk-client-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(var(--nk-space-20)*3)),1fr));gap:var(--nk-space-3)}
+.nk-client-form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--nk-space-3)}
+.nk-client-span-2{grid-column:span 2}
 .nk-client-wide{grid-column:1/-1}
 .nk-client-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--nk-space-3)}
 .nk-client-summary-field{display:flex;min-width:0;flex-direction:column;justify-content:center;gap:var(--nk-space-1);padding:var(--nk-space-3) var(--nk-space-4);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-lg);background:var(--nk-surface);box-shadow:var(--nk-elev-1)}
@@ -63,5 +64,5 @@
 .nk-client-relations article small{color:var(--nk-action);font:var(--nk-font-caption);font-weight:var(--nk-weight-semibold)}
 .nk-client-spin{animation:nk-client-spin var(--nk-motion-slow) linear infinite}
 @keyframes nk-client-spin{to{transform:rotate(360deg)}}
-@media(max-width:64rem){.nk-client-summary,.nk-client-360-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:40rem){.nk-client-catalog-filters,.nk-client-summary,.nk-client-360-grid{grid-template-columns:minmax(0,1fr)}.nk-client-wide{grid-column:auto}.nk-client-requirement-add{align-items:stretch;flex-direction:column}.nk-client-requirement-add .nk-button,.nk-client-contact-add{width:100%;justify-self:stretch}.nk-client-header-actions{justify-content:flex-start}.nk-client-person-context{margin-left:0;text-align:left}}
+@media(max-width:64rem){.nk-client-form-grid,.nk-client-summary,.nk-client-360-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-client-span-2{grid-column:span 2}}
+@media(max-width:40rem){.nk-client-catalog-filters,.nk-client-form-grid,.nk-client-summary,.nk-client-360-grid{grid-template-columns:minmax(0,1fr)}.nk-client-span-2,.nk-client-wide{grid-column:auto}.nk-client-requirement-add{align-items:stretch;flex-direction:column}.nk-client-requirement-add .nk-button,.nk-client-contact-add{width:100%;justify-self:stretch}.nk-client-header-actions{justify-content:flex-start}.nk-client-person-context{margin-left:0;text-align:left}}
