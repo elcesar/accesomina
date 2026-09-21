@@ -4,6 +4,7 @@ import {
   IconBuilding,
   IconFileText,
   IconLogout,
+  IconMessageCirclePlus,
   IconTool,
   IconUserPlus,
 } from '@tabler/icons-react'
@@ -21,6 +22,7 @@ const activeModuleForPath = pathname => {
   if (pathname.startsWith('/app/clientes')) return 'clientes'
   if (pathname.startsWith('/app/contratos')) return 'contratos'
   if (pathname.startsWith('/app/servicios')) return 'servicios'
+  if (pathname.startsWith('/app/llamados')) return 'comunicaciones'
   return null
 }
 
@@ -107,6 +109,17 @@ export default function Header({ branding = {} }) {
           >
             <IconTool size={15} strokeWidth={1.8} />
             + Orden de servicio
+          </button>
+        )}
+
+        {canCreateGeneral && (
+          <button
+            className={createClass('comunicaciones')}
+            type="button"
+            onClick={() => navigate('/app/llamados/nuevo')}
+          >
+            <IconMessageCirclePlus size={15} strokeWidth={1.8} />
+            + Comunicación
           </button>
         )}
 
