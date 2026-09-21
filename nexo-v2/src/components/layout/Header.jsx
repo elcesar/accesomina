@@ -36,7 +36,9 @@ export default function Header({ branding = {} }) {
   const tenantLogo = String(branding?.logoUrl || '').trim()
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
   const activeModule = activeModuleForPath(location.pathname)
-  const createClass = module => `nk-button ${activeModule === module ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
+  const clientDetailMatch = location.pathname.match(/^\/app\/clientes\/([^/]+)$/)
+  const contextualClientId = clientDetailMatch && clientDetailMatch[1] !== 'nuevo' ? decodeURIComponent(clientDetailMatch[1]) : ''
+  const createClass = module => `nk-button ${(activeModule === module || (module === 'contratos' && contextualClientId)) ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
 
   const handleLogout = async () => {
     await logout()
@@ -90,7 +92,7 @@ export default function Header({ branding = {} }) {
           <button
             className={createClass('contratos')}
             type="button"
-            onClick={() => navigate('/app/contratos/nuevo')}
+            onClick={() => navigate(contextualClientId ? `/app/contratos/nuevo?clienteId=${encodeURIComponent(contextualClientId)}` : '/app/contratos/nuevo')}
           >
             <IconFileText size={15} strokeWidth={1.8} />
             + Contrato
