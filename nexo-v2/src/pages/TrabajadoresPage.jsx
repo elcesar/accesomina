@@ -13,6 +13,7 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { workerSegment } from '../services/worker-segments.js'
+import { workerRatingLevel } from '../services/worker-rating.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
@@ -70,12 +71,12 @@ function formatShortDate(date) {
 
 function qualificationMatches(persona, filter) {
   if (!filter) return true
-  const value = Number(persona.calificacion)
-  if (!Number.isFinite(value)) return false
-  if (filter === '7') return value >= 7
-  if (filter === '5') return value >= 5 && value <= 6
-  if (filter === '3') return value >= 3 && value <= 4
-  if (filter === '1') return value >= 1 && value <= 2
+  const value = workerRatingLevel(persona.calificacion)
+  if (value === null) return false
+  if (filter === '5') return value === 5
+  if (filter === '4') return value === 4
+  if (filter === '3') return value === 3
+  if (filter === 'needs_development') return value <= 2
   return true
 }
 
@@ -378,10 +379,10 @@ export default function TrabajadoresPage() {
                   <span className="nk-label">Calificación</span>
                   <select className="nk-select" value={qualification} onChange={event => setQualification(event.target.value)}>
                     <option value="">Todas las calificaciones</option>
-                    <option value="7">A (7)</option>
-                    <option value="5">B+ (5–6)</option>
-                    <option value="3">C (3–4)</option>
-                    <option value="1">D (1–2)</option>
+                    <option value="5">Destacado</option>
+                    <option value="4">Bueno</option>
+                    <option value="3">Suficiente</option>
+                    <option value="needs_development">Insuficiente o en desarrollo</option>
                   </select>
                 </label>
               </div>

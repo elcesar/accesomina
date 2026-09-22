@@ -6,6 +6,7 @@ import {
   IconLoader2, IconPaperclip, IconPlus, IconShield, IconUser, IconX,
 } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
+import { WORKER_RATINGS } from '../services/worker-rating.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/ficha-trabajador.css'
@@ -176,6 +177,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
       <Field label="Especialidad"><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}</select></Field>
       <Field label="Disponibilidad"><select className="nk-select" value={worker.disponibilidad || 'disponible'} onChange={e => onChange('disponibilidad', e.target.value)}><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="vacaciones">Vacaciones</option><option value="bloqueado">No habilitado</option></select></Field>
       <Field label="Tipo de trabajador"><select className="nk-select" value={worker.tipo || 'permanente'} onChange={e => onChange('tipo', e.target.value)}><option value="permanente">Trabajador fijo</option><option value="esporadico">Trabajador por proyecto</option></select></Field>
+      <Field label="Calificación de desempeño"><select className="nk-select" value={worker.calificacion ?? ''} onChange={e => onChange('calificacion', e.target.value ? Number(e.target.value) : undefined)}><option value="">Sin calificación</option>{WORKER_RATINGS.map(rating => <option key={rating.value} value={rating.value}>{rating.label}</option>)}</select></Field>
       <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{worker.regimen && !['5x2','4x3','7x7','10x10','14x14','otro'].includes(worker.regimen) && <option value={worker.regimen}>{worker.regimen}</option>}{[['5x2','5x2'],['4x3','4x3'],['7x7','7x7'],['10x10','10x10'],['14x14','14x14'],['otro','Otro tipo de turno']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
       <div className="nk-person-grid-wide"><Field label="Clientes habilitados"><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></Field></div>
     </div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>

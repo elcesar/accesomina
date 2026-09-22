@@ -33,7 +33,7 @@ const INITIAL = {
   nombre:'', rut:'', nacimiento:'', tel:'', email:'',
   region:'', ciudad:'',
   tipo:'permanente', regimen:'5x2',
-  cargo:'', rol:'', especialidad:'', calificacion:'7',
+  cargo:'', rol:'', especialidad:'',
   mantId:'',
   afp:'', salud:'',
   eppCasco:'', eppPolera:'', eppPantalon:'', eppZapato:'',
@@ -159,12 +159,6 @@ function StepVinculacion({ data, onChange, mantenciones }) {
         </FSelect>
       </Field>
 
-      <Field label="Calificación">
-        <FSelect value={data.calificacion} onChange={e => onChange('calificacion', e.target.value)}>
-          <option value="7">7 — A</option><option value="6">6 — B</option><option value="5">5 — B</option><option value="4">4 — C</option><option value="3">3 — C</option><option value="2">2 — D</option><option value="1">1 — D</option>
-        </FSelect>
-      </Field>
-
       <Field label="Cargo" required>
         <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
@@ -216,7 +210,7 @@ function StepResumen({ data, mantenciones }) {
   const rows = [
     ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
-    ['Cargo', data.cargo], ['Rol operacional', data.rol], ['Especialidad', data.especialidad], ['Calificación', data.calificacion],
+    ['Cargo', data.cargo], ['Rol operacional', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
   ].filter(([, value]) => value)
@@ -306,7 +300,7 @@ export default function NuevoTrabajadorPage() {
         region: data.region || undefined, ciudad: data.ciudad || undefined,
         tipo: tipoInterno, employmentProfile: data.tipo, regimen: data.regimen,
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
-        calificacion: Number(data.calificacion), disponibilidad,
+        disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
         epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
         bloqueado: false, mineras: [], workerItems: [], creado: new Date().toISOString().split('T')[0],
