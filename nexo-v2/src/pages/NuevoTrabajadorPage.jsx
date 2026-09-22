@@ -5,6 +5,7 @@ import {
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
 
@@ -191,8 +192,8 @@ function StepSalud({ data, onChange }) {
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Información previsional para gestión documental y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
-      <Field label="AFP"><FInput value={data.afp} onChange={e => onChange('afp', e.target.value)} placeholder="AFP Habitat, Capital, Provida…" /></Field>
-      <Field label="Previsión de salud"><FInput value={data.salud} onChange={e => onChange('salud', e.target.value)} placeholder="Fonasa / Isapre…" /></Field>
+      <Field label="AFP"><FSelect value={data.afp} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
+      <Field label="Previsión de salud"><FSelect value={data.salud} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
     </div>
   )
 }
