@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeJson, summarizeChanges, validateTenantState } from '../validation.js';
+import { registerSchema, sanitizeJson, summarizeChanges, validateTenantState } from '../validation.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -16,3 +16,4 @@ test('state rejects duplicate worker documents and overlapping lodging',()=>{con
 test('sanitizer removes executable markup and embedded files',()=>{const clean=sanitizeJson({name:'<img src=x onerror="bad">',fileData:'data:secret',cloudUrl:'javascript:alert(1)'});assert.equal(clean.name.includes('<'),false);assert.equal(clean.fileData,null);assert.equal(clean.cloudUrl,'');});
 test('audit change summary records changed paths',()=>{const changes=summarizeChanges({a:1,b:2},{a:2,b:2});assert.deepEqual(changes,[{path:'/a',before:1,after:2}]);});
 test('audit change summary identifies changed entities inside modules',()=>{const changes=summarizeChanges([{id:'w1',name:'A'},{id:'w2',name:'B'}],[{id:'w1',name:'Updated'},{id:'w3',name:'C'}],'/trabajadores');assert.ok(changes.some(x=>x.path==='/trabajadores/w1/name'));assert.ok(changes.some(x=>x.path==='/trabajadores/w2'&&x.action==='deleted'));assert.ok(changes.some(x=>x.path==='/trabajadores/w3'&&x.action==='created'));});
+test('company registration requires an email confirmation that matches',()=>{const data={companyName:'Empresa de prueba',rut:'76.123.456-0',adminName:'Admin de prueba',email:'admin@empresa.cl',emailConfirmation:'admin@empresa.cl',password:'SecurePassword123',inviteCode:'invite'};assert.doesNotThrow(()=>registerSchema.parse(data));assert.throws(()=>registerSchema.parse({...data,emailConfirmation:'otro@empresa.cl'}));});

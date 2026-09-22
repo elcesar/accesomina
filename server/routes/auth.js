@@ -43,12 +43,13 @@ authRouter.post('/register', limiter, async (req, res) => {
     await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,theme:'light',accent:'#2a2a8c'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
-    res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Nexo Klar.' });
+    res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.' });
   } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
 });
 
 authRouter.post('/login', limiter, async (req, res) => {
   const body = loginSchema.parse(req.body), rutKey = normalizeRut(body.rut), email = normalizeEmail(body.email);
+  if (!isValidRut(body.rut)) return res.status(400).json({ error: 'INVALID_COMPANY_RUT', message: 'El RUT de la empresa no es válido.' });
   const tenantResult = await query(`SELECT id,company_name,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1`, [rutKey]);
   const tenant = tenantResult.rows[0];
   if (!tenant || tenant.status !== 'active') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconCopy, IconKey, IconLock, IconShieldCheck } from '@tabler/icons-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import '../styles/password-recovery.css'
@@ -11,6 +12,7 @@ export default function MfaSetupPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [code, setCode] = useState('')
   const [secret, setSecret] = useState('')
+  const [otpauthUri, setOtpauthUri] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState([])
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,6 +40,7 @@ export default function MfaSetupPage() {
     try {
       const result = await api.post('/auth/mfa/setup', { currentPassword })
       setSecret(result.secret || '')
+      setOtpauthUri(result.otpauthUri || '')
       setCode('')
     } catch (error) {
       setMessage(error.code === 'INVALID_CREDENTIALS'
@@ -98,7 +101,7 @@ export default function MfaSetupPage() {
         {!secret ? (
           <form className="nk-recovery-form" onSubmit={startSetup}>
             <label className="nk-recovery-field">
-              Confirma tu contraseña nueva
+              Ingresa nuevamente tu contraseña
               <input className="nk-input" required type="password" value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} autoComplete="current-password" />
             </label>
             {message && <p className="nk-recovery-error" role="alert">{message}</p>}
@@ -108,6 +111,7 @@ export default function MfaSetupPage() {
           </form>
         ) : (
           <form className="nk-recovery-form" onSubmit={confirmSetup}>
+            {otpauthUri && <div className="nk-mfa-qr" aria-label="Código QR para configurar doble autenticación"><QRCodeSVG value={otpauthUri} size={184} level="M" includeMargin /><span>Escanea este código desde tu aplicación autenticadora.</span></div>}
             <div className="nk-mfa-secret">
               <span>Clave de configuración</span>
               <code>{secret}</code>
@@ -115,7 +119,7 @@ export default function MfaSetupPage() {
                 <IconCopy size={16} />{copied === 'clave' ? 'Clave copiada' : 'Copiar clave'}
               </button>
             </div>
-            <p className="nk-recovery-copy">En tu aplicación autenticadora, agrega una cuenta manualmente, pega esta clave y luego ingresa el código de seis dígitos que te mostrará.</p>
+            <p className="nk-recovery-copy">Escanea el código QR desde tu aplicación autenticadora. Si no puedes escanearlo, agrega una cuenta manualmente con esta clave y luego ingresa el código de seis dígitos.</p>
             <label className="nk-recovery-field">
               Código de autenticación
               <input className="nk-input" required value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" />

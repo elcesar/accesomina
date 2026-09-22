@@ -5,7 +5,11 @@ export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.s
 export const registerSchema = z.object({
   companyName: z.string().trim().min(3).max(160), rut: z.string().min(8).max(20),
   adminName: z.string().trim().min(3).max(160), email: z.string().email().max(254),
+  emailConfirmation: z.string().email().max(254),
   phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
+}).refine(data => data.email.trim().toLowerCase() === data.emailConfirmation.trim().toLowerCase(), {
+  message: 'El correo de confirmación no coincide.',
+  path: ['emailConfirmation'],
 });
 export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
