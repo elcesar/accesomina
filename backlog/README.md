@@ -153,3 +153,89 @@ PR #37 — `fix(personas): formatear y validar RUT chileno`.
 
 ### Prioridad
 Mejora futura de integridad de datos y arquitectura. El objetivo es asegurar que las mismas reglas se cumplan tanto desde la interfaz NEXOKLAR como desde futuras integraciones vía API.
+
+
+---
+
+## 2026-09-23 — Código de invitación personalizado por empresa
+
+### Mejora
+Reemplazar el código de invitación global obtenido desde un secreto/configuración de AWS por códigos de invitación administrados por NEXOKLAR y asociados explícitamente a cada empresa o proceso de alta.
+
+### Situación actual
+El registro de una nueva empresa requiere un código de invitación. Actualmente la validación depende de un valor global configurado como secreto en la infraestructura AWS.
+
+Este mecanismo permite restringir el registro, pero no identifica para qué empresa fue emitida cada invitación ni permite administrar su ciclo de vida desde NEXOKLAR.
+
+### Evolución propuesta
+Incorporar una entidad de invitación persistida en la aplicación, generada desde una función administrativa de NEXOKLAR.
+
+Cada invitación debería contemplar al menos:
+
+- Código/token único y no predecible.
+- Empresa o prospecto al que está asociada.
+- Estado: pendiente, utilizada, vencida o revocada.
+- Fecha de creación.
+- Fecha de expiración.
+- Usuario administrador que la generó.
+- Fecha de utilización.
+- Empresa/tenant creado a partir de la invitación.
+- Uso único por defecto.
+
+El código no debería almacenarse en texto plano cuando no sea necesario. Preferir almacenar un hash verificable del token y mostrar el valor original únicamente al momento de generarlo.
+
+### Flujo propuesto
+
+```text
+Administrador NEXOKLAR
+        ↓
+Generar invitación
+        ↓
+Código único asociado a empresa/prospecto
+        ↓
+Cliente recibe código
+        ↓
+Crear empresa
+        ↓
+Backend valida invitación
+        ↓
+Crea tenant + administrador
+        ↓
+Invitación queda UTILIZADA
+```
+
+La validación debe realizarse en backend y de forma atómica con el alta, evitando que dos solicitudes puedan reutilizar simultáneamente la misma invitación.
+
+### Administración
+Incorporar posteriormente una vista de administración que permita:
+
+- generar una invitación;
+- copiar/entregar el código;
+- consultar a qué empresa corresponde;
+- revisar fecha y estado;
+- revocar una invitación pendiente;
+- regenerar/reemplazar una invitación;
+- revisar trazabilidad de utilización.
+
+### Consideraciones de seguridad
+- No utilizar un código global compartido entre clientes.
+- No exponer el secreto/token completo en logs.
+- Definir expiración configurable.
+- Invalidar el código después de su uso.
+- Aplicar rate limiting a los intentos de validación.
+- Registrar auditoría de creación, revocación y utilización.
+- Mantener los secretos de infraestructura AWS para credenciales técnicas; las invitaciones de negocio deben administrarse como datos de aplicación.
+
+### Componentes involucrados
+- Flujo público **Crear empresa**.
+- Endpoint de registro/autenticación del backend.
+- Persistencia de invitaciones.
+- Administración NEXOKLAR de clientes/altas.
+- Auditoría.
+- Notificaciones futuras para enviar la invitación al contacto de la empresa.
+
+### Origen
+PR #34 — `feat(onboarding): reforzar aprobación y acceso de clientes`.
+
+### Prioridad
+Mejora de onboarding, seguridad y trazabilidad. Sustituir el código de invitación global de infraestructura por invitaciones individuales administrables por empresa.
