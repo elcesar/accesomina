@@ -6,6 +6,11 @@
 # Todo lo que no esté explícitamente listado requiere aprobación de César
 *                           @elcesar
 
+# ─── PLANES / DOCUMENTACIÓN DE DISEÑO ────────────────────────────────────────
+# Ricardo puede gestionar e integrar los planes de alcance sin aprobación de César.
+# Esta excepción aplica sólo a docs/pr-scope; si un PR incluye código, aplican sus CODEOWNERS.
+/docs/pr-scope/             @ricardohornigsube
+
 # ─── BACKEND / INFRAESTRUCTURA ────────────────────────────────────────────────
 # Solo César puede aprobar cambios en servidor, BD y configuración AWS
 /server/                    @elcesar
@@ -16,9 +21,13 @@ docker-compose*.yml         @elcesar
 Dockerfile                  @elcesar
 
 # ─── FRONTEND ─────────────────────────────────────────────────────────────────
-# Ricardo puede proponer cambios — César sigue siendo aprobador final
-/src/pages/                 @elcesar @ricardohornigsube
-/src/components/            @elcesar @ricardohornigsube
+# Ricardo puede proponer cambios de páginas/componentes — César sigue siendo aprobador final
+/nexo-v2/src/pages/         @elcesar @ricardohornigsube
+/nexo-v2/src/components/    @elcesar @ricardohornigsube
+
+# Servicios y estilos mantienen revisión de César
+/nexo-v2/src/services/      @elcesar
+/nexo-v2/src/styles/        @elcesar
 
 # ─── ARCHIVOS QUE NUNCA TOCA NADIE SIN CÉSAR ──────────────────────────────────
 package.json                @elcesar

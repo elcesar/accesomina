@@ -5,6 +5,8 @@ import {
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { formatRut, isValidRut } from '../services/rut.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
 
@@ -40,23 +42,6 @@ const INITIAL = {
 }
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
-
-function validRut(value) {
-  const clean = normalizeRut(value)
-  if (clean.length < 2) return false
-  const body = clean.slice(0, -1)
-  const dv = clean.slice(-1)
-  if (!/^\d+$/.test(body)) return false
-  let sum = 0
-  let multiplier = 2
-  for (let i = body.length - 1; i >= 0; i -= 1) {
-    sum += Number(body[i]) * multiplier
-    multiplier = multiplier === 7 ? 2 : multiplier + 1
-  }
-  const expectedValue = 11 - (sum % 11)
-  const expected = expectedValue === 11 ? '0' : expectedValue === 10 ? 'K' : String(expectedValue)
-  return dv === expected
-}
 
 function Field({ label, required, hint, children, full = false }) {
   return (
@@ -108,7 +93,7 @@ function StepIdentidad({ data, onChange }) {
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
       <Field label="RUT" required hint="Ingresa un RUT chileno válido.">
-        <FInput autoComplete="off" value={data.rut} onChange={e => onChange('rut', e.target.value)} placeholder="12.345.678-9" />
+        <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
       <Field label="Fecha de nacimiento">
         <FInput type="date" value={data.nacimiento} onChange={e => onChange('nacimiento', e.target.value)} />
@@ -260,7 +245,7 @@ export default function NuevoTrabajadorPage() {
     if (step === 0) {
       if (!data.nombre.trim()) return 'Ingresa el nombre completo de la persona.'
       if (!data.rut.trim()) return 'Ingresa el RUT de la persona.'
-      if (!validRut(data.rut)) return 'El RUT ingresado no es válido.'
+      if (!isValidRut(data.rut)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
       if (duplicateRut) return 'Ya existe una persona registrada con este RUT.'
       if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return 'Ingresa un correo electrónico válido.'
     }
@@ -300,7 +285,7 @@ export default function NuevoTrabajadorPage() {
       const newId = `t_${Date.now()}`
       const nuevo = {
         id: newId,
-        nombre: data.nombre.trim(), rut: data.rut.trim(), nacimiento: data.nacimiento || undefined,
+        nombre: data.nombre.trim(), rut: formatRut(data.rut), nacimiento: data.nacimiento || undefined,
         tel: data.tel.trim() || undefined, email: data.email.trim() || undefined,
         region: data.region || undefined, ciudad: data.ciudad || undefined,
         // `tipo` remains the employment category used by historical records;

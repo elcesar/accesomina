@@ -884,6 +884,13 @@
   font-weight: var(--weight-semibold);
 }
 
+.nk-access-approval-message {
+  background: var(--nk-primary);
+  color: var(--nk-on-primary);
+  border: var(--nk-stroke-thin) solid var(--nk-primary);
+  box-shadow: var(--nk-elev-2);
+}
+
 
 /* =========================================================
    14. SECCIÓN DE ACCESO (CustomerAccessSection)

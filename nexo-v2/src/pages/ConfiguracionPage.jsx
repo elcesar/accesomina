@@ -96,9 +96,11 @@ export default function ConfiguracionPage() {
     try {
       const result = await api.put('/settings', settings)
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
-      setSettings(current => ({ ...current, ...result, branding: nextBranding }))
+      const nextModules = result?.modules || settings.modules
+      setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
       applyTenantBranding(nextBranding)
       window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
+      window.dispatchEvent(new CustomEvent('nexo:modules-changed', { detail: { modules: nextModules } }))
       setMessage('Configuración guardada correctamente.')
     } catch (error) {
       setMessage(error.message || 'No fue posible guardar la configuración.')

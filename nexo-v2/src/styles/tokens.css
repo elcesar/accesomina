@@ -175,7 +175,7 @@
   --nk-toque-min: var(--nk-touch-min);
 
   /* Global layout — preserved from current production */
-  --nk-sidebar-width: 224px;
+  --nk-sidebar-width: 280px;
   --nk-header-height: 56px;
   --nk-content-max-width: 1200px;
   --nk-page-padding: clamp(16px, 4vw, 24px);

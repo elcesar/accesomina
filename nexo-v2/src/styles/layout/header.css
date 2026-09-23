@@ -78,7 +78,12 @@
   flex: 0 1 auto;
 }
 
-.nk-global-create,
+.nk-global-create {
+  width: calc(var(--nk-space-20) * 2.25);
+  flex: 0 0 calc(var(--nk-space-20) * 2.25);
+  white-space: nowrap;
+}
+
 .nk-global-logout {
   white-space: nowrap;
 }

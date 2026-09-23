@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import BrandLogo from '../BrandLogo.jsx'
 import { api } from '../../../services/api.js'
+import { formatRut } from '../../../services/rut.js'
+import { RutInput } from '../../ui/RutInput.jsx'
 
 const initialRegistration = {
   companyName: '',
@@ -8,6 +10,7 @@ const initialRegistration = {
   phone: '',
   adminName: '',
   email: '',
+  emailConfirmation: '',
   password: '',
   inviteCode: '',
 }
@@ -15,16 +18,6 @@ const initialRegistration = {
 const registrationErrorMessages = {
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
   WEAK_PASSWORD: 'La contraseña debe tener al menos 12 caracteres e incluir mayúsculas, minúsculas y un número.',
-}
-
-function formatRut(value) {
-  const clean = String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
-  if (clean.length < 2) return clean
-
-  const body = clean.slice(0, -1)
-  const dv = clean.slice(-1)
-  const formattedBody = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${formattedBody}-${dv}`
 }
 
 export function CustomerAccessPanel() {
@@ -42,23 +35,31 @@ export function CustomerAccessPanel() {
     setRegistration(current => ({ ...current, [key]: event.target.value }))
   }
 
-  const formatFieldRut = () => {
-    setRegistration(current => ({ ...current, rut: formatRut(current.rut) }))
-  }
 
   const submitRegistration = async event => {
     event.preventDefault()
+    if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) {
+      setMessageType('alert')
+      setMessage('Los correos no coinciden. Escríbelos nuevamente para continuar.')
+      return
+    }
     setBusy(true)
     setMessage('')
     setMessageType('status')
 
     try {
       const result = await api.post('/auth/register', {
-        ...registration,
+        companyName: registration.companyName,
         rut: formatRut(registration.rut),
+        adminName: registration.adminName,
+        email: registration.email,
+        phone: registration.phone,
+        password: registration.password,
+        inviteCode: registration.inviteCode,
       })
 
-      setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar.')
+      setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.')
+      setMessageType('approval')
       setRegistration(initialRegistration)
     } catch (error) {
       setMessageType('alert')
@@ -101,13 +102,11 @@ export function CustomerAccessPanel() {
         <div className="nk-access-form-row">
           <label>
             RUT empresa
-            <input
+            <RutInput
               required
               value={registration.rut}
-              onChange={update('rut')}
-              onBlur={formatFieldRut}
+              onChange={value => setRegistration(current => ({ ...current, rut: value }))}
               placeholder="76.123.456-7"
-              inputMode="text"
             />
           </label>
 
@@ -143,6 +142,20 @@ export function CustomerAccessPanel() {
             onChange={update('email')}
             placeholder="admin@empresa.cl"
             autoComplete="email"
+          />
+        </label>
+
+        <label>
+          Confirma el correo administrador
+          <input
+            required
+            type="email"
+            value={registration.emailConfirmation}
+            onChange={update('emailConfirmation')}
+            onPaste={event => event.preventDefault()}
+            onDrop={event => event.preventDefault()}
+            placeholder="Escribe nuevamente el correo"
+            autoComplete="off"
           />
         </label>
 
@@ -188,7 +201,7 @@ export function CustomerAccessPanel() {
       </form>
 
       {message && (
-        <p className="nk-form-message" role={messageType} aria-live="polite">
+        <p className={`nk-form-message ${messageType === 'approval' ? 'nk-access-approval-message' : ''}`} role={messageType === 'alert' ? 'alert' : 'status'} aria-live="polite">
           {message}
         </p>
       )}

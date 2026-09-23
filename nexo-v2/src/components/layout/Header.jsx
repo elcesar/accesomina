@@ -8,6 +8,7 @@ import {
   IconUserPlus,
 } from '@tabler/icons-react'
 import { useAuth } from '../../services/auth.jsx'
+import { useModuleAccess } from '../../services/module-access.jsx'
 import '../../styles/layout/header.css'
 
 const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
@@ -28,6 +29,7 @@ export default function Header({ branding = {} }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { session, logout } = useAuth()
+  const { isEnabled } = useModuleAccess()
   const role = session?.user?.role
   const canCreateGeneral = role !== 'consulta'
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
@@ -36,7 +38,9 @@ export default function Header({ branding = {} }) {
   const tenantLogo = String(branding?.logoUrl || '').trim()
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
   const activeModule = activeModuleForPath(location.pathname)
-  const createClass = module => `nk-button ${activeModule === module ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create`
+  const clientDetailMatch = location.pathname.match(/^\/app\/clientes\/([^/]+)$/)
+  const contextualClientId = clientDetailMatch && clientDetailMatch[1] !== 'nuevo' ? decodeURIComponent(clientDetailMatch[1]) : ''
+  const createClass = module => { const active = contextualClientId ? module === 'contratos' : activeModule === module; return `nk-button ${active ? 'nk-button-primary' : 'nk-button-secondary'} nk-global-create` }
 
   const handleLogout = async () => {
     await logout()
@@ -64,7 +68,7 @@ export default function Header({ branding = {} }) {
       </div>
 
       <div className="nk-global-actions" aria-label="Acciones globales">
-        {canCreateGeneral && (
+        {canCreateGeneral && isEnabled('trabajadores') && (
           <button
             className={createClass('personas')}
             type="button"
@@ -86,18 +90,18 @@ export default function Header({ branding = {} }) {
           </button>
         )}
 
-        {canCreateCommercial && (
+        {canCreateCommercial && isEnabled('contratos') && (
           <button
             className={createClass('contratos')}
             type="button"
-            onClick={() => navigate('/app/contratos/nuevo')}
+            onClick={() => navigate(contextualClientId ? `/app/contratos/nuevo?clienteId=${encodeURIComponent(contextualClientId)}` : '/app/contratos/nuevo')}
           >
             <IconFileText size={15} strokeWidth={1.8} />
             + Contrato
           </button>
         )}
 
-        {canCreateCommercial && (
+        {canCreateCommercial && isEnabled('mantenciones') && (
           <button
             className={createClass('servicios')}
             type="button"

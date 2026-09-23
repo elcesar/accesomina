@@ -114,7 +114,8 @@ export default function App() {
             <Route path="examenes" element={<ExamenesPage />} />
             <Route path="salud" element={<SaludOcupacionalPage />} />
             <Route path="bloqueados" element={<RestringidosPage />} />
-            <Route path="llamados" element={<ComunicacionesPage />} />
+            <Route path="llamados" element={<ComunicacionesPage key="comunicaciones-list" />} />
+            <Route path="llamados/nuevo" element={<ComunicacionesPage key="comunicaciones-new" createMode />} />
             <Route path="comunicaciones" element={<Navigate to="/app/llamados" replace />} />
             <Route path="vehiculos" element={<VehiculosPage />} />
             <Route path="hoteleria" element={<AlojamientosPage />} />
