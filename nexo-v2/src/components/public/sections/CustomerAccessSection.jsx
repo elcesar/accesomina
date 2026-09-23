@@ -51,8 +51,13 @@ export function CustomerAccessPanel() {
 
     try {
       const result = await api.post('/auth/register', {
-        ...registration,
+        companyName: registration.companyName,
         rut: formatRut(registration.rut),
+        adminName: registration.adminName,
+        email: registration.email,
+        phone: registration.phone,
+        password: registration.password,
+        inviteCode: registration.inviteCode,
       })
 
       setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.')

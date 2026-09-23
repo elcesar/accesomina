@@ -885,10 +885,10 @@
 }
 
 .nk-access-approval-message {
-  background: var(--pri);
-  color: var(--surf);
-  border: 1px solid var(--pri);
-  box-shadow: var(--shadow-md);
+  background: var(--nk-primary);
+  color: var(--nk-on-primary);
+  border: var(--nk-stroke-thin) solid var(--nk-primary);
+  box-shadow: var(--nk-elev-2);
 }
 
 
