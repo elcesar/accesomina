@@ -15,6 +15,7 @@ const ERROR_MESSAGES = {
   ORIGIN_REQUIRED: 'No fue posible validar el origen de la solicitud.',
   ORIGIN_NOT_ALLOWED: 'Esta solicitud no está autorizada desde este origen.',
   PERMISSION_DENIED: 'No tienes permisos para realizar esta acción.',
+  MODULE_VERSION_CONFLICT: 'La información cambió mientras la estabas editando. Actualizamos los datos; revísalos y vuelve a guardar.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
