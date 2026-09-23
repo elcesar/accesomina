@@ -13,6 +13,12 @@ test('a fixed worker remains in the fixed segment without an operational assignm
   assert.equal(workerSegment({ ...available, employmentProfile: 'permanente', tipo: 'permanente' }, [], [order]), 'planta')
 })
 
+test('an operational assignment does not change a fixed worker segment', () => {
+  const fixedWorker = { ...available, employmentProfile: 'permanente', tipo: 'permanente' }
+  const assignment = [{ trabId: fixedWorker.id, mantId: order.id, estado: 'confirmado' }]
+  assert.equal(workerSegment(fixedWorker, assignment, [order]), 'planta')
+})
+
 test('a current restriction takes priority over a worker availability value', () => {
   const restrictions = [{ id: 'restriction-1', workerId: available.id, estado: 'vigente', activa: true }]
   assert.equal(workerSegment(available, [], [order], restrictions), 'bloqueados')
