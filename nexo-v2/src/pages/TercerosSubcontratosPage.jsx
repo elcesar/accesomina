@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import '../styles/terceros-subcontratos.css'
 
 const EMPTY_FORM = {
@@ -284,7 +285,7 @@ export default function TercerosSubcontratosPage() {
 
           <div className="nk-third-form">
             <div className="nk-field nk-third-wide"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">RUT</label><input className="nk-input" value={form.rut} onChange={e => setForm(current => ({ ...current, rut: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
             <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>

@@ -6,6 +6,7 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { formatRut, isValidRut } from '../services/rut.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
 
@@ -92,7 +93,7 @@ function StepIdentidad({ data, onChange }) {
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
       <Field label="RUT" required hint="Ingresa un RUT chileno válido.">
-        <FInput autoComplete="off" value={data.rut} onChange={e => onChange('rut', formatRut(e.target.value))} onBlur={() => onChange('rut', formatRut(data.rut))} placeholder="13.848.379-7" inputMode="text" />
+        <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
       <Field label="Fecha de nacimiento">
         <FInput type="date" value={data.nacimiento} onChange={e => onChange('nacimiento', e.target.value)} />
