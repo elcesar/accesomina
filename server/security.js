@@ -4,6 +4,8 @@ export function randomToken(bytes = 32) { return crypto.randomBytes(bytes).toStr
 export function sha256(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 export function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 export function normalizeRut(value) { return String(value || '').trim().toLowerCase().replace(/[^0-9k]/g, ''); }
+export function normalizeChilePhone(value) { const digits=String(value||'').replace(/\D/g,'');const national=digits.startsWith('56')?digits.slice(2):digits;return national?`+56${national}`:''; }
+export function isValidChilePhone(value) { return /^\+56[2-9]\d{8}$/.test(normalizeChilePhone(value)); }
 export function isValidRut(value){const rut=normalizeRut(value);if(!/^\d{7,8}[0-9k]$/.test(rut))return false;const body=rut.slice(0,-1),expected=rut.at(-1);let sum=0,multiplier=2;for(let i=body.length-1;i>=0;i--){sum+=Number(body[i])*multiplier;multiplier=multiplier===7?2:multiplier+1;}const result=11-(sum%11),digit=result===11?'0':result===10?'k':String(result);return digit===expected;}
 export function timingSafeEqualString(a, b) {
   const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b));
