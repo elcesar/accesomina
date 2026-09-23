@@ -43,3 +43,36 @@ PR #30 — `fix(alertas): detectar documentos faltantes de trabajadores`.
 
 ### Prioridad
 Mejora futura. No bloquea el comportamiento actual del PR #30.
+
+
+---
+
+## 2026-09-23 — Aplicar módulos habilitados también en backend/API
+
+### Mejora
+Extender la configuración de módulos habilitados por empresa para que actúe también como control efectivo en el backend y no únicamente como restricción de navegación e interfaz React.
+
+### Situación actual
+El PR #32 aplica correctamente los módulos habilitados al menú lateral, acciones rápidas y rutas del frontend, incluyendo rutas hijas. Sin embargo, ocultar o bloquear una pantalla no garantiza por sí solo que los datos o acciones del módulo sean inaccesibles mediante llamadas directas a la API.
+
+### Evolución propuesta
+Incorporar validación server-side de los módulos contratados/habilitados para el tenant antes de permitir lectura o modificación de información asociada.
+
+En particular, revisar los endpoints genéricos de estado para evitar que un módulo deshabilitado pueda consultarse o modificarse directamente mediante API. La autorización por rol y la habilitación comercial/funcional del módulo deben actuar como controles complementarios.
+
+### Componentes involucrados
+- Configuración de empresa / tenant — fuente de módulos habilitados.
+- `server` — middleware o servicio centralizado de autorización por módulo.
+- `/api/state` — filtrado o control de lectura de módulos deshabilitados.
+- `/api/state/modules` — control de escritura sobre módulos deshabilitados.
+- `nexo-v2/src/services/module-access.js` — mantener correspondencia coherente entre módulos de frontend y backend.
+- Roles/permisos — conservar autorización por rol como capa independiente.
+
+### Ejemplo
+Si una empresa tiene `trabajadores: false`, el frontend no muestra Personas ni permite navegar a `/app/trabajadores`. Como mejora, una llamada directa a la API tampoco debería permitir consultar o modificar los datos del módulo Personas únicamente por estar autenticado.
+
+### Origen
+PR #32 — `fix(configuracion): aplicar módulos habilitados`.
+
+### Prioridad
+Mejora futura de seguridad y arquitectura. No bloquea el alcance actual del PR #32.
