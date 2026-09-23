@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
+import { formatRut, isValidRut } from '../services/rut.js'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
@@ -26,12 +27,17 @@ export default function LoginPage() {
   const passwordReset = location.state?.passwordReset === true
 
   const handleChange = (e) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+    const value = e.target.name === 'rut' ? formatRut(e.target.value) : e.target.value
+    setForm(f => ({ ...f, [e.target.name]: value }))
     setError(null)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!isValidRut(form.rut)) {
+      setError('El RUT de la empresa no es válido. Revisa sus números y dígito verificador.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -50,7 +56,7 @@ export default function LoginPage() {
       } else {
         setError(
           err.code === 'INVALID_CREDENTIALS'
-            ? 'RUT, correo o contraseña incorrectos.'
+            ? 'No pudimos validar las credenciales. Revisa el RUT, correo y contraseña.'
             : err.code === 'MFA_CODE_INVALID'
             ? 'Código de autenticación incorrecto.'
             : 'Error al iniciar sesión. Intenta de nuevo.'
@@ -133,7 +139,8 @@ export default function LoginPage() {
                     name="rut"
                     value={form.rut}
                     onChange={handleChange}
-                    placeholder="12.345.678-9"
+                    onBlur={() => setForm(current => ({ ...current, rut: formatRut(current.rut) }))}
+                    placeholder="13.848.379-7"
                     required
                     autoComplete="organization"
                   />

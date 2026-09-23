@@ -40,7 +40,7 @@ export default function AdministracionClientesPage() {
     const action = status === 'active' ? 'activar' : 'suspender'
     if (!window.confirm(`¿Deseas ${action} la cuenta de ${tenant.company_name}?`)) return
     setChanging(tenant.id); setMessage('')
-    try { const updated = await api.patch(`/tenants/${tenant.id}`, { status }); setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item)); setMessage(`La cuenta de ${tenant.company_name} fue actualizada.`) }
+    try { const updated = await api.patch(`/tenants/${tenant.id}`, { status }); setTenants(current => current.map(item => item.id === tenant.id ? { ...item, ...updated } : item)); const emailMessage = status === 'active' && updated.approvalEmail ? (updated.approvalEmail.delivered ? ' Se notificó al administrador por correo.' : ' La cuenta fue activada, pero el correo no se pudo enviar. Revisa la configuración SMTP.') : ''; setMessage(`La cuenta de ${tenant.company_name} fue actualizada.${emailMessage}`) }
     catch (error) { setMessage(error.message || `No fue posible ${action} la empresa.`) } finally { setChanging('') }
   }
   const resetAdminAccess = async tenant => {
