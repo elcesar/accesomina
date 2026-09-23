@@ -239,3 +239,76 @@ PR #34 — `feat(onboarding): reforzar aprobación y acceso de clientes`.
 
 ### Prioridad
 Mejora de onboarding, seguridad y trazabilidad. Sustituir el código de invitación global de infraestructura por invitaciones individuales administrables por empresa.
+
+
+---
+
+## 2026-09-23 — Mantener visible la opción activa del Sidebar
+
+### Mejora
+Hacer que el Sidebar mantenga automáticamente visible la opción correspondiente a la pantalla/ruta actualmente activa, ajustando su posición de scroll cuando sea necesario.
+
+### Situación actual
+Cuando el menú lateral contiene más opciones que el alto disponible y el usuario navega hacia una pantalla ubicada fuera de la zona visible, el Sidebar puede conservar una posición de scroll que deja fuera de vista la opción activa.
+
+Esto reduce la orientación del usuario dentro de la estructura de NEXOKLAR, especialmente en resoluciones menores o en módulos ubicados hacia el final del menú.
+
+### Comportamiento esperado
+Cada vez que cambie la ruta activa:
+
+1. Identificar el elemento del Sidebar correspondiente a la pantalla actual.
+2. Mantener su estado visual de selección/focus.
+3. Si el elemento activo no está completamente visible dentro del área desplazable del Sidebar, hacer scroll automático hasta mostrarlo.
+4. Evitar movimientos innecesarios cuando la opción ya se encuentre visible.
+5. Preferir un desplazamiento suave siempre que no afecte accesibilidad o preferencias de movimiento reducido.
+
+### Ejemplo
+
+```text
+Sidebar con scroll
+│
+├─ Inicio
+├─ Clientes
+├─ Contratos
+│   ...
+│
+│   ← zona visible
+│
+├─ Cumplimiento
+├─ Reportes        ← ruta activa, inicialmente fuera de vista
+└─ Configuración
+
+Usuario entra a /app/reportes
+        ↓
+Sidebar detecta Reportes como activo
+        ↓
+scroll automático
+        ↓
+Reportes queda visible y seleccionado
+```
+
+### Consideraciones de implementación
+- Resolverlo en el componente global del Sidebar y no individualmente por página.
+- Utilizar la ruta activa como fuente de verdad.
+- Considerar rutas hijas: una pantalla hija debe mantener visible y activa su opción/módulo padre cuando corresponda.
+- No alterar el scroll del contenido principal de la página.
+- No forzar el Sidebar al inicio en cada navegación.
+- Considerar `scrollIntoView` o lógica equivalente limitada al contenedor del Sidebar.
+- Respetar `prefers-reduced-motion`.
+- Mantener compatibilidad con módulos ocultos por configuración y permisos.
+
+### Criterios de aceptación
+- Al navegar a cualquier pantalla desde una URL directa, la opción correspondiente queda visible en el Sidebar.
+- Al navegar mediante acciones internas o enlaces, el Sidebar acompaña la ruta activa.
+- Si la opción ya está visible, no se produce un salto de scroll innecesario.
+- Las rutas hijas mantienen correctamente visible la sección correspondiente.
+- El comportamiento funciona con diferentes alturas de viewport y con menús configurados por módulos/permisos.
+
+### Componentes involucrados
+- Sidebar/navegación privada global.
+- Router de la aplicación.
+- Lógica de rutas activas.
+- Configuración de módulos habilitados y permisos.
+
+### Prioridad
+Mejora de navegación y experiencia usuaria. No modifica reglas de negocio.
