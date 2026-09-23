@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isValidRut, normalizeRut } from './security.js';
+import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 
 export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128), mfaCode:z.string().trim().min(6).max(20).optional() });
 export const registerSchema = z.object({
@@ -62,7 +62,7 @@ export function validateTenantState(input) {
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
   for (const client of mines) if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
-  for(const worker of workers){if(!worker.id||!String(worker.nombre||'').trim()||!worker.rut)throw Object.assign(new Error('Worker requires id, name and RUT'),{status:409,code:'INCOMPLETE_WORKER'});if(!isValidRut(worker.rut))throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`),{status:409,code:'INVALID_WORKER_RUT'});}
+  for(const worker of workers){if(!worker.id||!String(worker.nombre||'').trim()||!worker.rut)throw Object.assign(new Error('Worker requires id, name and RUT'),{status:409,code:'INCOMPLETE_WORKER'});if(!isValidRut(worker.rut))throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`),{status:409,code:'INVALID_WORKER_RUT'});if(worker.tel){worker.tel=normalizeChilePhone(worker.tel);if(!isValidChilePhone(worker.tel))throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`),{status:409,code:'INVALID_WORKER_PHONE'});}}
   for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
   assertUnique(contracts.map(c => normalizedText(c.numero)), 'Duplicate contract number', 'DUPLICATE_CONTRACT_NUMBER');

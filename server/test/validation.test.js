@@ -4,6 +4,7 @@ import { sanitizeJson, summarizeChanges, validateTenantState } from '../validati
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
+test('state normalizes and validates worker Chilean phones before persistence',()=>{const state=validState();state.trabajadores[0].tel='9 1234 5678';assert.equal(validateTenantState(state).trabajadores[0].tel,'+56912345678');state.trabajadores[0].tel='123';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_WORKER_PHONE');});
 test('state rejects duplicate worker RUT',()=>{const state=validState();state.trabajadores.push({id:'w2',nombre:'Otra persona',rut:'14.567.890-0'});assert.throws(()=>validateTenantState(state),/Duplicate worker RUT/);});
 test('state rejects an invalid client RUT before persistence',()=>{const state=validState();state.minas[0].rut='13.848.379-6';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_CLIENT_RUT');});
 test('state rejects the same worker RUT with different formatting',()=>{const state=validState();state.trabajadores.push({id:'w2',nombre:'Otra persona',rut:'145678900'});assert.throws(()=>validateTenantState(state),error=>error.code==='DUPLICATE_WORKER_RUT');});

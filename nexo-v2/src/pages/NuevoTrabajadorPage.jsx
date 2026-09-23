@@ -5,6 +5,8 @@ import {
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
@@ -99,7 +101,7 @@ function StepIdentidad({ data, onChange }) {
         <FInput type="date" value={data.nacimiento} onChange={e => onChange('nacimiento', e.target.value)} />
       </Field>
       <Field label="Teléfono">
-        <FInput type="tel" autoComplete="tel" value={data.tel} onChange={e => onChange('tel', e.target.value)} placeholder="+56 9 XXXX XXXX" />
+        <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
       <Field label="Correo electrónico">
         <FInput type="email" autoComplete="email" value={data.email} onChange={e => onChange('email', e.target.value)} placeholder="correo@email.com" />
@@ -247,6 +249,7 @@ export default function NuevoTrabajadorPage() {
       if (!data.rut.trim()) return 'Ingresa el RUT de la persona.'
       if (!isValidRut(data.rut)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
       if (duplicateRut) return 'Ya existe una persona registrada con este RUT.'
+      if (data.tel && !isValidChilePhone(data.tel)) return 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
       if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return 'Ingresa un correo electrónico válido.'
     }
     if (step === 1) {
