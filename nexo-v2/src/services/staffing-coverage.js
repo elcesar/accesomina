@@ -40,7 +40,7 @@ function requirementsFor(project, assignments, workers) {
 function matchesSpecialty(worker, specialty) {
   const value = normalize(worker?.especialidad || worker?.cargo || 'Sin especialidad')
   const expected = normalize(specialty)
-  return value === expected || value.includes(expected) || expected.includes(value)
+  return value === expected
 }
 
 export function staffingCoverage(project, assignments = [], workers = []) {
