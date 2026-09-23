@@ -281,7 +281,6 @@ export default function NuevoTrabajadorPage() {
 
       const versionT = stateRes?.moduleVersions?.trabajadores ?? 0
       const versionA = stateRes?.moduleVersions?.asignaciones ?? 0
-      const tipoInterno = data.tipo === 'disponible' ? 'esporadico' : data.tipo
       const disponibilidad = data.tipo === 'disponible' ? 'disponible' : data.mantId ? 'asignado' : 'disponible'
       const newId = `t_${Date.now()}`
       const nuevo = {
@@ -289,7 +288,10 @@ export default function NuevoTrabajadorPage() {
         nombre: data.nombre.trim(), rut: formatRut(data.rut), nacimiento: data.nacimiento || undefined,
         tel: data.tel.trim() || undefined, email: data.email.trim() || undefined,
         region: data.region || undefined, ciudad: data.ciudad || undefined,
-        tipo: tipoInterno, employmentProfile: data.tipo, regimen: data.regimen,
+        // `tipo` remains the employment category used by historical records;
+        // the selected lifecycle is kept separately and drives the visible segment.
+        tipo: data.tipo === 'disponible' ? 'esporadico' : data.tipo,
+        employmentProfile: data.tipo, regimen: data.regimen,
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
         calificacion: Number(data.calificacion), disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,

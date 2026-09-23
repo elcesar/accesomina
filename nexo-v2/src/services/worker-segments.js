@@ -46,12 +46,24 @@ export function hasOperationalProjectAssignment(worker, assignments = [], projec
   ))
 }
 
+export function employmentRelationship(worker) {
+  const profile = normalized(worker.employmentProfile || worker.tipo)
+  if (['permanente', 'fijo', 'planta'].includes(profile)) return 'fijo'
+  if (['esporadico', 'temporal', 'proyecto'].includes(profile)) return 'proyecto'
+  return 'sin_definir'
+}
+
+export function operationalStatus(worker, assignments = [], restrictions = []) {
+  if (worker.bloqueado || normalized(worker.disponibilidad) === 'bloqueado' || hasActiveRestriction(worker, restrictions)) return 'restringido'
+  if (assignments.some(assignment => String(assignment.trabId) === String(worker.id) && assignmentIsOperational(assignment))) return 'asignado'
+  return 'disponible'
+}
+
 // Each person belongs to one visible segment. Restrictions take precedence.
 export function workerSegment(worker, assignments = [], projects = [], restrictions = []) {
-  if (worker.bloqueado || normalized(worker.disponibilidad) === 'bloqueado' || hasActiveRestriction(worker, restrictions)) return 'bloqueados'
-  if (hasOperationalProjectAssignment(worker, assignments, projects)) return 'esporadico'
+  if (operationalStatus(worker, assignments, restrictions) === 'restringido') return 'bloqueados'
 
-  const profile = normalized(worker.employmentProfile || worker.tipo)
-  if (['permanente', 'fijo', 'planta'].includes(profile)) return 'planta'
+  if (employmentRelationship(worker) === 'fijo') return 'planta'
+  if (hasOperationalProjectAssignment(worker, assignments, projects)) return 'esporadico'
   return 'disponible'
 }

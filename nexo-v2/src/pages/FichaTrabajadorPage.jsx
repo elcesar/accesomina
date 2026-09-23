@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   IconAlertTriangle, IconArrowLeft, IconBook, IconBrandWhatsapp,
-  IconCheck, IconDeviceFloppy, IconDownload, IconFileText, IconHistory,
-  IconLoader2, IconPaperclip, IconPlus, IconShield, IconUser, IconX,
+  IconBan, IconCheck, IconDeviceFloppy, IconDownload, IconFileText, IconHistory,
+  IconLoader2, IconPaperclip, IconPlus, IconShield, IconUser, IconUserCheck, IconX,
 } from '@tabler/icons-react'
 import { api, getCsrf } from '../services/api.js'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
+import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/ficha-trabajador.css'
@@ -138,19 +139,40 @@ function SaveButton({ saving, onClick }) {
   return <button className="nk-button nk-button-primary" type="button" onClick={onClick} disabled={saving}>{saving ? <IconLoader2 size={15} className="animate-spin" /> : <IconDeviceFloppy size={15} strokeWidth={1.7} />}{saving ? 'Guardando…' : 'Guardar cambios'}</button>
 }
 
-function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving, onChange, onSave, onAsignar, onRetirar }) {
+function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
-  const activeAssignments = asignaciones.filter(a => a.trabId === worker.id)
+  const activeAssignments = asignaciones.filter(a => a.trabId === worker.id && assignmentIsOperational(a))
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
   const clientName = id => { const p = proyectos.find(current => current.id === id); return clientes.find(c => c.id === p?.minaId)?.nombre || '—' }
   const comunas = comunasDeRegion(worker.region)
   const updateRegion = event => { onChange('region', event.target.value); onChange('ciudad', '') }
+  const relationship = employmentRelationship(worker)
+  const availability = operationalStatus(worker, asignaciones, restrictions)
+  const relationshipLabel = relationship === 'fijo' ? 'Trabajador fijo' : relationship === 'proyecto' ? 'Trabajador por proyecto' : 'Sin vínculo laboral definido'
+  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'Restringido' : 'Disponible'
 
   return <>
+    <CardSection title="Estado de la persona" subtitle="La relación laboral y la situación operacional se administran por separado.">
+      <div className="nk-actions">
+        {isRestricted ? <>
+          <span className={`nk-badge ${relationship === 'fijo' ? 'nk-badge-none' : 'nk-badge-warn'}`}>Relación laboral: {relationshipLabel}</span>
+          <span className="nk-badge nk-badge-error">Disponibilidad: Restringido</span>
+          <button className="nk-button nk-button-secondary" type="button" onClick={onLiftRestriction}><IconUserCheck size={15} /> Levantar restricción</button>
+        </> : <>
+          <span className={`nk-badge ${relationship === 'fijo' ? 'nk-badge-none' : relationship === 'proyecto' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Relación laboral: {relationshipLabel}</span>
+          <span className={`nk-badge ${availability === 'asignado' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Disponibilidad: {availabilityLabel}</span>
+          <button className="nk-button nk-button-secondary" type="button" onClick={onMakeAvailable} disabled={availability === 'disponible'}>Dejar disponible</button>
+          <button className="nk-button nk-button-secondary" type="button" onClick={onMakeFixed}>Convertir en fijo</button>
+          <button className="nk-button nk-button-quiet" type="button" onClick={onRestrict}><IconBan size={15} /> Restringir</button>
+        </>}
+      </div>
+      {!isRestricted && activeAssignments.length > 0 && <p className="nk-person-text-sub">La asignación modifica la disponibilidad, no la relación laboral. Para devolver la persona al pool se retiran sus asignaciones operacionales y quedan registradas en el historial.</p>}
+    </CardSection>
+
     <CardSection title="Asignación operacional" subtitle="Relaciona la persona con contrato, proyecto/servicio y turno sin perder su documentación.">
       <div className="nk-person-assignment-form">
         <Field label="Contrato"><select className="nk-select" value={contratoId} onChange={e => { setContratoId(e.target.value); setProyectoId('') }}><option value="">Seleccionar contrato</option>{contratos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
@@ -175,8 +197,6 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, saving,
       <Field label="Cargo"><input className="nk-input" value={worker.cargo || ''} onChange={e => onChange('cargo', e.target.value)} /></Field>
       <Field label="Rol operacional"><input className="nk-input" value={worker.rol || ''} onChange={e => onChange('rol', e.target.value)} /></Field>
       <Field label="Especialidad"><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}</select></Field>
-      <Field label="Disponibilidad"><select className="nk-select" value={worker.disponibilidad || 'disponible'} onChange={e => onChange('disponibilidad', e.target.value)}><option value="disponible">Disponible</option><option value="asignado">Asignado</option><option value="vacaciones">Vacaciones</option><option value="bloqueado">No habilitado</option></select></Field>
-      <Field label="Tipo de trabajador"><select className="nk-select" value={worker.tipo || 'permanente'} onChange={e => onChange('tipo', e.target.value)}><option value="permanente">Trabajador fijo</option><option value="esporadico">Trabajador por proyecto</option></select></Field>
       <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{worker.regimen && !['5x2','4x3','7x7','10x10','14x14','otro'].includes(worker.regimen) && <option value={worker.regimen}>{worker.regimen}</option>}{[['5x2','5x2'],['4x3','4x3'],['7x7','7x7'],['10x10','10x10'],['14x14','14x14'],['otro','Otro tipo de turno']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
       <div className="nk-person-grid-wide"><Field label="Clientes habilitados"><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></Field></div>
     </div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
@@ -318,6 +338,8 @@ export default function FichaTrabajadorPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [ok, setOk] = useState(null)
+  const [restricting, setRestricting] = useState(false)
+  const [restrictionReason, setRestrictionReason] = useState('')
 
   useEffect(() => { api.get('/state').then(r => {
     const s = r?.state || r; setStateData(s); const found = (s?.trabajadores || []).find(w => w.id === id); if (!found) return
@@ -330,17 +352,87 @@ export default function FichaTrabajadorPage() {
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
   async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
   async function persistItems(items, reason) { try { const next = { ...worker, workerItems: items }; await persistWorker(next, reason); setOk('Documentación actualizada'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar documentación'); throw e } }
+  // An assignment changes operational availability, never the person's employment link.
   async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
   async function handleAsignar(mantId, turno) { if (!mantId || assignments.some(a => a.trabId === id && a.mantId === mantId)) { if (mantId) setError('La persona ya está asignada a ese proyecto'); return } try { const next = [...assignments, { id: `asig_${Date.now()}`, mantId, trabId: id, turno, estado: 'confirmado' }]; await persistAssignments(next, 'asignado', `Asignación operacional de ${worker.nombre}`); setOk('Asignación guardada') } catch (e) { setError(e.message || 'Error al guardar asignación') } }
-  async function handleRetirar(mantId) { try { const next = assignments.filter(a => !(a.trabId === id && a.mantId === mantId)); const availability = next.some(a => a.trabId === id) ? 'asignado' : 'disponible'; await persistAssignments(next, availability, `Retiro de asignación de ${worker.nombre}`); setOk('Asignación actualizada') } catch (e) { setError(e.message || 'Error al retirar asignación') } }
+  async function handleRetirar(mantId) { try { const next = assignments.map(a => a.trabId === id && a.mantId === mantId && assignmentIsOperational(a) ? { ...a, estado: 'retirado', retiradoAt: new Date().toISOString() } : a); const availability = next.some(a => a.trabId === id && assignmentIsOperational(a)) ? 'asignado' : 'disponible'; await persistAssignments(next, availability, `Retiro de asignación de ${worker.nombre}`); setOk('Asignación actualizada') } catch (e) { setError(e.message || 'Error al retirar asignación') } }
+
+  async function persistLifecycle({ reason, workerPatch, assignmentsMapper, restrictionsMapper }) {
+    setSaving(true); setError(null); setOk(null)
+    try {
+      const response = await api.get('/state')
+      const state = response?.state || response || {}
+      const versionWorkers = response?.moduleVersions?.trabajadores ?? 0
+      const versionAssignments = response?.moduleVersions?.asignaciones ?? 0
+      const versionRestrictions = response?.moduleVersions?.restricted ?? 0
+      const currentWorker = (state.trabajadores || []).find(item => item.id === id)
+      if (!currentWorker) throw new Error('La persona ya no está disponible.')
+      const nextAssignments = assignmentsMapper ? assignmentsMapper(state.asignaciones || []) : state.asignaciones || []
+      const nextRestrictions = restrictionsMapper ? restrictionsMapper(state.restricted || []) : state.restricted || []
+      const nextWorker = { ...currentWorker, ...workerPatch }
+      const changes = { trabajadores: { version: versionWorkers, data: (state.trabajadores || []).map(item => item.id === id ? nextWorker : item) } }
+      if (assignmentsMapper) changes.asignaciones = { version: versionAssignments, data: nextAssignments }
+      if (restrictionsMapper) changes.restricted = { version: versionRestrictions, data: nextRestrictions }
+      await api.put('/state/modules', { reason, changes })
+      setWorker(current => ({ ...current, ...workerPatch, _asignaciones: nextAssignments.filter(item => item.trabId === id) }))
+      setAssignments(nextAssignments)
+      setStateData(current => ({ ...current, restricted: nextRestrictions }))
+      setOk('Estado de la persona actualizado')
+      setTimeout(() => setOk(null), 2500)
+    } catch (cause) { setError(cause.message || 'No fue posible actualizar el estado') } finally { setSaving(false) }
+  }
+
+  function handleMakeAvailable() {
+    persistLifecycle({
+      reason: `Persona liberada al pool disponible: ${worker.nombre}`,
+      workerPatch: { disponibilidad: 'disponible', bloqueado: false },
+      assignmentsMapper: list => list.map(item => item.trabId === id && assignmentIsOperational(item) ? { ...item, estado: 'retirado', retiradoAt: new Date().toISOString() } : item),
+    })
+  }
+
+  function handleMakeFixed() {
+    persistLifecycle({ reason: `Persona convertida a trabajador fijo: ${worker.nombre}`, workerPatch: { tipo: 'permanente', employmentProfile: 'permanente', disponibilidad: 'disponible', bloqueado: false } })
+  }
+
+  function handleRestrict() {
+    if (!restrictionReason.trim()) { setError('Indica el motivo de la restricción.'); return }
+    const today = new Date().toISOString().split('T')[0]
+    persistLifecycle({
+      reason: `Restricción registrada para ${worker.nombre}: ${restrictionReason.trim()}`,
+      workerPatch: { bloqueado: true, disponibilidad: 'bloqueado' },
+      assignmentsMapper: list => list.map(item => item.trabId === id && assignmentIsOperational(item) ? { ...item, estado: 'suspendido_por_restriccion', suspendedAt: new Date().toISOString() } : item),
+      restrictionsMapper: list => [...list, { id: `res_${Date.now()}`, workerId: id, persona: worker.nombre, motivo: restrictionReason.trim(), desde: today, alcance: 'operacional', estado: 'vigente', activa: true, createdAt: new Date().toISOString() }],
+    })
+    setRestrictionReason(''); setRestricting(false)
+  }
+
+  function handleLiftRestriction() {
+    persistLifecycle({
+      reason: `Restricción levantada para ${worker.nombre}`,
+      workerPatch: { bloqueado: false, disponibilidad: 'disponible' },
+      restrictionsMapper: list => list.map(item => String(item.workerId || item.trabId || item.personaId) === String(id) && hasActiveRestriction(worker, [item]) ? { ...item, activa: false, estado: 'levantada', levantadaAt: new Date().toISOString() } : item),
+    })
+  }
 
   if (!stateData) return <div className="nk-person-state"><IconLoader2 size={28} className="animate-spin" /><span>Cargando ficha…</span></div>
   if (!worker) return <div className="nk-person-state">Persona no encontrada.</div>
   const pct = acreditacionPct(worker); const clientes = stateData?.minas || []; const proyectos = stateData?.mantenciones || []; const contratos = stateData?.contratos || []; const deliveries = stateData?.eppDeliveries || []
+  const restrictions = stateData?.restricted || []
+  const isRestricted = operationalStatus(worker, assignments, restrictions) === 'restringido'
+  const availability = operationalStatus(worker, assignments, restrictions)
 
   return <div className="nk-person-page">
-    <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={worker.disponibilidad} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
+    <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={availability} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
     {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
-    <main className="nk-person-content">{tab === 'datos' && <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} />}{tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}{tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}{tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}{tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}</main>
+    <main className="nk-person-content">
+      {tab === 'datos' && <>
+        <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
+        {restricting && <CardSection title="Restringir persona" subtitle="La restricción suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar restricción</button></div></CardSection>}
+      </>}
+      {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}
+      {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}
+      {tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}
+      {tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}
+    </main>
   </div>
 }
