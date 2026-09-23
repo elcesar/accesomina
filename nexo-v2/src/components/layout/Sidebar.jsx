@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
+import { useModuleAccess } from '../../services/module-access.jsx'
+import { moduleForPath } from '../../services/module-access.js'
 import {
   IconLayoutDashboard, IconBell, IconBook, IconServer,
   IconUsers, IconClipboardList, IconClock, IconShield, IconSchool,
@@ -179,6 +181,7 @@ function NavGroup({ group, badges, defaultOpen = true }) {
 
 export default function Sidebar() {
   const { session } = useAuth()
+  const { loading, isEnabled } = useModuleAccess()
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const badges = {
@@ -195,14 +198,15 @@ export default function Sidebar() {
       </div>
 
       <nav className="nk-sidebar-nav" aria-label="Navegación principal">
-        {NAV.map(group => (
-          <NavGroup
+        {!loading && NAV.map(group => {
+          const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
+          return items.length ? <NavGroup
             key={group.key}
-            group={group}
+            group={{ ...group, items }}
             badges={badges}
             defaultOpen={['centro-control', 'capital-humano', 'relacion-comercial'].includes(group.key)}
-          />
-        ))}
+          /> : null
+        })}
 
         {isNexoAdmin && (
           <NavGroup

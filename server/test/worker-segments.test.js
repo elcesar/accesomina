@@ -24,3 +24,13 @@ for (const state of ['asignado', 'habilitado', 'contrato_enviado', 'contrato_fir
 test('a non-operational recruitment assignment keeps the worker available', () => {
   assert.equal(workerSegment(available, [{ trabId: available.id, mantId: order.id, recruitmentStage: 'reclutamiento' }], [order]), 'disponible')
 })
+
+test('each worker resolves to one exclusive segment for every consumer', () => {
+  const fixed = { id: 'fixed', tipo: 'permanente', disponibilidad: 'disponible' }
+  const projectWorker = { id: 'project', tipo: 'esporadico', disponibilidad: 'disponible' }
+  const restrictedWorker = { id: 'restricted', tipo: 'permanente', disponibilidad: 'disponible' }
+
+  assert.equal(workerSegment(fixed, [], [order], []), 'planta')
+  assert.equal(workerSegment(projectWorker, [{ trabId: projectWorker.id, mantId: order.id, estado: 'confirmado' }], [order], []), 'esporadico')
+  assert.equal(workerSegment(restrictedWorker, [], [order], [{ workerId: restrictedWorker.id, estado: 'vigente' }]), 'bloqueados')
+})

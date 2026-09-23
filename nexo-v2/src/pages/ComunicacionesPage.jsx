@@ -11,13 +11,13 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import { workerSegment } from '../services/worker-segments.js'
 import '../styles/comunicaciones.css'
 
 const rows=value=>Array.isArray(value)?value:[]
 const newId=()=>globalThis.crypto?.randomUUID?.()||`callout-${Date.now()}-${Math.random().toString(16).slice(2)}`
 const editors=new Set(['domian_admin','client_admin','rrhh'])
 const normalize=value=>String(value||'').trim().toLowerCase()
-const isRestricted=worker=>Boolean(worker?.bloqueado||worker?.restringido||/bloquead|restringid/.test(normalize(worker?.operationalStatus||worker?.disponibilidad)))
 const emptyDraft=()=>({
   tipo:'convocatoria',titulo:'',mensaje:'',mantId:'',trabId:'',fecha:'',estado:'pendiente',
   especialidades:[],turno:'ambos',cupos:0,canal:'WhatsApp',prioridad:'Normal',responderAntes:'',responsable:'',
@@ -41,6 +41,8 @@ export default function ComunicacionesPage({createMode=false}){
  const callouts=useMemo(()=>rows(state.callouts),[state.callouts])
  const orders=useMemo(()=>rows(state.mantenciones),[state.mantenciones])
  const workers=useMemo(()=>rows(state.trabajadores),[state.trabajadores])
+ const assignments=useMemo(()=>rows(state.asignaciones),[state.asignaciones])
+ const restrictions=useMemo(()=>rows(state.restricted),[state.restricted])
  const orderById=useMemo(()=>new Map(orders.map(x=>[String(x.id),x])),[orders])
  const workerById=useMemo(()=>new Map(workers.map(x=>[String(x.id),x])),[workers])
  const specialties=useMemo(()=>[...new Set(workers.map(worker=>worker.especialidad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')),[workers])
@@ -53,14 +55,13 @@ export default function ComunicacionesPage({createMode=false}){
    if(draft.tipo!=='convocatoria'||!rows(draft.especialidades).length)return[]
    const required=new Set(draft.especialidades)
    return workers.filter(worker=>{
-     const enabled=!isRestricted(worker)
-     const available=worker.disponibilidad==='disponible'
+     const available=workerSegment(worker,assignments,orders,restrictions)==='disponible'
      const specialty=required.has(worker.especialidad)
      const consent=worker.communicationConsent!==false
      const hasChannel=draft.canal==='Correo'?Boolean(worker.email):draft.canal==='WhatsApp y correo'?Boolean(worker.tel||worker.email):Boolean(worker.tel)
-     return enabled&&available&&specialty&&consent&&hasChannel
+     return available&&specialty&&consent&&hasChannel
    })
- },[draft.tipo,draft.especialidades,draft.canal,workers])
+ },[draft.tipo,draft.especialidades,draft.canal,workers,assignments,orders,restrictions])
  useEffect(()=>{
    if(creating)return
    if(!selectedId){setDraft(emptyDraft());return}

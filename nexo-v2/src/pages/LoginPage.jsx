@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
-import { RutInput } from '../components/ui/RutInput.jsx'
 import { isValidRut } from '../services/rut.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
       } else {
         setError(
           err.code === 'INVALID_CREDENTIALS'
-            ? 'RUT, correo o contraseña incorrectos.'
+            ? 'No pudimos validar las credenciales. Revisa el RUT, correo y contraseña.'
             : err.code === 'MFA_CODE_INVALID'
             ? 'Código de autenticación incorrecto.'
             : 'Error al iniciar sesión. Intenta de nuevo.'

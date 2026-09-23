@@ -43,3 +43,113 @@ PR #30 — `fix(alertas): detectar documentos faltantes de trabajadores`.
 
 ### Prioridad
 Mejora futura. No bloquea el comportamiento actual del PR #30.
+
+
+---
+
+## 2026-09-23 — Aplicar módulos habilitados también en backend/API
+
+### Mejora
+Extender la configuración de módulos habilitados por empresa para que actúe también como control efectivo en el backend y no únicamente como restricción de navegación e interfaz React.
+
+### Situación actual
+El PR #32 aplica correctamente los módulos habilitados al menú lateral, acciones rápidas y rutas del frontend, incluyendo rutas hijas. Sin embargo, ocultar o bloquear una pantalla no garantiza por sí solo que los datos o acciones del módulo sean inaccesibles mediante llamadas directas a la API.
+
+### Evolución propuesta
+Incorporar validación server-side de los módulos contratados/habilitados para el tenant antes de permitir lectura o modificación de información asociada.
+
+En particular, revisar los endpoints genéricos de estado para evitar que un módulo deshabilitado pueda consultarse o modificarse directamente mediante API. La autorización por rol y la habilitación comercial/funcional del módulo deben actuar como controles complementarios.
+
+### Componentes involucrados
+- Configuración de empresa / tenant — fuente de módulos habilitados.
+- `server` — middleware o servicio centralizado de autorización por módulo.
+- `/api/state` — filtrado o control de lectura de módulos deshabilitados.
+- `/api/state/modules` — control de escritura sobre módulos deshabilitados.
+- `nexo-v2/src/services/module-access.js` — mantener correspondencia coherente entre módulos de frontend y backend.
+- Roles/permisos — conservar autorización por rol como capa independiente.
+
+### Ejemplo
+Si una empresa tiene `trabajadores: false`, el frontend no muestra Personas ni permite navegar a `/app/trabajadores`. Como mejora, una llamada directa a la API tampoco debería permitir consultar o modificar los datos del módulo Personas únicamente por estar autenticado.
+
+### Origen
+PR #32 — `fix(configuracion): aplicar módulos habilitados`.
+
+### Prioridad
+Mejora futura de seguridad y arquitectura. No bloquea el alcance actual del PR #32.
+
+
+---
+
+## 2026-09-23 — Validación semántica de datos también en backend/API
+
+### Mejora
+Extender al backend/API las reglas de normalización y validación de los campos semánticos que NEXOKLAR incorpora en sus formularios, de modo que la integridad de los datos no dependa exclusivamente de los componentes React.
+
+### Situación actual
+Los PR #35 y #37 incorporan reglas reutilizables para teléfono chileno y RUT. En frontend se propone además utilizar inputs semánticos globales como `PhoneInput` y `RutInput`, evitando repetir formato y validación en cada formulario.
+
+Esta capa mejora la experiencia del usuario, pero una integración externa, una importación o un consumidor directo de la API puede ingresar datos sin pasar por esos componentes.
+
+### Evolución propuesta
+Mantener las responsabilidades separadas y reutilizables:
+
+```text
+Input semántico global
+(formato + UX + error)
+        ↓
+Servicio/validador
+(normalización + reglas)
+        ↓
+Backend/API
+(validación de integridad)
+        ↓
+Persistencia
+```
+
+El backend debe validar nuevamente los campos antes de persistirlos y utilizar, cuando sea posible, las mismas reglas de dominio o equivalentes server-side.
+
+### Campos iniciales
+- **RUT:** normalización, formato admitido y validación del dígito verificador.
+- **Teléfono:** normalización, prefijo/código país y estructura válida.
+- **Email:** normalización y validación de estructura.
+- Extender el patrón en el futuro a otros datos semánticos cuando exista una regla de negocio aplicable.
+
+### Ejemplos de usabilidad e integración
+En formularios React:
+
+```jsx
+<RutInput value={persona.rut} onChange={...} />
+<PhoneInput value={persona.tel} onChange={...} country="CL" />
+<EmailInput value={persona.email} onChange={...} />
+```
+
+Una integración futura podría enviar directamente:
+
+```json
+{
+  "nombre": "Juan Pérez",
+  "rut": "13.848.379-6",
+  "telefono": "123",
+  "email": "correo-invalido"
+}
+```
+
+Aunque estos valores nunca hayan pasado por los componentes React, la API debe rechazarlos o informar los errores correspondientes antes de persistirlos.
+
+Otro ejemplo: si un ERP envía `912345678` como teléfono, la capa de normalización puede convertirlo al formato canónico definido por NEXOKLAR, por ejemplo `+56912345678`, siempre que el valor sea válido.
+
+### Componentes involucrados
+- Inputs semánticos globales de frontend: `RutInput`, `PhoneInput`, `EmailInput` y futuros componentes equivalentes.
+- `nexo-v2/src/services/rut.js`.
+- `nexo-v2/src/services/chile-phone.js`.
+- Validadores/esquemas del backend.
+- Endpoints de creación y modificación de Personas.
+- Futuras APIs de integración e importación.
+- Pruebas de API para comprobar rechazo/normalización de valores inválidos.
+
+### Origen
+PR #35 — `fix(personas): validar teléfono chileno`.
+PR #37 — `fix(personas): formatear y validar RUT chileno`.
+
+### Prioridad
+Mejora futura de integridad de datos y arquitectura. El objetivo es asegurar que las mismas reglas se cumplan tanto desde la interfaz NEXOKLAR como desde futuras integraciones vía API.

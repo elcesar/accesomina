@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { IconPackage, IconPlus, IconRefresh, IconSearch, IconShield, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { mergeCollections } from '../services/report-collections.js'
+import { workerSegment } from '../services/worker-segments.js'
 import '../styles/proteccion-epp.css'
 
 const asRows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
@@ -158,16 +159,23 @@ export default function ProteccionEppPage() {
 
   const state = response?.state || response || {}
   const workers = asRows(state.trabajadores)
+  const assignments = asRows(state.asignaciones)
+  const projects = asRows(state.mantenciones)
+  const restrictions = asRows(state.restricted)
   const inventory = asRows(state.inventoryItems).filter(item => /epp|protecci|casco|guante|arn[eé]s|respir|calzad|bot|overol|lente/i.test(JSON.stringify(item)))
   const warehouses = mergeCollections(state, 'warehouses', 'bodegas')
   const orders = mergeCollections(state, 'mantenciones', 'proyectos')
   const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
   const records = useMemo(() => deliveries.map(item => { const worker = workers.find(person => person.id === (item.workerId || item.trabId)); return { ...item, workerId: item.workerId || item.trabId, workerName: worker?.nombre || item.workerName || 'Persona no identificada', workerRut: worker?.rut || item.rut || '', workerRole: worker?.cargo || worker?.especialidad || '', workerType:worker?.tipo||'',workerAvailability:worker?.disponibilidad||'',workerBlocked:Boolean(worker?.bloqueado), itemName: item.itemName || item.nombre || item.epp || 'EPP registrado' } }), [deliveries, workers])
-  const workerMatchesSegment=worker=>segment==='todos'||(segment==='permanente'&&worker.tipo==='permanente'&&!worker.bloqueado)||(segment==='esporadico'&&worker.tipo==='esporadico'&&!worker.bloqueado)||(segment==='disponible'&&worker.disponibilidad==='disponible'&&!worker.bloqueado)||(segment==='bloqueado'&&worker.bloqueado)
-  const visibleWorkers=useMemo(()=>workers.filter(worker=>workerMatchesSegment(worker)&&(!query.trim()||[worker.nombre,worker.rut,worker.cargo,worker.especialidad].some(v=>String(v||'').toLowerCase().includes(query.trim().toLowerCase())))),[workers,segment,query])
-  const filtered = useMemo(() => { const term = query.trim().toLowerCase(); return records.filter(item => { const status = replaceStatus(item.replaceAt).key; const worker=workers.find(w=>String(w.id)===String(item.workerId)); const matchesQuery = !term || [item.workerName, item.workerRut, item.workerRole, item.itemName, item.brandModel, item.certification].some(value => String(value || '').toLowerCase().includes(term)); return matchesQuery && (statusFilter === 'todos' || status === statusFilter) && (personFilter === 'todos' || item.workerId === personFilter) && (!worker||workerMatchesSegment(worker)) }) }, [records, query, statusFilter, personFilter,segment,workers])
+  const workerMatchesSegment = worker => {
+    if (segment === 'todos') return true
+    const selectedSegment = segment === 'permanente' ? 'planta' : segment === 'bloqueado' ? 'bloqueados' : segment
+    return workerSegment(worker, assignments, projects, restrictions) === selectedSegment
+  }
+  const visibleWorkers=useMemo(()=>workers.filter(worker=>workerMatchesSegment(worker)&&(!query.trim()||[worker.nombre,worker.rut,worker.cargo,worker.especialidad].some(v=>String(v||'').toLowerCase().includes(query.trim().toLowerCase())))),[workers,segment,query,assignments,projects,restrictions])
+  const filtered = useMemo(() => { const term = query.trim().toLowerCase(); return records.filter(item => { const status = replaceStatus(item.replaceAt).key; const worker=workers.find(w=>String(w.id)===String(item.workerId)); const matchesQuery = !term || [item.workerName, item.workerRut, item.workerRole, item.itemName, item.brandModel, item.certification].some(value => String(value || '').toLowerCase().includes(term)); return matchesQuery && (statusFilter === 'todos' || status === statusFilter) && (personFilter === 'todos' || item.workerId === personFilter) && (!worker||workerMatchesSegment(worker)) }) }, [records, query, statusFilter, personFilter,segment,workers,assignments,projects,restrictions])
   const personRows=useMemo(()=>visibleWorkers.map(worker=>{const own=records.filter(r=>String(r.workerId)===String(worker.id));const pending=own.filter(r=>['warn','error'].includes(replaceStatus(r.replaceAt).key));const sizes=Object.values(worker.epp||{}).filter(Boolean).length;return{worker,own,pending,sizes}}),[visibleWorkers,records])
-  const matrixRows=useMemo(()=>{const map=new Map();workers.filter(workerMatchesSegment).forEach(worker=>{const role=worker.cargo||worker.especialidad||'Sin función';if(!map.has(role))map.set(role,{role,people:0,items:new Map()});const row=map.get(role);row.people++;records.filter(r=>String(r.workerId)===String(worker.id)).forEach(r=>{const key=r.itemName||'EPP';row.items.set(key,(row.items.get(key)||0)+1)})});return[...map.values()].sort((a,b)=>a.role.localeCompare(b.role))},[workers,records,segment])
+  const matrixRows=useMemo(()=>{const map=new Map();workers.filter(workerMatchesSegment).forEach(worker=>{const role=worker.cargo||worker.especialidad||'Sin función';if(!map.has(role))map.set(role,{role,people:0,items:new Map()});const row=map.get(role);row.people++;records.filter(r=>String(r.workerId)===String(worker.id)).forEach(r=>{const key=r.itemName||'EPP';row.items.set(key,(row.items.get(key)||0)+1)})});return[...map.values()].sort((a,b)=>a.role.localeCompare(b.role))},[workers,records,segment,assignments,projects,restrictions])
   const summary = useMemo(() => {const peopleControlled=new Set(records.map(r=>r.workerId).filter(Boolean)).size;const pendingPeople=new Set(records.filter(r=>['warn','error'].includes(replaceStatus(r.replaceAt).key)).map(r=>r.workerId).filter(Boolean)).size;const soon=records.filter(r=>replaceStatus(r.replaceAt).key==='warn').length;const missingSizes=workers.filter(w=>!Object.values(w.epp||{}).filter(Boolean).length).length;return{peopleControlled,pendingPeople,soon,missingSizes}},[records,workers])
 
   return <div className="nk-epp-page">

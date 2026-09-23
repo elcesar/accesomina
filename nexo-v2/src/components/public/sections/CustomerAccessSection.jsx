@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import BrandLogo from '../BrandLogo.jsx'
 import { api } from '../../../services/api.js'
+import { formatRut } from '../../../services/rut.js'
 import { RutInput } from '../../ui/RutInput.jsx'
 
 const initialRegistration = {
@@ -9,6 +10,7 @@ const initialRegistration = {
   phone: '',
   adminName: '',
   email: '',
+  emailConfirmation: '',
   password: '',
   inviteCode: '',
 }
@@ -36,16 +38,28 @@ export function CustomerAccessPanel() {
 
   const submitRegistration = async event => {
     event.preventDefault()
+    if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) {
+      setMessageType('alert')
+      setMessage('Los correos no coinciden. Escríbelos nuevamente para continuar.')
+      return
+    }
     setBusy(true)
     setMessage('')
     setMessageType('status')
 
     try {
       const result = await api.post('/auth/register', {
-        ...registration,
+        companyName: registration.companyName,
+        rut: formatRut(registration.rut),
+        adminName: registration.adminName,
+        email: registration.email,
+        phone: registration.phone,
+        password: registration.password,
+        inviteCode: registration.inviteCode,
       })
 
-      setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar.')
+      setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.')
+      setMessageType('approval')
       setRegistration(initialRegistration)
     } catch (error) {
       setMessageType('alert')
@@ -131,6 +145,20 @@ export function CustomerAccessPanel() {
           />
         </label>
 
+        <label>
+          Confirma el correo administrador
+          <input
+            required
+            type="email"
+            value={registration.emailConfirmation}
+            onChange={update('emailConfirmation')}
+            onPaste={event => event.preventDefault()}
+            onDrop={event => event.preventDefault()}
+            placeholder="Escribe nuevamente el correo"
+            autoComplete="off"
+          />
+        </label>
+
         <div className="nk-access-form-row">
           <label>
             Contraseña
@@ -173,7 +201,7 @@ export function CustomerAccessPanel() {
       </form>
 
       {message && (
-        <p className="nk-form-message" role={messageType} aria-live="polite">
+        <p className={`nk-form-message ${messageType === 'approval' ? 'nk-access-approval-message' : ''}`} role={messageType === 'alert' ? 'alert' : 'status'} aria-live="polite">
           {message}
         </p>
       )}

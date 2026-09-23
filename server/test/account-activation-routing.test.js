@@ -9,6 +9,8 @@ const root = path.resolve(__dirname, '..', '..');
 const appSource = fs.readFileSync(path.join(root, 'nexo-v2', 'src', 'App.jsx'), 'utf8');
 const loginSource = fs.readFileSync(path.join(root, 'nexo-v2', 'src', 'pages', 'LoginPage.jsx'), 'utf8');
 const changePasswordSource = fs.readFileSync(path.join(root, 'nexo-v2', 'src', 'pages', 'ChangePasswordPage.jsx'), 'utf8');
+const tenantsSource = fs.readFileSync(path.join(root, 'server', 'routes', 'tenants.js'), 'utf8');
+const mfaSetupSource = fs.readFileSync(path.join(root, 'nexo-v2', 'src', 'pages', 'MfaSetupPage.jsx'), 'utf8');
 
 test('account activation has a registered MFA route', () => {
   assert.match(appSource, /import MfaSetupPage from '.\/pages\/MfaSetupPage\.jsx'/);
@@ -23,4 +25,10 @@ test('a pending MFA enrollment cannot open the private application', () => {
 test('first access continues from temporary password to MFA enrollment', () => {
   assert.match(loginSource, /navigate\('\/configurar-mfa'\)/);
   assert.match(changePasswordSource, /updatedSession\?\.user\?\.mfaEnrollmentRequired \? '\/configurar-mfa' : '\/app'/);
+});
+
+test('account approval notifies the client administrator and MFA setup renders a QR code', () => {
+  assert.match(tenantsSource, /deliverAccountApproval/);
+  assert.match(tenantsSource, /tenant\.approval_email_sent/);
+  assert.match(mfaSetupSource, /QRCodeSVG/);
 });
