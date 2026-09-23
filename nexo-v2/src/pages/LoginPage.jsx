@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
+import { RutInput } from '../components/ui/RutInput.jsx'
+import { isValidRut } from '../services/rut.js'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
@@ -32,6 +34,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!isValidRut(form.rut)) {
+      setError('El RUT de la empresa no es válido. Revisa sus números y dígito verificador.')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -128,12 +134,11 @@ export default function LoginPage() {
             {!mfaRequired ? (
               <>
                 <Field label="RUT empresa">
-                  <input
-                    className="nk-input"
+                  <RutInput
                     name="rut"
                     value={form.rut}
-                    onChange={handleChange}
-                    placeholder="12.345.678-9"
+                    onChange={value => { setForm(current => ({ ...current, rut: value })); setError(null) }}
+                    placeholder="13.848.379-7"
                     required
                     autoComplete="organization"
                   />
