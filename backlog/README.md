@@ -76,3 +76,80 @@ PR #32 — `fix(configuracion): aplicar módulos habilitados`.
 
 ### Prioridad
 Mejora futura de seguridad y arquitectura. No bloquea el alcance actual del PR #32.
+
+
+---
+
+## 2026-09-23 — Validación semántica de datos también en backend/API
+
+### Mejora
+Extender al backend/API las reglas de normalización y validación de los campos semánticos que NEXOKLAR incorpora en sus formularios, de modo que la integridad de los datos no dependa exclusivamente de los componentes React.
+
+### Situación actual
+Los PR #35 y #37 incorporan reglas reutilizables para teléfono chileno y RUT. En frontend se propone además utilizar inputs semánticos globales como `PhoneInput` y `RutInput`, evitando repetir formato y validación en cada formulario.
+
+Esta capa mejora la experiencia del usuario, pero una integración externa, una importación o un consumidor directo de la API puede ingresar datos sin pasar por esos componentes.
+
+### Evolución propuesta
+Mantener las responsabilidades separadas y reutilizables:
+
+```text
+Input semántico global
+(formato + UX + error)
+        ↓
+Servicio/validador
+(normalización + reglas)
+        ↓
+Backend/API
+(validación de integridad)
+        ↓
+Persistencia
+```
+
+El backend debe validar nuevamente los campos antes de persistirlos y utilizar, cuando sea posible, las mismas reglas de dominio o equivalentes server-side.
+
+### Campos iniciales
+- **RUT:** normalización, formato admitido y validación del dígito verificador.
+- **Teléfono:** normalización, prefijo/código país y estructura válida.
+- **Email:** normalización y validación de estructura.
+- Extender el patrón en el futuro a otros datos semánticos cuando exista una regla de negocio aplicable.
+
+### Ejemplos de usabilidad e integración
+En formularios React:
+
+```jsx
+<RutInput value={persona.rut} onChange={...} />
+<PhoneInput value={persona.tel} onChange={...} country="CL" />
+<EmailInput value={persona.email} onChange={...} />
+```
+
+Una integración futura podría enviar directamente:
+
+```json
+{
+  "nombre": "Juan Pérez",
+  "rut": "13.848.379-6",
+  "telefono": "123",
+  "email": "correo-invalido"
+}
+```
+
+Aunque estos valores nunca hayan pasado por los componentes React, la API debe rechazarlos o informar los errores correspondientes antes de persistirlos.
+
+Otro ejemplo: si un ERP envía `912345678` como teléfono, la capa de normalización puede convertirlo al formato canónico definido por NEXOKLAR, por ejemplo `+56912345678`, siempre que el valor sea válido.
+
+### Componentes involucrados
+- Inputs semánticos globales de frontend: `RutInput`, `PhoneInput`, `EmailInput` y futuros componentes equivalentes.
+- `nexo-v2/src/services/rut.js`.
+- `nexo-v2/src/services/chile-phone.js`.
+- Validadores/esquemas del backend.
+- Endpoints de creación y modificación de Personas.
+- Futuras APIs de integración e importación.
+- Pruebas de API para comprobar rechazo/normalización de valores inválidos.
+
+### Origen
+PR #35 — `fix(personas): validar teléfono chileno`.
+PR #37 — `fix(personas): formatear y validar RUT chileno`.
+
+### Prioridad
+Mejora futura de integridad de datos y arquitectura. El objetivo es asegurar que las mismas reglas se cumplan tanto desde la interfaz NEXOKLAR como desde futuras integraciones vía API.
