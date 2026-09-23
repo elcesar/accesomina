@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
-import { formatRut, isValidRut } from '../services/rut.js'
+import { isValidRut } from '../services/rut.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
@@ -27,8 +28,7 @@ export default function LoginPage() {
   const passwordReset = location.state?.passwordReset === true
 
   const handleChange = (e) => {
-    const value = e.target.name === 'rut' ? formatRut(e.target.value) : e.target.value
-    setForm(f => ({ ...f, [e.target.name]: value }))
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
     setError(null)
   }
 
@@ -134,12 +134,10 @@ export default function LoginPage() {
             {!mfaRequired ? (
               <>
                 <Field label="RUT empresa">
-                  <input
-                    className="nk-input"
+                  <RutInput
                     name="rut"
                     value={form.rut}
-                    onChange={handleChange}
-                    onBlur={() => setForm(current => ({ ...current, rut: formatRut(current.rut) }))}
+                    onChange={value => { setForm(current => ({ ...current, rut: value })); setError(null) }}
                     placeholder="13.848.379-7"
                     required
                     autoComplete="organization"

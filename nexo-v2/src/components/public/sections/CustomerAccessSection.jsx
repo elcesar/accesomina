@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import BrandLogo from '../BrandLogo.jsx'
 import { api } from '../../../services/api.js'
 import { formatRut } from '../../../services/rut.js'
+import { RutInput } from '../../ui/RutInput.jsx'
 
 const initialRegistration = {
   companyName: '',
@@ -34,9 +35,6 @@ export function CustomerAccessPanel() {
     setRegistration(current => ({ ...current, [key]: event.target.value }))
   }
 
-  const formatFieldRut = () => {
-    setRegistration(current => ({ ...current, rut: formatRut(current.rut) }))
-  }
 
   const submitRegistration = async event => {
     event.preventDefault()
@@ -104,13 +102,11 @@ export function CustomerAccessPanel() {
         <div className="nk-access-form-row">
           <label>
             RUT empresa
-            <input
+            <RutInput
               required
               value={registration.rut}
-              onChange={update('rut')}
-              onBlur={formatFieldRut}
+              onChange={value => setRegistration(current => ({ ...current, rut: value }))}
               placeholder="76.123.456-7"
-              inputMode="text"
             />
           </label>
 
