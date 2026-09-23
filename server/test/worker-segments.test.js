@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { workerSegment } from '../../nexo-v2/src/services/worker-segments.js'
+import { employmentRelationship, operationalStatus, workerSegment } from '../../nexo-v2/src/services/worker-segments.js'
 
 const order = { id: 'os-1', estado: 'activo' }
 const available = { id: 'person-1', nombre: 'Persona disponible', tipo: 'esporadico', disponibilidad: 'disponible' }
@@ -17,6 +17,17 @@ test('an operational assignment does not change a fixed worker segment', () => {
   const fixedWorker = { ...available, employmentProfile: 'permanente', tipo: 'permanente' }
   const assignment = [{ trabId: fixedWorker.id, mantId: order.id, estado: 'confirmado' }]
   assert.equal(workerSegment(fixedWorker, assignment, [order]), 'planta')
+})
+
+test('employment relationship and operational availability remain independent', () => {
+  const fixedWorker = { ...available, employmentProfile: 'permanente', tipo: 'permanente' }
+  const assignment = [{ trabId: fixedWorker.id, mantId: order.id, estado: 'confirmado' }]
+  assert.equal(employmentRelationship(fixedWorker), 'fijo')
+  assert.equal(operationalStatus(fixedWorker, assignment), 'asignado')
+
+  const projectWorker = { ...available, employmentProfile: 'esporadico', tipo: 'esporadico' }
+  assert.equal(employmentRelationship(projectWorker), 'proyecto')
+  assert.equal(operationalStatus(projectWorker, []), 'disponible')
 })
 
 test('a current restriction takes priority over a worker availability value', () => {
