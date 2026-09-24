@@ -32,3 +32,22 @@ La celda interactiva debe ser operable mediante teclado, tener nombre accesible 
 ### Aplicación
 
 Este patrón es transversal a Capital Humano y debe reutilizarse en cualquier módulo futuro que incluya una columna Persona. La ficha de Persona continúa siendo la fuente de detalle; cada listado conserva en sus demás columnas únicamente el contexto propio del módulo.
+
+
+## Patrón UX — Navegación entre listado y ficha
+
+**Regla:** cuando una ficha o vista de detalle se abre desde un listado dentro de un módulo, el retorno debe indicar explícitamente el destino. La navegación de retorno no se representa mediante una X.
+
+### Presentación y comportamiento
+
+- Usar un control textual con flecha y destino, por ejemplo: `← Volver a alojamientos`, `← Volver a clientes` o `← Volver a personas`.
+- Ubicar el retorno en la zona superior izquierda de la ficha, antes de su título o contexto principal.
+- Reservar la X para cerrar modales, paneles flotantes, diálogos y otros elementos superpuestos.
+- Mantener a la derecha las acciones propias del objeto, como `Guardar`, `Editar`, `Asignar` o equivalentes.
+- Volver al listado debe conservar búsqueda, filtros y contexto visible siempre que la arquitectura de la pantalla lo permita.
+- El control debe ser operable por teclado y utilizar el foco definido por los tokens del sistema.
+- No duplicar simultáneamente una X y un control `Volver` cuando ambos realizan la misma navegación.
+
+### Aplicación
+
+Este patrón es transversal. Debe aplicarse progresivamente a fichas de Persona, Cliente, Contrato, Orden de servicio, Alojamiento y cualquier otra entidad que se abra desde un listado.
