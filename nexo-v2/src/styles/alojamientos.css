@@ -48,6 +48,9 @@
 .nk-lodging-section-head small{color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
 .nk-lodging-rooms .nk-table .nk-input,.nk-lodging-rooms .nk-table .nk-select{min-width:calc(var(--nk-space-20) * 1.25)}
 .nk-lodging-rooms .nk-table td:last-child{text-align:right;white-space:nowrap}
+.nk-lodging-pagination{display:flex;align-items:center;justify-content:space-between;gap:var(--nk-space-3);margin-top:var(--nk-space-3);padding-top:var(--nk-space-3);border-top:var(--nk-stroke-thin) solid var(--nk-line)}
+.nk-lodging-pagination>span{color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+.nk-lodging-pagination .nk-actions{display:flex;align-items:center;gap:var(--nk-space-2)}
 
 .nk-lodging-panel-actions{display:flex;min-width:0;align-items:center;justify-content:flex-end;gap:var(--nk-space-3);flex-wrap:wrap;margin-top:var(--nk-space-3);padding-top:var(--nk-space-3);border-top:var(--nk-stroke-thin) solid var(--nk-line)}
 .nk-lodging-panel-actions>span{color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
@@ -64,4 +67,4 @@
 .nk-lodging-hotel-link span{color:var(--nk-ink-2);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-regular)}
 
 @media(max-width:68.75rem){.nk-lodging-cards,.nk-lodging-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-lodging-span-2{grid-column:span 2}}
-@media(max-width:47.5rem){.nk-lodging-header,.nk-lodging-workspace-head,.nk-lodging-section-head,.nk-lodging-catalog-head{flex-direction:column}.nk-lodging-catalog-head .nk-search{width:100%}.nk-lodging-cards,.nk-lodging-form-grid{grid-template-columns:1fr}.nk-lodging-span-2,.nk-lodging-wide{grid-column:auto}.nk-lodging-hotel-foot{align-items:flex-start;flex-direction:column}.nk-lodging-panel-actions{justify-content:flex-start}.nk-lodging-header .nk-actions,.nk-lodging-workspace-head .nk-actions{width:100%;justify-content:flex-start}}
+@media(max-width:47.5rem){.nk-lodging-header,.nk-lodging-workspace-head,.nk-lodging-section-head,.nk-lodging-catalog-head{flex-direction:column}.nk-lodging-catalog-head .nk-search{width:100%}.nk-lodging-cards,.nk-lodging-form-grid{grid-template-columns:1fr}.nk-lodging-span-2,.nk-lodging-wide{grid-column:auto}.nk-lodging-hotel-foot{align-items:flex-start;flex-direction:column}.nk-lodging-panel-actions{justify-content:flex-start}.nk-lodging-pagination{align-items:flex-start;flex-direction:column}.nk-lodging-header .nk-actions,.nk-lodging-workspace-head .nk-actions{width:100%;justify-content:flex-start}}
