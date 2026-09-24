@@ -1,10 +1,52 @@
-.nk-contractor-page{display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-5) var(--space-6)}
-.nk-contractor-header{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4)}
-.nk-contractor-header>div:first-child{min-width:0;flex:1}.nk-contractor-header .nk-actions{display:flex;align-items:center;gap:var(--space-2);flex:0 0 auto}.nk-contractor-header h1{margin:0;color:var(--ink);font-family:var(--font-brand);font-size:clamp(1.55rem,2vw,2rem);line-height:var(--leading-tight)}.nk-contractor-header p{max-width:760px;margin:.35rem 0 0;color:var(--mut)}
-.nk-contractor-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}.nk-contractor-summary article{display:flex;align-items:center;gap:var(--space-3);min-height:72px;padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surf)}.nk-contractor-summary strong{font-family:var(--font-brand);font-size:1.45rem;line-height:1;color:var(--ink)}.nk-contractor-summary span{font-size:var(--text-sm);color:var(--mut)}
-.nk-contractor-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) repeat(2,minmax(170px,210px));gap:var(--space-3);align-items:end;padding:var(--space-3)}.nk-contractor-toolbar-2{grid-template-columns:minmax(280px,1fr) minmax(180px,220px)}.nk-contractor-toolbar .nk-search,.nk-contractor-toolbar .nk-select{width:100%;min-width:0;min-height:40px}.nk-contractor-table-card{overflow:hidden}.nk-contractor-subtle{font-size:var(--text-sm);color:var(--mut);margin-top:2px}.nk-contractor-empty{padding:var(--space-8)}.nk-contractor-feedback{padding:var(--space-3) var(--space-4);border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surf)}.nk-contractor-feedback.error{border-color:var(--state-error)}
-.nk-contractor-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}.nk-contractor-wide{grid-column:1/-1}
-.nk-compliance-meter{display:flex;flex-direction:column;gap:6px;min-width:150px}.nk-compliance-meter>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);font-size:var(--text-sm)}.nk-compliance-meter span{color:var(--mut)}.nk-compliance-track{height:6px;border-radius:999px;background:var(--surf-2);overflow:hidden}.nk-compliance-track>span{display:block;height:100%;background:var(--pri);border-radius:inherit}.nk-requirement-list{display:flex;gap:6px;flex-wrap:wrap;max-width:320px}
-.nk-rating-cell{display:flex;align-items:center;gap:6px}.nk-rating-cell .nk-input{width:72px;min-width:72px;text-align:center}.nk-rating-cell span{font-size:var(--text-sm);color:var(--mut)}.nk-score-result{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.nk-score-result>strong{font-family:var(--font-brand);font-size:1rem;color:var(--ink)}
-@media(max-width:900px){.nk-contractor-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-contractor-toolbar,.nk-contractor-toolbar-2{grid-template-columns:1fr}.nk-contractor-header{flex-direction:column}.nk-contractor-header .nk-actions{width:100%;flex-wrap:wrap;justify-content:flex-start}}
-@media(max-width:620px){.nk-contractor-page{padding:var(--space-4)}.nk-contractor-summary,.nk-contractor-form-grid{grid-template-columns:1fr}.nk-contractor-summary article{min-height:64px}.nk-contractor-wide{grid-column:auto}}
+/* NEXO KLAR · Contratistas · pantallas secundarias */
+.nk-contractor-page{display:grid;min-width:0;gap:var(--nk-space-4);padding:var(--nk-space-1) var(--nk-page-padding) var(--nk-space-6);background:var(--nk-base)}
+.nk-contractor-header{display:flex;min-width:0;align-items:flex-start;justify-content:space-between;gap:var(--nk-space-3)}
+.nk-contractor-header>div:first-child{min-width:0;flex:1}
+.nk-contractor-header .nk-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--nk-space-2);flex-wrap:wrap}
+.nk-contractor-header h1{margin:var(--nk-space-0);color:var(--nk-ink);font:var(--nk-font-title-1)}
+.nk-contractor-header p{margin:var(--nk-space-1) var(--nk-space-0) var(--nk-space-0);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
+
+.nk-contractor-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--nk-space-3)}
+.nk-contractor-summary article{display:flex;min-width:0;min-height:calc(var(--nk-control-min) * 2);align-items:center;gap:var(--nk-space-3);padding:var(--nk-space-3) var(--nk-space-4);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface)}
+.nk-contractor-summary strong{color:var(--nk-ink);font:var(--nk-font-title-3)}
+.nk-contractor-summary span{color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+
+.nk-contractor-toolbar{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:var(--nk-space-3);align-items:center;padding:var(--nk-space-3) var(--nk-space-4)}
+.nk-contractor-toolbar-2{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.nk-contractor-toolbar .nk-search,.nk-contractor-toolbar .nk-select{width:100%;min-width:0;min-height:var(--nk-control-min)}
+.nk-contractor-table-card{min-width:0;overflow:hidden}
+.nk-contractor-table-card .nk-table{min-width:calc(var(--nk-space-20) * 9)}
+.nk-contractor-table-card .nk-table td,.nk-contractor-table-card .nk-table th{white-space:nowrap}
+.nk-contractor-subtle{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+.nk-contractor-empty{padding:var(--nk-space-8);color:var(--nk-ink-2);text-align:center}
+.nk-contractor-feedback{padding:var(--nk-space-3) var(--nk-space-4);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
+.nk-contractor-feedback.error{border-color:var(--nk-state-error);background:var(--nk-state-error-soft);color:var(--nk-state-error)}
+
+.nk-contractor-form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--nk-space-3)}
+.nk-contractor-span-2{grid-column:span 2}
+.nk-contractor-wide{grid-column:1/-1}
+
+.nk-contractor-entity-link{display:inline-flex;min-width:0;align-items:center;padding:var(--nk-space-0);border:0;background:transparent;color:var(--nk-ink);font:inherit;font-weight:var(--nk-weight-semibold);text-align:left;text-decoration:none;cursor:pointer}
+.nk-contractor-entity-link:hover{color:var(--nk-action);text-decoration:underline;text-underline-offset:var(--nk-space-1)}
+.nk-contractor-entity-link:focus-visible{outline:var(--nk-focus-width) solid var(--nk-focus);outline-offset:var(--nk-focus-offset);border-radius:var(--nk-radius-sm)}
+.nk-contractor-person-link{display:flex;align-items:center}
+.nk-contractor-person-avatar{display:inline-flex;width:var(--nk-space-8);height:var(--nk-space-8);flex:0 0 auto;align-items:center;justify-content:center;margin-right:var(--nk-space-2);border-radius:var(--nk-radius-pill);background:var(--nk-primary-soft);color:var(--nk-primary);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-bold)}
+.nk-contractor-person-copy{display:grid;min-width:0;gap:var(--nk-space-1)}
+.nk-contractor-person-copy small{color:var(--nk-ink-2);font-size:var(--nk-text-xs);font-weight:var(--nk-weight-regular)}
+
+.nk-contractor-table-card .nk-badge{display:inline-flex;min-width:calc(var(--nk-space-12) * 2);min-height:var(--nk-space-6);align-items:center;justify-content:center;padding:var(--nk-space-1) var(--nk-space-2);font-size:var(--nk-text-xs);line-height:1.2;white-space:nowrap}
+
+.nk-compliance-meter{display:grid;min-width:calc(var(--nk-space-20) * 1.75);gap:var(--nk-space-2)}
+.nk-compliance-meter>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:var(--nk-space-2);font-size:var(--nk-text-sm)}
+.nk-compliance-meter span{color:var(--nk-ink-2)}
+.nk-compliance-track{height:var(--nk-space-2);overflow:hidden;border-radius:var(--nk-radius-pill);background:var(--nk-surface-2)}
+.nk-compliance-track>span{display:block;height:100%;border-radius:inherit;background:var(--nk-primary)}
+.nk-requirement-list{display:flex;max-width:calc(var(--nk-space-20) * 4);flex-wrap:wrap;gap:var(--nk-space-2)}
+.nk-rating-cell{display:flex;align-items:center;gap:var(--nk-space-2)}
+.nk-rating-cell .nk-input{width:calc(var(--nk-space-20) - var(--nk-space-2));min-width:calc(var(--nk-space-20) - var(--nk-space-2));text-align:center}
+.nk-rating-cell span{color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
+.nk-score-result{display:flex;align-items:center;gap:var(--nk-space-2);flex-wrap:wrap}
+.nk-score-result>strong{color:var(--nk-ink);font-size:var(--nk-text-base)}
+
+@media(max-width:68.75rem){.nk-contractor-summary,.nk-contractor-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-contractor-toolbar,.nk-contractor-toolbar-2{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-contractor-toolbar .nk-search{grid-column:1/-1}.nk-contractor-span-2{grid-column:span 2}}
+@media(max-width:40rem){.nk-contractor-header{flex-direction:column}.nk-contractor-summary,.nk-contractor-toolbar,.nk-contractor-toolbar-2,.nk-contractor-form-grid{grid-template-columns:1fr}.nk-contractor-toolbar .nk-search,.nk-contractor-span-2,.nk-contractor-wide{grid-column:auto}.nk-contractor-header .nk-actions{width:100%;justify-content:flex-start}}
