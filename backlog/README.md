@@ -312,3 +312,41 @@ Reportes queda visible y seleccionado
 
 ### Prioridad
 Mejora de navegación y experiencia usuaria. No modifica reglas de negocio.
+
+
+---
+
+## 2026-09-24 — Mensajes y errores siempre visibles para el usuario
+
+### Mejora
+Estandarizar la presentación de mensajes de error, advertencia, confirmación e información para que aparezcan siempre dentro del área visible del usuario y no queden fuera del viewport.
+
+### Situación actual
+En algunos flujos, por ejemplo en el login cuando la contraseña es incorrecta, el mensaje puede renderizarse en una zona inferior de la pantalla que queda fuera de la vista actual. El sistema informa correctamente el problema, pero el usuario puede no percibir el mensaje y asumir que la acción no tuvo respuesta.
+
+### Evolución propuesta
+Definir un patrón global de feedback visible para toda la aplicación. Ante una acción que produzca un mensaje relevante, este debe mostrarse en una posición inmediatamente perceptible sin exigir que el usuario haga scroll para encontrarlo.
+
+Evaluar una solución reutilizable —por ejemplo banner/alerta contextual visible, toast global o desplazamiento/foco automático hacia el mensaje— escogiendo el patrón adecuado según el tipo y criticidad del mensaje. Evitar resolver el problema individualmente en cada pantalla.
+
+### Comportamiento esperado
+- Los errores de validación o autenticación deben quedar visibles inmediatamente después de la acción.
+- Los mensajes no deben aparecer fuera del viewport actual.
+- Los errores asociados a un campo deben mantener relación clara con dicho campo cuando corresponda.
+- Los mensajes globales deben utilizar un componente/patrón común en NEXOKLAR.
+- El usuario debe poder distinguir visualmente error, advertencia, información y éxito.
+- La solución debe funcionar en escritorio y resoluciones móviles.
+- Considerar accesibilidad: foco, `aria-live`/roles adecuados y lectura por tecnologías de asistencia.
+
+### Ejemplo
+En el login, si las credenciales son incorrectas, el mensaje debe ser visible inmediatamente junto al formulario o mediante el mecanismo global definido, sin que el usuario tenga que desplazarse hacia abajo.
+
+### Componentes involucrados
+- Login y autenticación.
+- Formularios y acciones de guardado.
+- Componente global de alertas/notificaciones.
+- Layout y manejo de scroll/foco.
+- Servicio/API de mensajes y traducción de errores.
+
+### Prioridad
+Mejora transversal de experiencia usuaria y accesibilidad. Aplicar como estándar a todos los módulos de NEXOKLAR.
