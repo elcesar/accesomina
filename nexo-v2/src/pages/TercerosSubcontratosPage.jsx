@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
+import { IconArrowLeft, IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
 import '../styles/terceros-subcontratos.css'
@@ -254,8 +254,8 @@ export default function TercerosSubcontratosPage() {
               <thead><tr><th>Empresa</th><th>Contrato</th><th>Servicio</th><th>Responsable</th><th>Vencimientos</th><th>Dotación</th><th>Estado</th><th /></tr></thead>
               <tbody>{filtered.map(item => (
                 <tr key={item.id}>
-                  <td><div className="nk-third-company"><strong>{item.razon || item.nombre}</strong><span>{item.rut || 'Sin RUT'}</span></div></td>
-                  <td>{item.contratoId ? <button className="nk-context-link nk-third-link" type="button" onClick={() => navigate(`/app/contratos/${item.contratoId}`)}>{contractName(item.contratoId)}</button> : '—'}</td>
+                  <td><button className="nk-third-link nk-third-company" type="button" onClick={() => openDetail(item.id)} aria-label={`Abrir ficha de ${item.razon || item.nombre || 'empresa colaboradora'}`}><strong>{item.razon || item.nombre}</strong><span>{item.rut || 'Sin RUT'}</span></button></td>
+                  <td>{item.contratoId ? <button className="nk-third-link" type="button" onClick={() => navigate(`/app/contratos/${encodeURIComponent(item.contratoId)}`)}>{contractName(item.contratoId)}</button> : '—'}</td>
                   <td>{item.servicios || item.servicio || '—'}</td>
                   <td>{item.responsable || '—'}</td>
                   <td>
@@ -268,7 +268,7 @@ export default function TercerosSubcontratosPage() {
                   </td>
                   <td>{Number(item.personal || item.dotacion || 0)}</td>
                   <td><StatusBadge value={item.estado} /></td>
-                  <td><button className="nk-button nk-button-quiet" type="button" onClick={() => openDetail(item.id)}>Abrir ficha</button></td>
+                  <td />
                 </tr>
               ))}</tbody>
             </table>
@@ -279,19 +279,19 @@ export default function TercerosSubcontratosPage() {
       {(selected || creating) && (
         <section className="nk-card nk-third-detail">
           <div className="nk-third-detail-head">
-            <div><span className="nk-third-eyebrow">Ficha del tercero</span><h2>{creating ? 'Nuevo tercero' : form.razon || 'Empresa colaboradora'}</h2></div>
-            <button className="nk-button nk-button-secondary" type="button" onClick={closeDetail}>Volver al listado</button>
+            <div><button className="nk-third-back" type="button" onClick={closeDetail}><IconArrowLeft size={16} />Volver a terceros y subcontratos</button><p className="nk-third-eyebrow">{creating ? 'Nuevo tercero' : 'Ficha del tercero'}</p><h2>{creating ? 'Registrar tercero' : form.razon || 'Empresa colaboradora'}</h2></div>
+            <div className="nk-actions"><button className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</button></div>
           </div>
 
           <div className="nk-third-form">
-            <div className="nk-field nk-third-wide"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
             <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
-            <div className="nk-field nk-third-wide"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Responsable</label><input className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Contacto</label><input className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label">Responsable</label><input className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label">Contacto</label><input className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
           </div>
 
           <div className="nk-third-section-title"><h3>Control laboral y previsional</h3><p>Fechas de vigencia utilizadas para detectar alertas operacionales.</p></div>
@@ -303,9 +303,6 @@ export default function TercerosSubcontratosPage() {
             <div className="nk-field nk-third-wide"><label className="nk-label">Observaciones</label><textarea className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
           </div>
 
-          <div className="nk-third-detail-actions">
-            <button className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</button>
-          </div>
         </section>
       )}
     </div>
