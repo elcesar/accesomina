@@ -56,7 +56,7 @@ function Field({ label, children, wide = false }) {
   )
 }
 
-function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }) {
+function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, onClose }) {
   const [form, setForm] = useState({
     trabId: trabajadores[0]?.id || '',
     mantId: mantenciones[0]?.id || '',
@@ -125,6 +125,7 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, onSave, onClose }
           </Field>
         </div>
 
+        {error && <p className="nk-form-error">{error}</p>}
         <div className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
           <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
@@ -144,6 +145,7 @@ export default function TurnosPage() {
   const [tab, setTab] = useState('jornadas')
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [filtMant, setFiltMant] = useState('')
   const [filtRegimen, setFiltRegimen] = useState('')
   const [filtTurno, setFiltTurno] = useState('')
@@ -204,6 +206,7 @@ export default function TurnosPage() {
       return
     }
     setSaving(true)
+    setSaveError('')
     try {
       const nuevo = { id: `turno_${Date.now()}`, ...form, hh: Number(form.hh) || 0 }
       const nuevosTurnos = [...turnos, nuevo]
@@ -216,6 +219,7 @@ export default function TurnosPage() {
       setShowModal(false)
     } catch (error) {
       console.error('No fue posible guardar la jornada', error)
+      setSaveError(error.message || 'No fue posible guardar la jornada.')
     } finally {
       setSaving(false)
     }
@@ -232,7 +236,7 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => setShowModal(true)} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
         </button>
       </header>
@@ -332,7 +336,7 @@ export default function TurnosPage() {
         )}
       </div>
 
-      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} saving={saving} onSave={handleSave} onClose={() => setShowModal(false)} />}
+      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} saving={saving} error={saveError} onSave={handleSave} onClose={() => { setSaveError(''); setShowModal(false) }} />}
     </div>
   )
 }
