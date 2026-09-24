@@ -11,6 +11,7 @@ const newId = prefix => globalThis.crypto?.randomUUID?.() || `${prefix}-${Date.n
 const normalize = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 const hotelEditors = new Set(['domian_admin', 'client_admin'])
 const assignmentEditors = new Set(['domian_admin', 'client_admin', 'rrhh'])
+const roomPageSize = 10
 const emptyHotel = () => ({ nombre: '', ciudad: '', direccion: '', contacto: '', telefono: '', minaIds: [], rooms: [] })
 const emptyStay = () => ({ hotelId: '', mantId: '', trabId: '', pieza: '', turno: 'día', checkin: '', checkout: '', status: 'confirmada', observacion: '' })
 const today = () => new Date().toISOString().slice(0, 10)
@@ -40,6 +41,7 @@ export default function AlojamientosPage() {
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [messageTone, setMessageTone] = useState('')
+  const [roomPage, setRoomPage] = useState(1)
 
   async function load() {
     setLoading(true); setMessage('')
@@ -60,6 +62,12 @@ export default function AlojamientosPage() {
   const clientById = useMemo(() => new Map(clients.map(x => [String(x.id), x])), [clients])
   const orderById = useMemo(() => new Map(orders.map(x => [String(x.id), x])), [orders])
   const hotelById = useMemo(() => new Map(hotels.map(x => [String(x.id), x])), [hotels])
+  const hotelRooms = rows(hotelDraft.rooms)
+  const roomPageCount = Math.max(1, Math.ceil(hotelRooms.length / roomPageSize))
+  const safeRoomPage = Math.min(roomPage, roomPageCount)
+  const roomStart = (safeRoomPage - 1) * roomPageSize
+  const visibleRooms = hotelRooms.slice(roomStart, roomStart + roomPageSize)
+  const roomBeds = hotelRooms.reduce((sum, room) => sum + Number(room.beds || 0), 0)
 
   const visibleHotels = useMemo(() => {
     const term = normalize(search)
@@ -90,16 +98,25 @@ export default function AlojamientosPage() {
     setShowHotelForm(true)
     setShowStayForm(false)
     setMessage('')
+    setRoomPage(1)
   }
   function createHotel() {
-    setCreatingHotel(true); setSelectedHotelId(''); setHotelDraft({ ...emptyHotel(), id: newId('hotel') }); setShowHotelForm(true); setShowStayForm(false); setMessage('')
+    setCreatingHotel(true); setSelectedHotelId(''); setHotelDraft({ ...emptyHotel(), id: newId('hotel') }); setShowHotelForm(true); setShowStayForm(false); setMessage(''); setRoomPage(1)
   }
   function openStayForm() {
     setStayDraft(emptyStay()); setShowStayForm(true); setShowHotelForm(false); setMessage('')
   }
   function updateRoom(index, key, value) { setHotelDraft(current => ({ ...current, rooms: rows(current.rooms).map((room, i) => i === index ? { ...room, [key]: value } : room) })) }
-  function addRoom(beds = 1) { setHotelDraft(current => ({ ...current, rooms: [...rows(current.rooms), { id: newId('room'), number: '', beds, rate: 0, active: true }] })) }
-  function removeRoom(index) { setHotelDraft(current => ({ ...current, rooms: rows(current.rooms).filter((_, i) => i !== index) })) }
+  function addRoom(beds = 1) {
+    const nextLength = hotelRooms.length + 1
+    setHotelDraft(current => ({ ...current, rooms: [...rows(current.rooms), { id: newId('room'), number: '', beds, rate: 0, active: true }] }))
+    setRoomPage(Math.ceil(nextLength / roomPageSize))
+  }
+  function removeRoom(index) {
+    setHotelDraft(current => ({ ...current, rooms: rows(current.rooms).filter((_, i) => i !== index) }))
+    const nextLength = Math.max(0, hotelRooms.length - 1)
+    setRoomPage(current => Math.min(current, Math.max(1, Math.ceil(nextLength / roomPageSize))))
+  }
 
   async function saveHotel(event) {
     event.preventDefault()
@@ -191,8 +208,8 @@ export default function AlojamientosPage() {
         <label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" disabled={!canManageHotels} value={hotelDraft.telefono} onChange={updateHotel('telefono')}/></label>
         <label className="nk-field nk-lodging-span-2"><span className="nk-label">Clientes / faenas habilitadas</span><select className="nk-select nk-lodging-multi" multiple disabled={!canManageHotels} value={rows(hotelDraft.minaIds)} onChange={updateHotelClients}>{clients.map(client => <option key={client.id} value={client.id}>{client.nombre || client.mandante || client.id}</option>)}</select></label>
       </div>
-      <section className="nk-lodging-rooms"><div className="nk-lodging-section-head"><div><strong>Habitaciones y capacidad</strong><small>Gestiona disponibilidad y tarifa por habitación.</small></div>{canManageHotels && <div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => addRoom(1)}><IconPlus size={15}/>1 cama</button><button className="nk-button nk-button-secondary" type="button" onClick={() => addRoom(2)}><IconPlus size={15}/>2 camas</button></div>}</div>
-        {!rows(hotelDraft.rooms).length ? <div className="nk-lodging-empty">Sin habitaciones configuradas.</div> : <div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Habitación</th><th>Tipo</th><th>Camas</th><th>Precio noche</th><th>Estado</th><th/></tr></thead><tbody>{rows(hotelDraft.rooms).map((room, index) => <tr key={room.id || index}><td><input className="nk-input" disabled={!canManageHotels} value={room.number || ''} onChange={event => updateRoom(index, 'number', event.target.value)}/></td><td>{Number(room.beds || 1) === 1 ? 'Simple' : Number(room.beds) === 2 ? 'Doble' : 'Múltiple'}</td><td><input className="nk-input" type="number" min="1" disabled={!canManageHotels} value={room.beds ?? 1} onChange={event => updateRoom(index, 'beds', event.target.value)}/></td><td><input className="nk-input" type="number" min="0" disabled={!canManageHotels} value={room.rate ?? 0} onChange={event => updateRoom(index, 'rate', event.target.value)}/></td><td><select className="nk-select" disabled={!canManageHotels} value={room.active === false ? 'false' : 'true'} onChange={event => updateRoom(index, 'active', event.target.value === 'true')}><option value="true">Disponible</option><option value="false">Fuera de servicio</option></select></td><td>{canManageHotels && <button className="nk-button nk-button-quiet" type="button" onClick={() => removeRoom(index)}>Quitar</button>}</td></tr>)}</tbody></table></div>}
+      <section className="nk-lodging-rooms"><div className="nk-lodging-section-head"><div><strong>Habitaciones y capacidad</strong><small>{hotelRooms.length} habitaciones · {roomBeds} camas configuradas</small></div>{canManageHotels && <div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => addRoom(1)}><IconPlus size={15}/>1 cama</button><button className="nk-button nk-button-secondary" type="button" onClick={() => addRoom(2)}><IconPlus size={15}/>2 camas</button></div>}</div>
+        {!hotelRooms.length ? <div className="nk-lodging-empty">Sin habitaciones configuradas.</div> : <><div className="nk-table-wrapper"><table className="nk-table"><thead><tr><th>Habitación</th><th>Tipo</th><th>Camas</th><th>Precio noche</th><th>Estado</th><th/></tr></thead><tbody>{visibleRooms.map((room, pageIndex) => { const index = roomStart + pageIndex; return <tr key={room.id || index}><td><input className="nk-input" disabled={!canManageHotels} value={room.number || ''} onChange={event => updateRoom(index, 'number', event.target.value)}/></td><td>{Number(room.beds || 1) === 1 ? 'Simple' : Number(room.beds) === 2 ? 'Doble' : 'Múltiple'}</td><td><input className="nk-input" type="number" min="1" disabled={!canManageHotels} value={room.beds ?? 1} onChange={event => updateRoom(index, 'beds', event.target.value)}/></td><td><input className="nk-input" type="number" min="0" disabled={!canManageHotels} value={room.rate ?? 0} onChange={event => updateRoom(index, 'rate', event.target.value)}/></td><td><select className="nk-select" disabled={!canManageHotels} value={room.active === false ? 'false' : 'true'} onChange={event => updateRoom(index, 'active', event.target.value === 'true')}><option value="true">Disponible</option><option value="false">Fuera de servicio</option></select></td><td>{canManageHotels && <button className="nk-button nk-button-quiet" type="button" onClick={() => removeRoom(index)}>Quitar</button>}</td></tr> })}</tbody></table></div><div className="nk-lodging-pagination"><span>{roomStart + 1}–{Math.min(roomStart + roomPageSize, hotelRooms.length)} de {hotelRooms.length}</span><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" disabled={safeRoomPage <= 1} onClick={() => setRoomPage(page => Math.max(1, page - 1))}>Anterior</button><button className="nk-button nk-button-secondary" type="button" disabled={safeRoomPage >= roomPageCount} onClick={() => setRoomPage(page => Math.min(roomPageCount, page + 1))}>Siguiente</button></div></div></>}
       </section>
     </form>}
 
