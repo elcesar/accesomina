@@ -25,7 +25,8 @@
 .nk-lodging-hotel-title strong{overflow:hidden;color:var(--nk-ink);text-overflow:ellipsis;white-space:nowrap}
 .nk-lodging-hotel-title span{overflow:hidden;color:var(--nk-ink-2);font-size:var(--nk-text-xs);text-overflow:ellipsis;white-space:nowrap}
 .nk-lodging-hotel-badges{display:flex;flex-wrap:wrap;gap:var(--nk-space-1)}
-.nk-lodging-hotel-badges .nk-badge,.nk-lodging-stays .nk-badge{min-height:auto;padding:var(--nk-space-1) var(--nk-space-2);font-size:var(--nk-text-xs);line-height:1.2}
+.nk-lodging-hotel-badges .nk-badge{min-height:auto;padding:var(--nk-space-1) var(--nk-space-2);font-size:var(--nk-text-xs);line-height:1.2}
+.nk-lodging-stays td:last-child .nk-badge{display:inline-flex;width:100%;min-width:calc(var(--nk-space-12) * 2);min-height:var(--nk-space-6);align-items:center;justify-content:center;padding:var(--nk-space-1) var(--nk-space-2);font-size:var(--nk-text-xs);line-height:1.2;white-space:nowrap}
 .nk-lodging-progress{height:var(--nk-space-2);overflow:hidden;border-radius:var(--nk-radius-pill);background:var(--nk-surface-2)}
 .nk-lodging-progress>span{display:block;height:100%;border-radius:inherit;background:var(--nk-primary)}
 .nk-lodging-hotel-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--nk-space-2)}
