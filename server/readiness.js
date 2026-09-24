@@ -19,11 +19,11 @@ export async function evaluateReadiness(config,{query,s3Client,fetchFn=fetch}={}
     const client=s3Client||new S3Client({region:config.aws.region});
     checks.push(await probe('storage',true,async()=>{await client.send(new HeadBucketCommand({Bucket:config.aws.bucket}));return 's3-accessible';}));
   }else checks.push({name:'storage',ok:config.env!=='production',required:config.env==='production',latencyMs:0,detail:'local-development'});
-  if(config.env==='production'){
+  if(config.env==='production' && config.virusScan.enabled !== false){
     if(config.virusScan.healthUrl){
       checks.push(await probe('antivirus',true,async()=>{const response=await fetchFn(config.virusScan.healthUrl,{method:'GET',headers:config.virusScan.token?{authorization:`Bearer ${config.virusScan.token}`}:{},signal:timeoutSignal(5000)});if(!response.ok)throw new Error(`health returned ${response.status}`);return 'reachable';}));
     }else checks.push({name:'antivirus',ok:Boolean(config.virusScan.url),required:true,latencyMs:0,detail:config.virusScan.url?'configured-scan-endpoint':'not-configured'});
-  }else checks.push({name:'antivirus',ok:true,required:false,latencyMs:0,detail:config.virusScan.url?'configured':'optional-development'});
+  }else checks.push({name:'antivirus',ok:true,required:false,latencyMs:0,detail:config.virusScan.enabled===false?'disabled-by-configuration':config.virusScan.url?'configured':'optional-development'});
   checks.push({name:'documentAi',ok:true,required:false,latencyMs:0,detail:config.documentAi.url?'configured':'manual-review-mode'});
   const ready=checks.every(check=>!check.required||check.ok);
   return {status:ready?'ready':'not_ready',service:config.serviceName,version:config.version,checks};
