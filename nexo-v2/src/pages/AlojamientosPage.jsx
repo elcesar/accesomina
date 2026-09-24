@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { IconBed, IconCheck, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
+import { IconArrowLeft, IconBed, IconCheck, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import { mergeCollections } from '../services/report-collections.js'
@@ -182,7 +182,7 @@ export default function AlojamientosPage() {
     </section>
 
     {showHotelForm && <form className="nk-card nk-lodging-panel" onSubmit={saveHotel}>
-      <div className="nk-lodging-workspace-head"><div><p className="nk-lodging-kicker">{creatingHotel ? 'Nuevo alojamiento' : 'Ficha del alojamiento'}</p><h2>{creatingHotel ? 'Registrar alojamiento' : selectedHotel?.nombre || hotelDraft.nombre}</h2></div><div className="nk-actions">{canManageHotels && <button className="nk-button nk-button-primary" type="submit" disabled={saving}><IconCheck size={16}/>{saving ? 'Guardando…' : 'Guardar cambios'}</button>}<button className="nk-icon-button" type="button" aria-label="Cerrar ficha" onClick={() => setShowHotelForm(false)}><IconX size={16}/></button></div></div>
+      <div className="nk-lodging-workspace-head"><div><button className="nk-lodging-back" type="button" onClick={() => setShowHotelForm(false)}><IconArrowLeft size={16}/>Volver a alojamientos</button><p className="nk-lodging-kicker">{creatingHotel ? 'Nuevo alojamiento' : 'Ficha del alojamiento'}</p><h2>{creatingHotel ? 'Registrar alojamiento' : selectedHotel?.nombre || hotelDraft.nombre}</h2></div><div className="nk-actions">{canManageHotels && <button className="nk-button nk-button-primary" type="submit" disabled={saving}><IconCheck size={16}/>{saving ? 'Guardando…' : 'Guardar cambios'}</button>}</div></div>
       <div className="nk-lodging-form-grid">
         <label className="nk-field nk-lodging-span-2"><span className="nk-label">Nombre</span><input className="nk-input" disabled={!canManageHotels} value={hotelDraft.nombre} onChange={updateHotel('nombre')}/></label>
         <label className="nk-field"><span className="nk-label">Ciudad</span><input className="nk-input" disabled={!canManageHotels} value={hotelDraft.ciudad} onChange={updateHotel('ciudad')}/></label>
