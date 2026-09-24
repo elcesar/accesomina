@@ -17,3 +17,9 @@ test('identity and driver documents require both sides and an expiry date', () =
   const complete = { ...incomplete, vence: '2030-01-01', files: [...incomplete.files, { side: 'back', fileId: 'back' }] }
   assert.equal(hasRequiredEvidence(complete), true)
 })
+
+test('semantic document codes take precedence over display names', () => {
+  assert.equal(documentRule('IDENTITY_CARD').twoSided, true)
+  assert.equal(documentRule('DRIVER_LICENSE').expiration, 'required')
+  assert.equal(documentRule('documento', 'Archivo renombrado', 'CV').expiration, 'never')
+})
