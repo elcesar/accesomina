@@ -85,15 +85,58 @@ Mejora futura de seguridad y arquitectura. No bloquea el alcance actual del PR #
 ### Mejora
 Extender al backend/API las reglas de normalización y validación de los campos semánticos que NEXOKLAR incorpora en sus formularios, de modo que la integridad de los datos no dependa exclusivamente de los componentes React.
 
+### Situación actual
+Los PR #35 y #37 incorporan reglas reutilizables para teléfono chileno y RUT. En frontend se propone además utilizar inputs semánticos globales como `PhoneInput` y `RutInput`, evitando repetir formato y validación en cada formulario.
+
 Esta capa mejora la experiencia del usuario, pero una integración externa, una importación o un consumidor directo de la API puede ingresar datos sin pasar por esos componentes.
 
 ### Evolución propuesta
-Mantener las responsabilidades separadas y reutilizables entre inputs semánticos globales, servicios/validadores, backend/API y persistencia. El backend debe validar nuevamente los campos antes de persistirlos y utilizar, cuando sea posible, las mismas reglas de dominio o equivalentes server-side.
+Mantener las responsabilidades separadas y reutilizables:
+
+```text
+Input semántico global
+(formato + UX + error)
+        ↓
+Servicio/validador
+(normalización + reglas)
+        ↓
+Backend/API
+(validación de integridad)
+        ↓
+Persistencia
+```
+
+El backend debe validar nuevamente los campos antes de persistirlos y utilizar, cuando sea posible, las mismas reglas de dominio o equivalentes server-side.
 
 ### Campos iniciales
 - **RUT:** normalización, formato admitido y validación del dígito verificador.
 - **Teléfono:** normalización, prefijo/código país y estructura válida.
 - **Email:** normalización y validación de estructura.
+- Extender el patrón en el futuro a otros datos semánticos cuando exista una regla de negocio aplicable.
+
+### Ejemplos de usabilidad e integración
+En formularios React:
+
+```jsx
+<RutInput value={persona.rut} onChange={...} />
+<PhoneInput value={persona.tel} onChange={...} country="CL" />
+<EmailInput value={persona.email} onChange={...} />
+```
+
+Una integración futura podría enviar directamente:
+
+```json
+{
+  "nombre": "Juan Pérez",
+  "rut": "13.848.379-6",
+  "telefono": "123",
+  "email": "correo-invalido"
+}
+```
+
+Aunque estos valores nunca hayan pasado por los componentes React, la API debe rechazarlos o informar los errores correspondientes antes de persistirlos.
+
+Otro ejemplo: si un ERP envía `912345678` como teléfono, la capa de normalización puede convertirlo al formato canónico definido por NEXOKLAR, por ejemplo `+56912345678`, siempre que el valor sea válido.
 
 ### Componentes involucrados
 - Inputs semánticos globales de frontend: `RutInput`, `PhoneInput`, `EmailInput` y futuros componentes equivalentes.
@@ -102,13 +145,14 @@ Mantener las responsabilidades separadas y reutilizables entre inputs semántico
 - Validadores/esquemas del backend.
 - Endpoints de creación y modificación de Personas.
 - Futuras APIs de integración e importación.
+- Pruebas de API para comprobar rechazo/normalización de valores inválidos.
 
 ### Origen
 PR #35 — `fix(personas): validar teléfono chileno`.
 PR #37 — `fix(personas): formatear y validar RUT chileno`.
 
 ### Prioridad
-Mejora futura de integridad de datos y arquitectura.
+Mejora futura de integridad de datos y arquitectura. El objetivo es asegurar que las mismas reglas se cumplan tanto desde la interfaz NEXOKLAR como desde futuras integraciones vía API.
 
 
 ---
@@ -121,8 +165,57 @@ Reemplazar el código de invitación global obtenido desde un secreto/configurac
 ### Situación actual
 El registro de una nueva empresa requiere un código de invitación. Actualmente la validación depende de un valor global configurado como secreto en la infraestructura AWS.
 
+Este mecanismo permite restringir el registro, pero no identifica para qué empresa fue emitida cada invitación ni permite administrar su ciclo de vida desde NEXOKLAR.
+
 ### Evolución propuesta
-Incorporar una entidad de invitación persistida en la aplicación, generada desde una función administrativa de NEXOKLAR. Cada invitación debe contemplar token único, empresa/prospecto, estado, fechas, usuario administrador, trazabilidad y uso único por defecto. La validación debe realizarse en backend y de forma atómica con el alta.
+Incorporar una entidad de invitación persistida en la aplicación, generada desde una función administrativa de NEXOKLAR.
+
+Cada invitación debería contemplar al menos:
+
+- Código/token único y no predecible.
+- Empresa o prospecto al que está asociada.
+- Estado: pendiente, utilizada, vencida o revocada.
+- Fecha de creación.
+- Fecha de expiración.
+- Usuario administrador que la generó.
+- Fecha de utilización.
+- Empresa/tenant creado a partir de la invitación.
+- Uso único por defecto.
+
+El código no debería almacenarse en texto plano cuando no sea necesario. Preferir almacenar un hash verificable del token y mostrar el valor original únicamente al momento de generarlo.
+
+### Flujo propuesto
+
+```text
+Administrador NEXOKLAR
+        ↓
+Generar invitación
+        ↓
+Código único asociado a empresa/prospecto
+        ↓
+Cliente recibe código
+        ↓
+Crear empresa
+        ↓
+Backend valida invitación
+        ↓
+Crea tenant + administrador
+        ↓
+Invitación queda UTILIZADA
+```
+
+La validación debe realizarse en backend y de forma atómica con el alta, evitando que dos solicitudes puedan reutilizar simultáneamente la misma invitación.
+
+### Administración
+Incorporar posteriormente una vista de administración que permita:
+
+- generar una invitación;
+- copiar/entregar el código;
+- consultar a qué empresa corresponde;
+- revisar fecha y estado;
+- revocar una invitación pendiente;
+- regenerar/reemplazar una invitación;
+- revisar trazabilidad de utilización.
 
 ### Consideraciones de seguridad
 - No utilizar un código global compartido entre clientes.
@@ -131,6 +224,7 @@ Incorporar una entidad de invitación persistida en la aplicación, generada des
 - Invalidar el código después de su uso.
 - Aplicar rate limiting a los intentos de validación.
 - Registrar auditoría de creación, revocación y utilización.
+- Mantener los secretos de infraestructura AWS para credenciales técnicas; las invitaciones de negocio deben administrarse como datos de aplicación.
 
 ### Componentes involucrados
 - Flujo público **Crear empresa**.
@@ -138,12 +232,13 @@ Incorporar una entidad de invitación persistida en la aplicación, generada des
 - Persistencia de invitaciones.
 - Administración NEXOKLAR de clientes/altas.
 - Auditoría.
+- Notificaciones futuras para enviar la invitación al contacto de la empresa.
 
 ### Origen
 PR #34 — `feat(onboarding): reforzar aprobación y acceso de clientes`.
 
 ### Prioridad
-Mejora de onboarding, seguridad y trazabilidad.
+Mejora de onboarding, seguridad y trazabilidad. Sustituir el código de invitación global de infraestructura por invitaciones individuales administrables por empresa.
 
 
 ---
@@ -156,12 +251,58 @@ Hacer que el Sidebar mantenga automáticamente visible la opción correspondient
 ### Situación actual
 Cuando el menú lateral contiene más opciones que el alto disponible y el usuario navega hacia una pantalla ubicada fuera de la zona visible, el Sidebar puede conservar una posición de scroll que deja fuera de vista la opción activa.
 
+Esto reduce la orientación del usuario dentro de la estructura de NEXOKLAR, especialmente en resoluciones menores o en módulos ubicados hacia el final del menú.
+
 ### Comportamiento esperado
+Cada vez que cambie la ruta activa:
+
 1. Identificar el elemento del Sidebar correspondiente a la pantalla actual.
 2. Mantener su estado visual de selección/focus.
-3. Si el elemento activo no está completamente visible, hacer scroll automático hasta mostrarlo.
-4. Evitar movimientos innecesarios cuando ya se encuentre visible.
-5. Respetar preferencias de movimiento reducido.
+3. Si el elemento activo no está completamente visible dentro del área desplazable del Sidebar, hacer scroll automático hasta mostrarlo.
+4. Evitar movimientos innecesarios cuando la opción ya se encuentre visible.
+5. Preferir un desplazamiento suave siempre que no afecte accesibilidad o preferencias de movimiento reducido.
+
+### Ejemplo
+
+```text
+Sidebar con scroll
+│
+├─ Inicio
+├─ Clientes
+├─ Contratos
+│   ...
+│
+│   ← zona visible
+│
+├─ Cumplimiento
+├─ Reportes        ← ruta activa, inicialmente fuera de vista
+└─ Configuración
+
+Usuario entra a /app/reportes
+        ↓
+Sidebar detecta Reportes como activo
+        ↓
+scroll automático
+        ↓
+Reportes queda visible y seleccionado
+```
+
+### Consideraciones de implementación
+- Resolverlo en el componente global del Sidebar y no individualmente por página.
+- Utilizar la ruta activa como fuente de verdad.
+- Considerar rutas hijas: una pantalla hija debe mantener visible y activa su opción/módulo padre cuando corresponda.
+- No alterar el scroll del contenido principal de la página.
+- No forzar el Sidebar al inicio en cada navegación.
+- Considerar `scrollIntoView` o lógica equivalente limitada al contenedor del Sidebar.
+- Respetar `prefers-reduced-motion`.
+- Mantener compatibilidad con módulos ocultos por configuración y permisos.
+
+### Criterios de aceptación
+- Al navegar a cualquier pantalla desde una URL directa, la opción correspondiente queda visible en el Sidebar.
+- Al navegar mediante acciones internas o enlaces, el Sidebar acompaña la ruta activa.
+- Si la opción ya está visible, no se produce un salto de scroll innecesario.
+- Las rutas hijas mantienen correctamente visible la sección correspondiente.
+- El comportamiento funciona con diferentes alturas de viewport y con menús configurados por módulos/permisos.
 
 ### Componentes involucrados
 - Sidebar/navegación privada global.
@@ -185,6 +326,8 @@ En algunos flujos, por ejemplo en el login cuando la contraseña es incorrecta, 
 
 ### Evolución propuesta
 Definir un patrón global de feedback visible para toda la aplicación. Ante una acción que produzca un mensaje relevante, este debe mostrarse en una posición inmediatamente perceptible sin exigir que el usuario haga scroll para encontrarlo.
+
+Evaluar una solución reutilizable —por ejemplo banner/alerta contextual visible, toast global o desplazamiento/foco automático hacia el mensaje— escogiendo el patrón adecuado según el tipo y criticidad del mensaje. Evitar resolver el problema individualmente en cada pantalla.
 
 ### Comportamiento esperado
 - Los errores de validación o autenticación deben quedar visibles inmediatamente después de la acción.
@@ -217,7 +360,7 @@ Mejora transversal de experiencia usuaria y accesibilidad. Aplicar como estánda
 Definir un estándar responsive transversal para NEXOKLAR, evitando correcciones aisladas por pantalla y asegurando que los componentes globales y módulos se adapten correctamente al ancho y alto disponibles.
 
 ### Situación actual
-La aplicación no cuenta con un comportamiento responsive global suficientemente consistente para resoluciones intermedias. En una revisión realizada en un proyector con resolución **1280×800** se observaron elementos que se superponen o consumen demasiado espacio.
+En resoluciones intermedias se observan elementos que pueden superponerse o consumir demasiado espacio. La revisión en un proyector a **1280×800** mostró que esta resolución requiere un comportamiento explícito y no solo depender de la adaptación natural de los componentes.
 
 ### Ejemplo observado
 En **1280×800**, el header puede quedarse sin espacio suficiente y acciones como **“+ Cliente”** y **“+ Orden de servicio”** pueden superponerse o consumir demasiado ancho. El diseño responsive debe reorganizar, compactar o agrupar estas acciones sin perder accesibilidad ni funcionalidad.
