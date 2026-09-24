@@ -17,7 +17,7 @@
 .nk-lodging-catalog-head>div{display:grid;min-width:0;gap:var(--nk-space-1)}
 .nk-lodging-catalog-head span{color:var(--nk-ink-2);font-size:var(--nk-text-sm)}
 .nk-lodging-catalog-head .nk-search{width:min(calc(var(--nk-space-20) * 4),100%);min-height:var(--nk-control-min)}
-.nk-lodging-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--nk-space-3)}
+.nk-lodging-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--nk-space-3)}
 .nk-lodging-hotel-card{display:grid;min-width:0;gap:var(--nk-space-3);padding:var(--nk-space-4)}
 .nk-lodging-hotel-title{display:flex;min-width:0;align-items:flex-start;gap:var(--nk-space-2)}
 .nk-lodging-hotel-title>div{display:grid;min-width:0;gap:var(--nk-space-1)}
