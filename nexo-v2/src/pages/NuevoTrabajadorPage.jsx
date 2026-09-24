@@ -9,6 +9,7 @@ import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
 
@@ -37,10 +38,10 @@ const INITIAL = {
   nombre:'', rut:'', nacimiento:'', tel:'', email:'',
   region:'', ciudad:'',
   tipo:'permanente', regimen:'5x2',
-  cargo:'', rol:'', especialidad:'', calificacion:'7',
+  cargo:'', rol:'', especialidad:'',
   mantId:'',
   afp:'', salud:'',
-  eppCasco:'', eppPolera:'', eppPantalon:'', eppZapato:'',
+  eppCasco:'Talla única', eppPolera:'', eppPantalon:'', eppZapato:'',
 }
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
@@ -146,19 +147,13 @@ function StepVinculacion({ data, onChange, mantenciones }) {
         </FSelect>
       </Field>
 
-      <Field label="Calificación">
-        <FSelect value={data.calificacion} onChange={e => onChange('calificacion', e.target.value)}>
-          <option value="7">7 — A</option><option value="6">6 — B</option><option value="5">5 — B</option><option value="4">4 — C</option><option value="3">3 — C</option><option value="2">2 — D</option><option value="1">1 — D</option>
-        </FSelect>
-      </Field>
-
-      <Field label="Cargo" required>
+      <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo.">
         <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
-      <Field label="Rol operacional">
+      <Field label="Función en faena" hint="Responsabilidad operacional opcional, por ejemplo Supervisor o Rigger.">
         <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Rigger / Supervisor / Maestro" />
       </Field>
-      <Field label="Especialidad" required full>
+      <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
           <option value="">Seleccionar especialidad</option>
           {ESPECIALIDADES.map(item => <option key={item} value={item}>{item}</option>)}
@@ -178,21 +173,21 @@ function StepSalud({ data, onChange }) {
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Información previsional para gestión documental y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
-      <Field label="AFP"><FInput value={data.afp} onChange={e => onChange('afp', e.target.value)} placeholder="AFP Habitat, Capital, Provida…" /></Field>
-      <Field label="Previsión de salud"><FInput value={data.salud} onChange={e => onChange('salud', e.target.value)} placeholder="Fonasa / Isapre…" /></Field>
+      <Field label="AFP"><FSelect value={data.afp} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
+      <Field label="Previsión de salud"><FSelect value={data.salud} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
     </div>
   )
 }
 
 function StepEPP({ data, onChange }) {
   const fields = [
-    ['eppCasco', 'Casco', 'Ej.: M o 56 cm'], ['eppPolera', 'Polera / Camisa', 'Ej.: L'],
+    ['eppCasco', 'Casco', 'Talla única'], ['eppPolera', 'Polera / Camisa', 'Ej.: L'],
     ['eppPantalon', 'Pantalón', 'Ej.: 44'], ['eppZapato', 'Zapato de seguridad', 'Ej.: 42'],
   ]
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra tallas de referencia para la entrega de EPP. Deben confirmarse antes de la primera entrega.</p>
-      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}><FInput value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} /></Field>)}
+      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}>{key === 'eppCasco' ? <FInput value="Talla única" disabled aria-label="Casco talla única" /> : <FInput value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} />}</Field>)}
     </div>
   )
 }
@@ -203,7 +198,7 @@ function StepResumen({ data, mantenciones }) {
   const rows = [
     ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
-    ['Cargo', data.cargo], ['Rol operacional', data.rol], ['Especialidad', data.especialidad], ['Calificación', data.calificacion],
+    ['Cargo contractual', data.cargo], ['Función en faena', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
   ].filter(([, value]) => value)
@@ -296,7 +291,7 @@ export default function NuevoTrabajadorPage() {
         tipo: data.tipo === 'disponible' ? 'esporadico' : data.tipo,
         employmentProfile: data.tipo, regimen: data.regimen,
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
-        calificacion: Number(data.calificacion), disponibilidad,
+        disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
         epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
         bloqueado: false, mineras: [], workerItems: [], creado: new Date().toISOString().split('T')[0],

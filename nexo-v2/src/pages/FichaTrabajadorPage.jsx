@@ -11,6 +11,7 @@ import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-secur
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { documentEvidenceMessage, documentRule, hasRequiredEvidence } from '../services/worker-document-rules.js'
 import '../styles/ficha-trabajador.css'
 
 const ITEM_TYPES = {
@@ -100,8 +101,10 @@ function getRequiredItems(worker) {
 }
 
 function reqStatus(worker, req) {
-  const item = (worker.workerItems || []).find(current => matchItem(current, req))
+  const matches = (worker.workerItems || []).filter(current => matchItem(current, req))
+  const item = matches.find(current => itemValid(current) && hasRequiredEvidence(current)) || matches[0]
   if (!item) return { ok: false, src: 'faltante' }
+  if (!hasRequiredEvidence(item)) return { ok: false, src: documentEvidenceMessage(item) }
   return itemValid(item)
     ? { ok: true, src: 'cargado' }
     : { ok: false, src: 'vencido/rechazado' }
@@ -123,8 +126,8 @@ function BadgeDisp({ value }) {
   return <StatusBadge value={value} />
 }
 
-function Field({ label, children }) {
-  return <div className="nk-field"><label className="nk-label">{label}</label>{children}</div>
+function Field({ label, hint, children }) {
+  return <div className="nk-field"><label className="nk-label">{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
 }
 
 function CardSection({ title, subtitle, action, children }) {
@@ -194,10 +197,11 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
       <Field label="Previsión de salud"><select className="nk-select" value={worker.salud || ''} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{worker.salud && !PREVISION_SALUD_CHILE.includes(worker.salud) && <option value={worker.salud}>{worker.salud}</option>}{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</select></Field>
     </div></CardSection>
 
-    <CardSection title="Perfil operacional" subtitle="Cargo, especialidad, disponibilidad y contexto habilitado."><div className="nk-person-grid">
-      <Field label="Cargo"><input className="nk-input" value={worker.cargo || ''} onChange={e => onChange('cargo', e.target.value)} /></Field>
-      <Field label="Rol operacional"><input className="nk-input" value={worker.rol || ''} onChange={e => onChange('rol', e.target.value)} /></Field>
-      <Field label="Especialidad"><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}</select></Field>
+    <CardSection title="Perfil operacional" subtitle="El cargo contractual, la función en faena y la especialidad cumplen propósitos distintos."><div className="nk-person-grid">
+      <Field label="Cargo contractual" hint="Puesto indicado en el contrato de trabajo."><input className="nk-input" value={worker.cargo || ''} onChange={e => onChange('cargo', e.target.value)} /></Field>
+      <Field label="Función en faena" hint="Responsabilidad operacional opcional."><input className="nk-input" value={worker.rol || ''} onChange={e => onChange('rol', e.target.value)} /></Field>
+      <Field label="Especialidad" hint="Se utiliza para dotación, requisitos y cobertura."><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}</select></Field>
+      <Field label="Evaluación de desempeño" hint="Se registra después del alta de la persona."><select className="nk-select" value={worker.calificacion || ''} onChange={e => onChange('calificacion', e.target.value)}><option value="">Sin evaluación</option><option value="insuficiente">Insuficiente</option><option value="en_desarrollo">En desarrollo</option><option value="suficiente">Suficiente</option><option value="bueno">Bueno</option><option value="destacado">Destacado</option>{worker.calificacion && !['insuficiente','en_desarrollo','suficiente','bueno','destacado'].includes(String(worker.calificacion)) && <option value={worker.calificacion}>Histórica: {worker.calificacion}</option>}</select></Field>
       <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{worker.regimen && !['5x2','4x3','7x7','10x10','14x14','otro'].includes(worker.regimen) && <option value={worker.regimen}>{worker.regimen}</option>}{[['5x2','5x2'],['4x3','4x3'],['7x7','7x7'],['10x10','10x10'],['14x14','14x14'],['otro','Otro tipo de turno']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
       <div className="nk-person-grid-wide"><Field label="Clientes habilitados"><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></Field></div>
     </div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
@@ -216,31 +220,49 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
   const tipos = TIPOS_POR_TAB[tabKey]
   const [form, setForm] = useState({ type: tipos[0].value, name: '', vence: '', notes: '' })
   const [selectedFile, setSelectedFile] = useState(null)
+  const [frontFile, setFrontFile] = useState(null)
+  const [backFile, setBackFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [pendingRequirement, setPendingRequirement] = useState(null)
 
   const docs = (worker.workerItems || []).filter(d => tabKey === 'cursos' ? ['curso', 'certificacion'].includes(d.type) : !['curso'].includes(d.type))
   const reqs = getRequiredItems(worker)
   const reqsFiltrados = tabKey === 'cursos' ? reqs.filter(r => ['curso', 'certificacion'].includes(r.type)) : reqs.filter(r => !['curso'].includes(r.type))
+  const rule = documentRule(form.type, form.name)
 
   async function guardar() {
-    if (!form.name.trim() || uploading) return
+    if (!form.name.trim() || uploading || (rule.twoSided && (!frontFile || !backFile || !form.vence))) return
     setUploading(true)
     try {
       let fileMeta = {}
-      if (selectedFile) {
+      if (rule.twoSided) {
+        const uploads = await Promise.all([
+          ['front', frontFile],
+          ['back', backFile],
+        ].map(async ([side, file]) => {
+          const uploaded = await uploadWorkerFile(worker.id, file)
+          return { side, fileId: uploaded.id, fileName: uploaded.original_name || file.name, fileType: uploaded.content_type, fileSize: uploaded.byte_size }
+        }))
+        fileMeta = { files: uploads, fileId: uploads[0].fileId, fileName: uploads[0].fileName, fileType: uploads[0].fileType, fileSize: uploads[0].fileSize }
+      } else if (selectedFile) {
         const uploaded = await uploadWorkerFile(worker.id, selectedFile)
         fileMeta = { fileId: uploaded.id, fileName: uploaded.original_name || selectedFile.name, fileType: uploaded.content_type, fileSize: uploaded.byte_size }
       }
-      const item = { ...form, ...fileMeta, id: `d_${Date.now()}`, cargado: new Date().toISOString().split('T')[0] }
+      const item = { ...form, vence: rule.expiration === 'never' ? '' : form.vence, ...fileMeta, id: `d_${Date.now()}`, cargado: new Date().toISOString().split('T')[0] }
       await onPersistItems([...(worker.workerItems || []), item], `Documento agregado: ${form.name}`)
-      setForm({ type: tipos[0].value, name: '', vence: '', notes: '' }); setSelectedFile(null)
+      setForm({ type: tipos[0].value, name: '', vence: '', notes: '' }); setSelectedFile(null); setFrontFile(null); setBackFile(null)
       if (fileRef.current) fileRef.current.value = ''
     } catch (e) { onError(e.message || 'Error al cargar el archivo') } finally { setUploading(false) }
   }
 
   function chooseRequirementFile(req) {
     if (uploading) return
+    const requirementRule = documentRule(req.type, req.name)
+    if (requirementRule.twoSided) {
+      setForm({ type: req.type, name: req.name, vence: '', notes: 'Carga desde requisito de acreditación' })
+      onError(`${req.name} requiere anverso, reverso y fecha de vencimiento. Completa los tres campos del formulario superior.`)
+      return
+    }
     setPendingRequirement(req)
     if (checklistFileRef.current) { checklistFileRef.current.value = ''; checklistFileRef.current.click() }
   }
@@ -280,12 +302,12 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
   }
 
   return <>
-    <CardSection title={tabKey === 'cursos' ? 'Agregar formación o certificación' : 'Agregar documento, examen o aptitud'} subtitle="El archivo queda almacenado de forma privada y asociado a la persona. Máximo 25 MB." action={<button className="nk-button nk-button-primary" type="button" onClick={guardar} disabled={!form.name.trim() || uploading}>{uploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconPaperclip size={15} strokeWidth={1.7} />}{uploading ? 'Cargando…' : 'Guardar registro'}</button>}>
+    <CardSection title={tabKey === 'cursos' ? 'Agregar formación o certificación' : 'Agregar documento, examen o aptitud'} subtitle={rule.twoSided ? 'La cédula y la licencia requieren anverso, reverso y fecha de vencimiento. Máximo 25 MB por archivo.' : rule.expiration === 'never' ? 'Este antecedente no requiere fecha de vencimiento. Máximo 25 MB.' : 'El archivo queda almacenado de forma privada y asociado a la persona. Máximo 25 MB.'} action={<button className="nk-button nk-button-primary" type="button" onClick={guardar} disabled={!form.name.trim() || uploading || (rule.twoSided && (!frontFile || !backFile || !form.vence))}>{uploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconPaperclip size={15} strokeWidth={1.7} />}{uploading ? 'Cargando…' : 'Guardar registro'}</button>}>
       <div className="nk-person-grid">
-        <Field label="Tipo"><select className="nk-select" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>{tipos.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Field>
-        <Field label="Nombre / referencia"><input className="nk-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} list={`sugg-${tabKey}`} /><datalist id={`sugg-${tabKey}`}>{reqs.map(r => <option key={r.name} value={r.name} />)}</datalist></Field>
-        <Field label="Fecha de vencimiento"><input className="nk-input" type="date" value={form.vence} onChange={e => setForm(f => ({ ...f, vence: e.target.value }))} /></Field>
-        <Field label="Archivo"><input ref={fileRef} className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />{selectedFile && <span className="nk-person-file"><IconPaperclip size={13} />{selectedFile.name}</span>}</Field>
+        <Field label="Tipo"><select className="nk-select" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value, vence: documentRule(e.target.value, f.name).expiration === 'never' ? '' : f.vence }))}>{tipos.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Field>
+        <Field label="Nombre / referencia"><input className="nk-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value, vence: documentRule(f.type, e.target.value).expiration === 'never' ? '' : f.vence }))} list={`sugg-${tabKey}`} /><datalist id={`sugg-${tabKey}`}>{reqs.map(r => <option key={r.name} value={r.name} />)}</datalist></Field>
+        {rule.expiration !== 'never' && <Field label={rule.expiration === 'required' ? 'Fecha de vencimiento obligatoria' : 'Fecha de vencimiento'}><input className="nk-input" type="date" required={rule.expiration === 'required'} value={form.vence} onChange={e => setForm(f => ({ ...f, vence: e.target.value }))} /></Field>}
+        {rule.twoSided ? <><Field label="Archivo anverso"><input className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setFrontFile(e.target.files?.[0] || null)} />{frontFile && <span className="nk-person-file"><IconPaperclip size={13} />{frontFile.name}</span>}</Field><Field label="Archivo reverso"><input className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setBackFile(e.target.files?.[0] || null)} />{backFile && <span className="nk-person-file"><IconPaperclip size={13} />{backFile.name}</span>}</Field></> : <Field label="Archivo"><input ref={fileRef} className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />{selectedFile && <span className="nk-person-file"><IconPaperclip size={13} />{selectedFile.name}</span>}</Field>}
         <div className="nk-person-grid-wide"><Field label="Notas"><input className="nk-input" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></Field></div>
       </div>
     </CardSection>
@@ -293,12 +315,12 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
     <CardSection title="Requisitos de documentos y aptitudes" subtitle="Requisitos base y por especialidad. Los faltantes pueden cargarse directamente desde esta tabla.">
       <input ref={checklistFileRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={uploadRequirement} />
       <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Requisito</th><th>Tipo</th><th>Estado</th><th>Fuente</th><th /></tr></thead><tbody>
-        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.ok ? 'nk-badge-ok' : 'nk-badge-error'}`}>{st.ok ? 'Vigente' : 'No habilitado'}</span></td><td className="nk-person-text-muted">{st.src}</td><td>{!st.ok && <button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : 'Cargar'}</button>}</td></tr> })}
+        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.ok ? 'nk-badge-ok' : 'nk-badge-error'}`}>{st.ok ? 'Vigente' : 'No habilitado'}</span></td><td className="nk-person-text-muted">{st.src}</td><td>{!st.ok && <button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</button>}</td></tr> })}
       </tbody></table></div>
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
     </CardSection>
   </>
 }
@@ -308,7 +330,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries }) {
   const fields = [['ropa', 'Ropa / Polera'], ['pantalon', 'Pantalón'], ['calzado', 'Calzado'], ['guante', 'Guante'], ['casco', 'Casco'], ['arnes', 'Arnés'], ['respirador', 'Respirador / fit test']]
   const rows = deliveries.filter(d => d.workerId === worker.id).sort((a, b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
   return <>
-    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{fields.map(([key, label]) => <Field key={key} label={label}><input className="nk-input" value={epp[key] || ''} onChange={e => onChange('epp', { ...epp, [key]: e.target.value })} /></Field>)}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
+    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{fields.map(([key, label]) => <Field key={key} label={label}>{key === 'casco' ? <input className="nk-input" value="Talla única" disabled aria-label="Casco talla única" /> : <input className="nk-input" value={epp[key] || ''} onChange={e => onChange('epp', { ...epp, [key]: e.target.value })} />}</Field>)}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
     <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Fecha</th><th>EPP</th><th>Talla</th><th>Marca / certificación</th><th>Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{d.deliveredAt || '—'}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{d.replaceAt || 'Según inspección'}</td></tr>)}</tbody></table></div>}</CardSection>
   </>
 }

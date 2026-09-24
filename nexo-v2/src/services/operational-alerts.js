@@ -1,4 +1,5 @@
 import { mergeCollections } from './report-collections.js'
+import { documentEvidenceMessage, hasRequiredEvidence } from './worker-document-rules.js'
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
 export const normalize = value => String(value || '').trim().toLowerCase()
 export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
@@ -44,8 +45,11 @@ export function deriveOperationalAlerts(state) {
   people.forEach(person => {
     const items = rows(person.workerItems)
     REQUIRED_WORKER_ITEMS.forEach(requirement => {
-      if (!items.some(item => itemMatchesRequirement(item, requirement))) {
-        derived.push({ id: `derived-person-required-${person.id}-${requirement.name}`, tipo: requirement.type, urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: falta ${requirement.name}`, derived: true })
+      const matches = items.filter(item => itemMatchesRequirement(item, requirement))
+      const match = matches.find(item => hasRequiredEvidence(item)) || matches[0]
+      if (!match || !hasRequiredEvidence(match)) {
+        const detail = match ? ` (${documentEvidenceMessage(match)})` : ''
+        derived.push({ id: `derived-person-required-${person.id}-${requirement.name}`, tipo: requirement.type, urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: falta ${requirement.name}${detail}`, derived: true })
       }
     })
 
