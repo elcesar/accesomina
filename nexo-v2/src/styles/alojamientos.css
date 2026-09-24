@@ -6,7 +6,10 @@
 .nk-lodging-workspace-head h2{margin:var(--nk-space-0);color:var(--nk-ink);font:var(--nk-font-title-2)}
 .nk-lodging-header p,.nk-lodging-workspace-head p{margin:var(--nk-space-1) var(--nk-space-0) var(--nk-space-0);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
 .nk-lodging-header .nk-actions,.nk-lodging-workspace-head .nk-actions{display:flex;align-items:center;justify-content:flex-end;gap:var(--nk-space-2);flex-wrap:wrap}
-.nk-lodging-kicker{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-1);color:var(--nk-primary)!important;font:var(--nk-font-overline);text-transform:uppercase}
+.nk-lodging-kicker{margin:var(--nk-space-2) var(--nk-space-0) var(--nk-space-1);color:var(--nk-primary)!important;font:var(--nk-font-overline);text-transform:uppercase}
+.nk-lodging-back{display:inline-flex;align-items:center;gap:var(--nk-space-1);min-height:var(--nk-control-min);padding:var(--nk-space-0);border:0;background:transparent;color:var(--nk-action);font:var(--nk-font-body-sm);font-weight:var(--nk-weight-semibold);cursor:pointer}
+.nk-lodging-back:hover{text-decoration:underline;text-underline-offset:var(--nk-space-1)}
+.nk-lodging-back:focus-visible{outline:var(--nk-focus-width) solid var(--nk-focus);outline-offset:var(--nk-focus-offset);border-radius:var(--nk-radius-sm)}
 
 .nk-lodging-feedback{padding:var(--nk-space-3) var(--nk-space-4);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-md);background:var(--nk-surface);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
 .nk-lodging-feedback.ok{border-color:var(--nk-state-ok);background:var(--nk-state-ok-soft);color:var(--nk-state-ok)}
