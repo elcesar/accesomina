@@ -54,7 +54,7 @@ export function allowRoles(...roles) {
 
 export function errorHandler(error, req, res, next) {
   if (res.headersSent) return next(error);
-  const status = Number(error.status || (error.name === 'ZodError' ? 400 : error.code === '23505' ? 409 : 500));
+  const status = Number(error.status || (error.name === 'ZodError' ? 400 : error.code === '23505' ? 409 : error.code === 'LIMIT_FILE_SIZE' ? 413 : 500));
   console.error(JSON.stringify({at:new Date().toISOString(),service:config.serviceName,event:'http.error',requestId:req.requestId||null,method:req.method,path:req.path,status,message:String(error.message||error).slice(0,1000),code:error.code||null,tenantId:req.auth?.tenantId||null,userId:req.auth?.userId||null}));
   if(status>=500&&req.auth?.tenantId)withTenant(req.auth.tenantId,client=>client.query(`INSERT INTO operational_events(tenant_id,source,severity,event_type,message,context) VALUES($1,'api','error',$2,$3,$4::jsonb)`,[req.auth.tenantId,'request.failed',String(error.message||'Unexpected server error').slice(0,1000),JSON.stringify({method:req.method,path:req.path,code:error.code||null,userId:req.auth.userId})])).catch(()=>{});
   res.status(status).json({ error: error.code || 'SERVER_ERROR', message: status < 500 ? error.message : 'Unexpected server error' });
