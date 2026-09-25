@@ -14,8 +14,17 @@ test('creates critical alerts for each required document missing from a worker p
   assert.ok(missing.some(alert => alert.msg.includes('ODI / Derecho a Saber')))
 })
 
-test('does not duplicate a required-document alert when the document exists', () => {
-  const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [{ id: 'identity', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado' }] }] })
+test('does not duplicate an identity alert when both sides and its expiry are registered', () => {
+  const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [{ id: 'identity', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front' }, { side: 'back', fileId: 'back' }] }] }] })
   assert.equal(alerts.some(alert => alert.msg.includes('falta Cédula de identidad')), false)
   assert.equal(alerts.filter(alert => alert.trabId === worker.id).length, 6)
+})
+
+test('uses a complete replacement evidence when an older record is incomplete', () => {
+  const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [
+    { id: 'identity-old', type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front-old' }] },
+    { id: 'identity-new', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front-new' }, { side: 'back', fileId: 'back-new' }] },
+  ] }] })
+
+  assert.equal(alerts.some(alert => alert.msg.includes('falta Cédula de identidad')), false)
 })

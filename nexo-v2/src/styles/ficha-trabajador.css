@@ -78,6 +78,12 @@
   font-size: var(--nk-text-sm);
 }
 
+.nk-person-field-hint {
+  margin: var(--nk-space-1) var(--nk-space-0) var(--nk-space-0);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-sm);
+}
+
 .nk-person-header-actions {
   display: flex;
   align-items: center;

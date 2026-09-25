@@ -70,13 +70,9 @@ function formatShortDate(date) {
 
 function qualificationMatches(persona, filter) {
   if (!filter) return true
-  const value = Number(persona.calificacion)
-  if (!Number.isFinite(value)) return false
-  if (filter === '7') return value >= 7
-  if (filter === '5') return value >= 5 && value <= 6
-  if (filter === '3') return value >= 3 && value <= 4
-  if (filter === '1') return value >= 1 && value <= 2
-  return true
+  if (filter === 'sin_evaluacion') return !persona.calificacion
+  if (filter === 'historica') return Boolean(persona.calificacion) && !['insuficiente', 'en_desarrollo', 'suficiente', 'bueno', 'destacado'].includes(String(persona.calificacion))
+  return String(persona.calificacion || '') === filter
 }
 
 function initials(nombre) {
@@ -383,10 +379,13 @@ export default function TrabajadoresPage() {
                   <span className="nk-label">Calificación</span>
                   <select className="nk-select" value={qualification} onChange={event => setQualification(event.target.value)}>
                     <option value="">Todas las calificaciones</option>
-                    <option value="7">A (7)</option>
-                    <option value="5">B+ (5–6)</option>
-                    <option value="3">C (3–4)</option>
-                    <option value="1">D (1–2)</option>
+                    <option value="sin_evaluacion">Sin evaluación</option>
+                    <option value="insuficiente">Insuficiente</option>
+                    <option value="en_desarrollo">En desarrollo</option>
+                    <option value="suficiente">Suficiente</option>
+                    <option value="bueno">Bueno</option>
+                    <option value="destacado">Destacado</option>
+                    <option value="historica">Calificación histórica</option>
                   </select>
                 </label>
               </div>
