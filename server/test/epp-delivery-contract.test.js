@@ -25,3 +25,13 @@ test('legacy EPP delivery fields are normalized before validating the full tenan
   assert.equal(state.eppDeliveries[0].condition,'reutilizado-inspeccionado');
   assert.doesNotThrow(()=>validateTenantState(state));
 });
+
+test('legacy EPP records keep an unknown project reference without blocking other saves',()=>{
+  const state=normalizeTenantState({...baseState(),eppDeliveries:[{id:'legacy-unknown-project',trabId:'w1',orderId:'legacy-order-445',inventoryId:'helmet',nombre:'Casco',quantity:1,fechaEntrega:'2026-09-24'}]});
+  const delivery=state.eppDeliveries[0];
+  assert.equal(delivery.mantId,undefined);
+  assert.equal(delivery.legacyProjectReference,'legacy-order-445');
+  assert.equal(delivery.condition,'no_registrada');
+  assert.equal(delivery.deliveryStatus,'no_registrado');
+  assert.doesNotThrow(()=>validateTenantState(state));
+});

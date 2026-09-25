@@ -20,6 +20,7 @@ function rowsToVersions(rows){return Object.fromEntries(rows.map(r=>[r.module_ke
 
 function normalizeLegacyEppDeliveries(state){
   if(!Array.isArray(state?.eppDeliveries))return state;
+  const projectIds=new Set((Array.isArray(state.mantenciones)?state.mantenciones:[]).map(project=>String(project?.id||'')).filter(Boolean));
   const conditionAliases={
     buen_estado:'reutilizado-inspeccionado',
     'buen estado':'reutilizado-inspeccionado',
@@ -32,16 +33,19 @@ function normalizeLegacyEppDeliveries(state){
     if(!delivery||typeof delivery!=='object'||Array.isArray(delivery))return delivery;
     const itemName=String(delivery.itemName||delivery.nombre||delivery.epp||'').trim();
     const createdDate=typeof delivery.createdAt==='string'?delivery.createdAt.slice(0,10):'';
+    const projectReference=delivery.mantId||delivery.orderId||delivery.projectId||'';
+    const mantId=projectIds.has(String(projectReference))?String(projectReference):undefined;
     return {
       ...delivery,
       workerId:delivery.workerId||delivery.trabId||'',
-      mantId:delivery.mantId||delivery.orderId||delivery.projectId||undefined,
+      mantId,
+      legacyProjectReference:mantId?delivery.legacyProjectReference||'':delivery.legacyProjectReference||String(projectReference||''),
       itemName,
       itemId:delivery.itemId||delivery.inventoryId||delivery.eppId||(itemName&&delivery.id?`manual:${delivery.id}`:''),
       qty:delivery.qty??delivery.quantity??delivery.cantidad,
       deliveredAt:delivery.deliveredAt||delivery.fechaEntrega||delivery.fecha||createdDate,
       condition:conditionAliases[String(delivery.condition||'').toLowerCase()]||delivery.condition||'no_registrada',
-      deliveryStatus:delivery.deliveryStatus||'entregado',
+      deliveryStatus:delivery.deliveryStatus||'no_registrado',
     };
   });
   return {...state,eppDeliveries:deliveries};
