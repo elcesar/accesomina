@@ -23,6 +23,16 @@ const ERROR_MESSAGES = {
   MALWARE_DETECTED: 'El archivo fue rechazado por la revisión de seguridad.',
   LIMIT_FILE_SIZE: 'El archivo supera el tamaño máximo permitido de 25 MB.',
   MODULE_VERSION_CONFLICT: 'La información cambió mientras la estabas editando. Actualizamos los datos; revísalos y vuelve a guardar.',
+  INVALID_REFERENCE: 'Uno de los registros relacionados ya no existe o no corresponde. Actualiza la página y revisa las selecciones.',
+  INVALID_EPP_DELIVERY: 'Completa persona, equipo de protección, cantidad y fecha de entrega antes de guardar.',
+  INVALID_EPP_DELIVERY_STATUS: 'La condición o el estado de la entrega de EPP no es válido.',
+  DUPLICATE_EPP_DELIVERY: 'Ya existe una entrega de este equipo para la misma persona, fecha y lote.',
+  DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
+  DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
+  DUPLICATE_ASSIGNMENT: 'La persona ya está asignada a esa orden de servicio.',
+  DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',
+  INVALID_DATES: 'Revisa las fechas ingresadas: la fecha de inicio debe ser anterior a la de término.',
+  INCOMPLETE_WORKER: 'Completa los datos obligatorios de la persona antes de guardar.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
@@ -73,7 +83,12 @@ const STATUS_MESSAGES = {
 }
 
 export function friendlyApiError(code, status) {
-  return ERROR_MESSAGES[code] || STATUS_MESSAGES[status] || 'No fue posible completar la operación. Inténtalo nuevamente.'
+  if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
+  if (String(code || '').startsWith('DUPLICATE_')) return 'Ya existe un registro equivalente. Revisa los datos ingresados antes de guardar.'
+  if (String(code || '').startsWith('INVALID_')) return 'Revisa los datos relacionados y los campos obligatorios antes de guardar.'
+  if (String(code || '').startsWith('MISSING_')) return 'Completa la información obligatoria antes de guardar.'
+  if (String(code || '').includes('OVERLAPPING')) return 'El registro se superpone con una asignación o estadía existente.'
+  return STATUS_MESSAGES[status] || 'No fue posible completar la operación. Inténtalo nuevamente.'
 }
 
 export function setCsrf(token) {

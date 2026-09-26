@@ -18,7 +18,41 @@ async function ensureModules(client,tenantId,userId=null){
 function rowsToState(rows){return Object.fromEntries(rows.map(r=>[r.module_key,r.data]));}
 function rowsToVersions(rows){return Object.fromEntries(rows.map(r=>[r.module_key,Number(r.version)]));}
 
-function normalizeInventoryState(state){
+function normalizeLegacyEppDeliveries(state){
+  if(!Array.isArray(state?.eppDeliveries))return state;
+  const projectIds=new Set((Array.isArray(state.mantenciones)?state.mantenciones:[]).map(project=>String(project?.id||'')).filter(Boolean));
+  const conditionAliases={
+    buen_estado:'reutilizado-inspeccionado',
+    'buen estado':'reutilizado-inspeccionado',
+    usado:'reutilizado-inspeccionado',
+    reutilizado:'reutilizado-inspeccionado',
+    observado:'no_registrada',
+    observacion:'no_registrada',
+  };
+  const deliveries=state.eppDeliveries.map(delivery=>{
+    if(!delivery||typeof delivery!=='object'||Array.isArray(delivery))return delivery;
+    const itemName=String(delivery.itemName||delivery.nombre||delivery.epp||'').trim();
+    const createdDate=typeof delivery.createdAt==='string'?delivery.createdAt.slice(0,10):'';
+    const projectReference=delivery.mantId||delivery.orderId||delivery.projectId||'';
+    const mantId=projectIds.has(String(projectReference))?String(projectReference):undefined;
+    return {
+      ...delivery,
+      workerId:delivery.workerId||delivery.trabId||'',
+      mantId,
+      legacyProjectReference:mantId?delivery.legacyProjectReference||'':delivery.legacyProjectReference||String(projectReference||''),
+      itemName,
+      itemId:delivery.itemId||delivery.inventoryId||delivery.eppId||(itemName&&delivery.id?`manual:${delivery.id}`:''),
+      qty:delivery.qty??delivery.quantity??delivery.cantidad,
+      deliveredAt:delivery.deliveredAt||delivery.fechaEntrega||delivery.fecha||createdDate,
+      condition:conditionAliases[String(delivery.condition||'').toLowerCase()]||delivery.condition||'no_registrada',
+      deliveryStatus:delivery.deliveryStatus||'no_registrado',
+    };
+  });
+  return {...state,eppDeliveries:deliveries};
+}
+
+export function normalizeTenantState(state){
+  state=normalizeLegacyEppDeliveries(state);
   const items=Array.isArray(state?.inventoryItems)?state.inventoryItems:null;
   if(!items)return state;
   const locations=Array.isArray(state.inventoryLocations)?state.inventoryLocations:[];
@@ -77,7 +111,7 @@ function normalizeInventoryState(state){
 stateRouter.get('/', async (req, res) => {
   let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1 ORDER BY module_key',[req.auth.tenantId])).rows;});
   const modulePermissions=req.auth.permissions?.modules||{};rows=rows.filter(r=>modulePermissions[r.module_key]!==false);
-  const state=normalizeInventoryState(rowsToState(rows));
+  const state=normalizeTenantState(rowsToState(rows));
   res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
 });
 
@@ -95,7 +129,7 @@ stateRouter.put('/modules',editors,async(req,res)=>{
     const all=(await client.query('SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id=$1',[req.auth.tenantId])).rows;
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
     for(const key of keys){const change=changes[key];if(!change||Number(change.version)!==Number(versions[key]||0))return null;proposed[key]=change.data;}
-    const normalized=normalizeInventoryState(proposed);
+    const normalized=normalizeTenantState(proposed);
     const clean = validateTenantState(normalized);
       enforceStateScope(
       req.auth.role,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconPackage, IconPlus, IconRefresh, IconSearch, IconShield, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { buildEppDelivery } from '../services/epp-delivery.js'
 import { mergeCollections } from '../services/report-collections.js'
 import { workerSegment } from '../services/worker-segments.js'
 import '../styles/proteccion-epp.css'
@@ -78,8 +79,10 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
       const state = response?.state || response || {}
       const versions = response?.moduleVersions || {}
       const version = versions.eppDeliveries ?? versions.eppEntregas ?? 0
-      const current = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
-      const record = { id: `epp_${Date.now()}`, workerId: form.workerId, inventoryId: form.inventoryId || undefined, itemName: form.itemName.trim(), quantity, warehouseId: form.warehouseId || undefined, orderId: form.orderId || undefined, size: form.size.trim(), brandModel: form.brandModel.trim(), certification: form.certification.trim(), lotSerial: form.lotSerial.trim(), condition: form.condition, deliveredBy: form.deliveredBy.trim(), receivedBy: form.receivedBy.trim(), deliveredAt: form.deliveredAt, replaceAt: form.replaceAt, notes: form.notes.trim(), createdAt: new Date().toISOString() }
+      // Legacy deliveries stay in their original collection; only canonical records are persisted here.
+      const current = asRows(state.eppDeliveries)
+      const createdAt = new Date().toISOString()
+      const record = buildEppDelivery(form, { id: `epp_${Date.now()}`, createdAt })
       const changes = { eppDeliveries: { version, data: [...current, record] } }
 
       if (form.inventoryId) {
@@ -128,7 +131,7 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
         <div className="nk-field"><label className="nk-label">Marca / modelo</label><input className="nk-input" value={form.brandModel} onChange={event => setForm(current => ({ ...current, brandModel: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Certificación</label><input className="nk-input" value={form.certification} onChange={event => setForm(current => ({ ...current, certification: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Lote / serie</label><input className="nk-input" value={form.lotSerial} onChange={event => setForm(current => ({ ...current, lotSerial: event.target.value }))} placeholder="Opcional" /></div>
-        <div className="nk-field"><label className="nk-label">Condición de entrega</label><select className="nk-select" value={form.condition} onChange={event => setForm(current => ({ ...current, condition: event.target.value }))}><option value="nuevo">Nuevo</option><option value="buen_estado">Buen estado</option><option value="usado">Usado</option><option value="observado">Con observación</option></select></div>
+        <div className="nk-field"><label className="nk-label">Condición de entrega</label><select className="nk-select" value={form.condition} onChange={event => setForm(current => ({ ...current, condition: event.target.value }))}><option value="nuevo">Nuevo</option><option value="reutilizado-inspeccionado">Reutilizado e inspeccionado</option><option value="repuesto">Repuesto</option><option value="no_registrada">Sin condición registrada</option></select></div>
         <div className="nk-field"><label className="nk-label">Fecha de entrega</label><input className="nk-input" type="date" required value={form.deliveredAt} onChange={event => setForm(current => ({ ...current, deliveredAt: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Fecha de reposición</label><input className="nk-input" type="date" value={form.replaceAt} onChange={event => setForm(current => ({ ...current, replaceAt: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Entregado por</label><input className="nk-input" value={form.deliveredBy} onChange={event => setForm(current => ({ ...current, deliveredBy: event.target.value }))} placeholder="Responsable de la entrega" /></div>

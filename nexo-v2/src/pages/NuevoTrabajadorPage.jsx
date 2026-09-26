@@ -150,8 +150,8 @@ function StepVinculacion({ data, onChange, mantenciones }) {
       <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo.">
         <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
-      <Field label="Función en faena" hint="Responsabilidad operacional opcional, por ejemplo Supervisor o Rigger.">
-        <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Rigger / Supervisor / Maestro" />
+      <Field label="Área o función" hint="Responsabilidad general opcional dentro de la empresa.">
+        <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Operaciones, Administración, Ventas o Tecnología" />
       </Field>
       <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
@@ -198,7 +198,7 @@ function StepResumen({ data, mantenciones }) {
   const rows = [
     ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
-    ['Cargo contractual', data.cargo], ['Función en faena', data.rol], ['Especialidad', data.especialidad],
+    ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
   ].filter(([, value]) => value)
