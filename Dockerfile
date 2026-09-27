@@ -1,4 +1,6 @@
 FROM node:22-alpine
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 WORKDIR /app
 RUN corepack enable && chown -R node:node /app
 

@@ -257,10 +257,12 @@
 }
 
 .nk-login-build-version {
+  display: grid;
+  gap: 3px;
   margin: var(--space-4) 0 0;
   color: var(--sub);
   font-size: 10px;
-  line-height: 1;
+  line-height: 1.2;
   text-align: center;
   opacity: 0.55;
   user-select: none;

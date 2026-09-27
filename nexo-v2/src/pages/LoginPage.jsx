@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { isValidRut } from '../services/rut.js'
@@ -25,7 +25,17 @@ export default function LoginPage() {
   const [error, setError] = useState(null)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
+  const [backendBuild, setBackendBuild] = useState(null)
   const passwordReset = location.state?.passwordReset === true
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/health', { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then(build => { if (active && build) setBackendBuild(build) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   const handleChange = (e) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -234,9 +244,10 @@ export default function LoginPage() {
             <Link className="nk-link" to="/">← Volver al inicio</Link>
           </p>
 
-          <p className="nk-login-build-version" title="Versión del frontend">
-            v{__APP_VERSION__} · {__COMMIT_HASH__}
-          </p>
+          <div className="nk-login-build-version" title="Versiones desplegadas">
+            <span>Frontend v{__APP_VERSION__} · {__COMMIT_HASH__}</span>
+            <span>Backend {backendBuild ? `v${backendBuild.version} · ${backendBuild.commit}` : 'no disponible'}</span>
+          </div>
         </div>
       </div>
     </div>
