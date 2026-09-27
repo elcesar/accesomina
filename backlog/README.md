@@ -472,3 +472,46 @@ Revisar progresivamente todos los módulos que presentan listados, tablas o gril
 
 ### Prioridad
 Mejora transversal de experiencia usuaria, consistencia y escalabilidad de la plataforma.
+
+
+---
+
+## 2026-09-27 — Completar mensajes amigables para validaciones y errores de negocio
+
+### Mejora
+Completar progresivamente la traducción de códigos técnicos de validación del backend a mensajes claros, accionables y consistentes para el usuario en todos los módulos de NEXOKLAR.
+
+### Situación actual
+Ya se comenzó a aplicar el patrón de mensajes amigables en **Personas** y **Clientes**. Aún existen módulos y códigos de validación que dependen de mensajes genéricos de API o no entregan al usuario una explicación específica de cómo corregir el problema.
+
+### Estándar esperado
+Cada validación relevante debe presentar:
+- **Título:** qué ocurrió.
+- **Mensaje:** explicación del problema en lenguaje de negocio.
+- **Cómo corregirlo:** acción concreta que puede realizar el usuario.
+- El código técnico, status HTTP y detalle interno deben mantenerse para diagnóstico, pero no mostrarse como mensaje principal al usuario.
+
+### Alcance pendiente
+Revisar progresivamente los códigos y flujos asociados a:
+- Contratos y números/códigos duplicados.
+- Órdenes de servicio, asignaciones, jornadas y fechas.
+- Alojamiento, habitaciones, capacidad y estadías superpuestas.
+- Subcontratistas y RUT.
+- Vehículos.
+- Protocolos de salud.
+- Incidentes y permisos de trabajo.
+- Credenciales y firmas.
+- EPP.
+- Documentación de personas.
+- Oportunidades comerciales.
+- Integraciones y demás validaciones operacionales.
+
+### Criterios de aceptación
+- No mostrar códigos como `409`, `DUPLICATE_*`, `INVALID_*` o equivalentes como explicación principal al usuario.
+- Mantener validación preventiva en frontend cuando sea posible y validación autoritativa en backend.
+- Usar un patrón visual y de contenido consistente con Personas y Clientes.
+- Mantener mensajes específicos por regla de negocio y un fallback amigable para errores no catalogados.
+- Verificar que los mensajes sean visibles, accesibles y permitan al usuario entender cómo continuar.
+
+### Prioridad
+Mejora transversal de experiencia usuaria, consistencia y reducción de errores operacionales.
