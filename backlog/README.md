@@ -320,6 +320,8 @@ Mejora de navegación y experiencia usuaria. No modifica reglas de negocio.
 
 ## 2026-09-24 — Mensajes y errores siempre visibles para el usuario
 
+> **Estado: RESUELTO** — Implementado en PR #71. Se incorporó el componente reutilizable `VisibleFeedback`, que lleva los errores relevantes al área visible, asigna foco accesible y utiliza `aria-live`. Aplicado inicialmente a Login, creación de Persona y creación/edición de Cliente, quedando disponible como patrón común para el resto de NEXO KLAR.
+
 ### Mejora
 Estandarizar la presentación de mensajes de error, advertencia, confirmación e información para que aparezcan siempre dentro del área visible del usuario y no queden fuera del viewport.
 
