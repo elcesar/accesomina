@@ -67,6 +67,9 @@ function assertUnique(values, message, code = 'DUPLICATE_DATA') {
 
 const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : [];
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+// The fallback is intentionally narrow. A module can only opt in once its
+// append validation covers every strict validation rule for new records.
+export const APPEND_FALLBACK_MODULES = new Set(['trabajadores', 'minas', 'contratos', 'mantenciones']);
 
 export function appendOnlyRows(before, after) {
   if (!Array.isArray(before) || !Array.isArray(after)) return null;
@@ -96,6 +99,7 @@ function ensureUniqueNew(rows, existing, key, message, code) {
 // New records must be safe on their own. Existing legacy data is diagnosed separately
 // instead of preventing a company from creating a valid new record.
 export function validateAppendChanges(current, proposed, keys) {
+  if (!Array.isArray(keys) || keys.some(key => !APPEND_FALLBACK_MODULES.has(key))) return false;
   const additions = new Map();
   for (const key of keys) {
     const rows = appendOnlyRows(collection(current, key), collection(proposed, key));

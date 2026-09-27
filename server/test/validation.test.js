@@ -36,3 +36,13 @@ test('append fallback still rejects a new worker with an invalid direct referenc
   proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine']});
   assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='INVALID_REFERENCE');
 });
+test('append fallback fails closed for modules without equivalent validation',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.turnos=[{id:'t1',trabId:'w1',mantId:'p1',fecha:'2026-07-01',turno:'dia'}];
+  assert.equal(validateAppendChanges(current,proposed,['turnos']),false);
+});
+test('append fallback preserves strict duplicate rules for its supported modules',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0'});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_RUT');
+});
