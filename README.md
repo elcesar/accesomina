@@ -52,3 +52,8 @@ Se ejecutan en orden desde `database/postgres/` y quedan registradas en `schema_
 6. Ejecutar pruebas de aislamiento con al menos tres empresas.
 
 Ver [arquitectura cloud](docs/CLOUD_ARCHITECTURE.md) y [despliegue AWS](docs/AWS_RDS_DEPLOY.md).
+
+## Backlog de mejoras
+
+- [ ] **Registro de incidentes con GitHub Issues / Issue Forms:** habilitar un canal estructurado para que usuarios autorizados puedan registrar incidentes, adjuntar evidencia y hacer seguimiento, sin permisos para modificar código. Evaluar posteriormente un formulario dentro de Nexo Klar que cree Issues automáticamente para usuarios sin acceso al repositorio.
+
