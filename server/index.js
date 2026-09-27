@@ -39,7 +39,7 @@ app.use((req,res,next)=>{const requestId=String(req.get('x-request-id')||crypto.
 app.use(requireOrigin);
 app.use('/api', (req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
-app.get('/api/health',(req,res)=>res.json({status:'ok',service:config.serviceName,version:config.version,uptimeSeconds:Math.round(process.uptime())}));
+app.get('/api/health',(req,res)=>res.json({status:'ok',service:config.serviceName,version:config.version,commit:config.commit,uptimeSeconds:Math.round(process.uptime())}));
 app.get('/api/ready',async(req,res)=>{const result=await evaluateReadiness(config,{query});res.status(result.status==='ready'?200:503).json(result);});
 app.get('/api/metrics',async(req,res)=>{if(!config.metricsToken||req.get('authorization')!==`Bearer ${config.metricsToken}`)return res.status(401).end();const [tenants,sessions]=await Promise.all([query("SELECT id FROM tenants WHERE status='active'"),query('SELECT count(*)::int total FROM user_sessions WHERE revoked_at IS NULL AND expires_at>now()')]);let failedJobs=0,errors=0;for(const tenant of tenants.rows){const counts=await withTenant(tenant.id,client=>Promise.all([client.query("SELECT count(*)::int total FROM notification_jobs WHERE tenant_id=$1 AND status='failed'",[tenant.id]),client.query("SELECT count(*)::int total FROM operational_events WHERE tenant_id=$1 AND severity IN ('error','critical') AND resolved_at IS NULL",[tenant.id])]));failedJobs+=counts[0].rows[0].total;errors+=counts[1].rows[0].total;}res.type('text/plain').send(`nexo_klar_up 1\nnexo_klar_active_tenants ${tenants.rows.length}\nnexo_klar_active_sessions ${sessions.rows[0].total}\nnexo_klar_failed_jobs ${failedJobs}\nnexo_klar_unresolved_errors ${errors}\n`);});
 
