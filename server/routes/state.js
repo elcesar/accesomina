@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
-import { enforceStateScope, summarizeChanges, validateTenantState } from '../validation.js';
+import { enforceStateScope, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState } from '../validation.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -130,7 +130,15 @@ stateRouter.put('/modules',editors,async(req,res)=>{
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
     for(const key of keys){const change=changes[key];if(!change||Number(change.version)!==Number(versions[key]||0))return null;proposed[key]=change.data;}
     const normalized=normalizeTenantState(proposed);
-    const clean = validateTenantState(normalized);
+    let clean;
+    try {
+      clean = validateTenantState(normalized);
+    } catch (error) {
+      // Legacy data can contain stale links from before modular state validation.
+      // Allow append-only creation only after validating the new records and their direct links.
+      if (!validateAppendChanges(current, normalized, keys)) throw error;
+      clean = sanitizeJson(normalized);
+    }
       enforceStateScope(
       req.auth.role,
       Object.fromEntries(keys.map(k => [k, current[k]])),

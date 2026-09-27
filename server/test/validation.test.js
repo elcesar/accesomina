@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeJson, summarizeChanges, validateTenantState } from '../validation.js';
+import { sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState } from '../validation.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -22,5 +22,17 @@ test('state rejects duplicate worker documents and overlapping lodging',()=>{con
 test('sanitizer removes executable markup and embedded files',()=>{const clean=sanitizeJson({name:'<img src=x onerror="bad">',fileData:'data:secret',cloudUrl:'javascript:alert(1)'});assert.equal(clean.name.includes('<'),false);assert.equal(clean.fileData,null);assert.equal(clean.cloudUrl,'');});
 test('audit change summary records changed paths',()=>{const changes=summarizeChanges({a:1,b:2},{a:2,b:2});assert.deepEqual(changes,[{path:'/a',before:1,after:2}]);});
 test('audit change summary identifies changed entities inside modules',()=>{const changes=summarizeChanges([{id:'w1',name:'A'},{id:'w2',name:'B'}],[{id:'w1',name:'Updated'},{id:'w3',name:'C'}],'/trabajadores');assert.ok(changes.some(x=>x.path==='/trabajadores/w1/name'));assert.ok(changes.some(x=>x.path==='/trabajadores/w2'&&x.action==='deleted'));assert.ok(changes.some(x=>x.path==='/trabajadores/w3'&&x.action==='created'));});
-
 test('state rejects future and underage worker birth dates',()=>{const today=new Date().toISOString().slice(0,10);const [year,month,day]=today.split('-').map(Number);const date=y=>`${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const future=validState();future.trabajadores[0].nacimiento=date(year+1);assert.throws(()=>validateTenantState(future),error=>error.code==='INVALID_WORKER_BIRTH_DATE');const underage=validState();underage.trabajadores[0].nacimiento=date(year-17);assert.throws(()=>validateTenantState(underage),error=>error.code==='WORKER_UNDERAGE');const adult=validState();adult.trabajadores[0].nacimiento=date(year-18);assert.doesNotThrow(()=>validateTenantState(adult));});
+test('a valid new worker is not blocked by an unrelated legacy reference',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Pamela Navarro',rut:'14.507.215-8',tel:'+56976490489'});
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('append fallback still rejects a new worker with an invalid direct reference',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine']});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='INVALID_REFERENCE');
+});

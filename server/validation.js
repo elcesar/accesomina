@@ -64,6 +64,117 @@ function assertUnique(values, message, code = 'DUPLICATE_DATA') {
   const value = duplicate(values);
   if (value) throw Object.assign(new Error(`${message}: ${value}`), { status: 409, code });
 }
+
+const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : [];
+const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+export function appendOnlyRows(before, after) {
+  if (!Array.isArray(before) || !Array.isArray(after)) return null;
+  const previous = new Map(before.filter(row => row?.id).map(row => [String(row.id), row]));
+  for (const row of after) {
+    if (!row?.id || !previous.has(String(row.id))) continue;
+    if (!sameRecord(previous.get(String(row.id)), row)) return null;
+  }
+  if ([...previous.keys()].some(id => !after.some(row => String(row?.id) === id))) return null;
+  return after.filter(row => !previous.has(String(row?.id)));
+}
+
+function conflict(message, code) {
+  throw Object.assign(new Error(message), { status: 409, code });
+}
+
+function ensureUniqueNew(rows, existing, key, message, code) {
+  const known = new Set(existing.map(key).filter(Boolean));
+  for (const row of rows) {
+    const value = key(row);
+    if (!value) continue;
+    if (known.has(value)) conflict(message, code);
+    known.add(value);
+  }
+}
+
+// New records must be safe on their own. Existing legacy data is diagnosed separately
+// instead of preventing a company from creating a valid new record.
+export function validateAppendChanges(current, proposed, keys) {
+  const additions = new Map();
+  for (const key of keys) {
+    const rows = appendOnlyRows(collection(current, key), collection(proposed, key));
+    if (!rows) return false;
+    additions.set(key, rows);
+  }
+
+  const workers = [...collection(current, 'trabajadores'), ...(additions.get('trabajadores') || [])];
+  const mines = [...collection(current, 'minas'), ...(additions.get('minas') || [])];
+  const contracts = [...collection(current, 'contratos'), ...(additions.get('contratos') || [])];
+  const projects = [...collection(current, 'mantenciones'), ...(additions.get('mantenciones') || [])];
+  const hotels = [...collection(current, 'hoteles'), ...(additions.get('hoteles') || [])];
+  const workerIds = new Set(workers.map(row => String(row?.id || '')).filter(Boolean));
+  const mineIds = new Set(mines.map(row => String(row?.id || '')).filter(Boolean));
+  const contractIds = new Set(contracts.map(row => String(row?.id || '')).filter(Boolean));
+  const projectIds = new Set(projects.map(row => String(row?.id || '')).filter(Boolean));
+  const hotelIds = new Set(hotels.map(row => String(row?.id || '')).filter(Boolean));
+
+  for (const key of keys) {
+    ensureUniqueNew(additions.get(key), collection(current, key), row => String(row?.id || ''), 'Ya existe un registro con ese identificador.', 'DUPLICATE_ID');
+  }
+
+  const newWorkers = additions.get('trabajadores') || [];
+  for (const worker of newWorkers) {
+    if (!worker?.id || !String(worker.nombre || '').trim() || !worker.rut) conflict('La persona requiere identificador, nombre y RUT.', 'INCOMPLETE_WORKER');
+    if (!isValidRut(worker.rut)) conflict('El RUT de la persona no es válido.', 'INVALID_WORKER_RUT');
+    if (worker.tel) {
+      const phone = normalizeChilePhone(worker.tel);
+      if (!isValidChilePhone(phone)) conflict('El teléfono de la persona no es válido.', 'INVALID_WORKER_PHONE');
+      worker.tel = phone;
+    }
+    if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
+  }
+  ensureUniqueNew(newWorkers, collection(current, 'trabajadores'), row => normalizeRut(row?.rut), 'Ya existe una persona con ese RUT.', 'DUPLICATE_WORKER_RUT');
+
+  const newMines = additions.get('minas') || [];
+  for (const mine of newMines) if (mine.rut && !isValidRut(mine.rut)) conflict('El RUT del cliente no es válido.', 'INVALID_CLIENT_RUT');
+  ensureUniqueNew(newMines, collection(current, 'minas'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.mandante)}`, 'Ya existe un cliente equivalente.', 'DUPLICATE_MINE');
+
+  const newContracts = additions.get('contratos') || [];
+  for (const contract of newContracts) {
+    if (contract.minaId && !mineIds.has(String(contract.minaId))) conflict('El contrato referencia un cliente inexistente.', 'INVALID_REFERENCE');
+    if (contract.inicio && contract.termino && contract.inicio > contract.termino) conflict('Las fechas del contrato no son válidas.', 'INVALID_DATES');
+  }
+  ensureUniqueNew(newContracts, collection(current, 'contratos'), row => normalizedText(row?.numero), 'Ya existe un contrato con ese número o código.', 'DUPLICATE_CONTRACT_NUMBER');
+
+  for (const project of additions.get('mantenciones') || []) {
+    if (project.minaId && !mineIds.has(String(project.minaId))) conflict('La orden de servicio referencia un cliente inexistente.', 'INVALID_REFERENCE');
+    if (project.contratoId && !contractIds.has(String(project.contratoId))) conflict('La orden de servicio referencia un contrato inexistente.', 'INVALID_REFERENCE');
+    const contract = contracts.find(row => String(row?.id) === String(project.contratoId));
+    if (contract?.minaId && project.minaId && String(contract.minaId) !== String(project.minaId)) conflict('El contrato no pertenece al cliente seleccionado.', 'INVALID_REFERENCE');
+    if (project.inicio && project.termino && project.inicio > project.termino) conflict('Las fechas de la orden de servicio no son válidas.', 'INVALID_DATES');
+  }
+
+  for (const row of additions.get('asignaciones') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La asignación requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
+  for (const row of additions.get('turnos') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La jornada requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
+  for (const row of additions.get('hotelAsig') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId)) || !hotelIds.has(String(row.hotelId))) conflict('La estadía requiere persona, orden de servicio y alojamiento existentes.', 'INVALID_REFERENCE');
+
+  const newDeliveries = additions.get('eppDeliveries') || [];
+  for (const delivery of newDeliveries) {
+    if (!workerIds.has(String(delivery.workerId)) || (delivery.mantId && !projectIds.has(String(delivery.mantId)))) conflict('La entrega EPP referencia una persona u orden de servicio inexistente.', 'INVALID_REFERENCE');
+    if (!delivery.itemId || !delivery.itemName || Number(delivery.qty) < 1 || !delivery.deliveredAt) conflict('Completa persona, equipo, cantidad y fecha de entrega.', 'INVALID_EPP_DELIVERY');
+    if (!['nuevo','reutilizado-inspeccionado','repuesto','no_registrada'].includes(delivery.condition || 'no_registrada') || !['entregado','reposicion','prestamo','no_registrado'].includes(delivery.deliveryStatus || 'no_registrado')) conflict('La condición o el estado de la entrega EPP no es válido.', 'INVALID_EPP_DELIVERY_STATUS');
+  }
+
+  for (const hotel of additions.get('hoteles') || []) {
+    if ((hotel.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El alojamiento referencia un cliente inexistente.', 'INVALID_REFERENCE');
+    for (const room of collection(hotel, 'rooms')) if (Number(room.beds) < 1 || Number(room.rate) < 0) conflict('La habitación tiene una capacidad o tarifa inválida.', 'INVALID_HOTEL_ROOM');
+  }
+  ensureUniqueNew(additions.get('hoteles') || [], collection(current, 'hoteles'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.ciudad)}`, 'Ya existe un alojamiento equivalente.', 'DUPLICATE_HOTEL');
+
+  for (const vehicle of additions.get('vehiculos') || []) {
+    if (vehicle.operadorId && !workerIds.has(String(vehicle.operadorId))) conflict('El vehículo referencia un operador inexistente.', 'INVALID_REFERENCE');
+    if ((vehicle.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El vehículo referencia un cliente inexistente.', 'INVALID_REFERENCE');
+    if (normalizedText(vehicle.propiedad) === 'arrendada' && !(vehicle.arriendoVence || vehicle.arriendoFin || vehicle.arrendadoHasta)) conflict('El vehículo arrendado requiere fecha de término de arriendo.', 'MISSING_RENTAL_EXPIRY');
+  }
+  ensureUniqueNew(additions.get('vehiculos') || [], collection(current, 'vehiculos'), row => row?.patente ? `p:${normalizedText(row.patente).replace(/[^a-z0-9]/g, '')}` : '', 'Ya existe un vehículo con esa patente.', 'DUPLICATE_VEHICLE');
+  return true;
+}
 export function validateTenantState(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = sanitizeJson(input);
