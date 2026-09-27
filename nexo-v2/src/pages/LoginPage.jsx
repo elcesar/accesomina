@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
@@ -210,9 +211,9 @@ export default function LoginPage() {
             )}
 
             {error && (
-              <div className="nk-login-error" role="alert">
+              <VisibleFeedback className="nk-login-error">
                 <p>{error}</p>
-              </div>
+              </VisibleFeedback>
             )}
 
             <button
