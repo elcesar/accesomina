@@ -35,6 +35,10 @@ const ERROR_MESSAGES = {
   DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',
   INVALID_DATES: 'Revisa las fechas ingresadas: la fecha de inicio debe ser anterior a la de término.',
   INCOMPLETE_WORKER: 'Completa los datos obligatorios de la persona antes de guardar.',
+  INCOMPLETE_CLIENT: 'Completa los datos obligatorios del cliente antes de guardar.',
+  INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
+  DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
+  DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
