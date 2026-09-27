@@ -442,3 +442,33 @@ Cierre del incidente
 ### Prioridad
 Mejora de soporte, trazabilidad y operación. No modifica la lógica funcional de la plataforma.
 
+
+
+---
+
+## 2026-09-27 — Paginación estándar en todos los listados
+
+### Mejora
+Incorporar paginación como comportamiento estándar en todos los listados, tablas y grillas de NEXOKLAR que puedan crecer con el uso de la plataforma.
+
+### Objetivo
+Evitar listados excesivamente largos, mejorar la navegación y mantener un comportamiento consistente y escalable entre módulos.
+
+### Referencia
+Utilizar como referencia el comportamiento existente en la **lista de Habitaciones de la sección Alojamiento**, extendiendo el mismo patrón de navegación al resto de los listados de la plataforma.
+
+### Criterios de aceptación
+- Todo listado con múltiples registros debe contemplar paginación.
+- Utilizar un componente/patrón común de paginación para mantener consistencia visual y funcional.
+- Mostrar claramente la página actual y permitir avanzar y retroceder entre páginas.
+- Mantener filtros y búsquedas al cambiar de página.
+- Cuando corresponda, mostrar el total de registros y/o el rango actualmente visible.
+- La paginación debe funcionar correctamente junto con ordenamiento, filtros y búsquedas.
+- Evitar cargar y renderizar innecesariamente grandes volúmenes de registros; para listados de alto volumen, evaluar paginación desde backend/API.
+- El comportamiento debe ser responsive y utilizable en las resoluciones soportadas por NEXOKLAR.
+
+### Alcance
+Revisar progresivamente todos los módulos que presentan listados, tablas o grillas, incluyendo Personas, Clientes, Contratos, Órdenes de servicio, Alojamiento y demás entidades operacionales.
+
+### Prioridad
+Mejora transversal de experiencia usuaria, consistencia y escalabilidad de la plataforma.
