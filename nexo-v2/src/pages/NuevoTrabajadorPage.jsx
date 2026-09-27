@@ -9,6 +9,7 @@ import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import '../styles/nuevo-trabajador.css'
@@ -386,11 +387,11 @@ export default function NuevoTrabajadorPage() {
 
           {stepContent[step]}
           {error && (
-            <div className="nk-person-create-error" role="alert">
+            <VisibleFeedback className="nk-person-create-error">
               <strong className="nk-person-create-error-title">{error.title}</strong>
               <span>{error.message}</span>
               {error.suggestion && <span className="nk-person-create-error-suggestion"><strong>Cómo corregirlo:</strong> {error.suggestion}</span>}
-            </div>
+            </VisibleFeedback>
           )}
 
           <div className="nk-person-create-actions">
