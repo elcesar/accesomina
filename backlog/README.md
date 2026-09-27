@@ -395,3 +395,50 @@ Los componentes no deben limitarse a reducir tamaño: cuando el espacio sea insu
 
 ### Prioridad
 Mejora transversal de experiencia usuaria. El objetivo es establecer un estándar responsive de NEXOKLAR y evitar que cada pantalla resuelva independientemente los problemas de espacio.
+
+---
+
+## 2026-09-27 — Registro de incidentes mediante GitHub Issues / Issue Forms
+
+### Mejora
+Habilitar un canal estructurado para que usuarios autorizados puedan registrar incidentes de NEXOKLAR sin otorgarles permisos para modificar código.
+
+### Evolución propuesta
+Utilizar GitHub Issues e Issue Forms como mecanismo inicial de registro y seguimiento de incidentes.
+
+El formulario debería permitir capturar, al menos:
+
+- Módulo afectado.
+- Descripción del problema.
+- Pasos para reproducirlo.
+- Resultado esperado.
+- Resultado obtenido.
+- Navegador o dispositivo.
+- Fecha/hora aproximada.
+- Evidencias o capturas.
+- Severidad o impacto.
+
+Los usuarios reportantes deben tener permisos limitados exclusivamente al registro y seguimiento de incidentes, sin capacidad para modificar archivos, ramas o código fuente.
+
+### Evolución futura
+Evaluar un formulario dentro de NEXOKLAR que permita registrar incidentes sin dar acceso directo al repositorio. El backend podría crear automáticamente el GitHub Issue correspondiente mediante integración con GitHub.
+
+### Flujo propuesto
+
+```text
+Usuario / tester
+        ↓
+Registrar incidente
+        ↓
+GitHub Issue / Issue Form
+        ↓
+Triaging del equipo NEXOKLAR
+        ↓
+Corrección mediante rama + PR
+        ↓
+Cierre del incidente
+```
+
+### Prioridad
+Mejora de soporte, trazabilidad y operación. No modifica la lógica funcional de la plataforma.
+
