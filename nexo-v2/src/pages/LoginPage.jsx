@@ -233,6 +233,10 @@ export default function LoginPage() {
           <p className="nk-login-back-home">
             <Link className="nk-link" to="/">← Volver al inicio</Link>
           </p>
+
+          <p className="nk-login-build-version" title="Versión del frontend">
+            v{__APP_VERSION__} · {__COMMIT_HASH__}
+          </p>
         </div>
       </div>
     </div>

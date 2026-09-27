@@ -256,6 +256,16 @@
   text-align: center;
 }
 
+.nk-login-build-version {
+  margin: var(--space-4) 0 0;
+  color: var(--sub);
+  font-size: 10px;
+  line-height: 1;
+  text-align: center;
+  opacity: 0.55;
+  user-select: none;
+}
+
 @media (max-width: 900px) {
   .nk-login-brand {
     display: none;
