@@ -46,6 +46,49 @@ const INITIAL = {
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
 
+const PERSON_ERRORS = {
+  INCOMPLETE_WORKER: {
+    title: 'Faltan datos obligatorios',
+    message: 'No es posible crear la persona porque falta información requerida.',
+    suggestion: 'Revisa que Nombre y RUT estén informados y vuelve a intentar.',
+  },
+  INVALID_WORKER_RUT: {
+    title: 'RUT no válido',
+    message: 'El RUT ingresado no corresponde a un RUT chileno válido.',
+    suggestion: 'Revisa los números y especialmente el dígito verificador.',
+  },
+  DUPLICATE_WORKER_RUT: {
+    title: 'RUT ya registrado',
+    message: 'Ya existe una persona registrada con este RUT.',
+    suggestion: 'Busca la persona existente antes de crear un nuevo registro.',
+  },
+  INVALID_WORKER_PHONE: {
+    title: 'Teléfono no válido',
+    message: 'El teléfono ingresado no tiene un formato chileno válido.',
+    suggestion: 'Ingresa el número con código de país. Ejemplo: +56912345678.',
+  },
+  INVALID_REFERENCE: {
+    title: 'Información relacionada no disponible',
+    message: 'Uno de los registros asociados a la persona ya no existe o cambió.',
+    suggestion: 'Actualiza la información y vuelve a seleccionar el registro relacionado.',
+  },
+  MODULE_VERSION_CONFLICT: {
+    title: 'La información cambió',
+    message: 'Los datos fueron modificados mientras estabas creando la persona.',
+    suggestion: 'Actualiza la información y vuelve a intentar guardar.',
+  },
+}
+
+function personError(code, fallback, overrides = {}) {
+  const detail = PERSON_ERRORS[code]
+  if (detail) return { code, ...detail, ...overrides }
+  return { code, title: 'No pudimos crear la persona', message: fallback || 'No fue posible guardar la persona.', suggestion: 'Revisa la información e intenta nuevamente.', ...overrides }
+}
+
+function validationError(message, suggestion) {
+  return { title: 'Revisa la información', message, suggestion }
+}
+
 function Field({ label, required, hint, children, full = false }) {
   return (
     <div className={`nk-field ${full ? 'nk-person-field-full' : ''}`}>
@@ -257,7 +300,7 @@ export default function NuevoTrabajadorPage() {
   function goNext() {
     const message = validationMessage()
     if (message) {
-      setError(message)
+      setError(validationError(message, 'Corrige el dato indicado antes de continuar.'))
       return
     }
     setStep(current => Math.min(current + 1, STEPS.length - 1))
@@ -266,7 +309,7 @@ export default function NuevoTrabajadorPage() {
   async function handleSubmit() {
     const message = validationMessage()
     if (message) {
-      setError(message)
+      setError(validationError(message, 'Corrige el dato indicado antes de guardar.'))
       return
     }
     setLoading(true)
@@ -275,7 +318,7 @@ export default function NuevoTrabajadorPage() {
       const stateRes = await api.get('/state')
       const state = stateRes?.state || stateRes || {}
       const trabajadores = state.trabajadores || []
-      if (trabajadores.some(worker => normalizeRut(worker.rut) === normalizeRut(data.rut))) throw new Error('Ya existe una persona registrada con este RUT.')
+      if (trabajadores.some(worker => normalizeRut(worker.rut) === normalizeRut(data.rut))) throw Object.assign(new Error('Ya existe una persona registrada con este RUT.'), { code: 'DUPLICATE_WORKER_RUT' })
 
       const versionT = stateRes?.moduleVersions?.trabajadores ?? 0
       const versionA = stateRes?.moduleVersions?.asignaciones ?? 0
@@ -310,7 +353,7 @@ export default function NuevoTrabajadorPage() {
       await api.put('/state/modules', { reason: `Alta de persona: ${nuevo.nombre}`, changes })
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
-      setError(cause.message || 'No fue posible guardar la persona. Intenta nuevamente.')
+      setError(personError(cause.code, cause.message))
     } finally {
       setLoading(false)
     }
@@ -342,7 +385,13 @@ export default function NuevoTrabajadorPage() {
           </div>
 
           {stepContent[step]}
-          {error && <div className="nk-person-create-error" role="alert">{error}</div>}
+          {error && (
+            <div className="nk-person-create-error" role="alert">
+              <strong className="nk-person-create-error-title">{error.title}</strong>
+              <span>{error.message}</span>
+              {error.suggestion && <span className="nk-person-create-error-suggestion"><strong>Cómo corregirlo:</strong> {error.suggestion}</span>}
+            </div>
+          )}
 
           <div className="nk-person-create-actions">
             <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : navigate('/app/trabajadores')}>

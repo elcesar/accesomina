@@ -199,6 +199,17 @@
   background: var(--nk-state-error-soft);
   color: var(--nk-state-error);
   font: var(--nk-font-body);
+  display: grid;
+  gap: var(--nk-space-1);
+}
+
+.nk-person-create-error-title {
+  font-weight: var(--nk-weight-bold);
+}
+
+.nk-person-create-error-suggestion {
+  color: var(--nk-ink);
+  font: var(--nk-font-body-sm);
 }
 
 .nk-person-create-actions {

@@ -28,6 +28,8 @@ const ERROR_MESSAGES = {
   INVALID_EPP_DELIVERY_STATUS: 'La condición o el estado de la entrega de EPP no es válido.',
   DUPLICATE_EPP_DELIVERY: 'Ya existe una entrega de este equipo para la misma persona, fecha y lote.',
   DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
+  INVALID_WORKER_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
+  INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
   DUPLICATE_ASSIGNMENT: 'La persona ya está asignada a esa orden de servicio.',
   DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',
