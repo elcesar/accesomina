@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
 import { useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
@@ -149,8 +149,18 @@ function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
   )
 }
 
-function NavGroup({ group, badges, defaultOpen = true }) {
-  const [open, setOpen] = useState(defaultOpen)
+function routeMatchesItem(pathname, item) {
+  if (item.exact) return pathname === item.to
+  return pathname === item.to || pathname.startsWith(`${item.to}/`)
+}
+
+function NavGroup({ group, badges, defaultOpen = true, pathname }) {
+  const active = group.items.some(item => routeMatchesItem(pathname, item))
+  const [open, setOpen] = useState(defaultOpen || active)
+
+  useEffect(() => {
+    if (active) setOpen(true)
+  }, [active])
 
   return (
     <section className="nk-side-group">
@@ -180,9 +190,34 @@ function NavGroup({ group, badges, defaultOpen = true }) {
 }
 
 export default function Sidebar() {
+  const { pathname } = useLocation()
+  const navRef = useRef(null)
   const { session } = useAuth()
   const { loading, isEnabled } = useModuleAccess()
   const isNexoAdmin = session?.user?.role === 'domian_admin'
+
+  useEffect(() => {
+    const nav = navRef.current
+    if (!nav) return undefined
+
+    const frame = window.requestAnimationFrame(() => {
+      const activeLink = nav.querySelector('.nk-side-link.active')
+      if (!activeLink) return
+
+      const navRect = nav.getBoundingClientRect()
+      const linkRect = activeLink.getBoundingClientRect()
+      const fullyVisible = linkRect.top >= navRect.top && linkRect.bottom <= navRect.bottom
+      if (fullyVisible) return
+
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      activeLink.scrollIntoView({
+        block: 'nearest',
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [pathname, loading])
 
   const badges = {
     '/app/alertas': session?.state?.alertCount || 0,
@@ -197,13 +232,14 @@ export default function Sidebar() {
         <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
       </div>
 
-      <nav className="nk-sidebar-nav" aria-label="Navegación principal">
+      <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal">
         {!loading && NAV.map(group => {
           const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
           return items.length ? <NavGroup
             key={group.key}
             group={{ ...group, items }}
             badges={badges}
+            pathname={pathname}
             defaultOpen={['centro-control', 'capital-humano', 'relacion-comercial'].includes(group.key)}
           /> : null
         })}
@@ -212,6 +248,7 @@ export default function Sidebar() {
           <NavGroup
             group={NEXO_ADMIN_NAV}
             badges={badges}
+            pathname={pathname}
             defaultOpen
           />
         )}
