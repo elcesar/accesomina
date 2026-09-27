@@ -245,6 +245,8 @@ Mejora de onboarding, seguridad y trazabilidad. Sustituir el código de invitaci
 
 ## 2026-09-23 — Mantener visible la opción activa del Sidebar
 
+> **Estado: CORREGIDO** — Implementado en PR #69 (`feature/sidebar-active-navigation`). El Sidebar abre automáticamente el grupo asociado a la ruta activa y desplaza su navegación solo cuando la opción activa queda fuera del área visible.
+
 ### Mejora
 Hacer que el Sidebar mantenga automáticamente visible la opción correspondiente a la pantalla/ruta actualmente activa, ajustando su posición de scroll cuando sea necesario.
 
