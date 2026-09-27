@@ -358,6 +358,8 @@ Mejora transversal de experiencia usuaria y accesibilidad. Aplicar como estánda
 
 ## 2026-09-24 — Estandarización responsive global y soporte 1280×800
 
+> **Estado: CORREGIDO** — Base responsive global implementada en PR #70. El Header y las acciones globales se adaptan a desktop compacto, incluyendo soporte explícito para 1280×800; además se incorporaron reglas compartidas para contenedores, formularios, tablet y móvil.
+
 ### Mejora
 Definir un estándar responsive transversal para NEXOKLAR, evitando correcciones aisladas por pantalla y asegurando que los componentes globales y módulos se adapten correctamente al ancho y alto disponibles.
 
