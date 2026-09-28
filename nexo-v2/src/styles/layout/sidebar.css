@@ -19,6 +19,17 @@
   border-bottom: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
+.nk-sidebar-brand-link {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: var(--nk-radius-md);
+}
+
+.nk-sidebar-brand-link:focus-visible {
+  outline: var(--nk-focus-width) solid var(--nk-focus);
+  outline-offset: var(--nk-focus-offset);
+}
+
 .nk-sidebar-brand img {
   height: var(--nk-row-compact);
   width: auto;
