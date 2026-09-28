@@ -229,7 +229,9 @@ export default function Sidebar() {
   return (
     <aside className="nk-sidebar">
       <div className="nk-sidebar-brand">
-        <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
+        <NavLink className="nk-sidebar-brand-link" to="/app" aria-label="Ir al Panel de control">
+          <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
+        </NavLink>
       </div>
 
       <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal">
