@@ -61,6 +61,8 @@ const ERROR_MESSAGES = {
   INVALID_STATUS: 'No fue posible cambiar el estado de la empresa.',
   DOMIAN_ACCOUNT_PROTECTED: 'La cuenta administrativa de Nexo Klar está protegida y no puede modificarse de esta forma.',
   INVALID_CONTROL_DATA: 'Revisa la información de administración de la empresa antes de guardar.',
+  TENANT_MUST_BE_SUSPENDED: 'Suspende la cuenta antes de eliminar definitivamente sus datos.',
+  TENANT_ERASURE_CONFIRMATION_REQUIRED: 'Confirma la eliminación con la frase indicada y selecciona un motivo.',
   INVALID_TICKET: 'Revisa los datos de la solicitud de soporte.',
   INVALID_TICKET_STATUS: 'El estado seleccionado para la solicitud de soporte no es válido.',
   TICKET_NOT_FOUND: 'No encontramos la solicitud de soporte.',
@@ -158,6 +160,6 @@ export const api = {
   post: (path, body) => request(path, { method: 'POST', body }),
   put: (path, body) => request(path, { method: 'PUT', body }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),
-  delete: (path) => request(path, { method: 'DELETE' }),
+  delete: (path, body) => request(path, { method: 'DELETE', body }),
   upload,
 }
