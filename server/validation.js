@@ -146,13 +146,21 @@ export function validateAppendChanges(current, proposed, keys) {
   }
   ensureUniqueNew(newContracts, collection(current, 'contratos'), row => normalizedText(row?.numero), 'Ya existe un contrato con ese número o código.', 'DUPLICATE_CONTRACT_NUMBER');
 
-  for (const project of additions.get('mantenciones') || []) {
+  const newProjects = additions.get('mantenciones') || [];
+  for (const project of newProjects) {
     if (project.minaId && !mineIds.has(String(project.minaId))) conflict('La orden de servicio referencia un cliente inexistente.', 'INVALID_REFERENCE');
     if (project.contratoId && !contractIds.has(String(project.contratoId))) conflict('La orden de servicio referencia un contrato inexistente.', 'INVALID_REFERENCE');
     const contract = contracts.find(row => String(row?.id) === String(project.contratoId));
     if (contract?.minaId && project.minaId && String(contract.minaId) !== String(project.minaId)) conflict('El contrato no pertenece al cliente seleccionado.', 'INVALID_REFERENCE');
     if (project.inicio && project.termino && project.inicio > project.termino) conflict('Las fechas de la orden de servicio no son válidas.', 'INVALID_DATES');
   }
+  ensureUniqueNew(
+    newProjects,
+    collection(current, 'mantenciones'),
+    row => `${row?.minaId || ''}|${normalizedText(row?.nombre)}|${row?.inicio || ''}`,
+    'Ya existe una orden de servicio con ese cliente, nombre y fecha de inicio.',
+    'DUPLICATE_PROJECT'
+  );
 
   for (const row of additions.get('asignaciones') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La asignación requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
   for (const row of additions.get('turnos') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La jornada requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
