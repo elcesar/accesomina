@@ -24,7 +24,7 @@ test('AC-03 relaciona proyecto, operación y mantención con contratos',()=>{con
 test('AC-04 rechaza contrato con fechas invertidas',()=>{const s=scenario();s.contratos[0].inicio='2027-01-01';s.contratos[0].termino='2026-01-01';rejects(s,'INVALID_DATES');});
 test('AC-05 rechaza contrato asociado a minera inexistente',()=>{const s=scenario();s.contratos[0].minaId='missing';rejects(s,'INVALID_REFERENCE');});
 test('AC-06 rechaza números de contrato duplicados',()=>{const s=scenario();s.contratos[1].numero=' mc-2026-001 ';rejects(s,'DUPLICATE_CONTRACT_NUMBER');});
-test('AC-07 rechaza mineras duplicadas para el mismo mandante',()=>{const s=scenario();s.minas.push({...copy(s.minas[0]),id:'m3'});rejects(s,'DUPLICATE_MINE');});
+test('AC-07 rechaza mineras duplicadas para el mismo mandante',()=>{const s=scenario();s.minas.push({...copy(s.minas[0]),id:'m3'});rejects(s,'DUPLICATE_CLIENT');});
 test('AC-08 rechaza proyecto conectado a contrato de otra minera',()=>{const s=scenario();s.mantenciones[0].contratoId='c2';rejects(s,'INVALID_REFERENCE');});
 test('AC-09 separa personal permanente y spot',()=>{const s=validateTenantState(scenario());assert.equal(s.trabajadores.filter(x=>x.tipo==='permanente').length,2);assert.equal(s.trabajadores.filter(x=>x.tipo==='esporadico').length,2);});
 test('AC-10 rechaza trabajador con RUT inválido',()=>{const s=scenario();s.trabajadores[0].rut='14.567.890-1';rejects(s,'INVALID_WORKER_RUT');});

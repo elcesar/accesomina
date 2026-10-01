@@ -57,6 +57,7 @@ import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
+import PageTitle from './components/PageTitle.jsx'
 
 function ProtectedRoute({ children, allowPasswordChange = false, allowMfaEnrollment = false }) {
   const { session, loading } = useAuth()
@@ -92,6 +93,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <PageTitle />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         <Routes>
           <Route path="/" element={<LandingPage />} />

@@ -192,7 +192,7 @@ export default function CumplimientoCorporativoPage() {
   return (
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
-        <div><h1>Documentación de la Empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
+        <div><h1>Documentación de la empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
         <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
       </header>
 
