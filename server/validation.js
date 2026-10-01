@@ -69,7 +69,16 @@ const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : []
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 // The fallback is intentionally narrow. A module can only opt in once its
 // append validation covers every strict validation rule for new records.
-export const APPEND_FALLBACK_MODULES = new Set(['trabajadores', 'minas', 'contratos', 'mantenciones']);
+export const APPEND_FALLBACK_MODULES = new Set([
+  'trabajadores',
+  'minas',
+  'contratos',
+  'mantenciones',
+  'eppDeliveries',
+  'vehiculos',
+  'hoteles',
+  'bodegas',
+]);
 
 export function appendOnlyRows(before, after) {
   if (!Array.isArray(before) || !Array.isArray(after)) return null;
@@ -175,7 +184,9 @@ export function validateAppendChanges(current, proposed, keys) {
 
   for (const hotel of additions.get('hoteles') || []) {
     if ((hotel.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El alojamiento referencia un cliente inexistente.', 'INVALID_REFERENCE');
-    for (const room of collection(hotel, 'rooms')) if (Number(room.beds) < 1 || Number(room.rate) < 0) conflict('La habitación tiene una capacidad o tarifa inválida.', 'INVALID_HOTEL_ROOM');
+    const rooms = collection(hotel, 'rooms');
+    ensureUniqueNew(rooms, [], room => normalizedText(room?.number), `El alojamiento ${hotel.nombre || hotel.id} tiene habitaciones duplicadas.`, 'DUPLICATE_HOTEL_ROOM');
+    for (const room of rooms) if (Number(room.beds) < 1 || Number(room.rate) < 0) conflict('La habitación tiene una capacidad o tarifa inválida.', 'INVALID_HOTEL_ROOM');
   }
   ensureUniqueNew(additions.get('hoteles') || [], collection(current, 'hoteles'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.ciudad)}`, 'Ya existe un alojamiento equivalente.', 'DUPLICATE_HOTEL');
 
@@ -184,7 +195,17 @@ export function validateAppendChanges(current, proposed, keys) {
     if ((vehicle.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El vehículo referencia un cliente inexistente.', 'INVALID_REFERENCE');
     if (normalizedText(vehicle.propiedad) === 'arrendada' && !(vehicle.arriendoVence || vehicle.arriendoFin || vehicle.arrendadoHasta)) conflict('El vehículo arrendado requiere fecha de término de arriendo.', 'MISSING_RENTAL_EXPIRY');
   }
-  ensureUniqueNew(additions.get('vehiculos') || [], collection(current, 'vehiculos'), row => row?.patente ? `p:${normalizedText(row.patente).replace(/[^a-z0-9]/g, '')}` : '', 'Ya existe un vehículo con esa patente.', 'DUPLICATE_VEHICLE');
+  const newVehicles = additions.get('vehiculos') || [];
+  ensureUniqueNew(newVehicles, collection(current, 'vehiculos'), row => row?.patente ? `p:${normalizedText(row.patente).replace(/[^a-z0-9]/g, '')}` : '', 'Ya existe un vehículo con esa patente.', 'DUPLICATE_VEHICLE');
+  ensureUniqueNew(newVehicles, collection(current, 'vehiculos'), row => row?.serie ? `s:${normalizedText(row.serie)}` : '', 'Ya existe un vehículo con ese número de serie.', 'DUPLICATE_VEHICLE');
+
+  ensureUniqueNew(
+    newDeliveries,
+    collection(current, 'eppDeliveries'),
+    row => `${row?.workerId || ''}|${row?.itemId || ''}|${row?.deliveredAt || ''}|${normalizedText(row?.lotSerial)}`,
+    'Ya existe una entrega EPP equivalente.',
+    'DUPLICATE_EPP_DELIVERY'
+  );
   return true;
 }
 export function validateTenantState(input) {
