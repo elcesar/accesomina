@@ -6,6 +6,7 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
@@ -143,7 +144,7 @@ function StepIdentidad({ data, onChange }) {
         <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
       <Field label="Fecha de nacimiento">
-        <FInput type="date" value={data.nacimiento} onChange={e => onChange('nacimiento', e.target.value)} />
+        <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
       </Field>
       <Field label="Teléfono">
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
@@ -288,6 +289,7 @@ export default function NuevoTrabajadorPage() {
       if (!data.rut.trim()) return 'Ingresa el RUT de la persona.'
       if (!isValidRut(data.rut)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
       if (duplicateRut) return 'Ya existe una persona registrada con este RUT.'
+      if (birthDateError(data.nacimiento)) return birthDateError(data.nacimiento)
       if (data.tel && !isValidChilePhone(data.tel)) return 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
       if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return 'Ingresa un correo electrónico válido.'
     }
