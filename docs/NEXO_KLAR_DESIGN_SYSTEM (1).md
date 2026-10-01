@@ -229,3 +229,87 @@ Clases oficiales del patrón:
 ```
 
 No crear variantes locales como `*-kicker`, `*-page-title` o `*-module-title` cuando representan este mismo patrón.
+
+
+---
+
+## 5. Validación y errores de formularios
+
+La validación de formularios es un patrón transversal de Nexo Klar. Debe aplicarse de forma consistente en altas, ediciones, asistentes, diálogos y cualquier pantalla que permita modificar información.
+
+### 5.1 Comportamiento obligatorio
+
+Al intentar avanzar o guardar un formulario:
+
+1. validar **todos los campos aplicables simultáneamente**; no detener la validación en el primer error;
+2. mostrar cada mensaje de error **junto al campo que lo provoca**;
+3. identificar visualmente cada control inválido mediante el patrón compartido de error;
+4. marcar el control inválido con `aria-invalid="true"`;
+5. asociar el control con su mensaje mediante `aria-describedby`;
+6. mover el foco al **primer campo inválido** siguiendo el orden natural del formulario;
+7. retirar el estado de error cuando el valor haya sido corregido y vuelva a ser válido;
+8. permitir un mensaje general de resumen únicamente como complemento; nunca debe reemplazar los errores asociados a cada campo.
+
+Los mensajes deben explicar qué dato es inválido y, cuando sea posible, cómo corregirlo. Evitar mensajes genéricos como «Datos inválidos», «Error de validación» o códigos técnicos visibles para el usuario.
+
+### 5.2 Estados visuales
+
+Los estilos de error son transversales y deben definirse en `components.css` utilizando los tokens existentes de estado, especialmente `--err` y sus fondos asociados.
+
+No crear colores de error, bordes, tipografías ni espaciados específicos por página. El CSS local puede resolver únicamente composición o layout.
+
+Estados mínimos del campo:
+
+```text
+Normal       → control sin error
+Error        → control identificado visualmente + mensaje asociado
+Deshabilitado → control no editable con tratamiento visual compartido
+```
+
+El atributo `aria-invalid` no reemplaza el tratamiento visual: comunica el estado a tecnologías de asistencia. Del mismo modo, el color no puede ser el único mecanismo para comunicar un error.
+
+### 5.3 Estructura accesible de referencia
+
+```jsx
+<label className="nk-label" htmlFor="rut">RUT</label>
+<input
+  id="rut"
+  className="nk-input"
+  aria-invalid={Boolean(error)}
+  aria-describedby={error ? 'rut-error' : undefined}
+/>
+{error && (
+  <p id="rut-error" className="nk-field-error" role="alert">
+    El RUT ingresado no es válido.
+  </p>
+)}
+```
+
+El identificador del mensaje debe ser único dentro de la página.
+
+### 5.4 Componentes especializados
+
+Los componentes reutilizables de entrada, por ejemplo `RutInput`, `PhoneInput`, `BirthDateInput` y futuros inputs especializados, deben respetar este mismo contrato de validación y accesibilidad.
+
+La lógica de negocio no debe duplicarse de manera diferente entre pantallas. Cuando una regla sea reutilizable, debe centralizarse en el componente o utilidad correspondiente y mantenerse consistente con la validación del backend.
+
+### 5.5 Errores provenientes del backend
+
+Cuando el backend rechace una operación:
+
+- mapear el código de error al campo correspondiente siempre que sea posible;
+- presentar el mensaje junto al campo afectado;
+- conservar un feedback general solo para errores que no puedan asociarse a un campo concreto;
+- no mostrar al usuario códigos internos, trazas ni mensajes técnicos del servidor.
+
+### 5.6 Responsabilidad por capa
+
+```text
+tokens.css       → colores, tipografía, espaciado y valores visuales compartidos
+components.css   → apariencia reutilizable de campo inválido y mensaje de error
+JSX / componente → aria-invalid, aria-describedby, mensajes y foco
+validación       → determina qué campos son inválidos
+backend          → garantiza las reglas de negocio y devuelve errores identificables
+```
+
+Por tanto, la validación de formularios **no se resuelve solo con CSS**. CSS define su representación visual; el comportamiento, la accesibilidad y la asociación entre errores y campos pertenecen a los componentes y a la lógica de la interfaz.
