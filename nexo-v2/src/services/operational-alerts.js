@@ -1,23 +1,9 @@
 import { mergeCollections } from './report-collections.js'
-import { documentEvidenceMessage, hasRequiredEvidence } from './worker-document-rules.js'
+import { documentRule } from './worker-document-rules.js'
+import { evaluateWorkerReadiness, resolveOperationalRequirements } from './operational-requirements.js'
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
 export const normalize = value => String(value || '').trim().toLowerCase()
 export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
-
-const REQUIRED_WORKER_ITEMS = [
-  { type: 'documento', name: 'Cédula de identidad', matches: ['cedula', 'cédula'] },
-  { type: 'contrato', name: 'Contrato de trabajo', matches: ['contrato'] },
-  { type: 'documento', name: 'Certificado AFP', matches: ['afp'] },
-  { type: 'documento', name: 'Certificado Fonasa o Isapre', matches: ['fonasa', 'isapre'] },
-  { type: 'examen', name: 'Examen preocupacional', matches: ['preocupacional'] },
-  { type: 'curso', name: 'ODI / Derecho a Saber', matches: ['odi', 'derecho a saber'] },
-  { type: 'curso', name: 'Reglamento Interno', matches: ['reglamento interno'] },
-]
-
-const itemMatchesRequirement = (item, requirement) => {
-  const name = normalize(item?.name || item?.nombre)
-  return (!requirement.type || normalize(item?.type) === requirement.type) && requirement.matches.some(match => name.includes(match))
-}
 
 export function daysUntil(value) {
   if (!value) return null
@@ -44,16 +30,18 @@ export function deriveOperationalAlerts(state) {
 
   people.forEach(person => {
     const items = rows(person.workerItems)
-    REQUIRED_WORKER_ITEMS.forEach(requirement => {
-      const matches = items.filter(item => itemMatchesRequirement(item, requirement))
-      const match = matches.find(item => hasRequiredEvidence(item)) || matches[0]
-      if (!match || !hasRequiredEvidence(match)) {
-        const detail = match ? ` (${documentEvidenceMessage(match)})` : ''
-        derived.push({ id: `derived-person-required-${person.id}-${requirement.name}`, tipo: requirement.type, urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: falta ${requirement.name}${detail}`, derived: true })
+    const requirements = resolveOperationalRequirements({ state, worker: person })
+    const requirementCodes = new Set(requirements.map(requirement => requirement.requirementCode))
+    requirements.forEach(requirement => {
+      if (requirement.status !== 'vigente') {
+        const stateLabel = requirement.status === 'vencido' ? 'venció' : 'falta'
+        const detail = requirement.detail ? ` (${requirement.detail})` : ''
+        derived.push({ id: `derived-person-required-${person.id}-${requirement.requirementCode}`, tipo: requirement.type, urgencia: 'critico', trabId: person.id, requirementCode: requirement.requirementCode, sources: requirement.sources, msg: `${person.nombre}: ${stateLabel} ${requirement.name}${detail}`, derived: true })
       }
     })
 
     items.forEach(item => {
+      if (requirementCodes.has(documentRule(item?.type, item?.name, item?.documentType).code)) return
       const left = daysUntil(item.vence)
       const rejected = normalize(item.estado) === 'rechazado'
       const missing = normalize(item.estado) === 'faltante'
