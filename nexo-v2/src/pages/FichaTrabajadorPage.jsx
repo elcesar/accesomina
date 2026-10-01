@@ -7,6 +7,7 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
@@ -194,7 +195,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
       <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
       <Field label="Región"><select className="nk-select" value={worker.region || ''} onChange={updateRegion}><option value="">Seleccionar región</option>{regionesChile.map(region => <option key={region} value={region}>{region}</option>)}</select></Field>
       <Field label="Ciudad / comuna"><select className="nk-select" value={worker.ciudad || ''} disabled={!worker.region} onChange={e => onChange('ciudad', e.target.value)}><option value="">{worker.region ? 'Seleccionar comuna o ciudad' : 'Primero selecciona una región'}</option>{worker.ciudad && !comunas.includes(worker.ciudad) && <option value={worker.ciudad}>{worker.ciudad}</option>}{comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</select></Field>
-      <Field label="Fecha de nacimiento"><input className="nk-input" type="date" value={worker.nacimiento || ''} onChange={e => onChange('nacimiento', e.target.value)} /></Field>
+      <Field label="Fecha de nacimiento"><BirthDateInput value={worker.nacimiento || ''} onChange={value => onChange('nacimiento', value)} /></Field>
       <Field label="AFP"><select className="nk-select" value={worker.afp || ''} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{worker.afp && !AFP_CHILE.includes(worker.afp) && <option value={worker.afp}>{worker.afp}</option>}{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</select></Field>
       <Field label="Previsión de salud"><select className="nk-select" value={worker.salud || ''} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{worker.salud && !PREVISION_SALUD_CHILE.includes(worker.salud) && <option value={worker.salud}>{worker.salud}</option>}{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</select></Field>
     </div></CardSection>

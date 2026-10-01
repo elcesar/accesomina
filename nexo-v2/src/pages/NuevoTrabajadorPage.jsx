@@ -6,7 +6,9 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
+import { validateWorkerBirthDate } from '../services/worker-age.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
@@ -68,6 +70,14 @@ const PERSON_ERRORS = {
     message: 'El teléfono ingresado no tiene un formato chileno válido.',
     suggestion: 'Ingresa el número con código de país. Ejemplo: +56912345678.',
   },
+  INVALID_WORKER_BIRTH_DATE: {
+    title: 'Fecha de nacimiento no válida',
+    suggestion: 'Revisa la fecha de nacimiento e intenta nuevamente.',
+  },
+  WORKER_UNDERAGE: {
+    title: 'Edad insuficiente',
+    suggestion: 'Registra una persona que cumpla la edad mínima configurada.',
+  },
   INVALID_REFERENCE: {
     title: 'Información relacionada no disponible',
     message: 'Uno de los registros asociados a la persona ya no existe o cambió.',
@@ -82,7 +92,7 @@ const PERSON_ERRORS = {
 
 function personError(code, fallback, overrides = {}) {
   const detail = PERSON_ERRORS[code]
-  if (detail) return { code, ...detail, ...overrides }
+  if (detail) return { code, ...detail, message: detail.message || fallback || 'No fue posible guardar la persona.', ...overrides }
   return { code, title: 'No pudimos crear la persona', message: fallback || 'No fue posible guardar la persona.', suggestion: 'Revisa la información e intenta nuevamente.', ...overrides }
 }
 
@@ -143,7 +153,7 @@ function StepIdentidad({ data, onChange }) {
         <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
       <Field label="Fecha de nacimiento">
-        <FInput type="date" value={data.nacimiento} onChange={e => onChange('nacimiento', e.target.value)} />
+        <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
       </Field>
       <Field label="Teléfono">
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
@@ -288,6 +298,8 @@ export default function NuevoTrabajadorPage() {
       if (!data.rut.trim()) return 'Ingresa el RUT de la persona.'
       if (!isValidRut(data.rut)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
       if (duplicateRut) return 'Ya existe una persona registrada con este RUT.'
+      const birthDate = validateWorkerBirthDate(data.nacimiento)
+      if (!birthDate.valid) return birthDate.message
       if (data.tel && !isValidChilePhone(data.tel)) return 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
       if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return 'Ingresa un correo electrónico válido.'
     }
