@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
@@ -91,14 +91,24 @@ function validationError(message, suggestion) {
   return { title: 'Revisa la información', message, suggestion }
 }
 
-function Field({ label, required, hint, children, full = false }) {
+function Field({ label, required, hint, error, fieldId, children, full = false }) {
+  const errorId = error && fieldId ? `${fieldId}-error` : undefined
+  const control = fieldId
+    ? cloneElement(children, {
+        id: fieldId,
+        'aria-invalid': error ? true : undefined,
+        'aria-describedby': errorId,
+      })
+    : children
+
   return (
-    <div className={`nk-field ${full ? 'nk-person-field-full' : ''}`}>
-      <label className="nk-label">
+    <div className={`nk-field ${full ? 'nk-person-field-full' : ''}`} data-state={error ? 'error' : undefined}>
+      <label className="nk-label" htmlFor={fieldId}>
         {label}{required && <span className="nk-person-field-required"> *</span>}
       </label>
-      {children}
-      {hint && <p className="nk-person-field-hint">{hint}</p>}
+      {control}
+      {error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
+      {!error && hint && <p className="nk-field-help">{hint}</p>}
     </div>
   )
 }
@@ -129,7 +139,7 @@ function Stepper({ current }) {
   )
 }
 
-function StepIdentidad({ data, onChange }) {
+function StepIdentidad({ data, onChange, errors }) {
   const comunas = comunasDeRegion(data.region)
   const updateRegion = event => {
     onChange('region', event.target.value)
@@ -137,19 +147,19 @@ function StepIdentidad({ data, onChange }) {
   }
   return (
     <div className="nk-person-form-grid">
-      <Field label="Nombre completo" required full>
+      <Field label="Nombre completo" required full fieldId="worker-name" error={errors.nombre}>
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
-      <Field label="RUT" required hint="Ingresa un RUT chileno válido.">
+      <Field label="RUT" required fieldId="worker-rut" error={errors.rut}>
         <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
-      <Field label="Fecha de nacimiento">
+      <Field label="Fecha de nacimiento" fieldId="worker-birth-date" error={errors.nacimiento}>
         <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
       </Field>
-      <Field label="Teléfono">
+      <Field label="Teléfono" fieldId="worker-phone" error={errors.tel}>
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
-      <Field label="Correo electrónico">
+      <Field label="Correo electrónico" fieldId="worker-email" error={errors.email}>
         <FInput type="email" autoComplete="email" value={data.email} onChange={e => onChange('email', e.target.value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
@@ -169,7 +179,7 @@ function StepIdentidad({ data, onChange }) {
   )
 }
 
-function StepVinculacion({ data, onChange, mantenciones }) {
+function StepVinculacion({ data, onChange, mantenciones, errors }) {
   return (
     <div className="nk-person-form-grid">
       <Field label="Tipo de persona" required full>
@@ -192,13 +202,13 @@ function StepVinculacion({ data, onChange, mantenciones }) {
         </FSelect>
       </Field>
 
-      <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo.">
+      <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo." fieldId="worker-role" error={errors.cargo}>
         <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
       <Field label="Área o función" hint="Responsabilidad general opcional dentro de la empresa.">
         <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Operaciones, Administración, Ventas o Tecnología" />
       </Field>
-      <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full>
+      <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full fieldId="worker-specialty" error={errors.especialidad}>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
           <option value="">Seleccionar especialidad</option>
           {ESPECIALIDADES.map(item => <option key={item} value={item}>{item}</option>)}
@@ -264,6 +274,7 @@ export default function NuevoTrabajadorPage() {
   const [data, setData] = useState(INITIAL)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [stateData, setStateData] = useState(null)
 
   useEffect(() => {
@@ -281,40 +292,51 @@ export default function NuevoTrabajadorPage() {
   function onChange(field, value) {
     setData(current => ({ ...current, [field]: value }))
     setError(null)
+    setFieldErrors(current => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
   }
 
-  function validationMessage() {
+  function validationErrors() {
+    const errors = {}
     if (step === 0) {
-      if (!data.nombre.trim()) return 'Ingresa el nombre completo de la persona.'
-      if (!data.rut.trim()) return 'Ingresa el RUT de la persona.'
-      if (!isValidRut(data.rut)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
-      if (duplicateRut) return 'Ya existe una persona registrada con este RUT.'
-      if (birthDateError(data.nacimiento)) return birthDateError(data.nacimiento)
-      if (data.tel && !isValidChilePhone(data.tel)) return 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
-      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return 'Ingresa un correo electrónico válido.'
+      if (!data.nombre.trim()) errors.nombre = 'Ingresa el nombre completo de la persona.'
+      if (!data.rut.trim()) errors.rut = 'Ingresa el RUT de la persona.'
+      else if (!isValidRut(data.rut)) errors.rut = 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
+      else if (duplicateRut) errors.rut = 'Ya existe una persona registrada con este RUT.'
+      const birthError = birthDateError(data.nacimiento)
+      if (birthError) errors.nacimiento = birthError
+      if (data.tel && !isValidChilePhone(data.tel)) errors.tel = 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
+      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errors.email = 'Ingresa un correo electrónico válido.'
     }
     if (step === 1) {
-      if (!data.cargo.trim()) return 'Ingresa el cargo de la persona.'
-      if (!data.especialidad) return 'Selecciona una especialidad.'
+      if (!data.cargo.trim()) errors.cargo = 'Ingresa el cargo de la persona.'
+      if (!data.especialidad) errors.especialidad = 'Selecciona una especialidad.'
     }
-    return ''
+    return errors
+  }
+
+  function showValidationErrors(errors) {
+    setFieldErrors(errors)
+    const firstField = Object.keys(errors)[0]
+    if (!firstField) return false
+    const ids = { nombre:'worker-name', rut:'worker-rut', nacimiento:'worker-birth-date', tel:'worker-phone', email:'worker-email', cargo:'worker-role', especialidad:'worker-specialty' }
+    requestAnimationFrame(() => document.getElementById(ids[firstField])?.focus())
+    return true
   }
 
   function goNext() {
-    const message = validationMessage()
-    if (message) {
-      setError(validationError(message, 'Corrige el dato indicado antes de continuar.'))
-      return
-    }
+    const errors = validationErrors()
+    if (showValidationErrors(errors)) return
     setStep(current => Math.min(current + 1, STEPS.length - 1))
   }
 
   async function handleSubmit() {
-    const message = validationMessage()
-    if (message) {
-      setError(validationError(message, 'Corrige el dato indicado antes de guardar.'))
-      return
-    }
+    const errors = validationErrors()
+    if (showValidationErrors(errors)) return
     setLoading(true)
     setError(null)
     try {
@@ -363,8 +385,8 @@ export default function NuevoTrabajadorPage() {
   }
 
   const stepContent = [
-    <StepIdentidad key="identidad" data={data} onChange={onChange} />,
-    <StepVinculacion key="vinculacion" data={data} onChange={onChange} mantenciones={mantenciones} />,
+    <StepIdentidad key="identidad" data={data} onChange={onChange} errors={fieldErrors} />,
+    <StepVinculacion key="vinculacion" data={data} onChange={onChange} mantenciones={mantenciones} errors={fieldErrors} />,
     <StepSalud key="salud" data={data} onChange={onChange} />,
     <StepEPP key="epp" data={data} onChange={onChange} />,
     <StepResumen key="resumen" data={data} mantenciones={mantenciones} />,

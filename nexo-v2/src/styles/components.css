@@ -282,8 +282,20 @@
 }
 
 .nk-field-error {
+  margin: 0;
   color: var(--nk-state-error);
   font: var(--nk-font-caption);
+}
+
+.nk-input[aria-invalid='true']:focus,
+.nk-select[aria-invalid='true']:focus,
+.nk-textarea[aria-invalid='true']:focus,
+.nk-field[data-state='error'] .nk-input:focus,
+.nk-field[data-state='error'] .nk-select:focus,
+.nk-field[data-state='error'] .nk-textarea:focus {
+  border-color: var(--nk-state-error);
+  outline: var(--nk-focus-width) solid var(--nk-state-error-soft);
+  outline-offset: var(--nk-focus-offset);
 }
 
 .nk-field-help {
