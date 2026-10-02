@@ -103,6 +103,12 @@
   font: var(--nk-font-title-2);
 }
 
+.nk-person-create-step-title {
+  margin: 0 0 var(--nk-space-1);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-title-4);
+}
+
 .nk-person-create-progress-label,
 .nk-person-step-intro,
 .nk-person-field-hint { color: var(--nk-ink-2); font: var(--nk-font-body-sm); }

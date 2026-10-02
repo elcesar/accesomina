@@ -8,6 +8,7 @@ import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
+import { formatChileDate, formatChilePhone } from '../services/chile-format.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
@@ -227,7 +228,7 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
 function StepSalud({ data, onChange }) {
   return (
     <div className="nk-person-form-grid">
-      <p className="nk-person-step-intro">Información previsional para gestión documental y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
+      <p className="nk-person-step-intro">Información previsional para control de cumplimiento y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
       <Field label="AFP"><FSelect value={data.afp} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
       <Field label="Previsión de salud"><FSelect value={data.salud} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
     </div>
@@ -251,7 +252,7 @@ function StepResumen({ data, mantenciones }) {
   const tipoLabel = TIPOS.find(item => item.value === data.tipo)?.label || data.tipo
   const mantLabel = mantenciones.find(item => item.id === data.mantId)?.nombre
   const rows = [
-    ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
+    ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', formatChileDate(data.nacimiento)], ['Teléfono', formatChilePhone(data.tel)], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
@@ -405,7 +406,8 @@ export default function NuevoTrabajadorPage() {
       <div className="nk-person-create-scroll">
         <div className="nk-person-create-content">
           <div className="nk-person-create-heading">
-            <h1 className="nk-person-create-title">{STEPS[step].label}</h1>
+            <h1 className="nk-person-create-title">Nueva persona</h1>
+            <h2 className="nk-person-create-step-title">{STEPS[step].label}</h2>
             <p className="nk-person-create-progress-label">Paso {step + 1} de {STEPS.length}</p>
           </div>
 
