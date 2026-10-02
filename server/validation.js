@@ -152,8 +152,12 @@ export function validateAppendChanges(current, proposed, keys) {
   ensureUniqueNew(newWorkers, collection(current, 'trabajadores'), row => normalizeRut(row?.rut), 'Ya existe una persona con ese RUT.', 'DUPLICATE_WORKER_RUT');
 
   const newMines = additions.get('minas') || [];
-  for (const mine of newMines) if (mine.rut && !isValidRut(mine.rut)) conflict('El RUT del cliente no es válido.', 'INVALID_CLIENT_RUT');
-  ensureUniqueNew(newMines, collection(current, 'minas'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.mandante)}`, 'Ya existe un cliente equivalente.', 'DUPLICATE_MINE');
+  for (const mine of newMines) {
+    if (!mine?.id || !String(mine.nombre || '').trim()) conflict('El cliente requiere identificador y nombre.', 'INCOMPLETE_CLIENT');
+    if (mine.rut && !isValidRut(mine.rut)) conflict('El RUT del cliente no es válido.', 'INVALID_CLIENT_RUT');
+  }
+  ensureUniqueNew(newMines, collection(current, 'minas'), row => normalizeRut(row?.rut), 'Ya existe un cliente con ese RUT.', 'DUPLICATE_CLIENT_RUT');
+  ensureUniqueNew(newMines, collection(current, 'minas'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.mandante)}`, 'Ya existe un cliente equivalente.', 'DUPLICATE_CLIENT');
 
   const newContracts = additions.get('contratos') || [];
   for (const contract of newContracts) {

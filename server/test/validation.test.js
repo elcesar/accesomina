@@ -46,6 +46,21 @@ test('append fallback preserves strict duplicate rules for its supported modules
   proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0'});
   assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_RUT');
 });
+test('append fallback applies every client rule despite unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.minas[0].rut='14.567.890-0';
+  const invalidClients = [
+    { mine:{id:'m2',nombre:''}, code:'INCOMPLETE_CLIENT' },
+    { mine:{id:'m2',nombre:'Cliente nuevo',rut:'145678900'}, code:'DUPLICATE_CLIENT_RUT' },
+    { mine:{id:'m2',nombre:'  MINA ',mandante:''}, code:'DUPLICATE_CLIENT' },
+  ];
+  for (const { mine, code } of invalidClients) {
+    const proposed=structuredClone(current);
+    proposed.minas.push(mine);
+    assert.throws(()=>validateAppendChanges(current,proposed,['minas']),error=>error.code===code,code);
+  }
+});
 test('append fallback rejects a duplicate service order despite unrelated legacy data',()=>{
   const current=validState();
   current.mantenciones[0].nombre='Mantención chancado';
