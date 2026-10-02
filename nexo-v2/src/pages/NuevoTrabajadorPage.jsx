@@ -7,7 +7,8 @@ import {
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
-import { isValidChilePhone } from '../services/chile-phone.js'
+import { formatChilePhone, isValidChilePhone } from '../services/chile-phone.js'
+import { formatChileDate } from '../services/chile-format.js'
 import { formatRut, isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
@@ -251,7 +252,7 @@ function StepResumen({ data, mantenciones }) {
   const tipoLabel = TIPOS.find(item => item.value === data.tipo)?.label || data.tipo
   const mantLabel = mantenciones.find(item => item.id === data.mantId)?.nombre
   const rows = [
-    ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', data.nacimiento], ['Teléfono', data.tel], ['Correo', data.email],
+    ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', formatChileDate(data.nacimiento)], ['Teléfono', formatChilePhone(data.tel)], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
