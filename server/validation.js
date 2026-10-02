@@ -74,10 +74,6 @@ export const APPEND_FALLBACK_MODULES = new Set([
   'minas',
   'contratos',
   'mantenciones',
-  'eppDeliveries',
-  'vehiculos',
-  'hoteles',
-  'bodegas',
 ]);
 
 export function appendOnlyRows(before, after) {
@@ -105,6 +101,19 @@ function ensureUniqueNew(rows, existing, key, message, code) {
   }
 }
 
+function validateWorkerItems(worker, reject = conflict) {
+  const items = collection(worker, 'workerItems');
+  const duplicateId = duplicate(items.map(item => String(item.id || '')));
+  if (duplicateId) reject(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
+  const duplicateDocument = duplicate(items.map(item => `${normalizedText(item.type)}|${normalizedText(item.name)}|${item.vence || ''}`));
+  if (duplicateDocument) reject(`Documento equivalente duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT');
+  for (const item of items) {
+    if (item.emision && item.vence && item.emision > item.vence) {
+      reject(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
+    }
+  }
+}
+
 // New records must be safe on their own. Existing legacy data is diagnosed separately
 // instead of preventing a company from creating a valid new record.
 export function validateAppendChanges(current, proposed, keys) {
@@ -120,12 +129,8 @@ export function validateAppendChanges(current, proposed, keys) {
   const mines = [...collection(current, 'minas'), ...(additions.get('minas') || [])];
   const contracts = [...collection(current, 'contratos'), ...(additions.get('contratos') || [])];
   const projects = [...collection(current, 'mantenciones'), ...(additions.get('mantenciones') || [])];
-  const hotels = [...collection(current, 'hoteles'), ...(additions.get('hoteles') || [])];
-  const workerIds = new Set(workers.map(row => String(row?.id || '')).filter(Boolean));
   const mineIds = new Set(mines.map(row => String(row?.id || '')).filter(Boolean));
   const contractIds = new Set(contracts.map(row => String(row?.id || '')).filter(Boolean));
-  const projectIds = new Set(projects.map(row => String(row?.id || '')).filter(Boolean));
-  const hotelIds = new Set(hotels.map(row => String(row?.id || '')).filter(Boolean));
 
   for (const key of keys) {
     ensureUniqueNew(additions.get(key), collection(current, key), row => String(row?.id || ''), 'Ya existe un registro con ese identificador.', 'DUPLICATE_ID');
@@ -140,6 +145,8 @@ export function validateAppendChanges(current, proposed, keys) {
       if (!isValidChilePhone(phone)) conflict('El teléfono de la persona no es válido.', 'INVALID_WORKER_PHONE');
       worker.tel = phone;
     }
+    validateWorkerBirthDate(worker);
+    validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
   ensureUniqueNew(newWorkers, collection(current, 'trabajadores'), row => normalizeRut(row?.rut), 'Ya existe una persona con ese RUT.', 'DUPLICATE_WORKER_RUT');
@@ -171,41 +178,6 @@ export function validateAppendChanges(current, proposed, keys) {
     'DUPLICATE_PROJECT'
   );
 
-  for (const row of additions.get('asignaciones') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La asignación requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
-  for (const row of additions.get('turnos') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId))) conflict('La jornada requiere una persona y orden de servicio existentes.', 'INVALID_REFERENCE');
-  for (const row of additions.get('hotelAsig') || []) if (!workerIds.has(String(row.trabId)) || !projectIds.has(String(row.mantId)) || !hotelIds.has(String(row.hotelId))) conflict('La estadía requiere persona, orden de servicio y alojamiento existentes.', 'INVALID_REFERENCE');
-
-  const newDeliveries = additions.get('eppDeliveries') || [];
-  for (const delivery of newDeliveries) {
-    if (!workerIds.has(String(delivery.workerId)) || (delivery.mantId && !projectIds.has(String(delivery.mantId)))) conflict('La entrega EPP referencia una persona u orden de servicio inexistente.', 'INVALID_REFERENCE');
-    if (!delivery.itemId || !delivery.itemName || Number(delivery.qty) < 1 || !delivery.deliveredAt) conflict('Completa persona, equipo, cantidad y fecha de entrega.', 'INVALID_EPP_DELIVERY');
-    if (!['nuevo','reutilizado-inspeccionado','repuesto','no_registrada'].includes(delivery.condition || 'no_registrada') || !['entregado','reposicion','prestamo','no_registrado'].includes(delivery.deliveryStatus || 'no_registrado')) conflict('La condición o el estado de la entrega EPP no es válido.', 'INVALID_EPP_DELIVERY_STATUS');
-  }
-
-  for (const hotel of additions.get('hoteles') || []) {
-    if ((hotel.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El alojamiento referencia un cliente inexistente.', 'INVALID_REFERENCE');
-    const rooms = collection(hotel, 'rooms');
-    ensureUniqueNew(rooms, [], room => normalizedText(room?.number), `El alojamiento ${hotel.nombre || hotel.id} tiene habitaciones duplicadas.`, 'DUPLICATE_HOTEL_ROOM');
-    for (const room of rooms) if (Number(room.beds) < 1 || Number(room.rate) < 0) conflict('La habitación tiene una capacidad o tarifa inválida.', 'INVALID_HOTEL_ROOM');
-  }
-  ensureUniqueNew(additions.get('hoteles') || [], collection(current, 'hoteles'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.ciudad)}`, 'Ya existe un alojamiento equivalente.', 'DUPLICATE_HOTEL');
-
-  for (const vehicle of additions.get('vehiculos') || []) {
-    if (vehicle.operadorId && !workerIds.has(String(vehicle.operadorId))) conflict('El vehículo referencia un operador inexistente.', 'INVALID_REFERENCE');
-    if ((vehicle.minaIds || []).some(id => !mineIds.has(String(id)))) conflict('El vehículo referencia un cliente inexistente.', 'INVALID_REFERENCE');
-    if (normalizedText(vehicle.propiedad) === 'arrendada' && !(vehicle.arriendoVence || vehicle.arriendoFin || vehicle.arrendadoHasta)) conflict('El vehículo arrendado requiere fecha de término de arriendo.', 'MISSING_RENTAL_EXPIRY');
-  }
-  const newVehicles = additions.get('vehiculos') || [];
-  ensureUniqueNew(newVehicles, collection(current, 'vehiculos'), row => row?.patente ? `p:${normalizedText(row.patente).replace(/[^a-z0-9]/g, '')}` : '', 'Ya existe un vehículo con esa patente.', 'DUPLICATE_VEHICLE');
-  ensureUniqueNew(newVehicles, collection(current, 'vehiculos'), row => row?.serie ? `s:${normalizedText(row.serie)}` : '', 'Ya existe un vehículo con ese número de serie.', 'DUPLICATE_VEHICLE');
-
-  ensureUniqueNew(
-    newDeliveries,
-    collection(current, 'eppDeliveries'),
-    row => `${row?.workerId || ''}|${row?.itemId || ''}|${row?.deliveredAt || ''}|${normalizedText(row?.lotSerial)}`,
-    'Ya existe una entrega EPP equivalente.',
-    'DUPLICATE_EPP_DELIVERY'
-  );
   return true;
 }
 export function validateTenantState(input) {
@@ -328,7 +300,7 @@ export function validateTenantState(input) {
   for (const workerId of Object.keys(state.eppMeasurements || {})) {
     if (!workerIds.has(String(workerId))) throw Object.assign(new Error('EPP measurements reference an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
-  for(const worker of workers){const items=Array.isArray(worker.workerItems)?worker.workerItems:[];assertUnique(items.map(x=>String(x.id||'')),`Duplicate worker document id for ${worker.id}`,'DUPLICATE_WORKER_DOCUMENT_ID');assertUnique(items.map(x=>`${normalizedText(x.type)}|${normalizedText(x.name)}|${x.vence||''}`),`Duplicate worker document for ${worker.id}`,'DUPLICATE_WORKER_DOCUMENT');for(const item of items)if(item.emision&&item.vence&&item.emision>item.vence)throw Object.assign(new Error(`Worker document ${item.id} has invalid dates`),{status:409,code:'INVALID_DATES'});}
+  for (const worker of workers) validateWorkerItems(worker);
   const workBookEntries=Array.isArray(state.workBookEntries)?state.workBookEntries:[];
   assertUnique(workBookEntries.map(row=>`${normalizedText(row.folio)}|${Number(row.entryNumber)||1}`),'Duplicate work book entry','DUPLICATE_WORK_BOOK_ENTRY');
   for(const row of workBookEntries){

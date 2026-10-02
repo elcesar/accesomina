@@ -61,38 +61,26 @@ test('append fallback rejects a duplicate service order despite unrelated legacy
   });
   assert.throws(()=>validateAppendChanges(current,proposed,['mantenciones']),error=>error.code==='DUPLICATE_PROJECT');
 });
-test('append fallback permits a valid EPP delivery despite unrelated legacy data',()=>{
+test('append fallback keeps unsupported operational modules closed',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
-  const proposed=structuredClone(current);
-  proposed.eppDeliveries=[{id:'e1',workerId:'w1',mantId:'p1',itemId:'helmet',itemName:'Casco',qty:1,deliveredAt:'2026-07-01',condition:'nuevo',deliveryStatus:'entregado'}];
-  assert.equal(validateAppendChanges(current,proposed,['eppDeliveries']),true);
+  for (const module of ['eppDeliveries', 'vehiculos', 'hoteles', 'bodegas', 'turnos', 'asignaciones']) {
+    const proposed=structuredClone(current);
+    proposed[module]=[{id:`${module}-1`}];
+    assert.equal(validateAppendChanges(current,proposed,[module]),false,module);
+  }
 });
-test('append fallback preserves duplicate EPP, vehicle and hotel rules',()=>{
+test('append fallback applies every worker document rule despite unrelated legacy data',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
-
-  current.eppDeliveries=[{id:'legacy-e1',workerId:'w1',mantId:'p1',itemId:'helmet',itemName:'Casco',qty:1,deliveredAt:'2026-07-01',condition:'nuevo',deliveryStatus:'entregado'}];
-  const epp=structuredClone(current);
-  epp.eppDeliveries.push({...current.eppDeliveries[0],id:'e1'});
-  assert.throws(()=>validateAppendChanges(current,epp,['eppDeliveries']),error=>error.code==='DUPLICATE_EPP_DELIVERY');
-
-  current.vehiculos=[{id:'v1',patente:'AB-CD-12',serie:'SERIE-001'}];
-  const vehicles=structuredClone(current);
-  vehicles.vehiculos.push({id:'v2',patente:'ZZ-ZZ-99',serie:'serie-001'});
-  assert.throws(()=>validateAppendChanges(current,vehicles,['vehiculos']),error=>error.code==='DUPLICATE_VEHICLE');
-
-  const hotels=structuredClone(current);
-  hotels.hoteles=[{id:'h1',nombre:'Hotel Norte',ciudad:'Calama',rooms:[{id:'r1',number:'101',beds:1,rate:0},{id:'r2',number:'101',beds:1,rate:0}]}];
-  assert.throws(()=>validateAppendChanges(current,hotels,['hoteles']),error=>error.code==='DUPLICATE_HOTEL_ROOM');
-});
-test('append fallback permits an isolated warehouse addition and rejects non-append changes',()=>{
-  const current=validState();
-  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
-  current.bodegas=[{id:'b1',nombre:'Bodega central'}];
-  const proposed=structuredClone(current);
-  proposed.bodegas.push({id:'b2',nombre:'Bodega norte'});
-  assert.equal(validateAppendChanges(current,proposed,['bodegas']),true);
-  proposed.bodegas[0]={id:'b1',nombre:'Bodega modificada'};
-  assert.equal(validateAppendChanges(current,proposed,['bodegas']),false);
+  const invalidDocuments = [
+    { items:[{id:'same',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'same',type:'curso',name:'ODI',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT_ID' },
+    { items:[{id:'a',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'b',type:'documento',name:'  CÉDULA ',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT' },
+    { items:[{id:'a',type:'examen',name:'Preocupacional',emision:'2027-01-02',vence:'2027-01-01'}], code:'INVALID_DATES' },
+  ];
+  for (const { items, code } of invalidDocuments) {
+    const proposed=structuredClone(current);
+    proposed.trabajadores.push({id:`w-${code}`,nombre:'Persona nueva',rut:'14.507.215-8',workerItems:items});
+    assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
+  }
 });
