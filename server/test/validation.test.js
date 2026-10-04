@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeJson, summarizeChanges, validateTenantState } from '../validation.js';
+import { sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState } from '../validation.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -22,5 +22,80 @@ test('state rejects duplicate worker documents and overlapping lodging',()=>{con
 test('sanitizer removes executable markup and embedded files',()=>{const clean=sanitizeJson({name:'<img src=x onerror="bad">',fileData:'data:secret',cloudUrl:'javascript:alert(1)'});assert.equal(clean.name.includes('<'),false);assert.equal(clean.fileData,null);assert.equal(clean.cloudUrl,'');});
 test('audit change summary records changed paths',()=>{const changes=summarizeChanges({a:1,b:2},{a:2,b:2});assert.deepEqual(changes,[{path:'/a',before:1,after:2}]);});
 test('audit change summary identifies changed entities inside modules',()=>{const changes=summarizeChanges([{id:'w1',name:'A'},{id:'w2',name:'B'}],[{id:'w1',name:'Updated'},{id:'w3',name:'C'}],'/trabajadores');assert.ok(changes.some(x=>x.path==='/trabajadores/w1/name'));assert.ok(changes.some(x=>x.path==='/trabajadores/w2'&&x.action==='deleted'));assert.ok(changes.some(x=>x.path==='/trabajadores/w3'&&x.action==='created'));});
-
 test('state rejects future and underage worker birth dates',()=>{const today=new Date().toISOString().slice(0,10);const [year,month,day]=today.split('-').map(Number);const date=y=>`${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const future=validState();future.trabajadores[0].nacimiento=date(year+1);assert.throws(()=>validateTenantState(future),error=>error.code==='INVALID_WORKER_BIRTH_DATE');const underage=validState();underage.trabajadores[0].nacimiento=date(year-17);assert.throws(()=>validateTenantState(underage),error=>error.code==='WORKER_UNDERAGE');const adult=validState();adult.trabajadores[0].nacimiento=date(year-18);assert.doesNotThrow(()=>validateTenantState(adult));});
+test('a valid new worker is not blocked by an unrelated legacy reference',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Pamela Navarro',rut:'14.507.215-8',tel:'+56976490489'});
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('append fallback still rejects a new worker with an invalid direct reference',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine']});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='INVALID_REFERENCE');
+});
+test('append fallback fails closed for modules without equivalent validation',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.turnos=[{id:'t1',trabId:'w1',mantId:'p1',fecha:'2026-07-01',turno:'dia'}];
+  assert.equal(validateAppendChanges(current,proposed,['turnos']),false);
+});
+test('append fallback preserves strict duplicate rules for its supported modules',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0'});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_RUT');
+});
+test('append fallback applies every client rule despite unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.minas[0].rut='14.567.890-0';
+  const invalidClients = [
+    { mine:{id:'m2',nombre:''}, code:'INCOMPLETE_CLIENT' },
+    { mine:{id:'m2',nombre:'Cliente nuevo',rut:'145678900'}, code:'DUPLICATE_CLIENT_RUT' },
+    { mine:{id:'m2',nombre:'  MINA ',mandante:''}, code:'DUPLICATE_CLIENT' },
+  ];
+  for (const { mine, code } of invalidClients) {
+    const proposed=structuredClone(current);
+    proposed.minas.push(mine);
+    assert.throws(()=>validateAppendChanges(current,proposed,['minas']),error=>error.code===code,code);
+  }
+});
+test('append fallback rejects a duplicate service order despite unrelated legacy data',()=>{
+  const current=validState();
+  current.mantenciones[0].nombre='Mantención chancado';
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.mantenciones.push({
+    id:'p2',
+    minaId:'m1',
+    contratoId:'c1',
+    nombre:'  MANTENCIÓN   CHANCADO ',
+    inicio:'2026-01-01',
+    termino:'2026-01-03',
+  });
+  assert.throws(()=>validateAppendChanges(current,proposed,['mantenciones']),error=>error.code==='DUPLICATE_PROJECT');
+});
+test('append fallback keeps unsupported operational modules closed',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  for (const module of ['eppDeliveries', 'vehiculos', 'hoteles', 'bodegas', 'turnos', 'asignaciones']) {
+    const proposed=structuredClone(current);
+    proposed[module]=[{id:`${module}-1`}];
+    assert.equal(validateAppendChanges(current,proposed,[module]),false,module);
+  }
+});
+test('append fallback applies every worker document rule despite unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const invalidDocuments = [
+    { items:[{id:'same',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'same',type:'curso',name:'ODI',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT_ID' },
+    { items:[{id:'a',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'b',type:'documento',name:'  CÉDULA ',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT' },
+    { items:[{id:'a',type:'examen',name:'Preocupacional',emision:'2027-01-02',vence:'2027-01-01'}], code:'INVALID_DATES' },
+  ];
+  for (const { items, code } of invalidDocuments) {
+    const proposed=structuredClone(current);
+    proposed.trabajadores.push({id:`w-${code}`,nombre:'Persona nueva',rut:'14.507.215-8',workerItems:items});
+    assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
+  }
+});
