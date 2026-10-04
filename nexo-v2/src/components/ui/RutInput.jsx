@@ -1,13 +1,11 @@
-import { useId, useState } from 'react'
-import { formatRut, isValidRut } from '../../services/rut.js'
+import { useId } from 'react'
+import { formatRut } from '../../services/rut.js'
 
 export function RutInput({ value = '', onChange, required = false, disabled = false, id, ...props }) {
   const generatedId = useId()
   const inputId = id || generatedId
-  const helpId = `${inputId}-rut-error`
-  const [touched, setTouched] = useState(false)
-  const invalid = Boolean(value) && !isValidRut(value)
-  const showError = touched && invalid
+  const hintId = `${inputId}-rut-hint`
+  const describedBy = [props['aria-describedby'], hintId].filter(Boolean).join(' ')
 
   return <>
     <input
@@ -21,14 +19,14 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       autoComplete="off"
       inputMode="text"
       placeholder={props.placeholder || '13.848.379-7'}
-      aria-invalid={showError || undefined}
-      aria-describedby={showError ? helpId : props['aria-describedby']}
+      aria-invalid={props['aria-invalid']}
+      aria-describedby={describedBy}
       onChange={event => onChange(formatRut(event.target.value))}
-      onBlur={() => {
-        setTouched(true)
+      onBlur={event => {
         onChange(formatRut(value))
+        props.onBlur?.(event)
       }}
     />
-    {showError && <p id={helpId} className="nk-field-error" role="alert">Ingresa un RUT chileno válido.</p>}
+    <p id={hintId} className="nk-field-help">Formato: 12.345.678-9.</p>
   </>
 }
