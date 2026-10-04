@@ -199,6 +199,33 @@ La transformación a mayúsculas del dominio es visual mediante CSS; el texto fu
 - describir la función de la pantalla en lenguaje de usuario;
 - no exponer nombres de claves, IDs, fuentes JSON, tablas ni detalles técnicos de implementación.
 
+
+#### H1 y acción primaria (CTA)
+
+El H1 y la acción primaria deben comunicar de forma inequívoca el contexto y la operación actual. Este criterio es transversal a todos los módulos.
+
+**H1**
+- En catálogos o listados, usar el nombre de la página definido en el Sidebar: `Clientes`, `Personas`, `Contratos y firmas`, etc.
+- En altas, identificar explícitamente la creación: `Nuevo cliente`, `Nueva persona`, `Nuevo contrato`, `Nueva orden de servicio`.
+- En edición o ficha, usar el nombre de la entidad cuando corresponda o el título funcional definido para esa ficha.
+- En asistentes de varios pasos, el H1 permanece estable durante todo el flujo; el nombre del paso actual se presenta como H2. No reemplazar el H1 en cada paso.
+- Debe existir un único H1 visible por página.
+
+**Acción primaria (CTA)**
+- Debe expresar la acción que ocurrirá y ser coherente con el H1 y el estado de la pantalla.
+- En catálogos, la creación debe estar disponible de forma contextual dentro del módulo aunque exista además un acceso rápido global: `Nuevo cliente`, `Nueva persona`, `Nuevo contrato`, `Nueva orden`.
+- En una alta, preferir una acción específica: `Guardar cliente`, `Guardar persona`, `Guardar contrato`.
+- `Guardar cambios` se reserva para la edición de una entidad existente; no usarlo como CTA final de una alta cuando puede identificarse el objeto creado.
+- Mantener como máximo una acción primaria visible por contexto principal. Acciones como `Actualizar`, cancelar, volver o descargar deben utilizar la jerarquía secundaria correspondiente.
+- Los estados vacíos deben referirse a la misma CTA contextual disponible en la pantalla y no dirigir al usuario a un acceso global si existe una acción local.
+
+**Coherencia obligatoria**
+
+H1, CTA, estado de la pantalla y textos de apoyo deben describir el mismo contexto. Por ejemplo, una pantalla con H1 `Nuevo cliente` no debe terminar con `Guardar cambios`, ni un estado vacío debe indicar “usar el Header” si el módulo ya ofrece `Nuevo cliente`.
+
+Este patrón debe resolverse con los componentes y clases compartidos del encabezado. No crear variantes locales para modificar la jerarquía semántica.
+
+
 #### Estructura JSX de referencia
 
 ```jsx
