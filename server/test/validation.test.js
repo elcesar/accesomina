@@ -99,7 +99,6 @@ test('append fallback applies every worker document rule despite unrelated legac
     assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
   }
 });
-
 test('worker document append is not blocked by unrelated legacy data',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
@@ -108,18 +107,41 @@ test('worker document append is not blocked by unrelated legacy data',()=>{
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
 });
-test('worker document fallback rejects simultaneous worker field edits',()=>{
-  const current=validState(),proposed=structuredClone(current);
-  proposed.trabajadores[0].nombre='Nombre modificado';
-  proposed.trabajadores[0].workerItems=[{id:'doc-1',type:'documento',name:'Contrato'}];
+test('append fallback keeps worker document updates as append-only and validates every new item',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[{id:'doc-existing',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01'}];
+  const cases=[
+    { item:{id:'doc-existing',type:'documento',name:'CV'}, code:'DUPLICATE_WORKER_DOCUMENT_ID' },
+    { item:{id:'doc-new',type:'documento',name:' contrato  de trabajo ',vence:'2027-01-01'}, code:'DUPLICATE_WORKER_DOCUMENT' },
+    { item:{id:'doc-new',type:'examen',name:'Preocupacional',emision:'2027-01-02',vence:'2027-01-01'}, code:'INVALID_DATES' },
+  ];
+  for(const {item,code} of cases){
+    const proposed=structuredClone(current);
+    proposed.trabajadores[0].workerItems.push(item);
+    assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
+  }
+  const changedProfile=structuredClone(current);
+  changedProfile.trabajadores[0].nombre='Nombre alterado';
+  assert.equal(validateAppendChanges(current,changedProfile,['trabajadores']),false);
+  const replacedDocument=structuredClone(current);
+  replacedDocument.trabajadores[0].workerItems[0].name='Contrato reemplazado';
+  assert.equal(validateAppendChanges(current,replacedDocument,['trabajadores']),false);
+});
+test('a legacy document inconsistency does not block a later valid document append',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[
+    {id:'doc-legacy-1',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01'},
+    {id:'doc-legacy-2',type:'documento',name:' contrato  de trabajo ',vence:'2027-01-01'},
+  ];
+  const proposed=structuredClone(current);
+  proposed.trabajadores[0].workerItems.push({id:'doc-cv',type:'documento',name:'Currículum vitae'});
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('worker document fallback never accepts a duplicate worker row',()=>{
+  const current=validState(), proposed=structuredClone(current);
+  proposed.trabajadores.push({...proposed.trabajadores[0]});
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),false);
 });
-test('worker document fallback preserves duplicate document validation',()=>{
-  const current=validState(),proposed=structuredClone(current);
-  proposed.trabajadores[0].workerItems=[
-    {id:'doc-1',type:'documento',name:'Contrato',vence:'2027-01-01'},
-    {id:'doc-2',type:'documento',name:' contrato ',vence:'2027-01-01'}
-  ];
-  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
-});
-
