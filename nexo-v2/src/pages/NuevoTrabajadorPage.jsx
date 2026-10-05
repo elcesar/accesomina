@@ -277,6 +277,20 @@ export default function NuevoTrabajadorPage() {
   const [error, setError] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
   const [stateData, setStateData] = useState(null)
+  const hasUnsavedChanges = useMemo(
+    () => Object.keys(INITIAL).some(key => data[key] !== INITIAL[key]),
+    [data],
+  )
+
+  useEffect(() => {
+    const warnBeforeUnload = event => {
+      if (!hasUnsavedChanges) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warnBeforeUnload)
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [hasUnsavedChanges])
 
   useEffect(() => {
     api.get('/state').then(response => setStateData(response?.state || response)).catch(() => setStateData({}))
@@ -327,6 +341,11 @@ export default function NuevoTrabajadorPage() {
     const ids = { nombre:'worker-name', rut:'worker-rut', nacimiento:'worker-birth-date', tel:'worker-phone', email:'worker-email', cargo:'worker-role', especialidad:'worker-specialty' }
     requestAnimationFrame(() => document.getElementById(ids[firstField])?.focus())
     return true
+  }
+
+  function leaveCreateFlow() {
+    if (hasUnsavedChanges && !window.confirm('Tienes cambios sin guardar. ¿Quieres salir y descartar la información ingresada?')) return
+    navigate('/app/trabajadores')
   }
 
   function goNext() {
@@ -396,7 +415,7 @@ export default function NuevoTrabajadorPage() {
   return (
     <div className="nk-person-create-page">
       <div className="nk-person-create-breadcrumb">
-        <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
+        <button className="nk-button nk-button-quiet" type="button" onClick={leaveCreateFlow}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
         <span className="nk-person-create-breadcrumb-separator" aria-hidden="true">/</span>
         <span className="nk-person-create-breadcrumb-current">Nueva persona</span>
       </div>
@@ -421,7 +440,7 @@ export default function NuevoTrabajadorPage() {
           )}
 
           <div className="nk-person-create-actions">
-            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : navigate('/app/trabajadores')}>
+            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
               <IconArrowLeft size={14} strokeWidth={2} />{step === 0 ? 'Cancelar' : 'Anterior'}
             </button>
 
