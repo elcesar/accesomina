@@ -340,3 +340,19 @@ backend          → garantiza las reglas de negocio y devuelve errores identifi
 ```
 
 Por tanto, la validación de formularios **no se resuelve solo con CSS**. CSS define su representación visual; el comportamiento, la accesibilidad y la asociación entre errores y campos pertenecen a los componentes y a la lógica de la interfaz.
+
+
+---
+
+## 6. Protección de cambios sin guardar
+
+La protección frente a pérdida accidental de información es un patrón transversal para formularios de alta, edición y asistentes.
+
+- Si el usuario intenta **abandonar el flujo** y existen cambios sin guardar, solicitar confirmación antes de descartar la información.
+- Navegar entre pasos, pestañas o secciones que forman parte del mismo flujo **no se considera abandono** y no debe solicitar confirmación.
+- Si no existen cambios respecto del estado inicial, permitir la salida sin confirmación.
+- Una vez guardada correctamente la información, la navegación posterior no debe presentar una advertencia por esos cambios ya persistidos.
+- Ante cierre, recarga o navegación fuera de la aplicación, usar la protección estándar del navegador cuando existan cambios sin guardar.
+- El mensaje dentro de la aplicación debe indicar claramente que salir descartará la información ingresada.
+
+La implementación específica puede variar según el router o formulario, pero debe conservar este comportamiento funcional en todos los módulos.
