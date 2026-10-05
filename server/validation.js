@@ -116,12 +116,38 @@ function validateWorkerItems(worker, reject = conflict) {
 
 // New records must be safe on their own. Existing legacy data is diagnosed separately
 // instead of preventing a company from creating a valid new record.
+export function workerItemOnlyChanges(before, after) {
+  if (!Array.isArray(before) || !Array.isArray(after)) return null;
+  const previous = new Map(before.filter(row => row?.id).map(row => [String(row.id), row]));
+  const current = new Map(after.filter(row => row?.id).map(row => [String(row.id), row]));
+  if (previous.size !== current.size || [...previous.keys()].some(id => !current.has(id))) return null;
+  const changed = [];
+  for (const [id, oldWorker] of previous) {
+    const newWorker = current.get(id);
+    const { workerItems: oldItems = [], ...oldRest } = oldWorker;
+    const { workerItems: newItems = [], ...newRest } = newWorker;
+    if (!sameRecord(oldRest, newRest)) return null;
+    if (sameRecord(oldItems, newItems)) continue;
+    const addedItems = appendOnlyRows(oldItems, newItems);
+    if (!addedItems?.length) return null;
+    validateWorkerItems(newWorker);
+    changed.push(newWorker);
+  }
+  return changed.length ? changed : null;
+}
+
 export function validateAppendChanges(current, proposed, keys) {
   if (!Array.isArray(keys) || keys.some(key => !APPEND_FALLBACK_MODULES.has(key))) return false;
   const additions = new Map();
   for (const key of keys) {
     const rows = appendOnlyRows(collection(current, key), collection(proposed, key));
-    if (!rows) return false;
+    if (!rows) {
+      if (key === 'trabajadores' && keys.length === 1 && workerItemOnlyChanges(collection(current, key), collection(proposed, key))) {
+        additions.set(key, []);
+        continue;
+      }
+      return false;
+    }
     additions.set(key, rows);
   }
 
