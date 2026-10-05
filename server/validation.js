@@ -60,6 +60,15 @@ export function enforceStateScope(role,before,after){const allowed=roleScopes[ro
 
 function duplicate(values) { const seen = new Set(); return values.find(v => v && (seen.has(v) || !seen.add(v))); }
 const normalizedText = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+// A document classification is a stable business identity. Keep the visible
+// reference too, so distinct evidence of the same classification can retain
+// its own traceability without confusing a contract with a service annex.
+const workerDocumentKey = item => [
+  normalizedText(item?.type),
+  normalizedText(item?.documentType),
+  normalizedText(item?.name),
+  item?.vence || '',
+].join('|');
 function assertUnique(values, message, code = 'DUPLICATE_DATA') {
   const value = duplicate(values);
   if (value) throw Object.assign(new Error(`${message}: ${value}`), { status: 409, code });
@@ -135,7 +144,7 @@ function validateWorkerItems(worker, reject = conflict) {
   const items = collection(worker, 'workerItems');
   const duplicateId = duplicate(items.map(item => String(item.id || '')));
   if (duplicateId) reject(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
-  const duplicateDocument = duplicate(items.map(item => `${normalizedText(item.type)}|${normalizedText(item.name)}|${item.vence || ''}`));
+  const duplicateDocument = duplicate(items.map(workerDocumentKey));
   if (duplicateDocument) reject(`Documento equivalente duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT');
   for (const item of items) {
     if (item.emision && item.vence && item.emision > item.vence) {
@@ -146,12 +155,12 @@ function validateWorkerItems(worker, reject = conflict) {
 
 function validateAppendedWorkerItems(worker, previous, additions) {
   const knownIds = new Set(collection(previous, 'workerItems').map(item => String(item?.id || '')).filter(Boolean));
-  const knownDocuments = new Set(collection(previous, 'workerItems').map(item => `${normalizedText(item?.type)}|${normalizedText(item?.name)}|${item?.vence || ''}`));
+  const knownDocuments = new Set(collection(previous, 'workerItems').map(workerDocumentKey));
   for (const item of additions) {
     const id = String(item?.id || '');
     if (id && knownIds.has(id)) conflict(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
     if (id) knownIds.add(id);
-    const documentKey = `${normalizedText(item?.type)}|${normalizedText(item?.name)}|${item?.vence || ''}`;
+    const documentKey = workerDocumentKey(item);
     if (knownDocuments.has(documentKey)) conflict(`Documento equivalente duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT');
     knownDocuments.add(documentKey);
     if (item?.emision && item?.vence && item.emision > item.vence) {
