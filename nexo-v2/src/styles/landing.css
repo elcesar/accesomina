@@ -505,6 +505,16 @@
   font: var(--nk-font-label);
 }
 
+/* Keep paired fields aligned when a specialized input renders helper/error text. */
+.nk-access-form-row > label {
+  align-content: start;
+  grid-template-rows: auto var(--nk-control-min) auto;
+}
+
+.nk-access-form-row > label > .nk-input {
+  align-self: start;
+}
+
 .nk-access-form input,
 .nk-access-form select,
 .nk-access-form textarea,
