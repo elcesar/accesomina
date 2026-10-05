@@ -361,6 +361,13 @@ export default function FichaTrabajadorPage() {
   const [restricting, setRestricting] = useState(false)
   const [restrictionReason, setRestrictionReason] = useState('')
 
+  useEffect(() => {
+    // Feedback belongs to the tab/context where the operation occurred.
+    // Clear it when navigating to another section of the worker record.
+    setError(null)
+    setOk(null)
+  }, [tab])
+
   useEffect(() => { api.get('/state').then(r => {
     const s = r?.state || r; setStateData(s); const found = (s?.trabajadores || []).find(w => w.id === id); if (!found) return
     const workerAssignments = (s?.asignaciones || []).filter(a => a.trabId === id)
