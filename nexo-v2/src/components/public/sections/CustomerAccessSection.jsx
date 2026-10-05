@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import BrandLogo from '../BrandLogo.jsx'
 import { api } from '../../../services/api.js'
-import { formatRut } from '../../../services/rut.js'
+import { formatRut, isValidRut } from '../../../services/rut.js'
 import { RutInput } from '../../ui/RutInput.jsx'
+import { PhoneInput } from '../../ui/PhoneInput.jsx'
 
 const initialRegistration = {
   companyName: '',
@@ -26,6 +27,7 @@ export function CustomerAccessPanel() {
   const [messageType, setMessageType] = useState('status')
   const [busy, setBusy] = useState(false)
   const [registration, setRegistration] = useState(initialRegistration)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
@@ -33,16 +35,26 @@ export function CustomerAccessPanel() {
 
   const update = key => event => {
     setRegistration(current => ({ ...current, [key]: event.target.value }))
+    setFieldErrors(current => ({ ...current, [key]: '' }))
+  }
+
+  const validate = () => {
+    const errors = {}
+    if (!registration.companyName.trim()) errors.companyName = 'Ingresa el nombre de la empresa.'
+    if (!isValidRut(registration.rut)) errors.rut = 'Ingresa un RUT de empresa válido.'
+    if (!registration.adminName.trim()) errors.adminName = 'Ingresa el nombre del administrador.'
+    if (!registration.email.trim()) errors.email = 'Ingresa el correo del administrador.'
+    if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) errors.emailConfirmation = 'Los correos no coinciden.'
+    if (registration.password.length < 12) errors.password = 'La contraseña debe tener al menos 12 caracteres.'
+    if (!registration.inviteCode.trim()) errors.inviteCode = 'Ingresa el código de invitación.'
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
 
   const submitRegistration = async event => {
     event.preventDefault()
-    if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) {
-      setMessageType('alert')
-      setMessage('Los correos no coinciden. Escríbelos nuevamente para continuar.')
-      return
-    }
+    if (!validate()) return
     setBusy(true)
     setMessage('')
     setMessageType('status')
@@ -96,7 +108,10 @@ export function CustomerAccessPanel() {
             onChange={update('companyName')}
             placeholder="Ej: Servicios Mineros Norte SpA"
             autoComplete="organization"
+            aria-invalid={Boolean(fieldErrors.companyName)}
+            aria-describedby={fieldErrors.companyName ? "registration-company-error" : undefined}
           />
+          {fieldErrors.companyName && <span id="registration-company-error" className="nk-field-error">{fieldErrors.companyName}</span>}
         </label>
 
         <div className="nk-access-form-row">
@@ -106,18 +121,19 @@ export function CustomerAccessPanel() {
               required
               value={registration.rut}
               onChange={value => setRegistration(current => ({ ...current, rut: value }))}
-              placeholder="76.123.456-7"
+              placeholder="12.345.678-9"
+              aria-invalid={Boolean(fieldErrors.rut)}
+              aria-describedby={fieldErrors.rut ? "registration-rut-error" : undefined}
+              onBlur={() => { if (registration.rut && !isValidRut(registration.rut)) setFieldErrors(current => ({ ...current, rut: "Ingresa un RUT de empresa válido." })) }}
             />
+            {fieldErrors.rut && <span id="registration-rut-error" className="nk-field-error">{fieldErrors.rut}</span>}
           </label>
 
           <label>
             Teléfono
-            <input
+            <PhoneInput
               value={registration.phone}
-              onChange={update('phone')}
-              placeholder="+56 9..."
-              autoComplete="tel"
-              inputMode="tel"
+              onChange={value => setRegistration(current => ({ ...current, phone: value }))}
             />
           </label>
         </div>
