@@ -14,7 +14,7 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
   return (
     <section id="inicio" className="nk-hero nk-public-section">
       <div className="nk-hero-copy">
-        <p className="nk-eyebrow">Gestión operativa para empresas de servicios</p>
+        <p className="nk-eyebrow">Control operacional y cumplimiento</p>
         <h1>
           Convierte información dispersa en una <span>operación que avanza.</span>
         </h1>
