@@ -87,6 +87,36 @@ export function appendOnlyRows(before, after) {
   return after.filter(row => !previous.has(String(row?.id)));
 }
 
+function appendOnlyWorkerChanges(before, after) {
+  if (!Array.isArray(before) || !Array.isArray(after)) return null;
+  if (duplicate(after.map(row => String(row?.id || '')))) return null;
+  const previous = new Map(before.filter(row => row?.id).map(row => [String(row.id), row]));
+  const documentAdditions = [];
+
+  for (const worker of after) {
+    const existing = previous.get(String(worker?.id || ''));
+    if (!existing) continue;
+    const existingFields = { ...existing };
+    const nextFields = { ...worker };
+    delete existingFields.workerItems;
+    delete nextFields.workerItems;
+    if (!sameRecord(existingFields, nextFields)) return null;
+
+    const currentItems = collection(existing, 'workerItems');
+    const proposedItems = collection(worker, 'workerItems');
+    if (proposedItems.length < currentItems.length) return null;
+    if (!currentItems.every((item, index) => sameRecord(item, proposedItems[index]))) return null;
+    const items = proposedItems.slice(currentItems.length);
+    if (items.length) documentAdditions.push({ worker, previous: existing, items });
+  }
+
+  if ([...previous.keys()].some(id => !after.some(row => String(row?.id) === id))) return null;
+  return {
+    workers: after.filter(row => !previous.has(String(row?.id))),
+    documentAdditions,
+  };
+}
+
 function conflict(message, code) {
   throw Object.assign(new Error(message), { status: 409, code });
 }
@@ -114,41 +144,40 @@ function validateWorkerItems(worker, reject = conflict) {
   }
 }
 
-// New records must be safe on their own. Existing legacy data is diagnosed separately
-// instead of preventing a company from creating a valid new record.
-export function workerItemOnlyChanges(before, after) {
-  if (!Array.isArray(before) || !Array.isArray(after)) return null;
-  const previous = new Map(before.filter(row => row?.id).map(row => [String(row.id), row]));
-  const current = new Map(after.filter(row => row?.id).map(row => [String(row.id), row]));
-  if (previous.size !== current.size || [...previous.keys()].some(id => !current.has(id))) return null;
-  const changed = [];
-  for (const [id, oldWorker] of previous) {
-    const newWorker = current.get(id);
-    const { workerItems: oldItems = [], ...oldRest } = oldWorker;
-    const { workerItems: newItems = [], ...newRest } = newWorker;
-    if (!sameRecord(oldRest, newRest)) return null;
-    if (sameRecord(oldItems, newItems)) continue;
-    const addedItems = appendOnlyRows(oldItems, newItems);
-    if (!addedItems?.length) return null;
-    validateWorkerItems(newWorker);
-    changed.push(newWorker);
+function validateAppendedWorkerItems(worker, previous, additions) {
+  const knownIds = new Set(collection(previous, 'workerItems').map(item => String(item?.id || '')).filter(Boolean));
+  const knownDocuments = new Set(collection(previous, 'workerItems').map(item => `${normalizedText(item?.type)}|${normalizedText(item?.name)}|${item?.vence || ''}`));
+  for (const item of additions) {
+    const id = String(item?.id || '');
+    if (id && knownIds.has(id)) conflict(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
+    if (id) knownIds.add(id);
+    const documentKey = `${normalizedText(item?.type)}|${normalizedText(item?.name)}|${item?.vence || ''}`;
+    if (knownDocuments.has(documentKey)) conflict(`Documento equivalente duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT');
+    knownDocuments.add(documentKey);
+    if (item?.emision && item?.vence && item.emision > item.vence) {
+      conflict(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
+    }
   }
-  return changed.length ? changed : null;
 }
 
+// New records must be safe on their own. Existing legacy data is diagnosed separately
+// instead of preventing a company from creating a valid new record.
 export function validateAppendChanges(current, proposed, keys) {
   if (!Array.isArray(keys) || keys.some(key => !APPEND_FALLBACK_MODULES.has(key))) return false;
   const additions = new Map();
+  const appendedWorkerItems = [];
   for (const key of keys) {
-    const rows = appendOnlyRows(collection(current, key), collection(proposed, key));
-    if (!rows) {
-      if (key === 'trabajadores' && keys.length === 1 && workerItemOnlyChanges(collection(current, key), collection(proposed, key))) {
-        additions.set(key, []);
-        continue;
-      }
-      return false;
+    if (key === 'trabajadores') {
+      const workerChanges = appendOnlyWorkerChanges(collection(current, key), collection(proposed, key));
+      if (!workerChanges) return false;
+      if (workerChanges.documentAdditions.length && keys.length !== 1) return false;
+      additions.set(key, workerChanges.workers);
+      appendedWorkerItems.push(...workerChanges.documentAdditions);
+    } else {
+      const rows = appendOnlyRows(collection(current, key), collection(proposed, key));
+      if (!rows) return false;
+      additions.set(key, rows);
     }
-    additions.set(key, rows);
   }
 
   const workers = [...collection(current, 'trabajadores'), ...(additions.get('trabajadores') || [])];
@@ -175,6 +204,7 @@ export function validateAppendChanges(current, proposed, keys) {
     validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
+  for (const change of appendedWorkerItems) validateAppendedWorkerItems(change.worker, change.previous, change.items);
   ensureUniqueNew(newWorkers, collection(current, 'trabajadores'), row => normalizeRut(row?.rut), 'Ya existe una persona con ese RUT.', 'DUPLICATE_WORKER_RUT');
 
   const newMines = additions.get('minas') || [];
