@@ -32,6 +32,8 @@ const ERROR_MESSAGES = {
   DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
   INVALID_WORKER_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',
+  INVALID_WORKER_BIRTH_DATE: 'La fecha de nacimiento no puede ser futura.',
+  WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
   DUPLICATE_ASSIGNMENT: 'La persona ya está asignada a esa orden de servicio.',
   DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',
@@ -41,6 +43,18 @@ const ERROR_MESSAGES = {
   INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
   DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
+  DUPLICATE_ID: 'Ya existe un registro con ese identificador.',
+  DUPLICATE_PROJECT: 'Ya existe una orden de servicio equivalente para ese cliente y fecha.',
+  DUPLICATE_HOTEL: 'Ya existe un alojamiento equivalente registrado.',
+  INVALID_SUBCONTRACTOR_RUT: 'El RUT del subcontratista no es válido.',
+  DUPLICATE_SUBCONTRACTOR_RUT: 'Ya existe un subcontratista registrado con ese RUT.',
+  DUPLICATE_VEHICLE: 'Ya existe un vehículo registrado con esa patente o número de serie.',
+  DUPLICATE_HEALTH_PROTOCOL: 'Ya existe un protocolo de salud equivalente para esta persona.',
+  DUPLICATE_INCIDENT: 'Ya existe un incidente equivalente registrado.',
+  DUPLICATE_WORK_PERMIT: 'Ya existe un permiso de trabajo equivalente para esta orden de servicio.',
+  DUPLICATE_WHATSAPP_GROUP: 'Ya existe un grupo de WhatsApp equivalente.',
+  DUPLICATE_SIGNATURE_REQUEST: 'Ya existe una solicitud de firma activa equivalente.',
+  FIELD_PERMISSION_DENIED: 'No tienes permisos para modificar uno o más de estos datos.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
@@ -90,7 +104,10 @@ const STATUS_MESSAGES = {
   504: 'La solicitud tardó demasiado en responder. Inténtalo nuevamente.',
 }
 
-export function friendlyApiError(code, status) {
+export function friendlyApiError(code, status, metadata = {}) {
+  if (code === 'WORKER_UNDERAGE' && metadata.minimumAge) {
+    return `La persona no cumple con la edad mínima permitida de ${metadata.minimumAge} años. Revisa la fecha de nacimiento ingresada.`
+  }
   if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
   if (String(code || '').startsWith('DUPLICATE_')) return 'Ya existe un registro equivalente. Revisa los datos ingresados antes de guardar.'
   if (String(code || '').startsWith('INVALID_')) return 'Revisa los datos relacionados y los campos obligatorios antes de guardar.'
@@ -109,13 +126,20 @@ export function getCsrf() {
 
 async function parseError(res) {
   const err = await res.json().catch(() => ({}))
-  const code = err.error
-  const message = friendlyApiError(code, res.status)
+  // API errors historically used `error`; state validation returns `code`.
+  // Preserve both contracts while code is the canonical functional identifier.
+  const code = err.code || err.error || null
+  const metadata = Object.fromEntries(
+    Object.entries(err).filter(([key]) => !['code', 'error', 'message'].includes(key))
+  )
+  const message = friendlyApiError(code, res.status, metadata)
 
   throw Object.assign(new Error(message), {
     status: res.status,
     code,
     technicalMessage: err.message || null,
+    metadata,
+    ...metadata,
   })
 }
 
