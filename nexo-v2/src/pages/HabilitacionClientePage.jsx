@@ -50,6 +50,7 @@ export default function HabilitacionClientePage(){
       if(result?.moduleVersions){
         setResponse(cur=>cur?.state?{...cur,moduleVersions:{...(cur.moduleVersions||versions),...result.moduleVersions}}:cur)
       }
+      return true
     }catch(e){
       // Si falla la persistencia, restaurar el valor previo para no mostrar un estado no guardado.
       setResponse(cur=>{
@@ -60,11 +61,22 @@ export default function HabilitacionClientePage(){
         return {...currentState,acreditacionesMandante:previousRecords}
       })
       setError(e.message||'No fue posible guardar la acreditación.')
+      return false
     }
   }
 
   function chooseFile(rec){uploadRef.current=rec;fileRef.current?.click()}
-  function onFile(e){const f=e.target.files?.[0],rec=uploadRef.current;if(f&&rec)patch(rec,{evidenceName:f.name,evidenceUrl:''});e.target.value='';uploadRef.current=null}
+  async function onFile(e){
+    const file=e.target.files?.[0],rec=uploadRef.current
+    e.target.value='';uploadRef.current=null
+    if(!file||!rec)return
+    setError('')
+    try{
+      const uploaded=await api.upload('/files',file,{entityType:'client_accreditation',entityId:rec.id})
+      const persisted=await patch(rec,{fileId:uploaded.id,evidenceName:uploaded.original_name||file.name,evidenceType:uploaded.content_type||file.type,evidenceSize:uploaded.byte_size||file.size,evidenceUrl:''})
+      if(!persisted)await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(()=>{})
+    }catch(cause){setError(cause.message||'No fue posible cargar la evidencia.')}
+  }
   return <div className="nk-clientreq-page">
     <header className="nk-clientreq-header"><div><h1>Habilitación del Cliente</h1><p>Estado final por cliente, empresa, personas, flota y órdenes de servicio.</p></div><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button></header>
     {error&&<div className="nk-clientreq-feedback error">{error}</div>}
@@ -74,7 +86,7 @@ export default function HabilitacionClientePage(){
       <select className="nk-select" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="">Todos los estados</option>{STATES.map(v=><option key={v} value={v}>{LABELS[v]}</option>)}</select>
     </section>
     <section className="nk-clientreq-kpis"><article><strong>{pct}%</strong><span>Habilitación</span></article><article><strong>{filtered.filter(r=>r.rec.estado==='observado').length}</strong><span>Observados</span></article><article><strong>{filtered.filter(r=>r.rec.estado==='rechazado').length}</strong><span>Rechazados</span></article><article><strong>{filtered.filter(r=>r.rec.estado==='pase_emitido').length}</strong><span>Credenciales emitidas</span></article></section>
-    <section className="nk-card nk-clientreq-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-clientreq-table"><thead><tr><th>Entidad</th><th>Cliente</th><th>Estado</th><th>Responsable / plazo</th><th>Observación</th><th>Evidencia</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(r=><tr key={`${r.tipo}-${r.id}-${r.minaId}`}><td><span className="nk-badge nk-badge-info">{TYPES[r.tipo]}</span><strong className="nk-clientreq-name">{r.nombre}</strong><small>{r.detalle||'—'}</small></td><td><Link className="nk-context-link" to={`/app/clientes/${r.minaId}`}>{clientsMap.get(r.minaId)?.nombre||clientsMap.get(r.minaId)?.name||'Cliente'}</Link></td><td><select className="nk-select nk-clientreq-status" value={r.rec.estado} onChange={e=>patch(r.rec,{estado:e.target.value})}>{STATES.map(v=><option key={v} value={v}>{LABELS[v]}</option>)}</select></td><td><div className="nk-clientreq-stack"><input className="nk-input" defaultValue={r.rec.responsable||''} placeholder="Responsable" onBlur={e=>patch(r.rec,{responsable:e.target.value})}/><input className="nk-input" type="date" defaultValue={r.rec.plazo||''} onBlur={e=>patch(r.rec,{plazo:e.target.value})}/></div></td><td><input className="nk-input nk-clientreq-note" defaultValue={r.rec.observacion||''} onBlur={e=>patch(r.rec,{observacion:e.target.value})} placeholder="Observación"/></td><td><div className="nk-clientreq-evidence">{r.rec.evidenceUrl?<a className="nk-context-link" href={r.rec.evidenceUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14}/> Ver</a>:r.rec.evidenceName?<span title={r.rec.evidenceName}>Archivo</span>:<span>—</span>}<button className="nk-button nk-button-secondary nk-button-sm" onClick={()=>chooseFile(r.rec)}><IconPaperclip size={14}/> Cargar</button><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>{const url=window.prompt('URL https de la evidencia',r.rec.evidenceUrl||'');if(url!==null)patch(r.rec,{evidenceUrl:url,evidenceName:''})}}>Link</button></div></td></tr>):<tr><td colSpan="6">Sin acreditaciones para este filtro.</td></tr>}</tbody></table></div></section>
+    <section className="nk-card nk-clientreq-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-clientreq-table"><thead><tr><th>Entidad</th><th>Cliente</th><th>Estado</th><th>Responsable / plazo</th><th>Observación</th><th>Evidencia</th></tr></thead><tbody>{loading?<tr><td colSpan="6">Cargando…</td></tr>:filtered.length?filtered.map(r=><tr key={`${r.tipo}-${r.id}-${r.minaId}`}><td><span className="nk-badge nk-badge-info">{TYPES[r.tipo]}</span><strong className="nk-clientreq-name">{r.nombre}</strong><small>{r.detalle||'—'}</small></td><td><Link className="nk-context-link" to={`/app/clientes/${r.minaId}`}>{clientsMap.get(r.minaId)?.nombre||clientsMap.get(r.minaId)?.name||'Cliente'}</Link></td><td><select className="nk-select nk-clientreq-status" value={r.rec.estado} onChange={e=>patch(r.rec,{estado:e.target.value})}>{STATES.map(v=><option key={v} value={v}>{LABELS[v]}</option>)}</select></td><td><div className="nk-clientreq-stack"><input className="nk-input" defaultValue={r.rec.responsable||''} placeholder="Responsable" onBlur={e=>patch(r.rec,{responsable:e.target.value})}/><input className="nk-input" type="date" defaultValue={r.rec.plazo||''} onBlur={e=>patch(r.rec,{plazo:e.target.value})}/></div></td><td><input className="nk-input nk-clientreq-note" defaultValue={r.rec.observacion||''} onBlur={e=>patch(r.rec,{observacion:e.target.value})} placeholder="Observación"/></td><td><div className="nk-clientreq-evidence">{r.rec.evidenceUrl?<a className="nk-context-link" href={r.rec.evidenceUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14}/> Ver</a>:r.rec.fileId?<a className="nk-context-link" href={`/api/files/${encodeURIComponent(r.rec.fileId)}`} download title={r.rec.evidenceName||'Descargar evidencia'}><IconPaperclip size={14}/> {r.rec.evidenceName||'Archivo'}</a>:<span>—</span>}<button className="nk-button nk-button-secondary nk-button-sm" onClick={()=>chooseFile(r.rec)}><IconPaperclip size={14}/> Cargar</button><button className="nk-button nk-button-quiet nk-button-sm" onClick={()=>{const url=window.prompt('URL https de la evidencia',r.rec.evidenceUrl||'');if(url!==null)patch(r.rec,{evidenceUrl:url,evidenceName:'',fileId:''})}}>Link</button></div></td></tr>):<tr><td colSpan="6">Sin acreditaciones para este filtro.</td></tr>}</tbody></table></div></section>
     <input ref={fileRef} hidden type="file" onChange={onFile}/>
   </div>
 }
