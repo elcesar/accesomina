@@ -138,7 +138,7 @@ export default function CumplimientoCorporativoPage() {
   }
 
   async function persistDoc(id, patch = {}) {
-    if (savingId) return
+    if (savingId) return false
     setSavingId(id)
     setError('')
     try {
@@ -157,8 +157,10 @@ export default function CumplimientoCorporativoPage() {
         state: { ...(currentResponse?.state || state), empresaDocs: next },
         moduleVersions: { ...(currentResponse?.moduleVersions || moduleVersions), ...(result?.moduleVersions || {}) },
       }))
+      return true
     } catch (cause) {
       setError(cause.message || 'No fue posible guardar el documento.')
+      return false
     } finally {
       setSavingId('')
     }
@@ -169,21 +171,35 @@ export default function CumplimientoCorporativoPage() {
     fileInputRef.current?.click()
   }
 
-  function onFileSelected(event) {
+  async function onFileSelected(event) {
     const file = event.target.files?.[0]
     if (!file || !uploadId) return
-    patchDraft(uploadId, 'fileName', file.name)
-    patchDraft(uploadId, 'cloudUrl', '')
-    persistDoc(uploadId, { fileName: file.name, cloudUrl: '', created: new Date().toISOString().slice(0, 10) })
+    const documentId = uploadId
     event.target.value = ''
     setUploadId('')
+    setError('')
+    try {
+      const uploaded = await api.upload('/files', file, { entityType: 'company_document', entityId: documentId })
+      const patch = {
+        fileId: uploaded.id,
+        fileName: uploaded.original_name || file.name,
+        fileType: uploaded.content_type || file.type,
+        fileSize: uploaded.byte_size || file.size,
+        cloudUrl: '',
+        created: new Date().toISOString().slice(0, 10),
+      }
+      const persisted = await persistDoc(documentId, patch)
+      if (!persisted) await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(() => {})
+    } catch (cause) {
+      setError(cause.message || 'No fue posible cargar el respaldo.')
+    }
   }
 
   function setCloudUrl(doc) {
     const url = window.prompt('URL https del respaldo', doc.cloudUrl || '')
     if (url === null) return
     patchDraft(doc.id, 'cloudUrl', url)
-    persistDoc(doc.id, { cloudUrl: url, fileName: '' })
+    persistDoc(doc.id, { cloudUrl: url, fileId: '', fileName: '' })
   }
 
   const company = state.empresa || {}
@@ -235,7 +251,7 @@ export default function CumplimientoCorporativoPage() {
                     <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} />}</td>
                     <td>
                       <div className="nk-compliance-evidence-cell">
-                        {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileName ? <span className="nk-compliance-file" title={doc.fileName}><IconFile size={13} /> Archivo</span> : <span className="nk-compliance-na">Sin respaldo</span>}
+                        {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileId ? <a className="nk-context-link nk-compliance-evidence" href={`/api/files/${encodeURIComponent(doc.fileId)}`} download title={doc.fileName || 'Descargar respaldo'}><IconFile size={13} /> {doc.fileName || 'Archivo'}</a> : <span className="nk-compliance-na">Sin respaldo</span>}
                         <div className="nk-compliance-actions">
                           <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> PC</button>
                           <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Link</button>

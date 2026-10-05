@@ -57,6 +57,7 @@ export default function IncidentesPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [form, setForm] = useState(emptyForm())
+  const [evidenceFile, setEvidenceFile] = useState(null)
   const [newOpen, setNewOpen] = useState(false)
   const fileRef = useRef(null)
 
@@ -95,27 +96,33 @@ export default function IncidentesPage() {
   function openIncident(item) {
     setSelectedId(item.id)
     setForm({ ...emptyForm(), ...item })
+    setEvidenceFile(null)
     setNewOpen(false)
   }
 
   function startNew() {
     setSelectedId('')
     setForm(emptyForm())
+    setEvidenceFile(null)
     setNewOpen(true)
   }
 
   function closeEditor() {
-    setSelectedId(''); setNewOpen(false); setForm(emptyForm())
+    setSelectedId(''); setNewOpen(false); setForm(emptyForm()); setEvidenceFile(null)
   }
 
   async function saveIncident({ close = false } = {}) {
     if (!form.descripcion.trim()) { setError('Ingresa una descripción del evento.'); return }
     if (!form.mantId) { setError('Selecciona una orden de servicio.'); return }
-    if (close && !(form.evidenceName || form.evidenceUrl)) { setError('Para cerrar el evento debes registrar evidencia de verificación.'); return }
+    if (close && !(form.evidenceName || form.evidenceUrl || evidenceFile)) { setError('Para cerrar el evento debes registrar evidencia de verificación.'); return }
     setSaving(true); setError('')
+    let uploadedFile = null
     try {
       const id = form.id || `inc_${Date.now()}`
       const status = close ? 'cerrado' : form.estado === 'cerrado' ? 'en_cierre' : form.estado
+      if (evidenceFile) {
+        uploadedFile = await api.upload('/files', evidenceFile, { entityType: 'incident_evidence', entityId: id })
+      }
       const record = {
         ...form, id, estado: status, status,
         priority: priorityOf(form),
@@ -123,6 +130,13 @@ export default function IncidentesPage() {
         closedAt: status === 'cerrado' ? new Date().toISOString() : form.closedAt || '',
         updatedAt: new Date().toISOString(),
         createdAt: form.createdAt || new Date().toISOString(),
+        ...(uploadedFile ? {
+          fileId: uploadedFile.id,
+          evidenceName: uploadedFile.original_name || evidenceFile.name,
+          evidenceType: uploadedFile.content_type || evidenceFile.type,
+          evidenceSize: uploadedFile.byte_size || evidenceFile.size,
+          evidenceUrl: '',
+        } : {}),
       }
       const next = incidents.some(item => item.id === id) ? incidents.map(item => item.id === id ? record : item) : [record, ...incidents]
       const result = await api.put('/state/modules', {
@@ -130,14 +144,17 @@ export default function IncidentesPage() {
         changes: { incidentes: { version: Number(versions.incidentes || 0), data: next } },
       })
       setResponse(current => ({ ...(current || {}), state: { ...(current?.state || state), incidentes: next }, moduleVersions: { ...(current?.moduleVersions || versions), ...(result?.moduleVersions || {}) } }))
-      setForm(record); setSelectedId(id); setNewOpen(false)
-    } catch (cause) { setError(cause.message || 'No fue posible guardar el incidente.') }
+      setForm(record); setSelectedId(id); setNewOpen(false); setEvidenceFile(null)
+    } catch (cause) {
+      if (uploadedFile?.id) await api.delete(`/files/${encodeURIComponent(uploadedFile.id)}`).catch(() => {})
+      setError(cause.message || 'No fue posible guardar el incidente.')
+    }
     finally { setSaving(false) }
   }
 
   function selectEvidence(event) {
     const file = event.target.files?.[0]
-    if (file) setForm(current => ({ ...current, evidenceName: file.name, evidenceUrl: '' }))
+    if (file) setEvidenceFile(file)
     event.target.value = ''
   }
 
@@ -195,7 +212,7 @@ export default function IncidentesPage() {
           <label><span>Responsable</span><input className="nk-input" value={form.responsable} onChange={e => setForm({...form,responsable:e.target.value})}/></label>
           <label><span>Compromiso cierre</span><input className="nk-input" type="date" value={form.compromiso} onChange={e => setForm({...form,compromiso:e.target.value})}/></label>
           {!newOpen && <><label className="wide"><span>Causa raíz / investigación</span><textarea className="nk-textarea" value={form.rootCause || ''} onChange={e => setForm({...form,rootCause:e.target.value})}/></label><label><span>Responsable de cierre</span><input className="nk-input" value={form.closeOwner || ''} onChange={e => setForm({...form,closeOwner:e.target.value})}/></label><label><span>Estado seguimiento</span><select className="nk-select" value={form.estado === 'cerrado' ? 'cerrado' : form.estado || 'abierto'} onChange={e => setForm({...form,estado:e.target.value === 'cerrado' ? 'en_cierre' : e.target.value})} disabled={form.estado === 'cerrado'}><option value="abierto">Abierto</option><option value="en_cierre">En cierre</option>{form.estado === 'cerrado' && <option value="cerrado">Cerrado</option>}</select></label><label className="wide"><span>Verificación / nota de cierre</span><textarea className="nk-textarea" value={form.closeNote || ''} onChange={e => setForm({...form,closeNote:e.target.value})}/></label></>}
-          <div className="wide nk-incident-evidence"><span>Evidencia</span><div>{form.evidenceUrl ? <a className="nk-context-link" href={form.evidenceUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14}/> Ver respaldo</a> : form.evidenceName ? <span className="nk-badge nk-badge-ok"><IconPaperclip size={13}/> {form.evidenceName}</span> : <span className="nk-muted">Sin evidencia</span>}<button className="nk-button nk-button-secondary nk-button-sm" type="button" onClick={() => fileRef.current?.click()}><IconPaperclip size={14}/> Archivo</button><button className="nk-button nk-button-quiet nk-button-sm" type="button" onClick={() => { const url = window.prompt('URL https de la evidencia', form.evidenceUrl || ''); if (url !== null) setForm({...form,evidenceUrl:url,evidenceName:''}) }}>Link</button></div></div>
+          <div className="wide nk-incident-evidence"><span>Evidencia</span><div>{evidenceFile ? <span className="nk-badge nk-badge-info"><IconPaperclip size={13}/> {evidenceFile.name}</span> : form.evidenceUrl ? <a className="nk-context-link" href={form.evidenceUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14}/> Ver respaldo</a> : form.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(form.fileId)}`} download><IconPaperclip size={14}/> {form.evidenceName || 'Descargar evidencia'}</a> : <span className="nk-muted">Sin evidencia</span>}<button className="nk-button nk-button-secondary nk-button-sm" type="button" onClick={() => fileRef.current?.click()}><IconPaperclip size={14}/> Archivo</button><button className="nk-button nk-button-quiet nk-button-sm" type="button" onClick={() => { const url = window.prompt('URL https de la evidencia', form.evidenceUrl || ''); if (url !== null) { setEvidenceFile(null); setForm({...form,evidenceUrl:url,evidenceName:'',fileId:''}) } }}>Link</button></div></div>
         </div>
         <div className="nk-incident-editor-actions"><button className="nk-button nk-button-secondary" type="button" onClick={closeEditor}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={() => saveIncident()} disabled={saving}>{saving ? 'Guardando…' : 'Guardar seguimiento'}</button>{!newOpen && form.estado !== 'cerrado' && <button className="nk-button nk-button-primary" type="button" onClick={() => saveIncident({close:true})} disabled={saving}><IconCheck size={15}/> Verificar y cerrar</button>}</div>
       </section>}
