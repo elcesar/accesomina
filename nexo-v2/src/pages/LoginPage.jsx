@@ -7,10 +7,10 @@ import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
-function Field({ label, children }) {
+function Field({ label, htmlFor, required = false, children }) {
   return (
     <div className="nk-field nk-login-field">
-      <label className="nk-label">{label}</label>
+      <label className="nk-label" htmlFor={htmlFor}>{label}{required ? ' (obligatorio)' : ''}</label>
       {children}
     </div>
   )
@@ -144,20 +144,22 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="nk-login-form">
             {!mfaRequired ? (
               <>
-                <Field label="RUT empresa">
+                <Field label="RUT empresa" htmlFor="login-rut" required>
                   <RutInput
+                    id="login-rut"
                     name="rut"
                     value={form.rut}
                     onChange={value => { setForm(current => ({ ...current, rut: value })); setError(null) }}
-                    placeholder="13.848.379-7"
+                    placeholder="12.345.678-9"
                     required
                     autoComplete="organization"
                   />
                 </Field>
 
-                <Field label="Correo">
+                <Field label="Correo" htmlFor="login-email" required>
                   <input
                     className="nk-input"
+                    id="login-email"
                     name="email"
                     type="email"
                     value={form.email}
@@ -168,10 +170,11 @@ export default function LoginPage() {
                   />
                 </Field>
 
-                <Field label="Contraseña">
+                <Field label="Contraseña" htmlFor="login-password" required>
                   <div className="nk-login-password">
                     <input
                       className="nk-input"
+                      id="login-password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={form.password}

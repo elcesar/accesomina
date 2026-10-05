@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconSend } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { isValidRut } from '../services/rut.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
 import '../styles/password-recovery.css'
 
 export default function ForgotPasswordPage() {
@@ -10,9 +12,15 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState('')
   const [previewUrl, setPreviewUrl] = useState('')
   const [loading, setLoading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const submit = async event => {
     event.preventDefault()
+    const errors = {}
+    if (!isValidRut(form.rut)) errors.rut = 'Ingresa un RUT de empresa válido.'
+    if (!form.email.trim()) errors.email = 'Ingresa tu correo autorizado.'
+    setFieldErrors(errors)
+    if (Object.keys(errors).length) return
     setLoading(true)
     setMessage('')
     setPreviewUrl('')
@@ -51,14 +59,17 @@ export default function ForgotPasswordPage() {
           <form className="nk-recovery-form" onSubmit={submit}>
             <label className="nk-recovery-field">
               RUT empresa
-              <input
-                className="nk-input"
+              <RutInput
                 required
                 value={form.rut}
-                onChange={event => setForm(current => ({ ...current, rut: event.target.value }))}
+                onChange={value => { setForm(current => ({ ...current, rut: value })); setFieldErrors(current => ({ ...current, rut: '' })) }}
                 placeholder="12.345.678-9"
                 autoComplete="organization"
+                aria-invalid={Boolean(fieldErrors.rut)}
+                aria-describedby={fieldErrors.rut ? 'recovery-rut-error' : undefined}
+                onBlur={() => { if (form.rut && !isValidRut(form.rut)) setFieldErrors(current => ({ ...current, rut: 'Ingresa un RUT de empresa válido.' })) }}
               />
+              {fieldErrors.rut && <span id="recovery-rut-error" className="nk-field-error">{fieldErrors.rut}</span>}
             </label>
             <label className="nk-recovery-field">
               Correo autorizado
