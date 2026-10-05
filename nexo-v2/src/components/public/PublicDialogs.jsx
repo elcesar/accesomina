@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
+import { PhoneInput } from '../ui/PhoneInput.jsx'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -119,13 +120,20 @@ const COMPANY_SIZES = ['Hasta 30', '31 a 75', '76 a 200', 'Más de 200']
 
 export function DemoRequestDialog({ onClose }) {
   const [form, setForm] = useState(INITIAL_DEMO_FORM)
+  const [errors, setErrors] = useState({})
 
   const updateField = (field, value) => {
     setForm(current => ({ ...current, [field]: value }))
+    setErrors(current => ({ ...current, [field]: '' }))
   }
 
   const submit = event => {
     event.preventDefault()
+    const nextErrors = {}
+    if (!form.nombre.trim()) nextErrors.nombre = 'Ingresa tu nombre.'
+    if (!form.correo.trim()) nextErrors.correo = 'Ingresa tu correo de trabajo.'
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
     const body = Object.entries(form)
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n')
@@ -143,14 +151,26 @@ export function DemoRequestDialog({ onClose }) {
       <form className="nk-public-form" onSubmit={submit}>
         {BASIC_FIELDS.map(([key, label, placeholder]) => (
           <label key={key}>
-            {label}
-            <input
-              required={key === 'nombre' || key === 'correo'}
-              type={key === 'correo' ? 'email' : 'text'}
-              value={form[key]}
-              onChange={event => updateField(key, event.target.value)}
-              placeholder={placeholder}
-            />
+            {label}{(key === 'nombre' || key === 'correo') ? ' (obligatorio)' : ''}
+            {key === 'telefono' ? (
+              <PhoneInput
+                value={form.telefono}
+                onChange={value => updateField('telefono', value)}
+              />
+            ) : (
+              <input
+                id={`demo-${key}`}
+                required={key === 'nombre' || key === 'correo'}
+                aria-required={key === 'nombre' || key === 'correo' || undefined}
+                aria-invalid={Boolean(errors[key]) || undefined}
+                aria-describedby={errors[key] ? `demo-${key}-error` : undefined}
+                type={key === 'correo' ? 'email' : 'text'}
+                value={form[key]}
+                onChange={event => updateField(key, event.target.value)}
+                placeholder={placeholder}
+              />
+            )}
+            {errors[key] && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
           </label>
         ))}
 
