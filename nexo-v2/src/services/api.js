@@ -27,6 +27,8 @@ const ERROR_MESSAGES = {
   INVALID_EPP_DELIVERY: 'Completa persona, equipo de protección, cantidad y fecha de entrega antes de guardar.',
   INVALID_EPP_DELIVERY_STATUS: 'La condición o el estado de la entrega de EPP no es válido.',
   DUPLICATE_EPP_DELIVERY: 'Ya existe una entrega de este equipo para la misma persona, fecha y lote.',
+  DUPLICATE_WORKER_DOCUMENT: 'Ya existe un documento con la misma clasificación, referencia y vigencia para esta persona.',
+  DUPLICATE_WORKER_DOCUMENT_ID: 'No fue posible registrar el documento porque coincide con una evidencia existente. Actualiza la página e inténtalo nuevamente.',
   DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
   INVALID_WORKER_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',

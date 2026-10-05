@@ -140,6 +140,27 @@ test('a legacy document inconsistency does not block a later valid document appe
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
 });
+test('contract and service annex remain distinct evidence even when their reference is initially the same',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[{
+    id:'doc-contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',vence:'',
+  }];
+  const proposed=structuredClone(current);
+  proposed.trabajadores[0].workerItems.push({
+    id:'doc-annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Contrato de trabajo',vence:'',
+  });
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('worker documents with the same semantic classification, reference and expiry remain duplicates',()=>{
+  const state=validState();
+  state.trabajadores[0].workerItems=[
+    {id:'d1',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',vence:'2027-01-01'},
+    {id:'d2',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:' contrato  de trabajo ',vence:'2027-01-01'},
+  ];
+  assert.throws(()=>validateTenantState(state),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
+});
 test('worker document fallback never accepts a duplicate worker row',()=>{
   const current=validState(), proposed=structuredClone(current);
   proposed.trabajadores.push({...proposed.trabajadores[0]});
