@@ -130,7 +130,7 @@ export function DemoRequestDialog({ onClose }) {
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n')
 
-    window.location.href = `mailto:contacto@nexoklar.cl?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
+    window.location.href = `mailto:contacto@nexoklar.com?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
     onClose()
   }
 

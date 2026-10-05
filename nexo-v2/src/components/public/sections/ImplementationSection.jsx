@@ -26,7 +26,7 @@ const privacy = [
     body: 'Configura administración, edición o consulta según responsabilidades.',
   },
   {
-    title: 'Datos separados',
+    title: 'Información separada por empresa',
     body: 'La información de una empresa no se mezcla con la de otra.',
   },
   {
@@ -61,7 +61,7 @@ export default function ImplementationSection() {
           <p className="nk-eyebrow">Privacidad y control de acceso</p>
           <h2>Tu información es de tu empresa.</h2>
           <p className="nk-lead">
-            Cada empresa trabaja en un espacio privado e independiente. Sus usuarios, permisos, configuraciones y datos permanecen separados de las demás organizaciones.
+            Cada empresa trabaja en un espacio privado e independiente. Sus usuarios, permisos, configuraciones e información permanecen separadas de las demás organizaciones.
           </p>
 
           <div className="nk-card-grid nk-values">
