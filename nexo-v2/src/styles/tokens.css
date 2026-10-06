@@ -61,13 +61,13 @@
   --nk-attention-soft: #FCF4E3;
 
   /* System states */
-  --nk-state-ok: #146B3E;
-  --nk-state-ok-soft: #E3F0E8;
+  --nk-state-ok: #00706A;
+  --nk-state-ok-soft: #E0F4F2;
   --nk-state-warn: #E9A319;
   --nk-state-warn-ink: #8A5A00;
   --nk-state-warn-soft: #FCF4E3;
-  --nk-state-error: #9B2226;
-  --nk-state-error-soft: #F7E4E4;
+  --nk-state-error: #A3004F;
+  --nk-state-error-soft: #FCE0EE;
   --nk-state-none: #5D6B7A;
   --nk-state-none-soft: #EFF1F3;
   --nk-focus: #00706A;
@@ -216,13 +216,13 @@
   --nk-attention: #F0BF5E;
   --nk-attention-ink: #F5D698;
   --nk-attention-soft: #332611;
-  --nk-state-ok: #5FC98E;
-  --nk-state-ok-soft: #0F2E1E;
+  --nk-state-ok: #8CE9E3;
+  --nk-state-ok-soft: #0B2E2D;
   --nk-state-warn: #F0BF5E;
   --nk-state-warn-ink: #F5D698;
   --nk-state-warn-soft: #332611;
-  --nk-state-error: #F58A8E;
-  --nk-state-error-soft: #3A1518;
+  --nk-state-error: #FF9BC6;
+  --nk-state-error-soft: #33122A;
   --nk-state-none: #AEBAC6;
   --nk-state-none-soft: #1D2531;
   --nk-focus: #4CDDD4;

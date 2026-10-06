@@ -449,7 +449,7 @@ export default function NuevoTrabajadorPage() {
                 Siguiente<IconArrowRight size={14} strokeWidth={2} />
               </button>
             ) : (
-              <button className="nk-button nk-button-success" type="button" onClick={handleSubmit} disabled={loading}>
+              <button className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? <IconLoader2 size={15} className="animate-spin" aria-hidden="true" /> : <IconCheck size={15} strokeWidth={2.5} aria-hidden="true" />}
                 {loading ? 'Guardando…' : 'Guardar persona'}
               </button>

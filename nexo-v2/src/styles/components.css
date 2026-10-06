@@ -335,20 +335,40 @@
   color: var(--nk-state-ok);
 }
 
+.nk-badge-ok::before,
+.nk-badge-warn::before,
+.nk-badge-error::before,
+.nk-badge-none::before {
+  display: inline-grid;
+  place-items: center;
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  font-weight: var(--nk-weight-bold);
+}
+
+.nk-badge-ok::before { content: '\\2713'; }
+
 .nk-badge-warn {
   background: var(--nk-state-warn-soft);
   color: var(--nk-state-warn-ink);
 }
+
+.nk-badge-warn::before { content: '!'; }
 
 .nk-badge-error {
   background: var(--nk-state-error-soft);
   color: var(--nk-state-error);
 }
 
+.nk-badge-error::before { content: '\\00d7'; }
+
 .nk-badge-none {
   background: var(--nk-state-none-soft);
   color: var(--nk-state-none);
 }
+
+.nk-badge-none::before { content: '\\2022'; }
 
 /* =========================================================
    07. TABLE
