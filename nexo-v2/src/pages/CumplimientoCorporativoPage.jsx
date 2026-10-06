@@ -12,25 +12,25 @@ const AREA_LABELS = {
 }
 
 const REQUIREMENTS = [
-  { id: 'rut_empresa', area: 'legal', name: 'RUT empresa / carpeta tributaria', expires: false, src: 'SII / acreditación mandante' },
+  { id: 'rut_empresa', area: 'legal', name: 'RUT empresa / carpeta tributaria', expires: false, src: 'SII / acreditación del cliente' },
   { id: 'escritura', area: 'legal', name: 'Escritura de constitución y poderes', expires: false, src: 'Acreditación empresa' },
   { id: 'vigencia_sociedad', area: 'legal', name: 'Certificado de vigencia de sociedad', expires: true, src: 'Registro de Comercio' },
-  { id: 'mutualidad', area: 'sst', name: 'Certificado de adhesión a mutualidad', expires: true, src: 'Ley 16.744 / mandante' },
+  { id: 'mutualidad', area: 'sst', name: 'Certificado de adhesión a mutualidad', expires: true, src: 'Ley 16.744 / cliente' },
   { id: 'reglamento_interno', area: 'sst', name: 'Reglamento Interno de Orden, Higiene y Seguridad', expires: false, src: 'Código del Trabajo / DT' },
   { id: 'comite_paritario', area: 'sst', name: 'Comité Paritario o registro de no obligación', expires: true, src: 'Prevención de riesgos' },
   { id: 'f30', area: 'laboral', name: 'Certificado F30 obligaciones laborales y previsionales', expires: true, src: 'Dirección del Trabajo' },
   { id: 'f30_1', area: 'laboral', name: 'Certificado F30-1 trabajadores por contrato', expires: true, src: 'Dirección del Trabajo' },
   { id: 'cotizaciones', area: 'laboral', name: 'Pago de cotizaciones previsionales', expires: true, src: 'RRHH / Previred' },
-  { id: 'nomina_contrato', area: 'laboral', name: 'Nómina de personal por contrato, proyecto o mantención', expires: true, src: 'Acreditación mandante' },
+  { id: 'nomina_contrato', area: 'laboral', name: 'Nómina de personal por contrato, proyecto o mantención', expires: true, src: 'Acreditación del cliente' },
   { id: 'matriz_riesgos', area: 'sst', name: 'Matriz IPER / matriz de riesgos por actividad', expires: true, src: 'DS 44 / gestión preventiva' },
-  { id: 'procedimientos', area: 'sst', name: 'Procedimientos de trabajo seguro aplicables', expires: true, src: 'DS 132 / mandante' },
+  { id: 'procedimientos', area: 'sst', name: 'Procedimientos de trabajo seguro aplicables', expires: true, src: 'DS 132 / cliente' },
   { id: 'programa_sst', area: 'sst', name: 'Programa de Seguridad y Salud en el Trabajo', expires: true, src: 'DS 44 / Ley 16.744' },
   { id: 'prevencionista', area: 'sst', name: 'Registro del prevencionista responsable', expires: true, src: 'Organización preventiva' },
-  { id: 'organigrama', area: 'operacional', name: 'Organigrama y responsables del contrato', expires: false, src: 'Mandante / contratista' },
+  { id: 'organigrama', area: 'operacional', name: 'Organigrama y responsables del contrato', expires: false, src: 'Cliente / empresa colaboradora' },
   { id: 'polizas', area: 'financiero', name: 'Pólizas de seguro exigidas por contrato', expires: true, src: 'Contrato comercial' },
-  { id: 'tributarios', area: 'financiero', name: 'Certificados tributarios y comerciales', expires: true, src: 'Mandante / finanzas' },
-  { id: 'reglamento_especial', area: 'operacional', name: 'Reglamento Especial de Empresas Contratistas firmado', expires: true, src: 'Ley 20.123 / mandante' },
-  { id: 'credenciales_portal', area: 'operacional', name: 'Usuarios y vigencia en portal de acreditación minera', expires: true, src: 'Sistema mandante' },
+  { id: 'tributarios', area: 'financiero', name: 'Certificados tributarios y comerciales', expires: true, src: 'Cliente / finanzas' },
+  { id: 'reglamento_especial', area: 'operacional', name: 'Reglamento Especial aplicable a empresas colaboradoras firmado', expires: true, src: 'Ley 20.123 / cliente' },
+  { id: 'credenciales_portal', area: 'operacional', name: 'Usuarios y vigencia en portal de acreditación minera', expires: true, src: 'Sistema del cliente' },
   { id: 'equipos_vehiculos', area: 'operacional', name: 'Listado de vehículos/equipos y documentación asociada', expires: true, src: 'Acceso a faena' },
 ]
 
