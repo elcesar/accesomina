@@ -36,12 +36,18 @@ export const ROUTE_MODULES = [
   ['/app/reportes', 'reportes'],
   ['/app/transferencia', 'reportes'],
   ['/app/contratos', 'contratos'],
+  ['/app/configuracion', 'configuracion'],
+  ['/app/usuarios', 'usuarios'],
+  ['/app/bitacora', 'bitacora'],
+  ['/app/privacidad', 'privacidad'],
+  ['/app/administracion-clientes', 'administracion-clientes'],
 ]
 
 export function moduleForPath(pathname = '') {
   return ROUTE_MODULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1] || null
 }
 
-export function moduleIsEnabled(modules = {}, moduleKey) {
-  return !moduleKey || modules?.[moduleKey] !== false
+export function moduleIsEnabled(companyModules = {}, moduleKey, userModules = {}) {
+  if (!moduleKey) return true
+  return companyModules?.[moduleKey] !== false && userModules?.[moduleKey] !== false
 }

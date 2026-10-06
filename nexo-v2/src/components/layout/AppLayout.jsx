@@ -7,22 +7,33 @@ import { applyTenantBranding } from '../../services/theme.js'
 import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
+import { useAuth } from '../../services/auth.jsx'
 import '../../styles/layout/app-layout.css'
 
 function ModuleOutlet() {
   const { pathname } = useLocation()
   const { loading, isEnabled } = useModuleAccess()
+  const { session } = useAuth()
   const moduleKey = moduleForPath(pathname)
+  const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
+  const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
+  }
+  if (['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) && !isCompanyAdmin) {
+    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración</b><span>Esta vista está disponible sólo para administradores de la empresa.</span></div></section>
+  }
+  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
+    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración Nexo Klar</b><span>Esta vista está reservada para el administrador global de Nexo Klar.</span></div></section>
   }
   return <Outlet />
 }
 
 export default function AppLayout() {
   const { pathname } = useLocation()
+  const { session } = useAuth()
   const domain = pageDomain(pathname)
   const [branding, setBranding] = useState({})
   const [modules, setModules] = useState({})
@@ -69,7 +80,7 @@ export default function AppLayout() {
   }, [])
 
   return (
-    <ModuleAccessProvider modules={modules} loading={loadingModules}>
+    <ModuleAccessProvider modules={modules} userModules={['client_admin', 'domian_admin'].includes(session?.user?.role) ? {} : (session?.user?.permissions?.modules || {})} loading={loadingModules}>
       <div className="nk-app-shell">
         <Sidebar />
         <div className="nk-app-content">

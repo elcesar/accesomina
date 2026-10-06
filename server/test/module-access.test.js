@@ -15,3 +15,15 @@ test('unset settings keep their corresponding modules enabled', () => {
   assert.equal(moduleIsEnabled({}, moduleForPath('/app/servicios')), true)
   assert.equal(moduleIsEnabled({ mantenciones: true }, moduleForPath('/app/servicios')), true)
 })
+
+test('a user restriction hides the module even when the company has it enabled', () => {
+  assert.equal(moduleIsEnabled({ trabajadores: true }, 'trabajadores', { trabajadores: false }), false)
+  assert.equal(moduleIsEnabled({ trabajadores: false }, 'trabajadores', { trabajadores: true }), false)
+  assert.equal(moduleIsEnabled({ trabajadores: true }, 'trabajadores', { trabajadores: true }), true)
+})
+
+test('administration routes have stable module identities for route protection', () => {
+  assert.equal(moduleForPath('/app/configuracion'), 'configuracion')
+  assert.equal(moduleForPath('/app/usuarios'), 'usuarios')
+  assert.equal(moduleForPath('/app/administracion-clientes'), 'administracion-clientes')
+})

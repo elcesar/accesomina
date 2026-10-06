@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react'
+import { IconCheck, IconDeviceFloppy, IconRefresh, IconUsers } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { applyTenantBranding } from '../services/theme.js'
 import '../styles/configuracion.css'
-
-const DEFAULT_ACCENT = '#2a2a8c'
 
 const MODULE_OPTIONS = [
   ['trabajadores', 'Personas'],
@@ -34,11 +32,13 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
   const [settings, setSettings] = useState({
-    branding: { displayName: '', theme: 'light', accent: DEFAULT_ACCENT, logoUrl: '' },
+    branding: { displayName: '', theme: 'light', logoUrl: '' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
     catalogs: { specialties: [] },
   })
+  const [users, setUsers] = useState([])
+  const [selectedUserId, setSelectedUserId] = useState('')
   const [integrations, setIntegrations] = useState({
     smtp: { ...emptyIntegration },
     whatsapp: { ...emptyIntegration },
@@ -57,7 +57,6 @@ export default function ConfiguracionPage() {
         branding: {
           displayName: current.branding?.displayName || '',
           theme: normalizeTheme(current.branding?.theme),
-          accent: current.branding?.accent || DEFAULT_ACCENT,
           logoUrl: current.branding?.logoUrl || '',
         },
         modules: current.modules || {},
@@ -69,6 +68,9 @@ export default function ConfiguracionPage() {
       }
       setSettings(nextSettings)
       applyTenantBranding(nextSettings.branding)
+      const accountUsers = await api.get('/users')
+      setUsers(accountUsers)
+      setSelectedUserId(currentId => currentId && accountUsers.some(user => user.id === currentId && !['client_admin', 'domian_admin'].includes(user.role)) ? currentId : (accountUsers.find(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))?.id || ''))
 
       const byProvider = Object.fromEntries((data?.integrations || []).map(item => [item.provider, item]))
       setIntegrations({
@@ -128,14 +130,39 @@ export default function ConfiguracionPage() {
   const setBranding = (key, value) => {
     setSettings(current => {
       const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
-      if (key === 'theme' || key === 'accent') applyTenantBranding(branding)
+      if (key === 'theme') applyTenantBranding(branding)
       return { ...current, branding }
     })
   }
-  const restoreDefaultAccent = () => setBranding('accent', DEFAULT_ACCENT)
   const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
   const toggleModule = key => setSettings(current => ({ ...current, modules: { ...current.modules, [key]: current.modules?.[key] === false } }))
   const updateIntegration = (provider, section, key, value) => setIntegrations(current => ({ ...current, [provider]: { ...current[provider], [section]: { ...current[provider][section], [key]: value } } }))
+  const selectableUsers = users.filter(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))
+  const selectedUser = selectableUsers.find(user => user.id === selectedUserId)
+  const userModules = selectedUser?.permissions?.modules || {}
+  const userCanSee = key => settings.modules?.[key] !== false && userModules[key] !== false
+  const toggleUserModule = key => {
+    if (!selectedUser || settings.modules?.[key] === false) return
+    setUsers(current => current.map(user => user.id === selectedUser.id ? {
+      ...user,
+      permissions: { ...(user.permissions || {}), modules: { ...(user.permissions?.modules || {}), [key]: !userCanSee(key) } },
+    } : user))
+  }
+  const saveUserViews = async () => {
+    if (!selectedUser) return
+    setSaving('user-views')
+    setMessage('')
+    try {
+      const current = users.find(user => user.id === selectedUser.id) || selectedUser
+      const updated = await api.patch(`/users/${current.id}`, { permissions: current.permissions || { modules: {} } })
+      setUsers(all => all.map(user => user.id === updated.id ? { ...user, ...updated } : user))
+      setMessage(`Vistas guardadas para ${updated.full_name}. Tendrá efecto en su próximo acceso.`)
+    } catch (error) {
+      setMessage(error.message || 'No fue posible guardar las vistas del usuario.')
+    } finally {
+      setSaving('')
+    }
+  }
 
   return (
     <section className="nk-module-page nk-config-page">
@@ -158,7 +185,6 @@ export default function ConfiguracionPage() {
           <div className="nk-config-form-grid">
             <label className="nk-config-field full"><span>Nombre visible</span><input className="nk-input" value={settings.branding.displayName} onChange={e => setBranding('displayName', e.target.value)} /></label>
             <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="light">Fondo claro</option><option value="dark">Fondo oscuro</option></select></label>
-            <div className="nk-config-field"><span>Color principal</span><div className="nk-config-color"><input aria-label="Seleccionar color principal" type="color" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /><input aria-label="Código del color principal" className="nk-input" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /></div><button className="nk-button nk-button-secondary" type="button" onClick={restoreDefaultAccent} disabled={settings.branding.accent.toLowerCase() === DEFAULT_ACCENT}><IconRefresh size={14}/> Volver al color original</button></div>
             <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>
@@ -177,6 +203,21 @@ export default function ConfiguracionPage() {
           <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
         </section>
       </div>
+
+      <section className="nk-module-card nk-config-card nk-config-user-views">
+        <header><div><h2><IconUsers size={18}/> Vistas por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora de esta empresa.</p></div></header>
+        <div className="nk-config-user-access">
+          <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={loading || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
+          {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><button className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={saving === 'user-views'}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</button></div>}
+        </div>
+        {selectedUser ? <div className="nk-config-modules nk-config-user-module-list">
+          {MODULE_OPTIONS.map(([key, label]) => {
+            const enabledForCompany = settings.modules?.[key] !== false
+            const enabledForUser = userCanSee(key)
+            return <label className={`nk-config-module ${enabledForCompany ? '' : 'disabled'}`} key={key}><input type="checkbox" checked={enabledForUser} disabled={!enabledForCompany} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany && <small>No está habilitado para la empresa</small>}</label>
+          })}
+        </div> : <p className="nk-config-note">Los administradores conservan siempre acceso completo. Crea primero una cuenta no administradora desde Usuarios y permisos.</p>}
+      </section>
 
       <section className="nk-module-card nk-config-card nk-config-integrations">
         <header><div><h2>Integraciones privadas</h2><p>Las claves se cifran y nunca se muestran nuevamente.</p></div></header>
