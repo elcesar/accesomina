@@ -137,14 +137,14 @@ const TABS = [
   { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
   { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
   { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
+  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
   planta: 'trabajadores con vínculo fijo',
   esporadico: 'trabajadores vinculados por proyecto',
   disponible: 'trabajadores disponibles',
-  bloqueados: 'trabajadores restringidos',
+  bloqueados: 'trabajadores no habilitados',
 }
 
 export default function TrabajadoresPage() {

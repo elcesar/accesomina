@@ -149,21 +149,21 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
   const relationship = employmentRelationship(worker)
   const availability = operationalStatus(worker, asignaciones, restrictions)
   const relationshipLabel = relationship === 'fijo' ? 'Trabajador fijo' : relationship === 'proyecto' ? 'Trabajador por proyecto' : 'Sin vínculo laboral definido'
-  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'Restringido' : 'Disponible'
+  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'No habilitado' : 'Disponible'
 
   return <>
     <CardSection title="Estado de la persona" subtitle="La relación laboral y la situación operacional se administran por separado.">
       <div className="nk-actions">
         {isRestricted ? <>
           <span className={`nk-badge ${relationship === 'fijo' ? 'nk-badge-none' : 'nk-badge-warn'}`}>Relación laboral: {relationshipLabel}</span>
-          <span className="nk-badge nk-badge-error">Disponibilidad: Restringido</span>
-          <button className="nk-button nk-button-secondary" type="button" onClick={onLiftRestriction}><IconUserCheck size={15} /> Levantar restricción</button>
+          <span className="nk-badge nk-badge-error">Disponibilidad: No habilitado</span>
+          <button className="nk-button nk-button-secondary" type="button" onClick={onLiftRestriction}><IconUserCheck size={15} /> Habilitar</button>
         </> : <>
           <span className={`nk-badge ${relationship === 'fijo' ? 'nk-badge-none' : relationship === 'proyecto' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Relación laboral: {relationshipLabel}</span>
           <span className={`nk-badge ${availability === 'asignado' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Disponibilidad: {availabilityLabel}</span>
           <button className="nk-button nk-button-secondary" type="button" onClick={onMakeAvailable} disabled={availability === 'disponible'}>Dejar disponible</button>
           <button className="nk-button nk-button-secondary" type="button" onClick={onMakeFixed}>Convertir en fijo</button>
-          <button className="nk-button nk-button-quiet" type="button" onClick={onRestrict}><IconBan size={15} /> Restringir</button>
+          <button className="nk-button nk-button-quiet" type="button" onClick={onRestrict}><IconBan size={15} /> No habilitar</button>
         </>}
       </div>
       {!isRestricted && activeAssignments.length > 0 && <p className="nk-person-text-sub">La asignación modifica la disponibilidad, no la relación laboral. Para devolver la persona al pool se retiran sus asignaciones operacionales y quedan registradas en el historial.</p>}
@@ -410,10 +410,10 @@ export default function FichaTrabajadorPage() {
   }
 
   function handleRestrict() {
-    if (!restrictionReason.trim()) { setError('Indica el motivo de la restricción.'); return }
+    if (!restrictionReason.trim()) { setError('Indica el motivo de la no habilitación.'); return }
     const today = new Date().toISOString().split('T')[0]
     persistLifecycle({
-      reason: `Restricción registrada para ${worker.nombre}: ${restrictionReason.trim()}`,
+      reason: `No habilitación registrada para ${worker.nombre}: ${restrictionReason.trim()}`,
       workerPatch: { bloqueado: true, disponibilidad: 'bloqueado' },
       assignmentsMapper: list => list.map(item => item.trabId === id && assignmentIsOperational(item) ? { ...item, estado: 'suspendido_por_restriccion', suspendedAt: new Date().toISOString() } : item),
       restrictionsMapper: list => [...list, { id: `res_${Date.now()}`, workerId: id, persona: worker.nombre, motivo: restrictionReason.trim(), desde: today, alcance: 'operacional', estado: 'vigente', activa: true, createdAt: new Date().toISOString() }],
@@ -423,7 +423,7 @@ export default function FichaTrabajadorPage() {
 
   function handleLiftRestriction() {
     persistLifecycle({
-      reason: `Restricción levantada para ${worker.nombre}`,
+      reason: `No habilitación levantada para ${worker.nombre}`,
       workerPatch: { bloqueado: false, disponibilidad: 'disponible' },
       restrictionsMapper: list => list.map(item => String(item.workerId || item.trabId || item.personaId) === String(id) && hasActiveRestriction(worker, [item]) ? { ...item, activa: false, estado: 'levantada', levantadaAt: new Date().toISOString() } : item),
     })
@@ -442,7 +442,7 @@ export default function FichaTrabajadorPage() {
     <main className="nk-person-content">
       {tab === 'datos' && <>
         <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
-        {restricting && <CardSection title="Restringir persona" subtitle="La restricción suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar restricción</button></div></CardSection>}
+        {restricting && <CardSection title="No habilitar persona" subtitle="La no habilitación suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar no habilitación</button></div></CardSection>}
       </>}
       {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}
       {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}

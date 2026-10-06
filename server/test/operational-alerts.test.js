@@ -20,6 +20,12 @@ test('does not duplicate an identity alert when both sides and its expiry are re
   assert.equal(alerts.filter(alert => alert.trabId === worker.id).length, 6)
 })
 
+test('describes an operationally blocked person as not enabled', () => {
+  const alerts = operationalAlerts({ trabajadores: [{ ...worker, bloqueado: true }] })
+
+  assert.ok(alerts.some(alert => alert.msg.includes('persona no habilitada para operar')))
+})
+
 test('uses a complete replacement evidence when an older record is incomplete', () => {
   const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [
     { id: 'identity-old', type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front-old' }] },

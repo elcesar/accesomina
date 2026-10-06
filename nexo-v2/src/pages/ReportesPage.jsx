@@ -31,7 +31,7 @@ const MODULES = {
   formacion: { label: 'Formación y certificaciones', get: state => workerItems(state, 'curso').concat(workerItems(state, 'formac'), workerItems(state, 'certif')) },
   examenes: { label: 'Exámenes y aptitudes', get: state => workerItems(state, 'examen').concat(workerItems(state, 'aptitud')) },
   salud: { label: 'Salud ocupacional', get: state => rows(state.protocolosSalud) },
-  restricciones: { label: 'Restricciones', get: state => rows(state.restricted) },
+  restricciones: { label: 'No habilitaciones', get: state => rows(state.restricted) },
   credenciales: { label: 'Credenciales', get: state => rows(state.credenciales) },
   clientes: { label: 'Clientes', get: state => mergeReportCollections(state, 'minas', 'clientes') },
   contratos: { label: 'Contratos', get: state => rows(state.contratos) },
@@ -63,12 +63,12 @@ const MODULES = {
 }
 
 const CATEGORIES = [
-  { id: 'personas', name: 'Reportes de trabajadores', description: 'Personas, documentos, asignaciones por proyecto, turnos, EPP, formación, exámenes, credenciales, salud y restricciones.', modules: ['personas', 'documentos', 'asignaciones', 'turnos', 'epp', 'formacion', 'examenes', 'salud', 'restricciones', 'credenciales'] },
+  { id: 'personas', name: 'Reportes de trabajadores', description: 'Personas, documentos, asignaciones por proyecto, turnos, EPP, formación, exámenes, credenciales, salud y no habilitaciones.', modules: ['personas', 'documentos', 'asignaciones', 'turnos', 'epp', 'formacion', 'examenes', 'salud', 'restricciones', 'credenciales'] },
   { id: 'comercial', name: 'Reportes de clientes, contratos y proyectos', description: 'Clientes, contratos y firmas, órdenes de servicio, oportunidades y anotaciones del Libro de obra.', modules: ['clientes', 'contratos', 'firmas', 'ordenes', 'prospectos', 'libroObra'] },
   { id: 'operacion', name: 'Reportes de operación y servicios', description: 'Alojamientos, comunicaciones, incidentes, libro diario y acciones CAPA de ejecución.', modules: ['estadias', 'comunicaciones', 'incidentes', 'libroDiario', 'capa'] },
   { id: 'ejecutivos', name: 'Reportes ejecutivos', description: 'Indicadores consolidados de clientes, contratos, órdenes de servicio, personas y alertas.', modules: ['clientes', 'contratos', 'ordenes', 'personas', 'alertas'] },
   { id: 'activos', name: 'Reportes de flota y maquinaria', description: 'Vehículos, maquinaria, inventario, movimientos, bodegas, mantenimiento y préstamos.', modules: ['vehiculos', 'maquinaria', 'inventario', 'movimientos', 'bodegas', 'mantenimiento', 'prestamos'] },
-  { id: 'cumplimiento', name: 'Reportes de auditoría y cumplimiento', description: 'Documentación corporativa, habilitación del cliente, incidentes, auditorías, salud, restricciones y alertas.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones', 'alertas'] },
+  { id: 'cumplimiento', name: 'Reportes de auditoría y cumplimiento', description: 'Documentación corporativa, habilitación del cliente, incidentes, auditorías, salud, no habilitaciones y alertas.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones', 'alertas'] },
   { id: 'contratistas', name: 'Reportes de contratistas', description: 'Terceros y subcontratos, convenios, personas colaboradoras, habilitaciones y evaluaciones.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
 ]
 
