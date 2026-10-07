@@ -210,7 +210,7 @@ async function removeWorkerFile(fileId) {
   return api.delete(`/files/${encodeURIComponent(fileId)}`)
 }
 
-function DocsTab({ worker, tabKey, onPersistItems, onError }) {
+function DocsTab({ worker, tabKey, onAppendItem, onPersistItems, onError }) {
   const fileRef = useRef(null)
   const checklistFileRef = useRef(null)
   const documentTypes = documentOptionsForTab(tabKey)
@@ -241,7 +241,7 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
         fileMeta = { fileId: uploaded.id, fileName: uploaded.original_name || selectedFile.name, fileType: uploaded.content_type, fileSize: uploaded.byte_size }
       }
       const item = { ...form, type: workerItemType(rule.code, form.name), documentType: rule.code, vence: rule.expiration === 'never' ? '' : form.vence, ...fileMeta, id: `d_${Date.now()}`, cargado: new Date().toISOString().split('T')[0] }
-      await onPersistItems([...(worker.workerItems || []), item], `Documento agregado: ${form.name}`)
+      await onAppendItem(item, `Documento agregado: ${form.name}`)
       uploadedFiles = []
       setForm({ documentType: documentTypes[0]?.value || 'OTHER', name: '', vence: '', notes: '' }); setSelectedFile(null); setFrontFile(null); setBackFile(null)
       if (fileRef.current) fileRef.current.value = ''
@@ -266,8 +266,10 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
     event.target.value = ''
     if (!file || !req || uploading) return
     setUploading(true)
+    let uploadedFileId = null
     try {
       const uploaded = await uploadWorkerFile(worker.id, file)
+      uploadedFileId = uploaded.id
       const item = {
         id: `d_${Date.now()}`,
         type: req.type,
@@ -281,8 +283,9 @@ function DocsTab({ worker, tabKey, onPersistItems, onError }) {
         fileType: uploaded.content_type,
         fileSize: uploaded.byte_size,
       }
-      await onPersistItems([...(worker.workerItems || []), item], `Requisito cargado desde checklist: ${req.name}`)
+      await onAppendItem(item, `Requisito cargado desde checklist: ${req.name}`)
     } catch (e) {
+      if (uploadedFileId) await removeWorkerFile(uploadedFileId).catch(() => {})
       onError(e.message || 'Error al cargar el requisito')
     } finally {
       setUploading(false)
@@ -367,6 +370,17 @@ export default function FichaTrabajadorPage() {
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
   async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
   async function persistItems(items, reason) { try { const next = { ...worker, workerItems: items }; await persistWorker(next, reason); setOk('Documentación actualizada'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar documentación'); throw e } }
+  async function appendDocument(item, reason) {
+    try {
+      const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })
+      setWorker(current => ({ ...current, workerItems: [...(current.workerItems || []), result.item || item] }))
+      setOk('Documentación actualizada')
+      setTimeout(() => setOk(null), 2500)
+    } catch (e) {
+      setError(e.message || 'Error al guardar documentación')
+      throw e
+    }
+  }
   // An assignment changes operational availability, never the person's employment link.
   async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
   async function handleAsignar(mantId, turno) { if (!mantId || assignments.some(a => a.trabId === id && a.mantId === mantId)) { if (mantId) setError('La persona ya está asignada a ese proyecto'); return } try { const next = [...assignments, { id: `asig_${Date.now()}`, mantId, trabId: id, turno, estado: 'confirmado' }]; await persistAssignments(next, 'asignado', `Asignación operacional de ${worker.nombre}`); setOk('Asignación guardada') } catch (e) { setError(e.message || 'Error al guardar asignación') } }
@@ -444,8 +458,8 @@ export default function FichaTrabajadorPage() {
         <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
         {restricting && <CardSection title="Restringir persona" subtitle="La restricción suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar restricción</button></div></CardSection>}
       </>}
-      {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onPersistItems={persistItems} onError={setError} />}
-      {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onPersistItems={persistItems} onError={setError} />}
+      {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onPersistItems={persistItems} onError={setError} />}
+      {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onAppendItem={appendDocument} onPersistItems={persistItems} onError={setError} />}
       {tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}
       {tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}
     </main>

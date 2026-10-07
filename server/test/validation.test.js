@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState } from '../validation.js';
+import { sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -165,4 +165,9 @@ test('worker document fallback never accepts a duplicate worker row',()=>{
   const current=validState(), proposed=structuredClone(current);
   proposed.trabajadores.push({...proposed.trabajadores[0]});
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),false);
+});
+test('direct document append accepts a second evidence despite an underage legacy worker',()=>{
+  const worker={id:'w1',nombre:'Sophia',nacimiento:'2016-01-01',workerItems:[{id:'contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}]};
+  assert.doesNotThrow(()=>validateWorkerDocumentAppend(worker,{id:'annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Anexo asociado al servicio'}));
+  assert.throws(()=>validateWorkerDocumentAppend(worker,{id:'duplicate',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
 });

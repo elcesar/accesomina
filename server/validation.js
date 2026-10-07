@@ -169,6 +169,16 @@ function validateAppendedWorkerItems(worker, previous, additions) {
   }
 }
 
+// A document is append-only evidence. Its validation must not depend on
+// unrelated legacy inconsistencies in the rest of the tenant state.
+export function validateWorkerDocumentAppend(worker, item) {
+  if (!worker?.id) conflict('La persona no existe.', 'WORKER_NOT_FOUND');
+  if (!item || typeof item !== 'object' || Array.isArray(item) || !String(item.id || '').trim() || !String(item.name || '').trim()) {
+    conflict('El documento requiere identificador y nombre.', 'INCOMPLETE_WORKER_DOCUMENT');
+  }
+  validateAppendedWorkerItems(worker, worker, [item]);
+}
+
 // New records must be safe on their own. Existing legacy data is diagnosed separately
 // instead of preventing a company from creating a valid new record.
 export function validateAppendChanges(current, proposed, keys) {

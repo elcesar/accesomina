@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
-import { enforceStateScope, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState } from '../validation.js';
+import { enforceStateScope, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -113,6 +113,32 @@ stateRouter.get('/', async (req, res) => {
   const modulePermissions=req.auth.permissions?.modules||{};rows=rows.filter(r=>modulePermissions[r.module_key]!==false);
   const state=normalizeTenantState(rowsToState(rows));
   res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
+});
+
+// Document evidence is appended independently from the full worker profile.
+// This prevents legacy data elsewhere from blocking a valid new evidence item.
+stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
+  if(req.auth.permissions?.modules?.trabajadores===false)return res.status(403).json({error:'MODULE_PERMISSION_DENIED'});
+  const workerId=String(req.params.workerId||'');
+  const result=await withTenant(req.auth.tenantId,async client=>{
+    await ensureModules(client,req.auth.tenantId,req.auth.userId);
+    const row=(await client.query(`SELECT data,version FROM tenant_module_state
+      WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE`,[req.auth.tenantId])).rows[0];
+    const workers=Array.isArray(row?.data)?row.data:[];
+    const workerIndex=workers.findIndex(worker=>String(worker?.id||'')===workerId);
+    if(workerIndex<0)return null;
+    const item=sanitizeJson(req.body?.item);
+    validateWorkerDocumentAppend(workers[workerIndex],item);
+    const nextWorkers=[...workers];
+    nextWorkers[workerIndex]={...workers[workerIndex],workerItems:[...(Array.isArray(workers[workerIndex].workerItems)?workers[workerIndex].workerItems:[]),item]};
+    const updated=(await client.query(`UPDATE tenant_module_state
+      SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
+      WHERE tenant_id=$1 AND module_key='trabajadores' RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:String(item.id),action:'worker.document_added',newValue:{workerId,item,reason:String(req.body?.reason||'Documento agregado').slice(0,500)}});
+    return {item,moduleVersion:Number(updated.version)};
+  });
+  if(!result)return res.status(404).json({error:'WORKER_NOT_FOUND'});
+  res.status(201).json(result);
 });
 
 stateRouter.put('/modules',editors,async(req,res)=>{
