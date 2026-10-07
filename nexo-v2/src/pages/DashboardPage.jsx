@@ -53,14 +53,14 @@ export default function DashboardPage() {
   const derived = useMemo(() => {
     const people = rows(state.trabajadores)
     const alerts = operationalAlerts(state)
-    const restrictions = rows(state.restricted).filter(activeRestriction)
+    const no habilitations = rows(state.no habilitated).filter(activeRestriction)
     const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
     const assignments = rows(state.asignaciones)
     const shifts = rows(state.turnos)
     const orders = rows(state.mantenciones).filter(item => !['cerrada', 'cancelada'].includes(String(item.estado || '').toLowerCase()))
     const today = new Date().toISOString().slice(0, 10)
 
-    const restrictedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
+    const no habilitatedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
     people.forEach(person => { if (isRestricted(person)) restrictedIds.add(String(person.id)) })
 
     const assignedIds = new Set(assignments.filter(item => ACTIVE_ASSIGNMENT_STAGES.has(assignmentStage(item))).map(item => String(item.trabId)).filter(Boolean))
@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
   const priorities = [
     derived.alertCounts.critical > 0 && { label: `${derived.alertCounts.critical} alerta${derived.alertCounts.critical === 1 ? '' : 's'} crítica${derived.alertCounts.critical === 1 ? '' : 's'} o vencida${derived.alertCounts.critical === 1 ? '' : 's'}`, to: '/app/alertas?categoria=critical' },
-    derived.restricted > 0 && { label: `${derived.restricted} persona${derived.restricted === 1 ? '' : 's'} restringida${derived.restricted === 1 ? '' : 's'}`, to: '/app/bloqueados' },
+    derived.restricted > 0 && { label: `${derived.restricted} persona${derived.restricted === 1 ? '' : 's'} no habilitada${derived.restricted === 1 ? '' : 's'}`, to: '/app/bloqueados' },
     derived.alertCounts.upcoming > 0 && { label: `${derived.alertCounts.upcoming} alerta${derived.alertCounts.upcoming === 1 ? '' : 's'} próxima${derived.alertCounts.upcoming === 1 ? '' : 's'} a vencer`, to: '/app/alertas?categoria=upcoming' },
     derived.eppDue > 0 && { label: `${derived.eppDue} entrega${derived.eppDue === 1 ? '' : 's'} EPP requiere${derived.eppDue === 1 ? '' : 'n'} reposición`, to: '/app/epp' },
     derived.alertCounts.operation > 0 && { label: `${derived.alertCounts.operation} pendiente${derived.alertCounts.operation === 1 ? '' : 's'} operacional${derived.alertCounts.operation === 1 ? '' : 'es'}`, to: '/app/alertas?categoria=operation' },
@@ -108,7 +108,7 @@ export default function DashboardPage() {
   return <section className="nk-dashboard">
     <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p>{updatedAt && <small className="nk-dashboard-updated">Actualizado a las {updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small>}</div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
     {error && <div className="nk-control-feedback"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
-    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas restringidas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
+    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas no habilitadas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
     <section className="nk-role-focus"><div><p className="nk-module-kicker">Tu prioridad hoy</p><h2>{roleFocus.title}</h2><span>{roleFocus.copy}</span></div><button className="nk-button nk-button-primary" type="button" onClick={() => navigate(roleFocus.to)}>{roleFocus.action}<IconArrowRight size={16}/></button></section>
     <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <div className="nk-module-empty"><IconClipboardCheck size={26}/><b>Sin brechas críticas detectadas</b><span>Las restricciones, vencimientos y reposiciones aparecerán aquí.</span></div>}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
   </section>

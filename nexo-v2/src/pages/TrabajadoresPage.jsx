@@ -106,7 +106,7 @@ function LinkTypeBadge({ segment }) {
     planta: ['nk-badge-none', 'Trabajador fijo'],
     esporadico: ['nk-badge-warn', 'Trabajador por proyecto'],
     disponible: ['nk-badge-ok', 'Trabajador disponible'],
-    bloqueados: ['nk-badge-error', 'Restringido'],
+    bloqueados: ['nk-badge-error', 'No habilitado'],
   }
   const [className, label] = labels[segment] || labels.disponible
   return <span className={`nk-badge ${className}`}>{label}</span>
@@ -144,7 +144,7 @@ const TAB_LABELS = {
   planta: 'trabajadores con vínculo fijo',
   esporadico: 'trabajadores vinculados por proyecto',
   disponible: 'trabajadores disponibles',
-  bloqueados: 'trabajadores restringidos',
+  bloqueados: 'trabajadores no habilitados',
 }
 
 export default function TrabajadoresPage() {

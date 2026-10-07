@@ -37,7 +37,7 @@ const NAV = [
       { to: '/app/cursos', label: 'Formación y certificaciones', icon: IconSchool },
       { to: '/app/examenes', label: 'Exámenes y aptitudes', icon: IconMicroscope },
       { to: '/app/salud', label: 'Salud ocupacional', icon: IconStethoscope },
-      { to: '/app/bloqueados', label: 'Restringidos', icon: IconBan },
+      { to: '/app/bloqueados', label: 'No habilitados', icon: IconBan },
     ],
   },
   {

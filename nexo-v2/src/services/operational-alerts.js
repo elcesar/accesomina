@@ -65,7 +65,7 @@ export function deriveOperationalAlerts(state) {
     })
 
     if (isRestricted(person)) {
-      derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona restringida para operar`, derived: true })
+      derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona no habilitada para operar`, derived: true })
     }
   })
 
