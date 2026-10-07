@@ -61,8 +61,8 @@
 }
 
 .nk-person-step.is-done .nk-person-step-marker {
-  background: var(--nk-state-ok);
-  color: var(--nk-on-primary);
+  background: var(--nk-action);
+  color: var(--nk-on-action);
 }
 
 .nk-person-step-label {
@@ -73,7 +73,7 @@
 }
 
 .nk-person-step.is-active .nk-person-step-label { color: var(--nk-primary); font-weight: var(--nk-weight-bold); }
-.nk-person-step.is-done .nk-person-step-label { color: var(--nk-state-ok); }
+.nk-person-step.is-done .nk-person-step-label { color: var(--nk-action); }
 
 .nk-person-step-connector {
   flex: 1;
@@ -82,7 +82,7 @@
   background: var(--nk-line);
   transition: background-color var(--nk-motion-normal) var(--nk-motion-curve);
 }
-.nk-person-step.is-done .nk-person-step-connector { background: var(--nk-state-ok); }
+.nk-person-step.is-done .nk-person-step-connector { background: var(--nk-action); }
 
 .nk-person-create-scroll {
   flex: 1;
@@ -227,10 +227,6 @@
   padding-top: var(--nk-space-5);
   border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
-
-.nk-button-success { background: var(--nk-state-ok); color: var(--nk-on-primary); }
-.nk-button-success:hover:not(:disabled) { box-shadow: var(--nk-elev-1); }
-.nk-button-success:focus-visible { outline: var(--nk-focus-width) solid var(--nk-focus); outline-offset: var(--nk-focus-offset); }
 
 @media (max-width: 48rem) {
   .nk-person-stepper { overflow-x: auto; }
