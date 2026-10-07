@@ -143,7 +143,7 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
   </div>
 }
 
-const SEGMENTS=[['todos','Todas'],['permanente','Trabajador fijo'],['esporadico','Trabajador por proyecto'],['disponible','Trabajador disponible'],['bloqueado','Restringidos']]
+const SEGMENTS=[['todos','Todas'],['permanente','Trabajador fijo'],['esporadico','Trabajador por proyecto'],['disponible','Trabajador disponible'],['bloqueado','No habilitados']]
 
 export default function ProteccionEppPage() {
   const navigate = useNavigate()

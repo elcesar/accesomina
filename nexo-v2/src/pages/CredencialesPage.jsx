@@ -52,7 +52,7 @@ export default function CredencialesPage(){
   event.preventDefault();if(!canEdit)return
   if(!draft.trabId||!draft.minaId){setMessage('Selecciona persona y cliente/faena.');setMessageTone('error');return}
   const credentialWorker=workerById.get(String(draft.trabId))
-  if(isRestricted(credentialWorker)){setMessage('No puedes emitir una credencial para una persona restringida. Regulariza su habilitación antes de continuar.');setMessageTone('error');return}
+  if(isRestricted(credentialWorker)){setMessage('No puedes emitir una credencial para una persona no habilitada. Regulariza su habilitación antes de continuar.');setMessageTone('error');return}
   if(draft.numero&&credentials.some(x=>String(x.id)!==String(selectedId)&&String(x.minaId)===String(draft.minaId)&&normalize(x.numero)===normalize(draft.numero))){setMessage('Ya existe una credencial con ese número para el cliente seleccionado.');setMessageTone('error');return}
   if(draft.emision&&draft.vence&&draft.emision>draft.vence){setMessage('El vencimiento no puede ser anterior a la emisión.');setMessageTone('error');return}
   setSaving(true);setMessage('')

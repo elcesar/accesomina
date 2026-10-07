@@ -202,7 +202,7 @@ export default function TurnosPage() {
   const handleSave = async form => {
     const trabajador = trabajadores.find(item => String(item.id) === String(form.trabId))
     if (isRestricted(trabajador)) {
-      window.alert('La persona está restringida y no puede programarse en un turno.')
+      window.alert('La persona no está habilitada y no puede programarse en un turno.')
       return
     }
     setSaving(true)
