@@ -56,7 +56,7 @@ const MODULES = {
   auditoria: { label: 'Auditoría', get: state => rows(state.auditorias) },
   subcontratos: { label: 'Terceros y subcontratos', get: state => rows(state.subcontratos) },
   convenios: { label: 'Convenios', get: state => rows(state.convenios) },
-  personalContratista: { label: 'Personal del contratista', get: state => rows(state.personalContratista) },
+  personalContratista: { label: 'Trabajadores de la empresa colaboradora', get: state => rows(state.personalContratista) },
   habilitaciones: { label: 'Habilitaciones', get: state => rows(state.habilitaciones) },
   evaluaciones: { label: 'Evaluaciones', get: state => rows(state.evaluaciones) },
   alertas: { label: 'Alertas operacionales', get: state => operationalAlerts(state) },
@@ -69,7 +69,7 @@ const CATEGORIES = [
   { id: 'ejecutivos', name: 'Reportes ejecutivos', description: 'Indicadores consolidados de clientes, contratos, órdenes de servicio, personas y alertas.', modules: ['clientes', 'contratos', 'ordenes', 'personas', 'alertas'] },
   { id: 'activos', name: 'Reportes de flota y maquinaria', description: 'Vehículos, maquinaria, inventario, movimientos, bodegas, mantenimiento y préstamos.', modules: ['vehiculos', 'maquinaria', 'inventario', 'movimientos', 'bodegas', 'mantenimiento', 'prestamos'] },
   { id: 'cumplimiento', name: 'Reportes de auditoría y cumplimiento', description: 'Documentación corporativa, habilitación del cliente, incidentes, auditorías, salud, restricciones y alertas.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones', 'alertas'] },
-  { id: 'contratistas', name: 'Reportes de contratistas', description: 'Terceros y subcontratos, convenios, personas colaboradoras, habilitaciones y evaluaciones.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
+  { id: 'terceros', name: 'Reportes de terceros', description: 'Terceros y subcontratos, convenios, trabajadores de empresas colaboradoras, habilitaciones y evaluaciones.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
 ]
 
 const csvEscape = value => `"${String(value ?? '').replaceAll('"', '""')}"`

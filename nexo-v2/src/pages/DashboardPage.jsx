@@ -99,7 +99,7 @@ export default function DashboardPage() {
   const roleFocus = {
     rrhh: { title: 'Personas y asignaciones', copy: 'Revisa disponibilidad, habilitación y personas que requieren intervención.', action: 'Ver personas', to: '/app/trabajadores' },
     prevencion: { title: 'Cumplimiento preventivo', copy: 'Prioriza EPP, restricciones y alertas antes de la operación.', action: 'Ver alertas', to: '/app/alertas' },
-    acreditacion: { title: 'Habilitación y evidencia', copy: 'Revisa vencimientos y brechas que pueden impedir la habilitación.', action: 'Ver habilitación', to: '/app/acreditacion-mandante' },
+    acreditacion: { title: 'Habilitación y evidencia', copy: 'Revisa vencimientos y brechas que pueden impedir la habilitación.', action: 'Ver habilitación', to: '/app/habilitacion-cliente' },
     client_admin: { title: 'Control de la empresa', copy: 'Mantén visibles operación, dotación y brechas críticas desde una sola vista.', action: 'Ver centro operativo', to: '/app/operaciones' },
     domian_admin: { title: 'Control de la empresa', copy: 'Mantén visibles operación, dotación y brechas críticas desde una sola vista.', action: 'Ver centro operativo', to: '/app/operaciones' },
     consulta: { title: 'Consulta de operación', copy: 'Revisa el estado actualizado de personas, órdenes y alertas.', action: 'Ver alertas', to: '/app/alertas' },

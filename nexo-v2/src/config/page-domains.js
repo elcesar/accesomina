@@ -17,12 +17,12 @@ const PAGE_DOMAINS = [
     prefixes: ['/app/llamados', '/app/comunicaciones', '/app/vehiculos', '/app/hoteleria', '/app/credenciales'],
   },
   {
-    label: 'Contratistas',
+    label: 'Terceros',
     prefixes: ['/app/subcontratos', '/app/convenios', '/app/personal-contratista', '/app/habilitaciones-contratistas', '/app/evaluacion-desempeno'],
   },
   {
     label: 'Cumplimiento y Calidad',
-    prefixes: ['/app/acreditacion-empresa', '/app/acreditacion-mandante', '/app/incidentes', '/app/auditoria'],
+    prefixes: ['/app/acreditacion-empresa', '/app/habilitacion-cliente', '/app/acreditacion-mandante', '/app/incidentes', '/app/auditoria'],
   },
   {
     label: 'Gestión de Proyectos y Negocios',

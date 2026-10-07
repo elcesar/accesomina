@@ -14,7 +14,7 @@ const TYPES = [
   { id: 'vehiculos', label: 'Vehículos' },
   { id: 'hoteles', label: 'Alojamientos' },
   { id: 'credenciales', label: 'Credenciales' },
-  { id: 'subcontratos', label: 'Contratistas' },
+  { id: 'subcontratos', label: 'Terceros' },
   { id: 'documentos', label: 'Documentos importados' },
 ]
 

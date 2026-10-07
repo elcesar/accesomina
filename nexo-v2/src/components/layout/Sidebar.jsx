@@ -51,8 +51,8 @@ const NAV = [
     ],
   },
   {
-    key: 'contratistas',
-    label: 'Contratistas',
+    key: 'terceros',
+    label: 'Terceros',
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
       { to: '/app/convenios', label: 'Convenios y contratos de terceros', icon: IconFileText },
@@ -75,7 +75,7 @@ const NAV = [
     label: 'Cumplimiento y calidad',
     items: [
       { to: '/app/acreditacion-empresa', label: 'Documentación de la empresa', icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación del cliente', icon: IconCircleCheck },
+      { to: '/app/habilitacion-cliente', label: 'Habilitación del cliente', icon: IconCircleCheck },
       { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
       { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
     ],

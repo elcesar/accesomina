@@ -88,6 +88,10 @@ function LegacyOrderServiceRedirect() {
   return <Navigate to={`/app/servicios/${orderId}`} replace />
 }
 
+function LegacyClientAccreditationRedirect() {
+  return <Navigate to="/app/habilitacion-cliente" replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -126,7 +130,8 @@ export default function App() {
             <Route path="habilitaciones-contratistas" element={<HabilitacionesCumplimientoPage />} />
             <Route path="evaluacion-desempeno" element={<EvaluacionDesempenoPage />} />
             <Route path="acreditacion-empresa" element={<CumplimientoCorporativoPage />} />
-            <Route path="acreditacion-mandante" element={<HabilitacionClientePage />} />
+            <Route path="habilitacion-cliente" element={<HabilitacionClientePage />} />
+            <Route path="acreditacion-mandante" element={<LegacyClientAccreditationRedirect />} />
             <Route path="incidentes" element={<IncidentesPage />} />
             <Route path="auditoria" element={<AuditoriaPage />} />
             <Route path="libro-obra" element={<LibroObraPage />} />
