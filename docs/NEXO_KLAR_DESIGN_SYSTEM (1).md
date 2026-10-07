@@ -1,5 +1,5 @@
 # Nexo Klar — Design System Guide
-**Version 3.4 · Octubre 2026**
+**Version 3.5 · Octubre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
 > Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
@@ -95,6 +95,27 @@ Componentes compartidos principales:
 ```
 
 Máximo una acción primaria visible por contexto principal. Tablas: máximo recomendado de siete columnas sin personalización, acciones a la derecha e información necesaria para decidir antes que detalle exhaustivo.
+
+### Estados semánticos y color
+
+Los estados operacionales deben utilizar exclusivamente los tokens compartidos. El color expresa semántica y no decoración; por ello una página o módulo no puede redefinir localmente colores para estados equivalentes.
+
+Referencia visual oficial:
+
+| Estado | Semántica visual |
+| --- | --- |
+| **Vigente / correcto / habilitado** | turquesa, mediante `--nk-state-ok` y su superficie suave |
+| **Por vencer / atención** | ámbar, mediante `--nk-state-warn*` |
+| **No habilitado / error / bloqueo** | magenta, mediante `--nk-state-error*` |
+| **Sin información / neutro** | grafito, mediante `--nk-state-none*` |
+
+Los valores técnicos concretos pertenecen a `tokens.css`, que es la fuente de verdad. Este documento define su significado; no duplicar hexadecimales en CSS de página.
+
+Los badges deben combinar **texto + tratamiento visual + indicador complementario**. El significado nunca puede depender únicamente del color. Las variantes compartidas `.nk-badge-ok`, `.nk-badge-warn`, `.nk-badge-error` y `.nk-badge-none` se implementan en `components.css`; los módulos deben consumirlas y no recrearlas.
+
+Los colores de estado no deben utilizarse para acciones normales. En particular, **guardar, continuar o completar un alta no es un estado “correcto”**: la acción primaria utiliza la variante corporativa `.nk-button-primary`. Verde/turquesa, ámbar o magenta quedan reservados para comunicar estado, atención o error según corresponda.
+
+Los indicadores de progreso de un flujo (por ejemplo, pasos completados de un asistente) representan navegación/progreso y deben usar la jerarquía de acción/marca definida por el sistema, no el color semántico de estado `ok`, salvo que el componente comunique explícitamente un resultado de validación o estado operacional.
 
 Usar Tabler Icons outline. No usar emojis como iconos funcionales.
 
