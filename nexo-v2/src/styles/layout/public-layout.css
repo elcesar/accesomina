@@ -130,8 +130,8 @@
     gap: var(--nk-space-2);
   }
 
-  .nk-public-contact,
-  .nk-public-create-company,
+  .nk-public-nav-cta .nk-public-contact,
+  .nk-public-nav-cta .nk-public-create-company,
   .nk-public-section-tabs {
     display: none;
   }

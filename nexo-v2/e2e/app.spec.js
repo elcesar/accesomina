@@ -30,12 +30,12 @@ test('la navegación pública muestra una sección distinta por opción', async 
   await mockApi(page, { signedIn: false }); await page.goto('/')
   await expect(page.getByRole('heading', { name: /Convierte información dispersa/i })).toBeVisible()
   await page.getByRole('button', { name: 'Plataforma' }).click(); await expect(page.getByRole('heading', { name: /De la oportunidad al servicio cerrado/i })).toBeVisible()
-  await page.getByRole('button', { name: 'Propósito' }).click(); await expect(page.getByRole('heading', { name: /Información clara que permanece/i })).toBeVisible()
+  await page.getByRole('button', { name: 'Propósito' }).click(); await expect(page.getByRole('heading', { name: /Creemos que las mejores decisiones/i })).toBeVisible()
 })
 
 test('un cliente puede iniciar sesión y llegar al panel de control', async ({ page }) => {
   await mockApi(page, { signedIn: false }); await page.goto('/login')
-  await page.locator('input[name="rut"]').fill('76.123.456-7'); await page.locator('input[name="email"]').fill('cliente@empresa.cl'); await page.locator('input[name="password"]').fill('ClaveSegura123')
+  await page.locator('input[name="rut"]').fill('14.507.215-8'); await page.locator('input[name="email"]').fill('cliente@empresa.cl'); await page.locator('input[name="password"]').fill('ClaveSegura123')
   await page.getByRole('button', { name: 'Ingresar' }).click(); await expect(page).toHaveURL(/\/app$/); await expect(page.getByRole('heading', { name: 'Estado de la operación' })).toBeVisible()
 })
 
@@ -62,4 +62,19 @@ test('un Client Admin puede adjuntar un documento contractual', async ({ page })
 test('un usuario de consulta no recibe acciones de edición contractual', async ({ page }) => {
   await mockApi(page, { session: readOnlyUser }); await page.goto('/app/contratos/contrato-qa')
   await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0); await expect(page.getByRole('button', { name: /Adjuntar documento/i })).toHaveCount(0)
+})
+
+test('el menú público móvil queda visible y operable sin acciones superpuestas', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await mockApi(page, { signedIn: false }); await page.goto('/')
+  const menu = page.getByRole('button', { name: 'Abrir menú de secciones' })
+  await expect(page.locator('.nk-public-nav-cta .nk-public-contact')).toBeHidden()
+  await expect(page.locator('.nk-public-nav-cta .nk-public-create-company')).toBeHidden()
+  await expect(menu).toBeVisible()
+  const box = await menu.boundingBox()
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(375)
+  await menu.click()
+  await expect(page.locator('#public-section-menu')).toBeVisible()
+  await expect(page.locator('#public-section-menu').getByRole('button', { name: 'Propósito' })).toBeVisible()
 })
