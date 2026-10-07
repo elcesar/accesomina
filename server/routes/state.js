@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
+import { assertModuleAccess } from '../module-access.js';
 import { enforceStateScope, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 
 export const stateRouter = Router();
@@ -110,7 +111,7 @@ export function normalizeTenantState(state){
 
 stateRouter.get('/', async (req, res) => {
   let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1 ORDER BY module_key',[req.auth.tenantId])).rows;});
-  const modulePermissions=req.auth.permissions?.modules||{};rows=rows.filter(r=>modulePermissions[r.module_key]!==false);
+  rows=rows.filter(row=>{try{assertModuleAccess(req.auth,row.module_key);return true;}catch{return false;}});
   const state=normalizeTenantState(rowsToState(rows));
   res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
 });
@@ -141,12 +142,12 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
   res.status(201).json(result);
 });
 
-stateRouter.put('/modules',editors,async(req,res)=>{
+stateRouter.put('/modules',editors,async(req,res,next)=>{
   const changes=req.body?.changes;
   if(!changes||typeof changes!=='object'||Array.isArray(changes))return res.status(400).json({error:'MODULE_CHANGES_REQUIRED'});
   const keys=Object.keys(changes);
   if(!keys.length||keys.some(k=>!MODULE_KEY.test(k))||keys.length>30)return res.status(400).json({error:'INVALID_MODULE_KEY'});
-  if(keys.some(k=>req.auth.permissions?.modules?.[k]===false))return res.status(403).json({error:'MODULE_PERMISSION_DENIED'});
+  try { keys.forEach(key=>assertModuleAccess(req.auth,key)); } catch (error) { return next(error); }
   const result=await withTenant(req.auth.tenantId,async client=>{
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
