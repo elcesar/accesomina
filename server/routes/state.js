@@ -3,7 +3,7 @@ import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
 import { assertModuleAccess } from '../module-access.js';
-import { enforceStateScope, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
+import { enforceStateScope, removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -140,6 +140,53 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
   });
   if(!result)return res.status(404).json({error:'WORKER_NOT_FOUND'});
   res.status(201).json(result);
+});
+
+function documentFileIds(item) {
+  const ids = [item?.fileId, ...(Array.isArray(item?.files) ? item.files.map(file => file?.fileId) : [])];
+  return [...new Set(ids.map(id => String(id || '')).filter(Boolean))];
+}
+
+function referencedWorkerFileIds(workers) {
+  return new Set(workers.flatMap(worker =>
+    (Array.isArray(worker?.workerItems) ? worker.workerItems : []).flatMap(documentFileIds)
+  ));
+}
+
+// Delete one evidence independently from the complete worker profile. Legacy
+// values such as an old phone or birth date must not prevent this operation.
+stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,res)=>{
+  assertModuleAccess(req.auth,'trabajadores');
+  const workerId=String(req.params.workerId||''),documentId=String(req.params.documentId||'');
+  const result=await withTenant(req.auth.tenantId,async client=>{
+    await ensureModules(client,req.auth.tenantId,req.auth.userId);
+    const row=(await client.query(`SELECT data,version FROM tenant_module_state
+      WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE`,[req.auth.tenantId])).rows[0];
+    const workers=Array.isArray(row?.data)?row.data:[];
+    const workerIndex=workers.findIndex(worker=>String(worker?.id||'')===workerId);
+    if(workerIndex<0)return null;
+    const removed=removeWorkerDocument(workers[workerIndex],documentId);
+    const nextWorkers=[...workers];
+    nextWorkers[workerIndex]=removed.worker;
+    const stillReferenced=referencedWorkerFileIds(nextWorkers);
+    const removableFileIds=documentFileIds(removed.item).filter(fileId=>!stillReferenced.has(fileId));
+    const updated=(await client.query(`UPDATE tenant_module_state
+      SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
+      WHERE tenant_id=$1 AND module_key='trabajadores' RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
+    const deletedFileIds=[];
+    for(const fileId of removableFileIds){
+      const file=(await client.query(`UPDATE file_objects SET deleted_at=now()
+        WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL RETURNING id,original_name`,[fileId,req.auth.tenantId])).rows[0];
+      if(file){
+        deletedFileIds.push(file.id);
+        await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:file.id,action:'file.deleted_with_worker_document',oldValue:file,newValue:{workerId,documentId}});
+      }
+    }
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:documentId,action:'worker.document_removed',oldValue:{workerId,item:removed.item},newValue:{reason:'Documento eliminado',deletedFileIds}});
+    return {item:removed.item,moduleVersion:Number(updated.version),deletedFileIds};
+  });
+  if(!result)return res.status(404).json({error:'WORKER_NOT_FOUND'});
+  res.json(result);
 });
 
 stateRouter.put('/modules',editors,async(req,res,next)=>{
