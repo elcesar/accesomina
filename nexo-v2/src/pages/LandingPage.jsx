@@ -50,6 +50,16 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
+    if (!preview && !dialog) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [dialog, preview])
+
+  useEffect(() => {
     const syncSectionFromHash = () => {
       const hash = window.location.hash.replace('#', '')
       setActive(publicSections[hash] ? hash : 'inicio')
