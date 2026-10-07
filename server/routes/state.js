@@ -142,15 +142,39 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
   res.status(201).json(result);
 });
 
-function documentFileIds(item) {
+export function documentFileIds(item) {
   const ids = [item?.fileId, ...(Array.isArray(item?.files) ? item.files.map(file => file?.fileId) : [])];
   return [...new Set(ids.map(id => String(id || '')).filter(Boolean))];
 }
 
-function referencedWorkerFileIds(workers) {
-  return new Set(workers.flatMap(worker =>
-    (Array.isArray(worker?.workerItems) ? worker.workerItems : []).flatMap(documentFileIds)
-  ));
+// Files are deduplicated per tenant. A reference can therefore live in another
+// module or in an operational verification, not only in a worker document.
+export function referencedFileIds(value) {
+  const ids = new Set();
+  const visit = current => {
+    if (Array.isArray(current)) return current.forEach(visit);
+    if (!current || typeof current !== 'object') return;
+    for (const [key, nested] of Object.entries(current)) {
+      if ((key === 'fileId' || key === 'file_id') && nested) ids.add(String(nested));
+      else visit(nested);
+    }
+  };
+  visit(value);
+  return ids;
+}
+
+export async function referencedFileIdsOutsideRemovedDocument(client, tenantId, nextWorkers, candidateFileIds) {
+  const referenced = referencedFileIds(nextWorkers);
+  const moduleRows = (await client.query(`SELECT data FROM tenant_module_state
+    WHERE tenant_id=$1 AND module_key <> 'trabajadores'`, [tenantId])).rows;
+  for (const id of referencedFileIds(moduleRows.map(row => row.data))) referenced.add(id);
+
+  if (candidateFileIds.length) {
+    const verificationRows = (await client.query(`SELECT file_id FROM document_verifications
+      WHERE tenant_id=$1 AND file_id = ANY($2::uuid[])`, [tenantId, candidateFileIds])).rows;
+    for (const row of verificationRows) referenced.add(String(row.file_id));
+  }
+  return referenced;
 }
 
 // Delete one evidence independently from the complete worker profile. Legacy
@@ -168,8 +192,9 @@ stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,
     const removed=removeWorkerDocument(workers[workerIndex],documentId);
     const nextWorkers=[...workers];
     nextWorkers[workerIndex]=removed.worker;
-    const stillReferenced=referencedWorkerFileIds(nextWorkers);
-    const removableFileIds=documentFileIds(removed.item).filter(fileId=>!stillReferenced.has(fileId));
+    const removedFileIds=documentFileIds(removed.item);
+    const stillReferenced=await referencedFileIdsOutsideRemovedDocument(client,req.auth.tenantId,nextWorkers,removedFileIds);
+    const removableFileIds=removedFileIds.filter(fileId=>!stillReferenced.has(fileId));
     const updated=(await client.query(`UPDATE tenant_module_state
       SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
       WHERE tenant_id=$1 AND module_key='trabajadores' RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];

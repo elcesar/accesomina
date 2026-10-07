@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
+import { documentFileIds, referencedFileIds, referencedFileIdsOutsideRemovedDocument } from '../routes/state.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -181,4 +182,30 @@ test('atomic worker document removal permits a later replacement despite legacy 
   assert.deepEqual(removed.worker.workerItems.map(item=>item.id),['annex']);
   assert.doesNotThrow(()=>validateWorkerDocumentAppend(removed.worker,{id:'contract-replacement',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',fileId:'file-replacement'}));
   assert.throws(()=>removeWorkerDocument(worker,'missing'),error=>error.code==='WORKER_DOCUMENT_NOT_FOUND');
+});
+test('file reference collection preserves shared evidence across every tenant module',()=>{
+  const shared={id:'shared',files:[{side:'front',fileId:'file-front'},{side:'back',fileId:'file-back'}]};
+  assert.deepEqual(documentFileIds(shared),['file-front','file-back']);
+
+  const remainingWorkers=[{id:'worker-b',workerItems:[{id:'other-document',fileId:'file-back'}]}];
+  const otherModules={incidentes:[{id:'incident-1',evidence:{fileId:'file-front'}}]};
+  const referenced=new Set([...referencedFileIds(remainingWorkers),...referencedFileIds(otherModules)]);
+
+  assert.equal(referenced.has('file-exclusive'),false,'an exclusive file can be deleted');
+  assert.equal(referenced.has('file-front'),true,'a file referenced by another module is retained');
+  assert.equal(referenced.has('file-back'),true,'a file referenced by another worker evidence is retained');
+});
+test('document removal keeps files referenced by another module or verification',async()=>{
+  const client={query:async(sql)=>{
+    if(sql.includes('SELECT data FROM tenant_module_state'))return {rows:[{data:{incidentes:[{evidence:{fileId:'file-in-incident'}}]}}]};
+    if(sql.includes('SELECT file_id FROM document_verifications'))return {rows:[{file_id:'file-in-verification'}]};
+    throw new Error(`Unexpected query: ${sql}`);
+  }};
+  const referenced=await referencedFileIdsOutsideRemovedDocument(client,'tenant-1',[
+    {id:'worker-b',workerItems:[{id:'document-b',files:[{fileId:'file-shared-worker'}]}]},
+  ],['file-exclusive','file-shared-worker','file-in-incident','file-in-verification']);
+  assert.equal(referenced.has('file-exclusive'),false,'exclusive evidence is eligible for removal');
+  assert.equal(referenced.has('file-shared-worker'),true,'shared worker evidence is retained');
+  assert.equal(referenced.has('file-in-incident'),true,'another module reference is retained');
+  assert.equal(referenced.has('file-in-verification'),true,'operational verification reference is retained');
 });
