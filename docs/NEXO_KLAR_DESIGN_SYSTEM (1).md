@@ -1,5 +1,5 @@
 # Nexo Klar — Design System Guide
-**Version 3.3 · Septiembre 2026**
+**Version 3.4 · Octubre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
 > Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
@@ -356,3 +356,141 @@ La protección frente a pérdida accidental de información es un patrón transv
 - El mensaje dentro de la aplicación debe indicar claramente que salir descartará la información ingresada.
 
 La implementación específica puede variar según el router o formulario, pero debe conservar este comportamiento funcional en todos los módulos.
+
+
+---
+
+## 7. Responsive y experiencia móvil
+
+El comportamiento responsive es un patrón transversal de Nexo Klar. No debe resolverse como una colección de correcciones aisladas por pantalla: cada módulo debe conservar la jerarquía de información, las acciones críticas y la accesibilidad al reducir el viewport.
+
+### 7.1 Breakpoints oficiales
+
+Los puntos de referencia del Design System son:
+
+```text
+≤ 1024 px  → modo compacto / tablet
+≤ 768 px   → modo móvil estructural
+≤ 480 px   → teléfono compacto
+```
+
+Estos valores son decisiones del sistema y no deben redefinirse arbitrariamente por página. CSS estándar no permite usar custom properties directamente como condición de `@media`; por ello los valores se documentan aquí y se escriben explícitamente en las media queries.
+
+Un componente puede necesitar una adaptación intrínseca adicional por su contenido, pero no debe introducir un nuevo breakpoint global sin actualizar primero este Design System.
+
+### 7.2 Jerarquía de implementación
+
+La responsabilidad responsive sigue la arquitectura visual oficial:
+
+```text
+Design System / tokens
+    ↓
+reglas y componentes globales
+    ↓
+layout
+    ↓
+componente
+    ↓
+página / excepción
+```
+
+- **Design System / tokens:** define breakpoints, espaciados, tamaños y principios compartidos.
+- **`components.css`:** define el comportamiento responsive de componentes reutilizables cuando el patrón es transversal.
+- **CSS de layout:** adapta estructuras como Header, Sidebar, navegación pública, contenedores y composición general.
+- **CSS de componente o módulo:** resuelve únicamente necesidades propias de ese componente.
+- **CSS de página:** es el último nivel. No debe crear un sistema responsive paralelo ni redefinir reglas globales.
+
+No crear un archivo o sistema visual “mobile” independiente. La experiencia móvil es una adaptación del mismo sistema de diseño.
+
+### 7.3 Comportamiento por rango
+
+**Hasta 1024 px · compacto/tablet**
+- la navegación que no cabe debe transformarse en un patrón compacto accesible; no ocultar destinos sin alternativa;
+- Sidebar y estructuras laterales pueden colapsar cuando corresponda;
+- grids deben reducir columnas antes de provocar desbordamiento;
+- acciones principales deben permanecer disponibles.
+
+**Hasta 768 px · móvil estructural**
+- priorizar una columna para formularios y contenido secuencial;
+- permitir que grupos de acciones se reorganicen verticalmente;
+- preservar primero título, contexto, estado y acción principal;
+- tablas deben utilizar una estrategia explícita de adaptación: scroll interno controlado o representación alternativa, según el tipo de información.
+
+**Hasta 480 px · teléfono compacto**
+- reducir padding horizontal utilizando los tokens existentes;
+- evitar controles dependientes de hover;
+- asegurar que navegación, acciones y campos puedan utilizarse sin zoom ni desplazamiento horizontal de la página;
+- las acciones secundarias pueden reorganizarse, pero no desplazar ni ocultar la acción crítica.
+
+### 7.4 Reglas UX obligatorias
+
+En cualquier viewport:
+
+1. no debe existir scroll horizontal de la página como solución de layout;
+2. ninguna función crítica puede desaparecer únicamente por falta de espacio;
+3. el orden visual debe conservar la jerarquía semántica y un orden de foco lógico;
+4. labels de formularios permanecen visibles y asociados a sus controles;
+5. diálogos y paneles deben caber dentro del viewport; si el contenido excede la altura disponible, el scroll debe ocurrir dentro del contenedor apropiado y no dejar acciones críticas inaccesibles;
+6. tablas no deben comprimirse hasta volver ilegible su contenido;
+7. controles interactivos deben mantener un área táctil suficiente y separación que evite activaciones accidentales;
+8. no depender exclusivamente de hover para descubrir información o acciones;
+9. estados, errores y feedback deben seguir visibles y comprensibles;
+10. el cambio de presentación no debe alterar permisos, reglas de negocio ni significado de la información.
+
+### 7.5 Navegación responsive
+
+Cuando una navegación horizontal deje de ser utilizable, debe reemplazarse por una alternativa compacta que contenga los mismos destinos relevantes.
+
+El control que abre/cierra navegación debe:
+- indicar su propósito mediante nombre accesible;
+- exponer `aria-expanded`;
+- asociarse al contenedor mediante `aria-controls`;
+- conservar `aria-current="page"` para la sección activa cuando corresponda;
+- cerrar o actualizar su estado después de una navegación;
+- ser operable mediante teclado.
+
+Ocultar una navegación mediante CSS sin ofrecer una alternativa accesible se considera defecto funcional de UX.
+
+### 7.6 Jerarquía móvil de contenido y acciones
+
+Responsive no significa mostrar todo con el mismo peso en menos espacio. Al reorganizar una pantalla se debe conservar esta prioridad:
+
+```text
+Contexto / dominio
+Título
+Estado o información necesaria para decidir
+Acción primaria
+Contenido principal
+Acciones secundarias
+Detalle complementario
+```
+
+La reducción de viewport puede cambiar disposición, columnas, agrupación y densidad, pero no debe cambiar arbitrariamente la prioridad funcional.
+
+### 7.7 Tratamiento de defectos responsive
+
+Un problema responsive se considera **defecto** cuando una vista soportada:
+- genera overflow horizontal de página;
+- oculta contenido o una acción necesaria;
+- superpone, corta o vuelve ilegible información;
+- obliga a zoom para operar controles normales;
+- rompe el orden de navegación o foco;
+- deja diálogos, formularios, tablas o navegación sin una forma utilizable de acceso;
+- implementa un comportamiento contrario a este estándar.
+
+El lineamiento de corrección es **resolver el defecto en el nivel más alto reutilizable que corresponda**:
+
+```text
+¿Afecta a todo Nexo Klar?       → tokens / components.css
+¿Afecta a una estructura común? → CSS de layout
+¿Afecta a un componente?        → componente compartido
+¿Es realmente exclusivo?        → CSS de página
+```
+
+No corregir un defecto transversal copiando media queries en varias páginas. Si durante la corrección se descubre una regla reusable no contemplada por este documento, primero debe elevarse al Design System y luego implementarse.
+
+### 7.8 Criterio mínimo de aceptación
+
+Toda funcionalidad nueva o corrección visual debe comprobarse al menos en escritorio, 1024 px, 768 px y 375/480 px según corresponda. La validación debe confirmar ausencia de overflow de página, acceso a las acciones críticas, legibilidad, navegación operable, formularios utilizables y comportamiento correcto de diálogos.
+
+Un PR que modifica una estructura responsive debe indicar qué rangos fueron verificados y si el cambio pertenece a componente, layout o excepción de página.
