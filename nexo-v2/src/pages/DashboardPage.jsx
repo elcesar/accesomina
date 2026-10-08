@@ -53,14 +53,14 @@ export default function DashboardPage() {
   const derived = useMemo(() => {
     const people = rows(state.trabajadores)
     const alerts = operationalAlerts(state)
-    const no habilitations = rows(state.no habilitated).filter(activeRestriction)
+    const restrictions = rows(state.restricciones).filter(activeRestriction)
     const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
     const assignments = rows(state.asignaciones)
     const shifts = rows(state.turnos)
     const orders = rows(state.mantenciones).filter(item => !['cerrada', 'cancelada'].includes(String(item.estado || '').toLowerCase()))
     const today = new Date().toISOString().slice(0, 10)
 
-    const no habilitatedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
+    const restrictedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
     people.forEach(person => { if (isRestricted(person)) restrictedIds.add(String(person.id)) })
 
     const assignedIds = new Set(assignments.filter(item => ACTIVE_ASSIGNMENT_STAGES.has(assignmentStage(item))).map(item => String(item.trabId)).filter(Boolean))
