@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const derived = useMemo(() => {
     const people = rows(state.trabajadores)
     const alerts = operationalAlerts(state)
-    const restrictions = rows(state.restricciones).filter(activeRestriction)
+    const restrictions = rows(state.restricted).filter(activeRestriction)
     const deliveries = mergeCollections(state, 'eppDeliveries', 'eppEntregas')
     const assignments = rows(state.asignaciones)
     const shifts = rows(state.turnos)
