@@ -9,7 +9,7 @@ import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
-import { assignmentIsOperational, employmentRelationship, hasActiveNo habilitation, operationalStatus } from '../services/worker-segments.js'
+import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import { DOCUMENT_TYPE_OPTIONS, documentEvidenceMessage, documentRule, hasRequiredEvidence, workerItemType } from '../services/worker-document-rules.js'
@@ -135,7 +135,7 @@ function SaveButton({ saving, onClick }) {
   return <button className="nk-button nk-button-primary" type="button" onClick={onClick} disabled={saving}>{saving ? <IconLoader2 size={15} className="animate-spin" /> : <IconDeviceFloppy size={15} strokeWidth={1.7} />}{saving ? 'Guardando…' : 'Guardar cambios'}</button>
 }
 
-function DataTab({ worker, clientes, proyectos, contratos, asignaciones, no habilitations, saving, onChange, onSave, onAsignar, onRetirar, isNo habilitated, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
+function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
