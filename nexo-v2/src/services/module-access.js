@@ -1,4 +1,5 @@
 export const ROUTE_MODULES = [
+  ['/app/clientes', 'minas'],
   ['/app/trabajadores', 'trabajadores'],
   ['/app/reclutamiento', 'trabajadores'],
   ['/app/cursos', 'trabajadores'],

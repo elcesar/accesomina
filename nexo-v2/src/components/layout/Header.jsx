@@ -18,10 +18,10 @@ const roleLabel = value => String(value || 'usuario')
   .replace(/\b\w/g, letter => letter.toUpperCase())
 
 const activeModuleForPath = pathname => {
-  if (pathname.startsWith('/app/trabajadores')) return 'personas'
-  if (pathname.startsWith('/app/clientes')) return 'clientes'
+  if (pathname.startsWith('/app/trabajadores')) return 'trabajadores'
+  if (pathname.startsWith('/app/clientes')) return 'minas'
   if (pathname.startsWith('/app/contratos')) return 'contratos'
-  if (pathname.startsWith('/app/servicios')) return 'servicios'
+  if (pathname.startsWith('/app/servicios')) return 'mantenciones'
   return null
 }
 
@@ -70,7 +70,7 @@ export default function Header({ branding = {} }) {
       <div className="nk-global-actions" aria-label="Acciones globales">
         {canCreateGeneral && isEnabled('trabajadores') && (
           <button
-            className={createClass('personas')}
+            className={createClass('trabajadores')}
             type="button"
             onClick={() => navigate('/app/trabajadores/nuevo')}
           >
@@ -79,9 +79,9 @@ export default function Header({ branding = {} }) {
           </button>
         )}
 
-        {canCreateGeneral && (
+        {canCreateGeneral && isEnabled('minas') && (
           <button
-            className={createClass('clientes')}
+            className={createClass('minas')}
             type="button"
             onClick={() => navigate('/app/clientes/nuevo')}
           >
@@ -103,7 +103,7 @@ export default function Header({ branding = {} }) {
 
         {canCreateCommercial && isEnabled('mantenciones') && (
           <button
-            className={createClass('servicios')}
+            className={createClass('mantenciones')}
             type="button"
             onClick={() => navigate('/app/servicios/nuevo')}
           >

@@ -119,7 +119,7 @@ stateRouter.get('/', async (req, res) => {
 // Document evidence is appended independently from the full worker profile.
 // This prevents legacy data elsewhere from blocking a valid new evidence item.
 stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
-  if(req.auth.permissions?.modules?.trabajadores===false)return res.status(403).json({error:'MODULE_PERMISSION_DENIED'});
+  assertModuleAccess(req.auth,'trabajadores');
   const workerId=String(req.params.workerId||'');
   const result=await withTenant(req.auth.tenantId,async client=>{
     await ensureModules(client,req.auth.tenantId,req.auth.userId);

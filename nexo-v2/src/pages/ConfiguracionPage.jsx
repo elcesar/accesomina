@@ -6,6 +6,7 @@ import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
   ['trabajadores', 'Personas'],
+  ['minas', 'Clientes'],
   ['turnos', 'Turnos y asistencia'],
   ['epp', 'Protección personal / EPP'],
   ['mantenciones', 'Órdenes de servicio'],
