@@ -30,6 +30,8 @@ export const config = Object.freeze({
     secure: process.env.SMTP_SECURE === 'true', user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '', from: process.env.EMAIL_FROM || 'Nexo Klar <no-reply@nexoklar.com>'
   },
+  // Development may use the public inbox; production must explicitly configure it.
+  salesContactEmail: process.env.SALES_CONTACT_EMAIL || (process.env.NODE_ENV === 'production' ? '' : 'contacto@nexoklar.com'),
   whatsapp: {
     version: process.env.WHATSAPP_GRAPH_VERSION || 'v23.0',
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',

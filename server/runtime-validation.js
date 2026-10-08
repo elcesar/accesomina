@@ -1,3 +1,26 @@
+function hasValue(value) {
+  return Boolean(String(value || '').trim());
+}
+
+function isValidEmail(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/<([^<>]+)>$/);
+  const address = (match ? match[1] : raw).trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address);
+}
+
+function validateProductionSmtp(env, errors) {
+  for (const name of ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'EMAIL_FROM', 'SALES_CONTACT_EMAIL']) {
+    if (!hasValue(env[name])) errors.push(`${name} is required in production for demo request delivery`);
+  }
+
+  const port = Number(env.SMTP_PORT);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) errors.push('SMTP_PORT must be an integer between 1 and 65535 in production');
+  if (!['true', 'false'].includes(env.SMTP_SECURE)) errors.push('SMTP_SECURE must be explicitly true or false in production');
+  if (hasValue(env.EMAIL_FROM) && !isValidEmail(env.EMAIL_FROM)) errors.push('EMAIL_FROM must contain a valid sender email address in production');
+  if (hasValue(env.SALES_CONTACT_EMAIL) && !isValidEmail(env.SALES_CONTACT_EMAIL)) errors.push('SALES_CONTACT_EMAIL must be a valid commercial recipient email in production');
+}
+
 export function validateRuntimeEnvironment(env) {
   const errors = [];
   if (!env.DATABASE_URL) errors.push('DATABASE_URL is required');
@@ -25,6 +48,7 @@ export function validateRuntimeEnvironment(env) {
         if (new URL(env.DOCUMENT_AI_API_URL).protocol !== 'https:') errors.push('DOCUMENT_AI_API_URL must use HTTPS in production');
       } catch { errors.push('DOCUMENT_AI_API_URL must be a valid HTTPS URL'); }
     }
+    validateProductionSmtp(env, errors);
   }
   if (errors.length) throw new Error(`Invalid runtime configuration: ${errors.join('; ')}`);
 }

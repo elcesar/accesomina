@@ -121,25 +121,45 @@ const COMPANY_SIZES = ['Hasta 30', '31 a 75', '76 a 200', 'Más de 200']
 export function DemoRequestDialog({ onClose }) {
   const [form, setForm] = useState(INITIAL_DEMO_FORM)
   const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const updateField = (field, value) => {
     setForm(current => ({ ...current, [field]: value }))
     setErrors(current => ({ ...current, [field]: '' }))
   }
 
-  const submit = event => {
+  const fallbackMailto = () => {
+    const body = Object.entries(form)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n')
+    window.location.href = `mailto:contacto@nexoklar.com?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
+  }
+
+  const submit = async event => {
     event.preventDefault()
     const nextErrors = {}
     if (!form.nombre.trim()) nextErrors.nombre = 'Ingresa tu nombre.'
     if (!form.correo.trim()) nextErrors.correo = 'Ingresa tu correo de trabajo.'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
-    const body = Object.entries(form)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n')
-
-    window.location.href = `mailto:contacto@nexoklar.com?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
-    onClose()
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.message || 'No pudimos enviar tu solicitud en este momento.')
+      setSubmitted(true)
+    } catch (error) {
+      setSubmitError(error.message || 'No pudimos enviar tu solicitud en este momento.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -148,7 +168,10 @@ export function DemoRequestDialog({ onClose }) {
         Cuéntanos lo esencial y prepararemos una conversación enfocada en tu operación.
       </p>
 
-      <form className="nk-public-form" onSubmit={submit}>
+      {submitted ? <div className="nk-public-form" role="status">
+        <p className="nk-dialog-copy">Recibimos tu solicitud. El equipo de Nexo Klar te contactará pronto.</p>
+        <footer><button className="nk-button nk-button-primary" type="button" onClick={onClose}>Cerrar</button></footer>
+      </div> : <form className="nk-public-form" onSubmit={submit}>
         {BASIC_FIELDS.map(([key, label, placeholder]) => (
           <label key={key}>
             {label}{(key === 'nombre' || key === 'correo') ? ' (obligatorio)' : ''}
@@ -202,9 +225,13 @@ export function DemoRequestDialog({ onClose }) {
 
         <footer>
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="submit">Preparar solicitud</button>
+          <button className="nk-button nk-button-primary" type="submit" disabled={submitting}>{submitting ? 'Enviando…' : 'Enviar solicitud'}</button>
         </footer>
+        {submitError && <div className="nk-field-error" role="alert">
+          {submitError} <button className="nk-button nk-button-quiet" type="button" onClick={fallbackMailto}>Abrir correo como alternativa</button>
+        </div>}
       </form>
+      }
     </Dialog>
   )
 }
