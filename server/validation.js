@@ -179,6 +179,20 @@ export function validateWorkerDocumentAppend(worker, item) {
   validateAppendedWorkerItems(worker, worker, [item]);
 }
 
+// Removing a single evidence must not revalidate unrelated fields in a legacy
+// worker profile. The route persists only the resulting workerItems array.
+export function removeWorkerDocument(worker, documentId) {
+  if (!worker?.id) conflict('La persona no existe.', 'WORKER_NOT_FOUND');
+  const items = collection(worker, 'workerItems');
+  const index = items.findIndex(item => String(item?.id || '') === String(documentId || ''));
+  if (index < 0) conflict('No encontramos la evidencia que deseas eliminar.', 'WORKER_DOCUMENT_NOT_FOUND');
+  const item = items[index];
+  return {
+    item,
+    worker: { ...worker, workerItems: items.filter((_, itemIndex) => itemIndex !== index) },
+  };
+}
+
 // New records must be safe on their own. Existing legacy data is diagnosed separately
 // instead of preventing a company from creating a valid new record.
 export function validateAppendChanges(current, proposed, keys) {

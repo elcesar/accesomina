@@ -36,6 +36,7 @@ const ERROR_MESSAGES = {
   WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',
   INCOMPLETE_WORKER_DOCUMENT: 'Completa el tipo y nombre de la evidencia antes de guardarla.',
   WORKER_NOT_FOUND: 'No encontramos a la persona asociada a esta evidencia. Actualiza la ficha e inténtalo nuevamente.',
+  WORKER_DOCUMENT_NOT_FOUND: 'No encontramos la evidencia que deseas eliminar. Actualiza la ficha e inténtalo nuevamente.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
   DUPLICATE_ASSIGNMENT: 'La persona ya está asignada a esa orden de servicio.',
   DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',

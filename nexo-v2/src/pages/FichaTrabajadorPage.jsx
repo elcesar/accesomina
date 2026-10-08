@@ -210,7 +210,7 @@ async function removeWorkerFile(fileId) {
   return api.delete(`/files/${encodeURIComponent(fileId)}`)
 }
 
-function DocsTab({ worker, tabKey, onAppendItem, onPersistItems, onError }) {
+function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   const fileRef = useRef(null)
   const checklistFileRef = useRef(null)
   const documentTypes = documentOptionsForTab(tabKey)
@@ -294,8 +294,15 @@ function DocsTab({ worker, tabKey, onAppendItem, onPersistItems, onError }) {
   }
 
   async function eliminar(doc) {
-    const next = (worker.workerItems || []).filter(item => item.id !== doc.id)
-    await onPersistItems(next, `Documento eliminado: ${doc.name}`)
+    if (uploading) return
+    setUploading(true)
+    try {
+      await onRemoveItem(doc)
+    } catch (e) {
+      onError(e.message || 'Error al eliminar el documento')
+    } finally {
+      setUploading(false)
+    }
   }
 
   return <>
@@ -317,7 +324,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onPersistItems, onError }) {
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
     </CardSection>
   </>
 }
@@ -369,7 +376,6 @@ export default function FichaTrabajadorPage() {
   function onChange(field, value) { setWorker(current => ({ ...current, [field]: value })) }
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
   async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
-  async function persistItems(items, reason) { try { const next = { ...worker, workerItems: items }; await persistWorker(next, reason); setOk('Documentación actualizada'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar documentación'); throw e } }
   async function appendDocument(item, reason) {
     try {
       const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })
@@ -378,6 +384,17 @@ export default function FichaTrabajadorPage() {
       setTimeout(() => setOk(null), 2500)
     } catch (e) {
       setError(e.message || 'Error al guardar documentación')
+      throw e
+    }
+  }
+  async function removeDocument(item) {
+    try {
+      await api.delete(`/state/workers/${encodeURIComponent(id)}/documents/${encodeURIComponent(item.id)}`)
+      setWorker(current => ({ ...current, workerItems: (current.workerItems || []).filter(document => document.id !== item.id) }))
+      setOk('Documento eliminado')
+      setTimeout(() => setOk(null), 2500)
+    } catch (e) {
+      setError(e.message || 'Error al eliminar documentación')
       throw e
     }
   }
@@ -458,8 +475,8 @@ export default function FichaTrabajadorPage() {
         <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
         {restricting && <CardSection title="No habilitar persona" subtitle="La no habilitación suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar no habilitación</button></div></CardSection>}
       </>}
-      {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onPersistItems={persistItems} onError={setError} />}
-      {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onAppendItem={appendDocument} onPersistItems={persistItems} onError={setError} />}
+      {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}
+      {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}
       {tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}
       {tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}
     </main>
