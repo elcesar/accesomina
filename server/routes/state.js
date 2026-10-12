@@ -134,7 +134,7 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
     nextWorkers[workerIndex]={...workers[workerIndex],workerItems:[...(Array.isArray(workers[workerIndex].workerItems)?workers[workerIndex].workerItems:[]),item]};
     const updated=(await client.query(`UPDATE tenant_module_state
       SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
-      WHERE tenant_id=$1 AND module_key='trabajadores' RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
+      WHERE tenant_id=$1 AND module_key=$2 RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
     await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:String(item.id),action:'worker.document_added',newValue:{workerId,item,reason:String(req.body?.reason||'Documento agregado').slice(0,500)}});
     return {item,moduleVersion:Number(updated.version)};
   });
@@ -197,7 +197,7 @@ stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,
     const removableFileIds=removedFileIds.filter(fileId=>!stillReferenced.has(fileId));
     const updated=(await client.query(`UPDATE tenant_module_state
       SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
-      WHERE tenant_id=$1 AND module_key='trabajadores' RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
+      WHERE tenant_id=$1 AND module_key=$2 RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
     const deletedFileIds=[];
     for(const fileId of removableFileIds){
       const file=(await client.query(`UPDATE file_objects SET deleted_at=now()

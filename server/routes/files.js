@@ -57,8 +57,38 @@ filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencio
   const entityType=String(req.body.entityType||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,50),entityId=String(req.body.entityId||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,100);
   assertEntityTypeAccess(req.auth,entityType);
   const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${sha}`;
-  const row=await withTenant(req.auth.tenantId,async client=>{await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${req.auth.tenantId}:${sha}`]);const existing=(await client.query('SELECT id,original_name,content_type,byte_size,malware_status,created_at FROM file_objects WHERE tenant_id=$1 AND sha256=$2 AND deleted_at IS NULL LIMIT 1',[req.auth.tenantId,sha])).rows[0];if(existing){await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:existing.id,action:'file.reused',newValue:{requestedEntityType:entityType,requestedEntityId:entityId,sha256:sha}});return{...existing,deduplicated:true};}const malwareStatus=await scanFile(req.file);if(malwareStatus==='blocked')throw Object.assign(new Error('Malware detected'),{status:422,code:'MALWARE_DETECTED'});await storeFile(storageKey,req.file);const result=(await client.query(`INSERT INTO file_objects (id,tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id,original_name,content_type,byte_size,malware_status,created_at`,[id,req.auth.tenantId,req.auth.userId,entityType,entityId,safeName(req.file.originalname),req.file.mimetype,req.file.size,config.fileStorage,storageKey,sha,malwareStatus])).rows[0];await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:id,action:'file.uploaded',newValue:{entityType,entityId,name:safeName(req.file.originalname),sha256:sha,malwareStatus}});return result;});
+  const row=await withTenant(req.auth.tenantId,async client=>{
+    // Serialize uploads of identical content, including restoration of soft-deleted objects.
+    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[storageKey]);
+    const existing=(await client.query(`SELECT id,original_name,content_type,byte_size,malware_status,created_at,deleted_at
+      FROM file_objects WHERE tenant_id=$1 AND storage_key=$2 FOR UPDATE`,[req.auth.tenantId,storageKey])).rows[0];
+    if(existing && !existing.deleted_at){
+      await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:existing.id,action:'file.reused',newValue:{requestedEntityType:entityType,requestedEntityId:entityId,sha256:sha}});
+      const {deleted_at,...active}=existing;
+      return {...active,deduplicated:true};
+    }
+    const malwareStatus=await scanFile(req.file);
+    if(malwareStatus==='blocked')throw Object.assign(new Error('Malware detected'),{status:422,code:'MALWARE_DETECTED'});
+    await storeFile(storageKey,req.file);
+    if(existing){
+      // Keep the original ID: other historical references may still point to it.
+      const restored=(await client.query(`UPDATE file_objects
+        SET deleted_at=NULL,uploaded_by=$3,entity_type=$4,entity_id=$5,
+            original_name=$6,content_type=$7,byte_size=$8,storage_provider=$9,
+            sha256=$10,malware_status=$11
+        WHERE id=$1 AND tenant_id=$2
+        RETURNING id,original_name,content_type,byte_size,malware_status,created_at`,
+        [existing.id,req.auth.tenantId,req.auth.userId,entityType,entityId,safeName(req.file.originalname),req.file.mimetype,req.file.size,config.fileStorage,sha,malwareStatus])).rows[0];
+      await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:existing.id,action:'file.restored',newValue:{entityType,entityId,sha256:sha}});
+      return restored;
+    }
+    const result=(await client.query(`INSERT INTO file_objects (id,tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING id,original_name,content_type,byte_size,malware_status,created_at`,
+      [id,req.auth.tenantId,req.auth.userId,entityType,entityId,safeName(req.file.originalname),req.file.mimetype,req.file.size,config.fileStorage,storageKey,sha,malwareStatus])).rows[0];
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:id,action:'file.uploaded',newValue:{entityType,entityId,name:safeName(req.file.originalname),sha256:sha,malwareStatus}});
+    return result;
+  });
   res.status(row.deduplicated?200:201).json(row);
 });
 
