@@ -135,7 +135,7 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
     const updated=(await client.query(`UPDATE tenant_module_state
       SET data=$3::jsonb,version=version+1,updated_by=$4,updated_at=now()
       WHERE tenant_id=$1 AND module_key=$2 RETURNING version`,[req.auth.tenantId,'trabajadores',JSON.stringify(nextWorkers),req.auth.userId])).rows[0];
-    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:String(item.id),action:'worker.document_added',newValue:{workerId,item,reason:String(req.body?.reason||'Documento agregado').slice(0,500)}});
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:null,action:'worker.document_added',newValue:{workerId,documentId:String(item.id),item,reason:String(req.body?.reason||'Documento agregado').slice(0,500)}});
     return {item,moduleVersion:Number(updated.version)};
   });
   if(!result)return res.status(404).json({error:'WORKER_NOT_FOUND'});
@@ -207,7 +207,7 @@ stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,
         await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:file.id,action:'file.deleted_with_worker_document',oldValue:file,newValue:{workerId,documentId}});
       }
     }
-    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:documentId,action:'worker.document_removed',oldValue:{workerId,item:removed.item},newValue:{reason:'Documento eliminado',deletedFileIds}});
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker_document',entityId:null,action:'worker.document_removed',oldValue:{workerId,documentId,item:removed.item},newValue:{reason:'Documento eliminado',deletedFileIds}});
     return {item:removed.item,moduleVersion:Number(updated.version),deletedFileIds};
   });
   if(!result)return res.status(404).json({error:'WORKER_NOT_FOUND'});
