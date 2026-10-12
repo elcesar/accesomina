@@ -1,7 +1,7 @@
 # Plan de correcciones públicas abiertas
 
 ## Trazabilidad
-Refs #82, #83, #87, #90, #95, #98, #99, #100, #101, #102 y #110.
+Refs #82, #83, #87, #90, #91, #95, #98, #99, #100, #101, #102 y #110.
 
 ## Objetivo
 Convertir los hallazgos abiertos del sitio público en cambios verificables, sin confundirlos con la configuración de infraestructura cubierta por PR #207.
@@ -10,6 +10,7 @@ Convertir los hallazgos abiertos del sitio público en cambios verificables, sin
 - Imagen actual y verificable del producto, texto alternativo y contraste suficiente.
 - Metadatos y páginas públicas con títulos únicos, estructura de encabezados correcta y contenido de contacto operativo.
 - Navegación indexable, estados 404 maquetados y áreas táctiles accesibles.
+- Acceso que detecte una sesión vigente en el host canónico.
 - Validación visual a 375, 768, 1024 y 1440 px, más prueba de teclado.
 
 ## Fuera de alcance
