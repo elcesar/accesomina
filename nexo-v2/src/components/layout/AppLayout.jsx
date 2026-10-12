@@ -85,7 +85,18 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (!mobileMenuOpen) return undefined
+    const sidebar = document.getElementById('nk-primary-sidebar')
+    sidebar?.querySelector('.nk-sidebar-mobile-close')?.focus()
     const onKeyDown = event => {
+      if (event.key === 'Tab' && sidebar) {
+        const focusable = [...sidebar.querySelectorAll('a[href], button:not([disabled])')].filter(element => element.getClientRects().length)
+        if (focusable.length) {
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          if (event.shiftKey && (document.activeElement === first || !sidebar.contains(document.activeElement))) { event.preventDefault(); last.focus() }
+          else if (!event.shiftKey && (document.activeElement === last || !sidebar.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+        }
+      }
       if (event.key === 'Escape') {
         setMobileMenuOpen(false)
         menuButtonRef.current?.focus()
