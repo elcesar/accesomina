@@ -24,6 +24,19 @@ const publicSections = {
   proposito: PurposeSection,
   'registro-empresa': CustomerAccessSection,
   contacto: ContactSection,
+};
+
+const publicPageMetadata = {
+  inicio: { title: 'Control operativo en un solo lugar', description: 'Nexo Klar centraliza personas, contratos, documentos, recursos y servicios para controlar la operación con información clara y trazable.' },
+  solucion: { title: 'La plataforma', description: 'Conoce cómo Nexo Klar reúne información operativa para tomar decisiones con contexto.' },
+  resultados: { title: 'Resultados', description: 'Descubre los resultados operativos que Nexo Klar ayuda a ordenar y anticipar.' },
+  producto: { title: 'Producto', description: 'Explora el portal Nexo Klar para personas, contratos, documentos y operación.' },
+  capacidades: { title: 'Capacidades', description: 'Revisa las capacidades de Nexo Klar para gestionar información operacional.' },
+  industrias: { title: 'Industrias', description: 'Nexo Klar se adapta a equipos que coordinan trabajo, cumplimiento y servicios en terreno.' },
+  implementacion: { title: 'Implementación', description: 'Conoce el acompañamiento para implementar Nexo Klar en tu operación.' },
+  proposito: { title: 'Propósito', description: 'Conoce el propósito y los principios que orientan a Nexo Klar.' },
+  'registro-empresa': { title: 'Registro de empresa', description: 'Registra tu empresa para comenzar a usar el portal privado de Nexo Klar.' },
+  contacto: { title: 'Contacto', description: 'Comunícate con Nexo Klar o solicita una demostración de la plataforma.' },
 }
 
 function ProductPreview({ onClose }) {
@@ -48,6 +61,12 @@ export default function LandingPage() {
     document.body.classList.add('nk-public-body')
     return () => document.body.classList.remove('nk-public-body')
   }, [])
+
+  useEffect(() => {
+    const metadata = publicPageMetadata[active] || publicPageMetadata.inicio
+    document.title = `Nexo Klar · ${metadata.title}`
+    document.querySelector('meta[name="description"]')?.setAttribute('content', metadata.description)
+  }, [active])
 
   useEffect(() => {
     if (!preview && !dialog) return undefined
