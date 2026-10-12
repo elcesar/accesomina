@@ -131,8 +131,8 @@
   }
 
   .nk-public-contact,
-  .nk-public-create-company,
-  .nk-public-section-tabs {
+  .nk-public-section-tabs,
+  .nk-public-nav-cta .nk-public-create-company {
     display: none;
   }
 
