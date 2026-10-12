@@ -12,7 +12,7 @@ import {
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
   IconSettings, IconPackage, IconTruckDelivery, IconTools,
-  IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
+  IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown, IconX,
 } from '@tabler/icons-react'
 import '../../styles/layout/sidebar.css'
 
@@ -189,7 +189,7 @@ function NavGroup({ group, badges, defaultOpen = true, pathname }) {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation()
   const navRef = useRef(null)
   const { session } = useAuth()
@@ -227,14 +227,15 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="nk-sidebar">
+    <aside id="nk-primary-sidebar" className={`nk-sidebar ${mobileOpen ? 'nk-sidebar-mobile-open' : ''}`} aria-label="Menú principal">
       <div className="nk-sidebar-brand">
         <NavLink className="nk-sidebar-brand-link" to="/app" aria-label="Ir al Panel de control">
           <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
         </NavLink>
+        <button className="nk-sidebar-mobile-close" type="button" onClick={onClose} aria-label="Cerrar menú"><IconX size={22} /></button>
       </div>
 
-      <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal">
+      <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal" onClick={event => { if (event.target.closest('a')) onClose() }}>
         {!loading && NAV.map(group => {
           const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
           return items.length ? <NavGroup
