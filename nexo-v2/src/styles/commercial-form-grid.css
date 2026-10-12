@@ -1,0 +1,26 @@
+/* Shared identity fields for commercial records.
+ * Keeps RUT and status aligned without coupling client and third-party data.
+ */
+.nk-commercial-identity-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--nk-space-3);
+  align-items: start;
+}
+
+.nk-commercial-identity-grid > .nk-field {
+  min-width: 0;
+}
+
+@media (max-width: 64rem) {
+  .nk-commercial-identity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .nk-commercial-identity-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
