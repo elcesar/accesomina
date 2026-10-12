@@ -264,3 +264,15 @@
     min-height: var(--nk-touch-min);
   }
 }
+
+/* #139 · Mobile navigation drawer */
+.nk-sidebar-mobile-close { display: none; }
+@media (max-width: 1023px) {
+  .nk-sidebar { position: fixed; z-index: 110; inset: 0 auto 0 0; height: 100dvh; width: min(var(--nk-sidebar-width), 85vw); max-width: 85vw; transform: translateX(-105%); visibility: hidden; transition: transform var(--nk-motion-normal) var(--nk-motion-curve), visibility var(--nk-motion-normal); box-shadow: var(--nk-elev-2); }
+  .nk-sidebar.nk-sidebar-mobile-open { transform: translateX(0); visibility: visible; }
+  .nk-sidebar-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--nk-space-2); }
+  .nk-sidebar-mobile-close { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--nk-ink); border-radius: var(--nk-radius-md); }
+  .nk-sidebar-mobile-close:focus-visible { outline: var(--nk-focus-width) solid var(--nk-focus); }
+  .nk-mobile-backdrop { position: fixed; inset: 0; z-index: 109; border: 0; background: rgba(0,0,0,.45); cursor: pointer; }
+}
+@media (prefers-reduced-motion: reduce) { .nk-sidebar { transition: none; } }
