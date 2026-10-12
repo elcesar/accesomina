@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
@@ -35,6 +35,8 @@ export default function AppLayout() {
   const { pathname } = useLocation()
   const { session } = useAuth()
   const domain = pageDomain(pathname)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuButtonRef = useRef(null)
   const [branding, setBranding] = useState({})
   const [modules, setModules] = useState({})
   const [loadingModules, setLoadingModules] = useState(true)
@@ -79,12 +81,32 @@ export default function AppLayout() {
     }
   }, [])
 
+  useEffect(() => { setMobileMenuOpen(false) }, [pathname])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined
+    const onKeyDown = event => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    const onResize = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false) }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [mobileMenuOpen])
+
   return (
     <ModuleAccessProvider modules={modules} userModules={['client_admin', 'domian_admin'].includes(session?.user?.role) ? {} : (session?.user?.permissions?.modules || {})} loading={loadingModules}>
       <div className="nk-app-shell">
-        <Sidebar />
+        {mobileMenuOpen && <button className="nk-mobile-backdrop" type="button" aria-label="Cerrar navegación" onClick={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />}
+        <Sidebar mobileOpen={mobileMenuOpen} onClose={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />
         <div className="nk-app-content">
-          <Header branding={branding} />
+          <Header branding={branding} menuOpen={mobileMenuOpen} menuButtonRef={menuButtonRef} onToggleMenu={() => setMobileMenuOpen(value => !value)} />
           <main className="nk-app-main" data-page-domain={domain || undefined}>
             {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
             <ModuleOutlet />
