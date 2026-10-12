@@ -92,14 +92,20 @@ function getRequiredItems(worker) {
   return [...REQUIRED_ITEMS, ...(REQUIRED_BY_SPECIALTY[worker.especialidad] || [])]
 }
 
+function documentStatus(item) {
+  if (!item || !hasRequiredEvidence(item)) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: item ? documentEvidenceMessage(item) : 'faltante' }
+  if (item.estado === 'rechazado') return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'rechazado' }
+  const days = diasHasta(item.vence)
+  if (days !== null && days < 0) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'vencido' }
+  if (days !== null && days <= 30) return { ok: true, label: 'Por vencer', className: 'nk-badge-warn', source: 'cargado' }
+  return { ok: true, label: 'Vigente', className: 'nk-badge-ok', source: 'cargado' }
+}
+
 function reqStatus(worker, req) {
   const matches = (worker.workerItems || []).filter(current => matchItem(current, req))
-  const item = matches.find(current => itemValid(current) && hasRequiredEvidence(current)) || matches[0]
-  if (!item) return { ok: false, src: 'faltante' }
-  if (!hasRequiredEvidence(item)) return { ok: false, src: documentEvidenceMessage(item) }
-  return itemValid(item)
-    ? { ok: true, src: 'cargado' }
-    : { ok: false, src: 'vencido/rechazado' }
+  const item = matches.find(current => documentStatus(current).ok) || matches[0]
+  const status = documentStatus(item)
+  return { ok: status.ok, src: status.source }
 }
 
 function acreditacionPct(worker) {
@@ -324,7 +330,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const status = documentStatus(d); const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${status.className}`}>{status.label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
     </CardSection>
   </>
 }
