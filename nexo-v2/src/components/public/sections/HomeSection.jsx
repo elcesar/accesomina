@@ -52,7 +52,7 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
           onClick={openPreview}
           aria-label="Ampliar vista del panel de control de Nexo Klar"
         >
-          <img src="/assets/dashboard-demo.png" alt="Panel de control real de Nexo Klar" />
+          <img src="/dashboard-demo.png" alt="Panel de control real de Nexo Klar" />
         </button>
 
         <div className="nk-card-grid nk-hero-product-notes" aria-label="Información del panel">
