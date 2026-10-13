@@ -9,6 +9,7 @@ import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
+import { validWorkerEmail, WORKER_EMAIL_ERROR } from '../services/worker-email.js'
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
@@ -118,8 +119,8 @@ function BadgeDisp({ value }) {
   return <StatusBadge value={value} />
 }
 
-function Field({ label, hint, children }) {
-  return <div className="nk-field"><label className="nk-label">{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
+function Field({ label, hint, htmlFor, children }) {
+  return <div className="nk-field"><label className="nk-label" htmlFor={htmlFor}>{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
 }
 
 function CardSection({ title, subtitle, action, children }) {
@@ -139,6 +140,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
+  const emailInvalid = !validWorkerEmail(worker.email)
   const activeAssignments = asignaciones.filter(a => a.trabId === worker.id && assignmentIsOperational(a))
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
@@ -181,7 +183,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
 
     <CardSection title="Datos personales" subtitle="Identificación, contacto y previsión."><div className="nk-person-grid">
       <Field label="Teléfono"><PhoneInput value={worker.tel || ''} onChange={value => onChange('tel', value)} /></Field>
-      <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
+      <Field label="Correo electrónico" htmlFor="worker-email"><input id="worker-email" className="nk-input" type="email" maxLength={254} value={worker.email || ''} aria-invalid={emailInvalid} aria-describedby={emailInvalid ? 'worker-email-error' : undefined} onChange={e => onChange('email', e.target.value)} />{emailInvalid && <p id="worker-email-error" className="nk-person-feedback error" role="alert">{WORKER_EMAIL_ERROR}</p>}</Field>
       <Field label="Región"><select className="nk-select" value={worker.region || ''} onChange={updateRegion}><option value="">Seleccionar región</option>{regionesChile.map(region => <option key={region} value={region}>{region}</option>)}</select></Field>
       <Field label="Ciudad / comuna"><select className="nk-select" value={worker.ciudad || ''} disabled={!worker.region} onChange={e => onChange('ciudad', e.target.value)}><option value="">{worker.region ? 'Seleccionar comuna o ciudad' : 'Primero selecciona una región'}</option>{worker.ciudad && !comunas.includes(worker.ciudad) && <option value={worker.ciudad}>{worker.ciudad}</option>}{comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</select></Field>
       <Field label="Fecha de nacimiento"><BirthDateInput value={worker.nacimiento || ''} onChange={value => onChange('nacimiento', value)} /></Field>
@@ -375,7 +377,27 @@ export default function FichaTrabajadorPage() {
 
   function onChange(field, value) { setWorker(current => ({ ...current, [field]: value })) }
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
-  async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
+  async function handleSave() {
+    setError(null)
+    setOk(null)
+    if (!validWorkerEmail(worker.email)) {
+      setError(WORKER_EMAIL_ERROR)
+      setTab('datos')
+      requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
+      return
+    }
+    setSaving(true)
+    try {
+      const nextWorker = { ...worker, ...(typeof worker.email === 'string' ? { email: worker.email.trim() } : {}) }
+      await persistWorker(nextWorker, `Actualización ficha ${worker.nombre}`)
+      setOk('Cambios guardados correctamente')
+      setTimeout(() => setOk(null), 2500)
+    } catch (e) {
+      setError(e.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
   async function appendDocument(item, reason) {
     try {
       const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })

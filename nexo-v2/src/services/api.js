@@ -31,6 +31,7 @@ const ERROR_MESSAGES = {
   DUPLICATE_WORKER_DOCUMENT_ID: 'No fue posible registrar el documento porque coincide con una evidencia existente. Actualiza la página e inténtalo nuevamente.',
   DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
   INVALID_WORKER_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
+  INVALID_WORKER_EMAIL: 'Ingresa un correo electrónico válido o deja el campo vacío.',
   INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',
   INVALID_WORKER_BIRTH_DATE: 'La fecha de nacimiento no puede ser futura.',
   WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',

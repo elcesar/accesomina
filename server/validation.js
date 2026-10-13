@@ -8,6 +8,18 @@ export const registerSchema = z.object({
   phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
 });
 
+const workerEmailSchema = z.string().trim().max(254).email();
+function validateWorkerEmail(worker) {
+  if (worker.email == null) return;
+  if (typeof worker.email === 'string' && !worker.email.trim()) {
+    worker.email = '';
+    return;
+  }
+  const result = workerEmailSchema.safeParse(worker.email);
+  if (!result.success) throw Object.assign(new Error('Worker email is invalid'), { status: 409, code: 'INVALID_WORKER_EMAIL' });
+  worker.email = result.data;
+}
+
 export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
 function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
   if (!worker.nacimiento) return;
@@ -234,6 +246,7 @@ export function validateAppendChanges(current, proposed, keys) {
       worker.tel = phone;
     }
     validateWorkerBirthDate(worker);
+    validateWorkerEmail(worker);
     validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
@@ -284,7 +297,7 @@ export function validateTenantState(input) {
     if (!client.id || !String(client.nombre || '').trim()) throw Object.assign(new Error('Client requires id and name'), { status: 409, code: 'INCOMPLETE_CLIENT' });
     if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
   }
-  for(const worker of workers){if(!worker.id||!String(worker.nombre||'').trim()||!worker.rut)throw Object.assign(new Error('Worker requires id, name and RUT'),{status:409,code:'INCOMPLETE_WORKER'});if(!isValidRut(worker.rut))throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`),{status:409,code:'INVALID_WORKER_RUT'});if(worker.tel){worker.tel=normalizeChilePhone(worker.tel);if(!isValidChilePhone(worker.tel))throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`),{status:409,code:'INVALID_WORKER_PHONE'});}validateWorkerBirthDate(worker);}
+  for(const worker of workers){if(!worker.id||!String(worker.nombre||'').trim()||!worker.rut)throw Object.assign(new Error('Worker requires id, name and RUT'),{status:409,code:'INCOMPLETE_WORKER'});if(!isValidRut(worker.rut))throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`),{status:409,code:'INVALID_WORKER_RUT'});if(worker.tel){worker.tel=normalizeChilePhone(worker.tel);if(!isValidChilePhone(worker.tel))throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`),{status:409,code:'INVALID_WORKER_PHONE'});}validateWorkerBirthDate(worker);validateWorkerEmail(worker);}
   for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
   assertUnique(contracts.map(c => normalizedText(c.numero)), 'Duplicate contract number', 'DUPLICATE_CONTRACT_NUMBER');
