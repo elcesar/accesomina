@@ -17,7 +17,7 @@ export default function ProductSection({ openPreview }) {
             onClick={openPreview}
             aria-label="Ampliar vista demostrativa del panel de control"
           >
-            <img src="/assets/dashboard-demo.png" alt="Panel real de Nexo Klar con dotación, órdenes de servicio y alertas operativas" />
+            <img src="/dashboard-demo.png" alt="Panel real de Nexo Klar con dotación, órdenes de servicio y alertas operativas" />
           </button>
           <p className="nk-caption">
             Vista real de Nexo Klar con información demostrativa. Cada empresa trabaja con su propia configuración, usuarios y datos privados.
