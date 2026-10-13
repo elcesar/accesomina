@@ -515,3 +515,64 @@ No corregir un defecto transversal copiando media queries en varias páginas. Si
 Toda funcionalidad nueva o corrección visual debe comprobarse al menos en escritorio, 1024 px, 768 px y 375/480 px según corresponda. La validación debe confirmar ausencia de overflow de página, acceso a las acciones críticas, legibilidad, navegación operable, formularios utilizables y comportamiento correcto de diálogos.
 
 Un PR que modifica una estructura responsive debe indicar qué rangos fueron verificados y si el cambio pertenece a componente, layout o excepción de página.
+
+
+---
+
+## 8. Patrón transversal de páginas y estados de error
+
+### 8.1 Alcance y precedencia
+
+Las páginas de error de Nexo Klar constituyen **un patrón de experiencia compartido**, no layouts independientes por código HTTP. La página 404 es la primera aplicación del patrón; las futuras vistas 403, 500 y 503 deben reutilizar la misma estructura visual. También pueden incorporarse sesión expirada, enlace inválido y conectividad, respetando su comportamiento particular.
+
+**Este Design System tiene precedencia gráfica y de UX frente a mockups, capturas o soluciones de layout descritas en issues anteriores.** Si un issue solicita un layout distinto o incompatible, se corrige el problema utilizando el patrón oficial y se deja constancia en el issue de la divergencia y de la solución adoptada. Si se justifica modificar un patrón transversal, primero se propone y revisa el cambio en este documento; no se crean excepciones locales implícitas.
+
+### 8.2 Composición común
+
+Orden visual y semántico de una página de error completa:
+
+1. Logo oficial de Nexo Klar adecuado al fondo, obtenido de `public/brand/`.
+2. Icono contextual Tabler outline, con tratamiento neutro o semántico conforme a tokens (no usar color de estado como decoración).
+3. Código o etiqueta de estado, como `Error 404`, cuando ayude a reconocer el problema.
+4. **Un único H1** en lenguaje claro, que explique qué ocurrió.
+5. Descripción breve y orientada a la recuperación, sin trazas, IDs internos ni datos sensibles.
+6. Máximo **una acción primaria**, con etiqueta explícita, y acciones secundarias opcionales.
+
+La presentación utiliza `--nk-base` como lienzo, `--nk-surface` para el panel cuando corresponda, y tokens canónicos para texto, borde, elevación, tipografía y espaciado. Reutilizar `.nk-button` y sus variantes de `components.css`. El CSS de página resuelve únicamente composición. No introducir colores hexadecimales, fuentes, botones ni tokens nuevos en el CSS específico.
+
+La vista debe ser legible y utilizable en escritorio, 1024 px, 768 px y 375/480 px, sin scroll horizontal. Mantener orden de lectura y foco, contraste y foco visible. Las áreas táctiles deben medir al menos **44 × 44 px**; `--nk-control-min` (40 px) no sustituye a `--nk-touch-min` (44 px).
+
+### 8.3 Reutilización técnica
+
+Implementar una **composición o componente compartido parametrizable** para páginas completas, por ejemplo `ErrorPage`, con propiedades para código/estado, icono, título, descripción y acciones. No copiar una página JSX y un CSS por cada código. Las diferencias de contenido y navegación se configuran por caso, sin introducir lógica de autenticación o permisos dentro del componente puramente visual.
+
+Distinguir tres niveles de presentación:
+- **Página completa:** ruta inexistente, acceso denegado, fallo global o servicio indisponible (404, 403, 500, 503).
+- **Estado de módulo:** carga fallida o servicio parcial indisponible; mostrar el error dentro del módulo y permitir reintento sin reemplazar toda la aplicación.
+- **Error de operación/formulario:** mensaje contextual junto al control o acción, siguiendo la sección 5; no convertir validaciones corrientes en páginas completas.
+
+Reutilizar tokens, semántica, iconografía y jerarquía de acciones entre niveles, pero no forzar el mismo contenedor para todos.
+
+### 8.4 Casos y acciones de referencia
+
+| Caso | H1 orientativo | Acción principal orientativa | Consideraciones |
+| --- | --- | --- | --- |
+| 404 · ruta inexistente | Página no encontrada | Ir al inicio / Ir al panel | Volver atrás opcional; navegación según sesión |
+| 403 · acceso denegado | No tienes acceso a esta sección | Volver al panel | No exponer recursos restringidos ni detalles de permisos |
+| 500 · fallo inesperado | Ocurrió un problema inesperado | Reintentar, cuando sea seguro | Contención de errores de render y recuperación controlada |
+| 503 · indisponibilidad | Servicio temporalmente no disponible | Reintentar | No prometer plazos sin información verificada |
+| Sesión expirada | Tu sesión ha finalizado | Iniciar sesión | Manejar autenticación de manera centralizada |
+| Sin conexión | No pudimos conectar con el servicio | Reintentar | Distinguir fallo de red de error de servidor |
+| Enlace inválido o vencido | Este enlace ya no es válido | Solicitar un nuevo enlace | No revelar existencia de cuentas o tokens |
+
+Los códigos HTTP **no determinan automáticamente** una navegación de página completa: el manejo de API y los errores recuperables deben conservar el contexto del usuario. La acción `Reintentar` solo debe repetir operaciones seguras o diseñadas para ser idempotentes.
+
+### 8.5 Criterios de aceptación
+
+1. Componente/patrón compartido sin duplicación de estructura o estilos para cada código.
+2. Logo, tipografía, superficies, iconos y acciones alineados con tokens y componentes oficiales.
+3. Un H1, explicación comprensible, foco de teclado visible, orden semántico y áreas táctiles ≥ 44 × 44 px.
+4. Navegación coherente para usuarios autenticados y visitantes, sin bucles ni exposición de información protegida.
+5. Pruebas en escritorio y móvil; verificación de reintento, accesibilidad y estados según el caso.
+6. Issues y PRs documentan cualquier diferencia entre evidencia de QA antigua y el layout oficial vigente.
+7. No cerrar issues por el solo hecho de agregar la página: comprobar integración, manejo real del error y recuperación.
