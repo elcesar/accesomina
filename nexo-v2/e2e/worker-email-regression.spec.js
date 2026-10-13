@@ -2,7 +2,10 @@ import { test, expect } from '@playwright/test'
 
 async function mockWorker(page, rejectSave = false) {
   const state = {
-    trabajadores: [{ id: 'qa-person', nombre: 'Persona QA correo', rut: '14.567.890-0', email: 'original@example.com', tipo: 'permanente', mineras: [], workerItems: [] }],
+    trabajadores: [
+      { id: 'qa-person', nombre: 'Persona QA correo', rut: '14.567.890-0', email: 'original@example.com', tipo: 'permanente', mineras: [], workerItems: [] },
+      { id: 'qa-legacy', nombre: 'Persona antigua QA', rut: '14.507.215-8', email: 'correo-invalido', tipo: 'permanente', mineras: [], workerItems: [] },
+    ],
     minas: [], contratos: [], mantenciones: [], asignaciones: [], restricted: [], eppDeliveries: [],
   }
   const writes = []
@@ -79,4 +82,17 @@ test('un rechazo del servidor muestra la corrección necesaria sin informar éxi
   await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toHaveCount(0)
   expect(writes).toHaveLength(1)
   expect(state.trabajadores[0].email).toBe('original@example.com')
+})
+
+test('el guardado de una persona válida conserva intacta otra con correo antiguo inválido', async ({ page }) => {
+  const { state, writes } = await mockWorker(page)
+  const historical = structuredClone(state.trabajadores[1])
+  await page.getByLabel('Correo electrónico', { exact: true }).fill('corregido@ejemplo.test')
+  await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+  await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toBeVisible()
+  expect(writes).toHaveLength(1)
+  expect(writes[0].changes.trabajadores.data.find(worker => worker.id === 'qa-legacy')).toEqual(historical)
+  expect(state.trabajadores[1]).toEqual(historical)
+  await page.reload()
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toHaveValue('corregido@ejemplo.test')
 })
