@@ -44,7 +44,7 @@ function ProductPreview({ onClose }) {
     <div className="nk-lightbox" role="dialog" aria-modal="true" aria-label="Vista ampliada de Nexo Klar" onClick={onClose}>
       <button type="button" aria-label="Cerrar vista ampliada" onClick={onClose}>×</button>
       <img
-        src="/assets/dashboard-demo.png"
+        src="/dashboard-demo.png"
         alt="Vista ampliada de Nexo Klar"
         onClick={event => event.stopPropagation()}
       />
