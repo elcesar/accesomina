@@ -184,7 +184,7 @@ export default function LoginPage() {
                       autoComplete="current-password"
                     />
                     <button
-                      className="nk-login-password-toggle"
+                      className="nk-icon-button nk-touch-target nk-login-password-toggle"
                       type="button"
                       aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       onClick={() => setShowPassword(v => !v)}
@@ -195,7 +195,7 @@ export default function LoginPage() {
                 </Field>
 
                 <div className="nk-login-recovery-link">
-                  <Link className="nk-link" to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+                  <Link className="nk-link nk-touch-target" to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
                 </div>
               </>
             ) : (
@@ -245,7 +245,7 @@ export default function LoginPage() {
           </div>
 
           <p className="nk-login-back-home">
-            <Link className="nk-link" to="/">← Volver al inicio</Link>
+            <Link className="nk-link nk-touch-target" to="/">← Volver al inicio</Link>
           </p>
 
           <div className="nk-login-build-version" title="Versiones desplegadas">

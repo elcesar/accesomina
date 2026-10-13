@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <div className="nk-recovery-actions">
-          <Link className="nk-link" to="/login">← Volver al acceso</Link>
+          <Link className="nk-link nk-touch-target" to="/login">← Volver al acceso</Link>
         </div>
       </section>
     </main>
