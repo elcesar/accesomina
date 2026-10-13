@@ -149,7 +149,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
   const relationship = employmentRelationship(worker)
   const availability = operationalStatus(worker, asignaciones, restrictions)
   const relationshipLabel = relationship === 'fijo' ? 'Trabajador fijo' : relationship === 'proyecto' ? 'Trabajador por proyecto' : 'Sin vínculo laboral definido'
-  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'No habilitado' : 'Disponible'
+  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'No habilitado' : availability === 'vacaciones' ? 'Vacaciones' : 'Disponible'
 
   return <>
     <CardSection title="Estado de la persona" subtitle="La relación laboral y la situación operacional se administran por separado.">

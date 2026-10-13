@@ -56,6 +56,7 @@ export function employmentRelationship(worker) {
 export function operationalStatus(worker, assignments = [], restrictions = []) {
   if (worker.bloqueado || normalized(worker.disponibilidad) === 'bloqueado' || hasActiveRestriction(worker, restrictions)) return 'restringido'
   if (assignments.some(assignment => String(assignment.trabId) === String(worker.id) && assignmentIsOperational(assignment))) return 'asignado'
+  if (normalized(worker.disponibilidad) === 'vacaciones') return 'vacaciones'
   return 'disponible'
 }
 
