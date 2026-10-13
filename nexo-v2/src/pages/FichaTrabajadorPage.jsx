@@ -12,7 +12,8 @@ import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-secur
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
-import { DOCUMENT_TYPE_OPTIONS, documentEvidenceMessage, documentRule, hasRequiredEvidence, workerItemType } from '../services/worker-document-rules.js'
+import { DOCUMENT_TYPE_OPTIONS, documentRule, workerItemType } from '../services/worker-document-rules.js'
+import { documentStatus, requirementStatus, requirementSummary } from '../services/worker-document-status.js'
 import { removeUploadedFiles, uploadDocumentFiles } from '../services/worker-document-upload.js'
 import '../styles/ficha-trabajador.css'
 
@@ -70,16 +71,6 @@ function initials(name) {
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
 }
 
-function diasHasta(date) {
-  if (!date) return null
-  return Math.floor((new Date(date) - new Date()) / 86400000)
-}
-
-function itemValid(item) {
-  if (!item || item.estado === 'rechazado') return false
-  return !(item.vence && diasHasta(item.vence) < 0)
-}
-
 function matchItem(item, req) {
   if (req.documentType && item.documentType) return req.documentType === item.documentType
   const expectedName = req.name.toLowerCase().split('/')[0].trim()
@@ -92,26 +83,13 @@ function getRequiredItems(worker) {
   return [...REQUIRED_ITEMS, ...(REQUIRED_BY_SPECIALTY[worker.especialidad] || [])]
 }
 
-function documentStatus(item) {
-  if (!item || !hasRequiredEvidence(item)) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: item ? documentEvidenceMessage(item) : 'faltante' }
-  if (item.estado === 'rechazado') return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'rechazado' }
-  const days = diasHasta(item.vence)
-  if (days !== null && days < 0) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'vencido' }
-  if (days !== null && days <= 30) return { ok: true, label: 'Por vencer', className: 'nk-badge-warn', source: 'cargado' }
-  return { ok: true, label: 'Vigente', className: 'nk-badge-ok', source: 'cargado' }
-}
-
 function reqStatus(worker, req) {
-  const matches = (worker.workerItems || []).filter(current => matchItem(current, req))
-  const item = matches.find(current => documentStatus(current).ok) || matches[0]
-  const status = documentStatus(item)
-  return { ok: status.ok, src: status.source }
+  return requirementStatus((worker.workerItems || []).filter(current => matchItem(current, req)))
 }
 
 function acreditacionPct(worker) {
   const reqs = getRequiredItems(worker)
-  if (!reqs.length) return 0
-  return Math.round(reqs.filter(req => reqStatus(worker, req).ok).length / reqs.length * 100)
+  return requirementSummary(reqs.map(req => (worker.workerItems || []).filter(current => matchItem(current, req)))).percentage
 }
 
 function statusClass(pct) {
@@ -325,7 +303,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     <CardSection title="Requisitos de documentos y aptitudes" subtitle="Requisitos base y por especialidad. Los faltantes pueden cargarse directamente desde esta tabla.">
       <input ref={checklistFileRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={uploadRequirement} />
       <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Requisito</th><th>Tipo</th><th>Estado</th><th>Fuente</th><th /></tr></thead><tbody>
-        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.ok ? 'nk-badge-ok' : 'nk-badge-error'}`}>{st.ok ? 'Vigente' : 'No habilitado'}</span></td><td className="nk-person-text-muted">{st.src}</td><td>{!st.ok && <button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</button>}</td></tr> })}
+        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.className}`}>{st.label}</span></td><td className="nk-person-text-muted">{st.src}</td><td>{!st.ok && <button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</button>}</td></tr> })}
       </tbody></table></div>
     </CardSection>
 
