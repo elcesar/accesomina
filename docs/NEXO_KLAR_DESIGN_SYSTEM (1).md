@@ -365,6 +365,25 @@ Por tanto, la validación de formularios **no se resuelve solo con CSS**. CSS de
 
 ---
 
+### 5.7 EmailInput — componente especializado obligatorio
+
+Toda captura editable de correo electrónico en Nexo Klar debe utilizar un **componente reutilizable `EmailInput`** (a implementar en `nexo-v2/src/components/ui/EmailInput.jsx`), siguiendo el contrato de `RutInput`, `PhoneInput` y `BirthDateInput`. No crear validadores o mensajes de correo particulares en cada página. La migración de pantallas existentes puede realizarse de forma incremental, pero toda pantalla nueva y toda corrección de validación de correo debe utilizar este patrón.
+
+**Contrato funcional y de accesibilidad:**
+
+- Aceptar `value`, `onChange`, `id`, `name`, `required`, `disabled` y propiedades accesibles apropiadas. El campo es **opcional por defecto**; la obligatoriedad depende de la regla del formulario, no del componente.
+- Utilizar `type="email"`, `autocomplete="email"` cuando corresponda, longitud máxima de 254 caracteres y normalización de espacios exteriores al validar/guardar, **sin alterar arbitrariamente el texto durante la escritura**.
+- Centralizar la política de formato y la función de validación en una utilidad compartida de frontend consumida por `EmailInput`; no depender únicamente de la validación HTML del navegador. Un campo opcional vacío es válido; uno obligatorio vacío no lo es.
+- Presentar error contextual junto al campo con identificador estable, `aria-invalid`, `aria-describedby`, label asociado y foco accesible cuando un intento de guardar falle. Evitar mensajes duplicados en el mismo formulario.
+- Usar las clases, tokens y estados visuales definidos en `tokens.css` y `components.css`; **no introducir CSS paralelo ni colores hardcodeados**.
+- Mantener el error de backend `INVALID_WORKER_EMAIL` u otros equivalentes asociados al campo correspondiente, con mensaje funcional en español; nunca anunciar éxito si el servidor rechaza la operación.
+- **Backend como autoridad:** validar nuevamente en servidor. La política frontend/backend debe ser **equivalente y demostrable mediante pruebas compartidas de casos válidos, inválidos y límites**. Si se usan motores distintos (por ejemplo, regex y Zod), no asumir equivalencia: contrastar explícitamente los casos y corregir divergencias.
+- **Compatibilidad histórica:** cuando el servidor guarda un módulo completo, un correo inválido preexistente y sin modificaciones no debe impedir guardar otra entidad válida; todo correo nuevo o modificado sí debe validarse. Esta excepción se decide en servidor comparando contra el estado persistido, nunca con un `previousState` confiado al cliente.
+
+**Criterios mínimos de QA:** correo opcional vacío; correo requerido vacío; formato inválido; subdominio y caracteres permitidos; longitud límite; normalización de espacios; error devuelto por API; foco/lector de pantalla; escritorio y móvil; persistencia y recarga; registros históricos inválidos intactos; pruebas de paridad frontend/backend.
+
+**Precedencia:** si un issue o PR plantea un campo de correo con layout, validación o feedback distinto, implementar `EmailInput` conforme a este documento y registrar la divergencia en el issue. No duplicar reglas en `FichaTrabajadorPage`, Clientes, Usuarios u otros módulos.
+
 ## 6. Protección de cambios sin guardar
 
 La protección frente a pérdida accidental de información es un patrón transversal para formularios de alta, edición y asistentes.
