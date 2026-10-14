@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconAlertTriangle, IconCheck, IconExternalLink, IconPaperclip, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
@@ -15,7 +16,7 @@ const STATUS_LABELS = { abierto: 'Abierto', en_cierre: 'En cierre', cerrado: 'Ce
 const SEVERITIES = ['baja', 'media', 'alta', 'critica']
 
 function rows(value) { return Array.isArray(value) ? value : [] }
-function today() { return new Date().toISOString().slice(0, 10) }
+function today() { return localDate() }
 
 function priorityOf(item) {
   if (item.priority) return item.priority

@@ -1,10 +1,11 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/activos-inventario.css'
 
 const rows = value => Array.isArray(value) ? value : []
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDate()
 
 function inventoryCategory(item) {
   const source = `${item.type || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase()

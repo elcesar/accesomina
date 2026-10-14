@@ -1,10 +1,11 @@
+import { localDate, addCalendarDays } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch, IconTool } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/mantenimiento.css'
 
 const rows = value => Array.isArray(value) ? value : []
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDate()
 
 function inventoryCategory(item) {
   const source = `${item.type || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase()
@@ -19,7 +20,7 @@ function inventoryCategory(item) {
 function planState(plan) {
   if (!plan?.nextDue) return { label: 'Sin programación', cls: 'nk-badge-warn' }
   if (plan.nextDue < today()) return { label: 'Vencido', cls: 'nk-badge-error' }
-  const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  const soon = localDate(addCalendarDays(new Date(), 30))
   if (plan.nextDue <= soon) return { label: 'Próximo', cls: 'nk-badge-warn' }
   return { label: 'Programado', cls: 'nk-badge-ok' }
 }
@@ -135,7 +136,7 @@ export default function MantenimientoPage() {
       if (plan?.frequencyDays) {
         const due = new Date(`${recordForm.date}T12:00:00`)
         due.setDate(due.getDate() + Number(plan.frequencyDays))
-        nextDue = due.toISOString().slice(0, 10)
+        nextDue = localDate(due)
         nextPlans = plans.map(row => row.id === plan.id ? { ...row, nextDue } : row)
       }
 

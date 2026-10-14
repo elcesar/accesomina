@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconArrowLeft, IconCheck, IconId, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
@@ -46,7 +47,7 @@ export default function CredencialesPage(){
  const noHabilitadas=credentials.filter(x=>['vencido','falta','no_habilitada'].includes(credentialState(x,workerById.get(String(x.trabId))))).length
  const update=key=>event=>setDraft(current=>({...current,[key]:event.target.value}))
  const openItem=item=>{setCreating(false);setSelectedId(item.id);setDraft({...emptyDraft(),...item,evidenceFiles:rows(item.evidenceFiles)});setMessage('');setMessageTone('')}
- const startCreate=()=>{setCreating(true);setSelectedId(null);setDraft({...emptyDraft(),id:newId(),emision:new Date().toISOString().slice(0,10)});setMessage('');setMessageTone('')}
+ const startCreate=()=>{setCreating(true);setSelectedId(null);setDraft({...emptyDraft(),id:newId(),emision:localDate()});setMessage('');setMessageTone('')}
  const closeDetail=()=>{setCreating(false);setSelectedId(null);setDraft(emptyDraft())}
  async function save(event){
   event.preventDefault();if(!canEdit)return

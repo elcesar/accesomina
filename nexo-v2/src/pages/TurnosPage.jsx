@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
@@ -8,7 +9,7 @@ const REGIMENES = ['5x2', '4x3', '7x7', '10x10', '14x14', 'Otro tipo de turno']
 const TURNOS = ['día', 'noche', 'ambos']
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
 
-const hoy = () => new Date().toISOString().slice(0, 10)
+const hoy = () => localDate()
 
 function initials(nombre) {
   if (!nombre) return '?'

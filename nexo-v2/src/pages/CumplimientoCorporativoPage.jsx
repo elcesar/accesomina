@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBuilding, IconExternalLink, IconFile, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -71,7 +72,7 @@ function normalizeDocs(current) {
       cloudUrl: '',
       notes: '',
       src: requirement.src,
-      created: new Date().toISOString().slice(0, 10),
+      created: localDate(),
       documents: [],
     }
   })
@@ -186,7 +187,7 @@ export default function CumplimientoCorporativoPage() {
         fileType: uploaded.content_type || file.type,
         fileSize: uploaded.byte_size || file.size,
         cloudUrl: '',
-        created: new Date().toISOString().slice(0, 10),
+        created: localDate(),
       }
       const persisted = await persistDoc(documentId, patch)
       if (!persisted) await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(() => {})

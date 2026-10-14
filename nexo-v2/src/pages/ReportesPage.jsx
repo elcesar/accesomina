@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconCategory, IconChartBar, IconDownload, IconFiles, IconRefresh, IconStack2 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -89,7 +90,7 @@ function downloadCsv(category, collections, onlyKey) {
   const url = URL.createObjectURL(new Blob(['\ufeff', content], { type: 'text/csv;charset=utf-8' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = `nexo-klar-${onlyKey || category.id}-${new Date().toISOString().slice(0, 10)}.csv`
+  link.download = `nexo-klar-${onlyKey || category.id}-${localDate()}.csv`
   document.body.appendChild(link)
   link.click()
   link.remove()

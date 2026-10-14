@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -240,7 +241,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
         uploadedFiles = [{ fileId: uploaded.id }]
         fileMeta = { fileId: uploaded.id, fileName: uploaded.original_name || selectedFile.name, fileType: uploaded.content_type, fileSize: uploaded.byte_size }
       }
-      const item = { ...form, type: workerItemType(rule.code, form.name), documentType: rule.code, vence: rule.expiration === 'never' ? '' : form.vence, ...fileMeta, id: `d_${Date.now()}`, cargado: new Date().toISOString().split('T')[0] }
+      const item = { ...form, type: workerItemType(rule.code, form.name), documentType: rule.code, vence: rule.expiration === 'never' ? '' : form.vence, ...fileMeta, id: `d_${Date.now()}`, cargado: localDate() }
       await onAppendItem(item, `Documento agregado: ${form.name}`)
       uploadedFiles = []
       setForm({ documentType: documentTypes[0]?.value || 'OTHER', name: '', vence: '', notes: '' }); setSelectedFile(null); setFrontFile(null); setBackFile(null)
@@ -277,7 +278,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
         name: req.name,
         vence: '',
         notes: 'Carga directa desde checklist de ingreso',
-        cargado: new Date().toISOString().split('T')[0],
+        cargado: localDate(),
         fileId: uploaded.id,
         fileName: uploaded.original_name || file.name,
         fileType: uploaded.content_type,
@@ -442,7 +443,7 @@ export default function FichaTrabajadorPage() {
 
   function handleRestrict() {
     if (!restrictionReason.trim()) { setError('Indica el motivo de la restricción.'); return }
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDate()
     persistLifecycle({
       reason: `Restricción registrada para ${worker.nombre}: ${restrictionReason.trim()}`,
       workerPatch: { bloqueado: true, disponibilidad: 'bloqueado' },

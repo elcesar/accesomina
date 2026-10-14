@@ -1,11 +1,12 @@
+import { localDate, localDateTime } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBook, IconFileDescription, IconPlus, IconRefresh, IconSearch, IconSignature as IconFileSignature, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/libro-obra.css'
 
 const list = value => Array.isArray(value) ? value : []
-const today = () => new Date().toISOString().slice(0, 10)
-const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de obra', entryType:'avance', occurredAt:`${today()}T12:00:00.000Z`, subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
+const today = () => localDate()
+const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de obra', entryType:'avance', occurredAt:new Date().toISOString(), subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
 const openStatus = status => !['cerrado', 'firmado'].includes(status)
 const normalize = value => String(value || '').toLowerCase()
 
@@ -57,10 +58,10 @@ export default function LibroObraPage() {
     }
   }, [entries])
 
-  const years = useMemo(() => [...new Set(entries.map(row => String(row.occurred_at || row.occurredAt || '').slice(0, 4)).filter(Boolean))].sort().reverse(), [entries])
+  const years = useMemo(() => [...new Set(entries.map(row => (row.occurred_at || row.occurredAt) ? localDate(new Date(row.occurred_at || row.occurredAt)).slice(0, 4) : '').filter(Boolean))].sort().reverse(), [entries])
 
   const filteredEntries = useMemo(() => entries.filter(row => {
-    const occurred = String(row.occurred_at || row.occurredAt || '')
+    const occurred = (row.occurred_at || row.occurredAt) ? localDate(new Date(row.occurred_at || row.occurredAt)) : ''
     const evidence = list(row.evidence_files || row.evidenceFiles)
     const due = row.due_at || row.dueAt
     const open = openStatus(row.status)
@@ -203,7 +204,7 @@ export default function LibroObraPage() {
           <label className="wide"><span>Proyecto / servicio / mantención *</span><select required value={form.projectRef} onChange={event => setForm(current => ({ ...current, projectRef:event.target.value }))}><option value="">Selecciona</option>{scopedOrders.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.id}</option>)}</select></label>
           <label><span>Libro</span><select value={form.bookType} onChange={event => setForm(current => ({ ...current, bookType:event.target.value }))}>{[['maestro','Maestro'],['seguridad_hsec','Seguridad y salud'],['calidad','Calidad'],['terreno_avance','Terreno y avance'],['comunicaciones','Comunicaciones']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label><span>Tipo de anotación</span><select value={form.entryType} onChange={event => setForm(current => ({ ...current, entryType:event.target.value }))}>{['instruccion','consulta','respuesta','avance','incidente','acuerdo','observacion','recepcion','otro'].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label><span>Fecha y hora *</span><input type="datetime-local" required value={String(form.occurredAt || '').slice(0, 16)} onChange={event => setForm(current => ({ ...current, occurredAt:`${event.target.value}:00.000Z` }))}/></label>
+          <label><span>Fecha y hora *</span><input type="datetime-local" required value={form.occurredAt ? localDateTime(new Date(form.occurredAt)) : ''} onChange={event => setForm(current => ({ ...current, occurredAt:event.target.value ? new Date(event.target.value).toISOString() : '' }))}/></label>
           <label><span>Estado inicial</span><select value={form.status} onChange={event => setForm(current => ({ ...current, status:event.target.value }))}><option value="borrador">Borrador</option><option value="pendiente_firma">Enviar a firma</option></select></label>
           <label className="wide"><span>Asunto *</span><input required minLength="3" value={form.subject} onChange={event => setForm(current => ({ ...current, subject:event.target.value }))}/></label>
           <label className="wide"><span>Detalle de la anotación *</span><textarea required minLength="3" rows="5" placeholder="Hecho, instrucción, acuerdo, respuesta o avance que debe quedar formalmente registrado..." value={form.body} onChange={event => setForm(current => ({ ...current, body:event.target.value }))}/></label>
