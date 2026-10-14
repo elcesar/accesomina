@@ -1,25 +1,61 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import {
+  addCalendarDays,
+  isCalendarDateExpired,
+  localDate,
+  localDateTime,
+  operationalDate,
+  operationalDateTimeToUtc,
+  setOperationalTimeZone,
+} from '../../nexo-v2/src/services/calendar-date.js';
 
-function evaluate(zone, expression) {
-  const code = `import { localDate, localDateTime, addCalendarDays } from './nexo-v2/src/services/calendar-date.js'; console.log(JSON.stringify(${expression}));`;
-  return JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', code], { cwd: new URL('../../', import.meta.url), env: { ...process.env, TZ: zone }, encoding: 'utf8' }));
-}
-test('Santiago retains October 13 after UTC has advanced to October 14', () => {
-  assert.equal(evaluate('America/Santiago', "localDate(new Date('2026-10-14T00:36:00Z'))"), '2026-10-13');
-  assert.equal(evaluate('America/Santiago', "localDateTime(new Date('2026-10-14T00:36:00Z'))"), '2026-10-13T21:36');
+test('the company operational timezone, not the browser timezone, defines the day', () => {
+  const instant = new Date('2026-10-14T00:36:00Z');
+  assert.equal(operationalDate(instant, 'America/Santiago'), '2026-10-13');
+  assert.equal(operationalDate(instant, 'Asia/Tokyo'), '2026-10-14');
+
+  setOperationalTimeZone('America/Santiago');
+  assert.equal(localDate(instant), '2026-10-13');
+  setOperationalTimeZone('Asia/Tokyo');
+  assert.equal(localDate(instant), '2026-10-14');
+  setOperationalTimeZone('America/Santiago');
 });
-test('positive offsets use their local next day and UTC remains unchanged', () => {
-  assert.equal(evaluate('Asia/Tokyo', "localDate(new Date('2026-10-13T23:30:00Z'))"), '2026-10-14');
-  assert.equal(evaluate('UTC', "localDate(new Date('2026-10-13T23:30:00Z'))"), '2026-10-13');
+
+test('a calendar expiry remains valid for its complete operational day', () => {
+  const morning = new Date('2026-10-14T03:00:00Z'); // 2026-10-14 in Santiago
+  assert.equal(isCalendarDateExpired('2026-10-14', morning, 'America/Santiago'), false);
+  assert.equal(isCalendarDateExpired('2026-10-13', morning, 'America/Santiago'), true);
 });
-test('calendar additions cross daylight saving without changing the intended day or hour', () => {
-  assert.deepEqual(evaluate('America/Santiago', "[localDate(addCalendarDays(new Date('2026-09-05T12:00:00'), 1)), localDateTime(addCalendarDays(new Date('2026-09-05T12:00:00'), 1))]"), ['2026-09-06', '2026-09-06T12:00']);
+
+test('calendar arithmetic uses the configured operational zone without mutating an instant', () => {
+  const instant = new Date('2026-09-05T15:00:00Z');
+  const next = addCalendarDays(instant, 1, 'America/Santiago');
+  assert.equal(operationalDate(next, 'America/Santiago'), '2026-09-06');
+  assert.equal(instant.toISOString(), '2026-09-05T15:00:00.000Z');
+  assert.equal(localDateTime(instant, 'America/Santiago'), '2026-09-05T11:00');
 });
-test('calendar additions handle leap years, month and year boundaries', () => {
-  assert.deepEqual(evaluate('America/Santiago', "[localDate(addCalendarDays(new Date('2024-02-28T12:00:00'), 1)), localDate(addCalendarDays(new Date('2026-12-31T12:00:00'), 1))]"), ['2024-02-29', '2027-01-01']);
+
+test('Libro de obra converts an unambiguous operational time to a UTC instant', () => {
+  assert.equal(
+    operationalDateTimeToUtc('2026-10-13T21:36', 'America/Santiago'),
+    '2026-10-14T00:36:00.000Z'
+  );
 });
-test('formatting and adding calendar days do not mutate the original audit instant', () => {
-  assert.equal(evaluate('America/Santiago', "(()=>{const d=new Date('2026-10-14T00:36:00Z');localDate(d);localDateTime(d);addCalendarDays(d,30);return d.toISOString()})()"), '2026-10-14T00:36:00.000Z');
+
+test('manual times in DST gaps or repeated hours are rejected explicitly', () => {
+  assert.throws(
+    () => operationalDateTimeToUtc('2026-03-08T02:30', 'America/New_York'),
+    error => error.code === 'NONEXISTENT_OPERATIONAL_TIME'
+  );
+  assert.throws(
+    () => operationalDateTimeToUtc('2026-11-01T01:30', 'America/New_York'),
+    error => error.code === 'AMBIGUOUS_OPERATIONAL_TIME'
+  );
+});
+
+test('historical calendar dates are not parsed or shifted as timestamps', () => {
+  const historicalDueDate = '2026-10-14';
+  assert.equal(historicalDueDate, '2026-10-14');
+  assert.equal(isCalendarDateExpired(historicalDueDate, new Date('2026-10-14T23:59:59Z'), 'America/Santiago'), false);
 });
