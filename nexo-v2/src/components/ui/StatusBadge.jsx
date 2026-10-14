@@ -4,6 +4,7 @@ const STATUS_MAP = {
   vacaciones: ['Vacaciones', 'nk-badge-warn'],
   bloqueado: ['No habilitado', 'nk-badge-error'],
   restringido: ['No habilitado', 'nk-badge-error'],
+  regularizacion: ['Requiere regularización', 'nk-badge-warn'],
   vigente: ['Vigente', 'nk-badge-ok'],
   borrador: ['Borrador', 'nk-badge-none'],
   finalizado: ['Finalizado', 'nk-badge-none'],
