@@ -1,0 +1,35 @@
+// Independently expected formats, including the limits of the installed Zod policy.
+// This is not an RFC-wide validator: long local parts and trailing domain hyphens
+// are accepted by z.string().email() and must stay consistent in the UI.
+const atLimit = 'a'.repeat(242) + '@example.com';
+export const emailCases = [
+  ['undefined optional', undefined, true], ['null optional', null, true],
+  ['empty optional', '', true], ['spaces optional', ' \t\n ', true],
+  ['plain', 'persona@example.com', true], ['outer whitespace', ' \tpersona@example.com\n ', true],
+  ['uppercase', 'PERSONA@EXAMPLE.CL', true], ['plus and subdomain', 'a+b@sub.example.cl', true],
+  ['apostrophe', "o'connor@example.com", true], ['underscore local', 'a_b@example.com', true],
+  ['hyphen local', 'a-b@example.com', true], ['dot local', 'first.last@example.com', true],
+  ['hyphen domain', 'a@my-example.com', true], ['trailing hyphen domain (Zod)', 'a@example-.com', true],
+  ['65-character local (Zod)', 'a'.repeat(65) + '@example.com', true],
+  ['254 characters', atLimit, true], ['254 after trim', '  ' + atLimit + '  ', true],
+  ['255 characters', 'a' + atLimit, false], ['255 after trim', '  a' + atLimit + '  ', false],
+  ['missing at', 'correo-invalido', false], ['missing local', '@example.com', false],
+  ['missing domain', 'persona@', false], ['no domain suffix', 'persona@dominio', false],
+  ['one-letter suffix', 'a@example.c', false], ['numeric suffix', 'a@example.123', false],
+  ['numeric domain', 'a@127.0.0.1', false], ['bracket domain', 'a@[127.0.0.1]', false],
+  ['leading dot', '.a@example.com', false], ['trailing local dot', 'a.@example.com', false],
+  ['double local dot', 'a..b@example.com', false], ['double domain dot', 'a@example..com', false],
+  ['leading domain hyphen', 'a@-example.com', false], ['underscore domain', 'a@exam_ple.com', false],
+  ['empty domain label', 'a@.example.com', false], ['trailing domain dot', 'a@example.com.', false],
+  ['inner whitespace', 'a b@example.com', false], ['newline local', 'a\nb@example.com', false],
+  ['tab domain', 'a@exam\tple.com', false], ['multiple at', 'a@b@example.com', false],
+  ['quoted local', '"a b"@example.com', false], ['unicode local', 'José@example.com', false],
+  ['unicode domain', 'a@ejémplo.com', false], ['display name', 'Persona <a@example.com>', false],
+  ['semicolon list', 'a@example.com;b@example.com', false], ['comma list', 'a@example.com,b@example.com', false],
+  ['disallowed local punctuation', 'a!b@example.com', false], ['number', 123, false],
+  ['control character', 'a\u0000b@example.com', false], ['angle bracket', 'a<b@example.com', false],
+  ['typographic apostrophe', 'o’connor@example.com', false], ['very long input', 'a'.repeat(20_100) + '@example.com', false],
+  ['zero', 0, false], ['false', false, false], ['true', true, false],
+  ['empty object', {}, false], ['legacy object', { legacy: 'invalid' }, false],
+  ['empty array', [], false], ['string array', ['a@example.com'], false],
+].map(([name, value, valid]) => ({ name, value, valid }));

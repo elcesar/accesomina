@@ -35,14 +35,18 @@ function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(
 export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
-export function sanitizeJson(value, key = '') {
-  if (Array.isArray(value)) return value.map(v => sanitizeJson(v, key));
+export function sanitizeJson(value, key = '', parentKey = '') {
+  if (Array.isArray(value)) return value.map(v => sanitizeJson(v, key, parentKey));
   if (value && typeof value === 'object') {
     const out = {};
-    for (const [k, v] of Object.entries(value)) if (!blockedKeys.has(k)) out[k] = sanitizeJson(v, k);
+    for (const [k, v] of Object.entries(value)) if (!blockedKeys.has(k)) out[k] = sanitizeJson(v, k, key);
     return out;
   }
   if (typeof value !== 'string') return value;
+  // Worker emails are validated separately, including their original format
+  // and length. Typography replacement/truncation would change valid addresses
+  // or turn invalid input into a different, apparently valid address.
+  if (key === 'email' && parentKey === 'trabajadores') return value;
   if (['fileData'].includes(key)) return null;
   if (['cloudUrl','inviteUrl'].includes(key)) {
     try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : ''; } catch { return ''; }

@@ -19,7 +19,7 @@ async function mockWorker(page, rejectSave = false) {
     if (path === '/api/state/modules' && request.method() === 'PUT') {
       const body = request.postDataJSON()
       writes.push(body)
-      if (rejectSave) return json({ error: 'INVALID_WORKER_EMAIL' }, 409)
+      if (rejectSave && writes.length === 1) return json({ error: 'INVALID_WORKER_EMAIL' }, 409)
       state.trabajadores = body.changes.trabajadores.data
       return json({ ok: true })
     }
@@ -39,20 +39,21 @@ for (const width of [1440, 375]) {
       await email.fill(invalid)
       await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
       await expect(email).toHaveAttribute('aria-invalid', 'true')
+      await expect(email).toHaveAttribute('aria-describedby', 'worker-email-error')
       await expect(email).toBeFocused()
       await expect(page.locator('#worker-email-error')).toBeVisible()
       expect(writes).toHaveLength(0)
       expect(state.trabajadores[0].email).toBe('original@example.com')
     }
-    await email.fill(' qa.persona+prueba@example.com ')
+    await email.fill(" o'connor+prueba@example.com ")
     await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
     await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toBeVisible()
     expect(writes).toHaveLength(1)
-    expect(state.trabajadores[0].email).toBe('qa.persona+prueba@example.com')
+    expect(state.trabajadores[0].email).toBe("o'connor+prueba@example.com")
     await expect(email).toHaveAttribute('aria-invalid', 'false')
     await expect(page.locator('#worker-email-error')).toHaveCount(0)
     await page.reload()
-    await expect(page.getByLabel('Correo electrónico', { exact: true })).toHaveValue('qa.persona+prueba@example.com')
+    await expect(page.getByLabel('Correo electrónico', { exact: true })).toHaveValue("o'connor+prueba@example.com")
   })
 }
 
@@ -75,14 +76,33 @@ test('la validación del correo también protege el guardado desde EPP', async (
   expect(writes).toHaveLength(0)
 })
 
-test('un rechazo del servidor muestra la corrección necesaria sin informar éxito', async ({ page }) => {
-  const { state, writes } = await mockWorker(page, true)
-  await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
-  await expect(page.locator('.nk-person-feedback.error')).toContainText('Ingresa un correo electrónico válido o deja el campo vacío.')
-  await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toHaveCount(0)
-  expect(writes).toHaveLength(1)
-  expect(state.trabajadores[0].email).toBe('original@example.com')
-})
+for (const width of [1440, 375]) {
+  for (const fromEpp of [false, true]) {
+    test(`rechazo del servidor señala el campo y permite corregir desde ${fromEpp ? 'EPP' : 'Resumen'} a ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      const { state, writes } = await mockWorker(page, true)
+      if (fromEpp) await page.getByRole('button', { name: 'Operación y EPP', exact: true }).click()
+      await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+      const email = page.getByLabel('Correo electrónico', { exact: true })
+      await expect(page.locator('#worker-email-error')).toHaveText('Ingresa un correo electrónico válido.')
+      await expect(email).toHaveAttribute('aria-invalid', 'true')
+      await expect(email).toHaveAttribute('aria-describedby', 'worker-email-error')
+      await expect(email).toBeFocused()
+      await expect(page.locator('.nk-person-feedback.error')).toHaveCount(0)
+      await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toHaveCount(0)
+      expect(writes).toHaveLength(1)
+      expect(state.trabajadores[0].email).toBe('original@example.com')
+      await email.fill('corregido@example.com')
+      await expect(email).toHaveAttribute('aria-invalid', 'false')
+      await expect(page.locator('#worker-email-error')).toHaveCount(0)
+      await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+      await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toBeVisible()
+      expect(state.trabajadores[0].email).toBe('corregido@example.com')
+      await page.reload()
+      await expect(page.getByLabel('Correo electrónico', { exact: true })).toHaveValue('corregido@example.com')
+    })
+  }
+}
 
 test('el guardado de una persona válida conserva intacta otra con correo antiguo inválido', async ({ page }) => {
   const { state, writes } = await mockWorker(page)

@@ -3,6 +3,8 @@ import test, { before, after, beforeEach, mock } from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { pool } from '../db.js';
 import { stateRouter } from '../routes/state.js';
+import { isValidEmail, normalizeEmail } from '../../nexo-v2/src/services/email-validation.js';
+import { emailCases } from './fixtures/email-cases.js';
 
 const legacy = { id: 'qa-legacy', nombre: 'Persona antigua QA', rut: '14.567.890-0', email: 'correo-invalido' };
 const valid = { id: 'qa-valid', nombre: 'Persona válida QA', rut: '14.507.215-8', email: 'qa@ejemplo.test' };
@@ -95,3 +97,32 @@ test('a historical email can be corrected through the actual save route', async 
   assert.equal((await persisted()).data[0].email, 'corregido@ejemplo.test');
   assert.equal((await audits()).length, 1);
 });
+
+test('unchanged historical email punctuation is preserved through actual persistence', async () => {
+  const historical = { ...legacy, email: " 'correo-antiguo-invalido' " };
+  await db.query("UPDATE tenant_module_state SET data=$1::jsonb WHERE module_key='trabajadores'", [JSON.stringify([historical, valid])]);
+  await save([historical, { ...valid, cargo: 'Cargo QA' }]);
+  assert.deepEqual((await persisted()).data[0], historical);
+});
+
+for (const { name, value, valid: accepted } of emailCases) {
+  test(`actual module persistence matches shared UI policy: ${name}`, async () => {
+    assert.equal(isValidEmail(value), accepted);
+    const proposed = [legacy, { ...valid, email: value }];
+    if (accepted) {
+      const response = await save(proposed);
+      assert.equal(response.statusCode, 200);
+      const stored = await persisted();
+      assert.deepEqual(stored.data[0], legacy);
+      assert.equal(stored.data[1].email, value == null ? value : normalizeEmail(value));
+      assert.equal(Number(stored.version), 4);
+      assert.equal((await audits()).length, 1);
+    } else {
+      await assert.rejects(() => save(proposed), error => error.code === 'INVALID_WORKER_EMAIL');
+      const stored = await persisted();
+      assert.deepEqual(stored.data, [legacy, valid]);
+      assert.equal(Number(stored.version), 3);
+      assert.deepEqual(await audits(), []);
+    }
+  });
+}
