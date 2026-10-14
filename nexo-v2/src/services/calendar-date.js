@@ -60,7 +60,7 @@ export function operationalDateTimeToUtc(value, timeZone) {
 
   const [, year, month, day, hour, minute] = match.map(Number)
   const naive = Date.UTC(year, month - 1, day, hour, minute)
-  if (Number.isNaN(naive) || new Date(naive).getUTCFullYear() !== year || new Date(naive).getUTCMonth() !== month - 1 || new Date(naive).getUTCDate() !== day) {
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || Number.isNaN(naive) || new Date(naive).getUTCFullYear() !== year || new Date(naive).getUTCMonth() !== month - 1 || new Date(naive).getUTCDate() !== day) {
     throw Object.assign(new Error('La fecha operacional no existe.'), { code:'INVALID_OPERATIONAL_DATE_TIME' })
   }
 
