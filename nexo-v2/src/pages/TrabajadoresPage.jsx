@@ -283,7 +283,7 @@ export default function TrabajadoresPage() {
 
   const exportVisible = () => {
     const typeLabels = { planta: 'Trabajador fijo', esporadico: 'Trabajador por proyecto', disponible: 'Trabajador disponible', bloqueados: 'No habilitado' }
-    const availabilityLabels = { disponible: 'Disponible', asignado: 'Asignado', vacaciones: 'Vacaciones', restringido: 'No habilitado' }
+    const availabilityLabels = { disponible: 'Disponible', asignado: 'Asignado', vacaciones: 'Vacaciones', regularizacion: 'Requiere regularización', restringido: 'No habilitado' }
     const records = filtered.map(persona => {
       const context = getContext(persona)
       return {
