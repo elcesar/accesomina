@@ -3,6 +3,11 @@
 ALTER TABLE work_book_entries
   ADD COLUMN IF NOT EXISTS operational_time_zone text;
 
-ALTER TABLE work_book_entries
-  ADD CONSTRAINT work_book_entries_operational_time_zone_length
-  CHECK (operational_time_zone IS NULL OR char_length(operational_time_zone) BETWEEN 1 AND 64);
+DO $$
+BEGIN
+  ALTER TABLE work_book_entries
+    ADD CONSTRAINT work_book_entries_operational_time_zone_length
+    CHECK (operational_time_zone IS NULL OR char_length(operational_time_zone) BETWEEN 1 AND 64);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
