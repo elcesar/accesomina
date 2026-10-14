@@ -10,6 +10,7 @@ async function backend(page, protocols = []) {
     if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin', nombre: 'Responsable QA' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' }, csrfToken: 'fixture-qa' })
     if (path === '/api/settings') return json({ settings: { branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state, moduleVersions: { protocolosSalud: version } })
+    if (path === '/api/files/qa-file') return route.fulfill({ status: 200, headers: { 'content-type': 'application/pdf', 'content-disposition': 'attachment; filename="QA-evidencia.pdf"' }, body: '%PDF-1.4 QA' })
     if (path === '/api/files') return json({ id: 'qa-file', original_name: 'QA-evidencia.pdf', content_type: 'application/pdf', byte_size: 100 })
     if (path === '/api/state/modules' && req.method() === 'PUT') {
       try { state = validateTenantState({ ...state, protocolosSalud: req.postDataJSON().changes.protocolosSalud.data }); version++; return json({ moduleVersions: { protocolosSalud: version } }) }
@@ -37,7 +38,11 @@ test('saves two distinct protocols for one person and preserves attachment after
   await page.reload()
   await expect(page.locator('tbody')).toContainText('Seguimiento ruido QA')
   await expect(page.locator('tbody')).toContainText('Seguimiento altura QA')
-  await expect(page.locator('tbody a[href="/api/files/qa-file"]')).toHaveCount(1)
+  const evidenceLink = page.locator('tbody a[href="/api/files/qa-file"]')
+  await expect(evidenceLink).toHaveCount(1)
+  const download = page.waitForEvent('download')
+  await evidenceLink.click()
+  await expect((await download).suggestedFilename()).resolves.toBe('QA-evidencia.pdf')
 })
 test('shows the historical type and rejects an equivalent current protocol', async ({ page }) => {
   await backend(page, [{ id: 'legacy', trabId: 'qa-person', tipo: 'Hipobaria QA', estado: 'seguimiento' }]); await page.goto('/app/salud')
