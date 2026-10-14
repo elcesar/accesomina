@@ -84,3 +84,46 @@ test('Vacaciones se conserva y la exportación respeta el orden elegido en la vi
   expect(csv.indexOf('Vacaciones QA')).toBeLessThan(csv.indexOf('QA Ronda 02 Persona Ficticia'))
   expect(csv.indexOf('QA Ronda 02 Persona Ficticia')).toBeLessThan(csv.indexOf('Otra persona QA'))
 })
+
+
+test('la disponibilidad descarta OS cerradas, prioriza vacaciones y muestra vínculos inconsistentes', async ({ page }) => {
+  const state = {
+    minas: [{ id: 'qa-client', nombre: 'Cliente QA' }],
+    contratos: [],
+    mantenciones: [
+      { id: 'active-order', nombre: 'OS activa', minaId: 'qa-client', estado: 'activo' },
+      { id: 'closed-order', nombre: 'OS cerrada', minaId: 'qa-client', estado: 'cerrada' },
+    ],
+    trabajadores: [
+      { id: 'active-person', nombre: 'Asignación vigente QA', rut: '11.111.111-1', tipo: 'permanente', disponibilidad: 'disponible', workerItems: [] },
+      { id: 'closed-person', nombre: 'Orden cerrada QA', rut: '14.507.215-8', tipo: 'permanente', disponibilidad: 'disponible', workerItems: [] },
+      { id: 'vacation-person', nombre: 'Vacaciones con OS QA', rut: '14.567.890-0', tipo: 'permanente', disponibilidad: 'vacaciones', workerItems: [] },
+      { id: 'invalid-person', nombre: 'Vínculo a regularizar QA', rut: '7.000.000-K', tipo: 'permanente', disponibilidad: 'disponible', workerItems: [] },
+    ],
+    asignaciones: [
+      { id: 'active-assignment', trabId: 'active-person', mantId: 'active-order', estado: 'confirmado' },
+      { id: 'closed-assignment', trabId: 'closed-person', mantId: 'closed-order', estado: 'confirmado' },
+      { id: 'vacation-assignment', trabId: 'vacation-person', mantId: 'active-order', estado: 'confirmado' },
+      { id: 'invalid-assignment', trabId: 'invalid-person', mantId: 'missing-order', estado: 'confirmado' },
+    ],
+    restricted: [],
+  }
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname
+    const json = body => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
+    if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' } })
+    if (path === '/api/settings') return json({ settings: {} })
+    if (path === '/api/state') return json({ state, moduleVersions: { trabajadores: 1 } })
+    return json({})
+  })
+  await page.goto('/app/trabajadores')
+
+  await expect(page.locator('.nk-people-row').filter({ hasText: 'Asignación vigente QA' })).toContainText('Asignado')
+  await expect(page.locator('.nk-people-row').filter({ hasText: 'Orden cerrada QA' })).toContainText('Disponible')
+  await expect(page.locator('.nk-people-row').filter({ hasText: 'Vacaciones con OS QA' })).toContainText('Vacaciones')
+  await expect(page.locator('.nk-people-row').filter({ hasText: 'Vínculo a regularizar QA' })).toContainText('Requiere regularización')
+
+  await page.getByLabel('Filtrar por disponibilidad').selectOption('asignado')
+  await expect(page.locator('.nk-people-row')).toHaveCount(1)
+  await expect(page.locator('.nk-people-row')).toContainText('Asignación vigente QA')
+})
