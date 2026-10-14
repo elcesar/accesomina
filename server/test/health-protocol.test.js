@@ -40,3 +40,15 @@ test('keeps different clients and historical validity periods distinct', () => {
   const one = { id: 'one', trabId: 'qa-person', minaId: 'qa-client', tipo: 'Hipobaria', vence: '2027-01-01' };
   assert.doesNotThrow(() => validateTenantState(state([one, { ...one, id: 'two', vence: '2028-01-01' }])));
 });
+
+
+test('resolves one canonical person identity across current and historical aliases', () => {
+  assert.doesNotThrow(() => validateTenantState(state([{ ...current, workerId: 'qa-person', trabId: 'qa-person', personaId: 'qa-person' }])))
+  assert.throws(() => validateTenantState(state([{ ...current, workerId: '', trabId: '', personaId: '' }])), error => error.code === 'INVALID_REFERENCE')
+  assert.throws(() => validateTenantState(state([{ ...current, workerId: 'qa-person', trabId: 'other-person' }])), error => error.code === 'INVALID_REFERENCE')
+})
+
+test('detects duplicates through mixed current and historical person aliases', () => {
+  const legacy = { id: 'legacy', trabId: 'qa-person', tipo: 'Seguimiento QA', estado: 'seguimiento', fileName: 'historial.pdf' }
+  assert.throws(() => validateTenantState(state([{ ...current, vence: '' }, legacy])), error => error.code === 'DUPLICATE_HEALTH_PROTOCOL')
+})
