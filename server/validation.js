@@ -294,7 +294,7 @@ export function validateTenantState(input) {
   assertUnique((state.hoteles || []).map(h => `${normalizedText(h.nombre)}|${normalizedText(h.ciudad)}`), 'Duplicate hotel', 'DUPLICATE_HOTEL');
   assertUnique((state.subcontratos || []).map(s => normalizeRut(s.rut)), 'Duplicate subcontractor RUT', 'DUPLICATE_SUBCONTRACTOR_RUT');
   assertUnique((state.vehiculos || []).flatMap(v => [v.patente ? `p:${normalizedText(v.patente).replace(/[^a-z0-9]/g, '')}` : '', v.serie ? `s:${normalizedText(v.serie)}` : '']), 'Duplicate vehicle plate or serial', 'DUPLICATE_VEHICLE');
-  assertUnique((state.protocolosSalud || []).map(x => `${x.trabId}|${x.minaId}|${normalizedText(x.tipo)}|${x.vence || ''}`), 'Duplicate health protocol', 'DUPLICATE_HEALTH_PROTOCOL');
+  assertUnique((state.protocolosSalud || []).map(x => `${x.workerId || x.trabId || x.personaId || ''}|${x.minaId || ''}|${normalizedText(x.protocolo || x.tipo || x.nombre || x.title)}|${x.vence || ''}`), 'Duplicate health protocol', 'DUPLICATE_HEALTH_PROTOCOL');
   assertUnique((state.incidentes || []).map(x => `${x.mantId}|${x.fecha || ''}|${normalizedText(x.tipo)}|${normalizedText(x.descripcion)}`), 'Duplicate incident', 'DUPLICATE_INCIDENT');
   assertUnique((state.permisosTrabajo || []).map(x => `${x.mantId}|${normalizedText(x.nombre)}`), 'Duplicate work permit', 'DUPLICATE_WORK_PERMIT');
   assertUnique((state.waGroups || []).map(x => `${x.minaId || ''}|${x.mantId || ''}|${normalizedText(x.nombre)}`), 'Duplicate WhatsApp group', 'DUPLICATE_WHATSAPP_GROUP');
@@ -357,7 +357,10 @@ export function validateTenantState(input) {
   }
   assertUnique((state.credenciales || []).map(x => x.numero ? `${x.minaId}|${normalizedText(x.numero)}` : ''), 'Duplicate credential number', 'DUPLICATE_CREDENTIAL');
   for (const row of Array.isArray(state.protocolosSalud) ? state.protocolosSalud : []) {
-    if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Health protocol references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
+    const personReferences = [row.workerId, row.trabId, row.personaId].filter(value => value !== undefined && value !== null && value !== '').map(String);
+    if (new Set(personReferences).size !== 1 || !workerIds.has(personReferences[0]) || (row.minaId && !mineIds.has(String(row.minaId)))) {
+      throw Object.assign(new Error('Health protocol references an unknown or ambiguous worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
+    }
   }
   for (const row of Array.isArray(state.incidentes) ? state.incidentes : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Incident references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
   for (const row of Array.isArray(state.subcontratos) ? state.subcontratos : []) if (row.contratoId && !contractIds.has(String(row.contratoId))) throw Object.assign(new Error('Subcontractor references an unknown contract'), { status: 409, code: 'INVALID_REFERENCE' });

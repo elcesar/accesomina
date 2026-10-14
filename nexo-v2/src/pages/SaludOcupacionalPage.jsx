@@ -274,7 +274,7 @@ export default function SaludOcupacionalPage() {
       workerName: worker?.nombre || item.persona || 'Persona no identificada',
       workerRut: worker?.rut || item.rut || '',
       workerRole: worker?.cargo || worker?.especialidad || '',
-      protocolo: item.protocolo || item.nombre || item.title || 'Seguimiento ocupacional',
+      protocolo: item.protocolo || item.tipo || item.nombre || item.title || 'Seguimiento ocupacional',
     }
   }), [state.protocolosSalud, workers])
 
@@ -388,7 +388,7 @@ export default function SaludOcupacionalPage() {
                       <td>{item.riesgo || '—'}</td>
                       <td>{item.responsable || '—'}</td>
                       <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                      <td>{item.fileName || '—'}</td>
+                      <td>{item.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(item.fileId)}`} download={item.fileName || true} aria-label={`Descargar evidencia de ${item.protocolo}`}>{item.fileName || 'Descargar evidencia'}</a> : item.fileName || '—'}</td>
                     </tr>
                   )
                 })}
