@@ -12,7 +12,7 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
-import { operationalStatus, workerSegment } from '../services/worker-segments.js'
+import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
 import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
@@ -82,14 +82,14 @@ function initials(nombre) {
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
 }
 
-function workerProjectIds(persona, asignaciones) {
-  return asignaciones
-    .filter(asignacion => asignacion.trabId === persona.id)
+function workerProjectIds(persona, asignaciones, proyectos) {
+  return workerOperationalAssignments(persona, asignaciones, proyectos)
+    .current
     .map(asignacion => asignacion.mantId)
 }
 
 function workerContractIds(persona, asignaciones, mantenciones) {
-  const projectIds = workerProjectIds(persona, asignaciones)
+  const projectIds = workerProjectIds(persona, asignaciones, mantenciones)
   return [...new Set(
     projectIds
       .map(projectId => mantenciones.find(project => project.id === projectId)?.contratoId)
@@ -219,7 +219,7 @@ export default function TrabajadoresPage() {
       .map(id => clientes.find(cliente => String(cliente.id) === id)?.nombre)
       .filter(Boolean)
 
-    const workerProjects = workerProjectIds(persona, asignaciones)
+    const workerProjects = workerProjectIds(persona, asignaciones, proyectos)
     const projectNames = workerProjects
       .map(id => proyectos.find(project => project.id === id)?.nombre)
       .filter(Boolean)
@@ -237,9 +237,9 @@ export default function TrabajadoresPage() {
 
     if (search) list = list.filter(persona => matchesWorkerSearch(persona, search))
     if (specialty) list = list.filter(p => p.especialidad === specialty)
-    if (availability) list = list.filter(persona => operationalStatus(persona, asignaciones, restrictions) === (availability === 'bloqueado' ? 'restringido' : availability))
+    if (availability) list = list.filter(persona => operationalStatus(persona, asignaciones, restrictions, proyectos) === (availability === 'bloqueado' ? 'restringido' : availability))
     if (clientId) list = list.filter(persona => workerClientIds(persona, asignaciones, proyectos).includes(clientId))
-    if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones).includes(projectId))
+    if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones, proyectos).includes(projectId))
     if (contractId) list = list.filter(p => workerContractIds(p, asignaciones, proyectos).includes(contractId))
     if (qualification) list = list.filter(p => qualificationMatches(p, qualification))
 
@@ -247,8 +247,8 @@ export default function TrabajadoresPage() {
       let valueA = a[sortCol] ?? ''
       let valueB = b[sortCol] ?? ''
       if (sortCol === 'disponibilidad') {
-        valueA = operationalStatus(a, asignaciones, restrictions)
-        valueB = operationalStatus(b, asignaciones, restrictions)
+        valueA = operationalStatus(a, asignaciones, restrictions, proyectos)
+        valueB = operationalStatus(b, asignaciones, restrictions, proyectos)
       }
       if (sortCol === 'acreditacion') {
         valueA = acreditacionPct(a)
@@ -290,7 +290,7 @@ export default function TrabajadoresPage() {
         nombre: persona.nombre, rut: persona.rut, especialidad: persona.especialidad,
         tipo: typeLabels[workerSegment(persona, asignaciones, proyectos, restrictions)],
         clientes: context.clients.join(' / '), ordenes: context.projects.join(' / '),
-        disponibilidad: availabilityLabels[operationalStatus(persona, asignaciones, restrictions)],
+        disponibilidad: availabilityLabels[operationalStatus(persona, asignaciones, restrictions, proyectos)],
         cumplimiento: `${acreditacionPct(persona)}%`,
       }
     })
@@ -485,7 +485,7 @@ export default function TrabajadoresPage() {
                       <div className="nk-people-context-primary">{primaryClient || '—'}</div>
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
-                    <td><AvailabilityBadge value={operationalStatus(persona, asignaciones, restrictions)} blocked={segment === 'bloqueados'} /></td>
+                    <td><AvailabilityBadge value={operationalStatus(persona, asignaciones, restrictions, proyectos)} blocked={segment === 'bloqueados'} /></td>
                     <td><ProgressBar pct={pct} expiry={expiry} /></td>
                     <td onClick={event => event.stopPropagation()}>
                       <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>
