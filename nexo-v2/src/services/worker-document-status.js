@@ -1,4 +1,4 @@
-import { documentEvidenceMessage, hasRequiredEvidence } from './worker-document-rules.js'
+import { documentEvidenceMessage, documentRule, hasRequiredEvidence } from './worker-document-rules.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -28,6 +28,8 @@ export function daysUntilExpiry(expiry, today = new Date()) {
 export function documentStatus(item, today = new Date()) {
   if (!item) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'faltante' }
   if (!hasRequiredEvidence(item)) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: documentEvidenceMessage(item) }
+  const rule = documentRule(item.type, item.name, item.documentType)
+  if (rule.expiration === 'required' && !item.vence) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'falta fecha de vencimiento' }
   if (String(item.estado || '').trim().toLowerCase() === 'rechazado') return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'rechazado' }
   if (item.vence) {
     const days = daysUntilExpiry(item.vence, today)
