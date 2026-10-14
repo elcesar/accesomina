@@ -4,6 +4,8 @@ import { IconSend } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import '../styles/password-recovery.css'
 
 export default function ForgotPasswordPage() {
@@ -18,7 +20,8 @@ export default function ForgotPasswordPage() {
     event.preventDefault()
     const errors = {}
     if (!isValidRut(form.rut)) errors.rut = 'Ingresa un RUT de empresa válido.'
-    if (!form.email.trim()) errors.email = 'Ingresa tu correo autorizado.'
+    const emailError = validateEmail(form.email, { required: true })
+    if (emailError) errors.email = emailError
     setFieldErrors(errors)
     if (Object.keys(errors).length) return
     setLoading(true)
@@ -73,12 +76,14 @@ export default function ForgotPasswordPage() {
             </label>
             <label className="nk-recovery-field">
               Correo autorizado
-              <input
-                className="nk-input"
+              <EmailInput
                 required
-                type="email"
                 value={form.email}
-                onChange={event => setForm(current => ({ ...current, email: event.target.value }))}
+                error={fieldErrors.email}
+                onChange={value => {
+                  setForm(current => ({ ...current, email: value }))
+                  setFieldErrors(current => ({ ...current, email: '' }))
+                }}
                 placeholder="persona@empresa.cl"
                 autoComplete="email"
               />
