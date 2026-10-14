@@ -130,6 +130,28 @@ function conflict(message, code) {
   throw Object.assign(new Error(message), { status: 409, code });
 }
 
+const OPERATIONAL_ASSIGNMENT_STATES = new Set([
+  'asignado', 'habilitado', 'confirmado', 'activa', 'activo', 'en_curso',
+  'contrato_enviado', 'contrato_firmado', 'acreditado', 'acreditacion_enviada',
+]);
+const INACTIVE_RESTRICTION_STATES = new Set(['levantada', 'cerrada', 'inactiva']);
+
+function assignmentIsOperationalForAvailability(assignment) {
+  return OPERATIONAL_ASSIGNMENT_STATES.has(normalizedText(assignment?.recruitmentStage || assignment?.estadoGestion || assignment?.estado));
+}
+
+function workerHasBlockingRestriction(state, workerId) {
+  const worker = collection(state, 'trabajadores').find(row => String(row?.id) === String(workerId));
+  if (worker?.bloqueado || normalizedText(worker?.disponibilidad) === 'bloqueado') return true;
+  const today = new Date().toISOString().slice(0, 10);
+  return collection(state, 'restricted').some(restriction => (
+    String(restriction?.workerId || restriction?.trabId || restriction?.personaId) === String(workerId) &&
+    restriction?.activa !== false &&
+    !INACTIVE_RESTRICTION_STATES.has(normalizedText(restriction?.estado)) &&
+    (!restriction?.hasta || String(restriction.hasta) >= today)
+  ));
+}
+
 function ensureUniqueNew(rows, existing, key, message, code) {
   const known = new Set(existing.map(key).filter(Boolean));
   for (const row of rows) {
@@ -225,6 +247,22 @@ export function validateAppendChanges(current, proposed, keys) {
   }
 
   const newWorkers = additions.get('trabajadores') || [];
+  const workerIds = new Set(workers.map(row => String(row?.id || '')).filter(Boolean));
+  const projectIds = new Set(projects.map(row => String(row?.id || '')).filter(Boolean));
+  const appendState = {
+    ...current,
+    trabajadores: workers,
+    mantenciones: projects,
+    restricted: [...collection(current, 'restricted'), ...(additions.get('restricted') || [])],
+  };
+  for (const assignment of additions.get('asignaciones') || []) {
+    if (!workerIds.has(String(assignment?.trabId)) || !projectIds.has(String(assignment?.mantId))) {
+      conflict('La asignación referencia una persona u orden inexistente.', 'INVALID_REFERENCE');
+    }
+    if (assignmentIsOperationalForAvailability(assignment) && workerHasBlockingRestriction(appendState, assignment.trabId)) {
+      conflict('La persona no está habilitada para recibir asignaciones.', 'WORKER_NOT_AVAILABLE');
+    }
+  }
   for (const worker of newWorkers) {
     if (!worker?.id || !String(worker.nombre || '').trim() || !worker.rut) conflict('La persona requiere identificador, nombre y RUT.', 'INCOMPLETE_WORKER');
     if (!isValidRut(worker.rut)) conflict('El RUT de la persona no es válido.', 'INVALID_WORKER_RUT');
@@ -338,6 +376,9 @@ export function validateTenantState(input) {
   }
   for (const a of Array.isArray(state.asignaciones) ? state.asignaciones : []) {
     if (!workerIds.has(String(a.trabId)) || !projectIds.has(String(a.mantId))) throw Object.assign(new Error('Assignment references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
+    if (assignmentIsOperationalForAvailability(a) && workerHasBlockingRestriction(state, a.trabId)) {
+      throw Object.assign(new Error('Worker is not enabled for an operational assignment'), { status: 409, code: 'WORKER_NOT_AVAILABLE' });
+    }
   }
   assertUnique((state.asignaciones || []).map(a => `${a.trabId}|${a.mantId}`), 'Duplicate worker assignment', 'DUPLICATE_ASSIGNMENT');
   for (const row of Array.isArray(state.hotelAsig) ? state.hotelAsig : []) {
