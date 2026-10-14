@@ -6,12 +6,21 @@ const today = new Date(2026, 0, 15, 12)
 const regularFile = { type: 'contrato', documentType: 'EMPLOYMENT_CONTRACT', fileId: 'file-1' }
 const identityFiles = [{ side: 'front', fileId: 'front-1' }, { side: 'back', fileId: 'back-1' }]
 
-test('a valid document without expiry is vigente and counts exactly once', () => {
-  const identity = { type: 'documento', documentType: 'IDENTITY_CARD', files: identityFiles, vence: null }
-  assert.deepEqual(documentStatus(identity, today), { ok: true, label: 'Vigente', className: 'nk-badge-ok', source: 'cargado' })
+test('a valid optional document without expiry is vigente and counts exactly once', () => {
+  const optional = { ...regularFile, vence: null }
+  assert.deepEqual(documentStatus(optional, today), { ok: true, label: 'Vigente', className: 'nk-badge-ok', source: 'cargado' })
 
-  const summary = requirementSummary([[identity], [regularFile], [{ ...regularFile, fileId: 'file-2' }], [{ ...regularFile, fileId: 'file-3' }], []], today)
+  const summary = requirementSummary([[optional], [regularFile], [{ ...regularFile, fileId: 'file-2' }], [{ ...regularFile, fileId: 'file-3' }], []], today)
   assert.deepEqual(summary, { total: 5, fulfilled: 4, percentage: 80 })
+})
+
+test('a required identity expiry is a separate requirement from both-side evidence', () => {
+  const incompleteIdentity = { type: 'documento', documentType: 'IDENTITY_CARD', files: identityFiles }
+  const driverLicense = { type: 'documento', documentType: 'DRIVER_LICENSE', files: identityFiles }
+  const cv = { type: 'cv', documentType: 'CV', fileId: 'cv-file' }
+  assert.deepEqual(documentStatus(incompleteIdentity, today), { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'falta fecha de vencimiento' })
+  assert.equal(documentStatus(driverLicense, today).source, 'falta fecha de vencimiento')
+  assert.equal(documentStatus(cv, today).label, 'Vigente')
 })
 
 test('a rejected file is no habilitado and does not count', () => {
