@@ -42,7 +42,7 @@ test('saves two distinct protocols for one person and preserves attachment after
   await expect(evidenceLink).toHaveCount(1)
   const download = page.waitForEvent('download')
   await evidenceLink.click()
-  await expect((await download).suggestedFilename()).resolves.toBe('QA-evidencia.pdf')
+  expect((await download).suggestedFilename()).toBe('QA-evidencia.pdf')
 })
 test('shows the historical type and rejects an equivalent current protocol', async ({ page }) => {
   await backend(page, [{ id: 'legacy', trabId: 'qa-person', tipo: 'Hipobaria QA', estado: 'seguimiento' }]); await page.goto('/app/salud')
