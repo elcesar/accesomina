@@ -36,7 +36,7 @@ export default function ConfiguracionPage() {
     branding: { displayName: '', theme: 'light', logoUrl: '' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
-    catalogs: { specialties: [] },
+    catalogs: { specialties: [], operationalTimeZone: 'America/Santiago' },
   })
   const [users, setUsers] = useState([])
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -65,7 +65,7 @@ export default function ConfiguracionPage() {
           warningDays: Number(current.alerts?.warningDays) || 30,
           criticalDays: Number(current.alerts?.criticalDays) || 7,
         },
-        catalogs: current.catalogs || { specialties: [] },
+        catalogs: { ...(current.catalogs || {}), specialties: current.catalogs?.specialties || [], operationalTimeZone: current.catalogs?.operationalTimeZone || 'America/Santiago' },
       }
       setSettings(nextSettings)
       applyTenantBranding(nextSettings.branding)
@@ -189,7 +189,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>
-            <label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
+            <label className="nk-config-field"><span>Zona horaria operacional</span><input className="nk-input" value={settings.catalogs?.operationalTimeZone || 'America/Santiago'} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, operationalTimeZone: e.target.value } }))} placeholder="America/Santiago" /></label><label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
           </div>
         </section>
 
