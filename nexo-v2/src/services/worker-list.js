@@ -1,9 +1,8 @@
-import { assignmentIsOperational } from './worker-segments.js'
+import { workerOperationalAssignments } from './worker-segments.js'
 
 export function workerClientIds(worker, assignments = [], projects = []) {
   const ids = new Set((worker.mineras || []).filter(Boolean).map(String))
-  for (const assignment of assignments) {
-    if (String(assignment.trabId) !== String(worker.id) || !assignmentIsOperational(assignment)) continue
+  for (const assignment of workerOperationalAssignments(worker, assignments, projects).current) {
     const project = projects.find(item => String(item.id) === String(assignment.mantId))
     if (project?.minaId) ids.add(String(project.minaId))
   }
