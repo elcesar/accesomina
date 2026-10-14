@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconCheck, IconDeviceFloppy, IconRefresh, IconUsers } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { applyTenantBranding } from '../services/theme.js'
+import { setOperationalTimeZone } from '../services/calendar-date.js'
 import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
@@ -101,6 +102,7 @@ export default function ConfiguracionPage() {
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       const nextModules = result?.modules || settings.modules
       setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
+      setOperationalTimeZone(result?.catalogs?.operationalTimeZone || settings.catalogs?.operationalTimeZone)
       applyTenantBranding(nextBranding)
       window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
       window.dispatchEvent(new CustomEvent('nexo:modules-changed', { detail: { modules: nextModules } }))
