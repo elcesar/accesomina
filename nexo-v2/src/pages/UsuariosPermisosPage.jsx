@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconKey, IconLock, IconPlus, IconRefresh, IconShieldCheck, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import '../styles/users-admin.css'
 
 const ROLE_LABEL = {
@@ -23,6 +25,7 @@ export default function UsuariosPermisosPage() {
   const [busy, setBusy] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [draft, setDraft] = useState({ fullName: '', email: '', role: 'consulta' })
+  const [emailError, setEmailError] = useState('')
   const admin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
 
   const load = async () => {
@@ -40,13 +43,16 @@ export default function UsuariosPermisosPage() {
 
   const createUser = async event => {
     event.preventDefault()
-    if (!draft.fullName.trim() || !draft.email.trim()) return
+    const nextEmailError = validateEmail(draft.email, { required: true })
+    setEmailError(nextEmailError || '')
+    if (!draft.fullName.trim() || nextEmailError) return
     setBusy('create')
     setMessage('')
     try {
       const result = await api.post('/users', draft)
       setShowCreate(false)
       setDraft({ fullName: '', email: '', role: 'consulta' })
+      setEmailError('')
       await load()
       setMessage(result?.temporaryPassword
         ? `Acceso creado para ${result.user.email}. Contraseña temporal: ${result.temporaryPassword}`
@@ -156,7 +162,7 @@ export default function UsuariosPermisosPage() {
             <header><div><h2 id="nk-user-create-title">Dar acceso</h2><p>Crea un usuario para esta empresa y define su permiso inicial.</p></div><button className="nk-user-dialog-close" onClick={() => setShowCreate(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
             <form onSubmit={createUser}>
               <label><span>Nombre</span><input className="nk-input" value={draft.fullName} onChange={e => setDraft({ ...draft, fullName: e.target.value })} required /></label>
-              <label><span>Correo de acceso</span><input className="nk-input" type="email" value={draft.email} onChange={e => setDraft({ ...draft, email: e.target.value })} required /></label>
+              <label><span>Correo de acceso</span><EmailInput required value={draft.email} error={emailError} onChange={value => { setDraft({ ...draft, email: value }); setEmailError('') }} placeholder="persona@empresa.cl" /></label>
               <label><span>Permiso</span><select className="nk-input" value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}</select></label>
               <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowCreate(false)}>Cancelar</button><button className="nk-button nk-button-primary" disabled={busy === 'create'}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</button></div>
             </form>
