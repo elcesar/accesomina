@@ -367,6 +367,7 @@ export default function TrabajadoresPage() {
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
           <option value="vacaciones">Vacaciones</option>
+          <option value="regularizacion">Requiere regularización</option>
           <option value="bloqueado">No habilitado</option>
         </select>
 
