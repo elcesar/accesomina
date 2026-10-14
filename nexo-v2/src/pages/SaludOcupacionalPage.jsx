@@ -388,7 +388,7 @@ export default function SaludOcupacionalPage() {
                       <td>{item.riesgo || '—'}</td>
                       <td>{item.responsable || '—'}</td>
                       <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                      <td>{item.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(item.fileId)}`} download={item.fileName || true} aria-label={`Descargar evidencia de ${item.protocolo}`}>{item.fileName || 'Descargar evidencia'}</a> : item.fileName || '—'}</td>
+                      <td>{item.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(item.fileId)}`} download={item.fileName || true} aria-label={`Descargar evidencia de ${item.protocolo}`}>{item.fileName || 'Descargar evidencia'}</a> : item.fileName ? <span className="nk-person-text-muted" title="Registro histórico: no existe un archivo descargable asociado">{item.fileName} · histórico, sin archivo</span> : '—'}</td>
                     </tr>
                   )
                 })}
