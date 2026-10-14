@@ -1,4 +1,4 @@
-import { localDate, localDateTime } from '../services/calendar-date.js'
+import { localDate, localDateTime, operationalDate, operationalDateTime, operationalDateTimeToUtc, operationalTimeZone } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBook, IconFileDescription, IconPlus, IconRefresh, IconSearch, IconSignature as IconFileSignature, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -6,7 +6,7 @@ import '../styles/libro-obra.css'
 
 const list = value => Array.isArray(value) ? value : []
 const today = () => localDate()
-const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de obra', entryType:'avance', occurredAt:new Date().toISOString(), subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
+const emptyForm = () => ({ mineRef:'', contractRef:'', projectRef:'', bookType:'maestro', bookTitle:'Libro de obra', entryType:'avance', occurredAt:new Date().toISOString(), occurredAtLocal:localDateTime(), subject:'', body:'', responsible:'', dueAt:'', status:'borrador' })
 const openStatus = status => !['cerrado', 'firmado'].includes(status)
 const normalize = value => String(value || '').toLowerCase()
 
@@ -58,10 +58,10 @@ export default function LibroObraPage() {
     }
   }, [entries])
 
-  const years = useMemo(() => [...new Set(entries.map(row => (row.occurred_at || row.occurredAt) ? localDate(new Date(row.occurred_at || row.occurredAt)).slice(0, 4) : '').filter(Boolean))].sort().reverse(), [entries])
+  const years = useMemo(() => [...new Set(entries.map(row => (row.occurred_at || row.occurredAt) ? operationalDate(new Date(row.occurred_at || row.occurredAt), row.operational_time_zone || row.operationalTimeZone).slice(0, 4) : '').filter(Boolean))].sort().reverse(), [entries])
 
   const filteredEntries = useMemo(() => entries.filter(row => {
-    const occurred = (row.occurred_at || row.occurredAt) ? localDate(new Date(row.occurred_at || row.occurredAt)) : ''
+    const occurred = (row.occurred_at || row.occurredAt) ? operationalDate(new Date(row.occurred_at || row.occurredAt), row.operational_time_zone || row.operationalTimeZone) : ''
     const evidence = list(row.evidence_files || row.evidenceFiles)
     const due = row.due_at || row.dueAt
     const open = openStatus(row.status)
@@ -83,7 +83,8 @@ export default function LibroObraPage() {
     event.preventDefault()
     setNotice('')
     try {
-      await api.post('/work-books/entries', { ...form, dueAt: form.dueAt || null })
+      if (!form.occurredAt) throw new Error('Corrige la fecha y hora operacional antes de guardar.')
+      await api.post('/work-books/entries', { ...form, operationalTimeZone: operationalTimeZone(), dueAt: form.dueAt || null })
       setNotice('Anotación registrada con folio correlativo.')
       setForm(emptyForm())
       setShowForm(false)
@@ -184,7 +185,7 @@ export default function LibroObraPage() {
                 <tr key={row.id} onClick={() => openEntry(row)}>
                   <td><strong>{row.folio || '—'}</strong></td>
                   <td>{row.entry_number || '—'}</td>
-                  <td>{String(row.occurred_at || row.occurredAt || '').slice(0, 10) || '—'}</td>
+                  <td>{row.occurred_at || row.occurredAt ? <><strong>{operationalDateTime(new Date(row.occurred_at || row.occurredAt), row.operational_time_zone || row.operationalTimeZone)}</strong><small>{row.operational_time_zone || row.operationalTimeZone || operationalTimeZone()}</small></> : '—'}</td>
                   <td><strong>{relationName(clients, row.mine_ref || row.mineRef)}</strong><small>{relationName(orders, row.project_ref || row.projectRef)}</small></td>
                   <td><strong>{row.subject || 'Sin asunto'}</strong><small>{(row.book_title || row.bookTitle || 'Libro de obra')} · {String(row.entry_type || row.entryType || '').replaceAll('_', ' ')}</small></td>
                   <td>{row.responsible || 'Sin asignar'}</td>
@@ -204,7 +205,7 @@ export default function LibroObraPage() {
           <label className="wide"><span>Proyecto / servicio / mantención *</span><select required value={form.projectRef} onChange={event => setForm(current => ({ ...current, projectRef:event.target.value }))}><option value="">Selecciona</option>{scopedOrders.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.id}</option>)}</select></label>
           <label><span>Libro</span><select value={form.bookType} onChange={event => setForm(current => ({ ...current, bookType:event.target.value }))}>{[['maestro','Maestro'],['seguridad_hsec','Seguridad y salud'],['calidad','Calidad'],['terreno_avance','Terreno y avance'],['comunicaciones','Comunicaciones']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label><span>Tipo de anotación</span><select value={form.entryType} onChange={event => setForm(current => ({ ...current, entryType:event.target.value }))}>{['instruccion','consulta','respuesta','avance','incidente','acuerdo','observacion','recepcion','otro'].map(value => <option key={value}>{value}</option>)}</select></label>
-          <label><span>Fecha y hora *</span><input type="datetime-local" required value={form.occurredAt ? localDateTime(new Date(form.occurredAt)) : ''} onChange={event => setForm(current => ({ ...current, occurredAt:event.target.value ? new Date(event.target.value).toISOString() : '' }))}/></label>
+          <label><span>Fecha y hora *</span><input type="datetime-local" required value={form.occurredAtLocal || ''} onChange={event => { const occurredAtLocal = event.target.value; try { setForm(current => ({ ...current, occurredAtLocal, occurredAt: occurredAtLocal ? operationalDateTimeToUtc(occurredAtLocal) : '' })); setNotice('') } catch (error) { setForm(current => ({ ...current, occurredAtLocal, occurredAt:'' })); setNotice(error.message) } }}/><small>Zona operacional: {operationalTimeZone()}</small></label>
           <label><span>Estado inicial</span><select value={form.status} onChange={event => setForm(current => ({ ...current, status:event.target.value }))}><option value="borrador">Borrador</option><option value="pendiente_firma">Enviar a firma</option></select></label>
           <label className="wide"><span>Asunto *</span><input required minLength="3" value={form.subject} onChange={event => setForm(current => ({ ...current, subject:event.target.value }))}/></label>
           <label className="wide"><span>Detalle de la anotación *</span><textarea required minLength="3" rows="5" placeholder="Hecho, instrucción, acuerdo, respuesta o avance que debe quedar formalmente registrado..." value={form.body} onChange={event => setForm(current => ({ ...current, body:event.target.value }))}/></label>
