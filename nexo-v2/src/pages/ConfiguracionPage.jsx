@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { IconCheck, IconDeviceFloppy, IconRefresh, IconUsers } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { canManageTenantModules } from '../services/tenant-capabilities.js'
+import { useAuth } from '../services/auth.jsx'
 import { applyTenantBranding } from '../services/theme.js'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
@@ -31,6 +33,8 @@ function lineList(value) {
 }
 
 export default function ConfiguracionPage() {
+  const { session } = useAuth()
+  const canManageModules = canManageTenantModules(session?.user?.role)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
@@ -100,7 +104,8 @@ export default function ConfiguracionPage() {
     setSaving('settings')
     setMessage('')
     try {
-      const result = await api.put('/settings', settings)
+      const payload = canManageModules ? settings : { ...settings, modules: undefined }
+      const result = await api.put('/settings', payload)
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       const nextModules = result?.modules || settings.modules
       setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
@@ -201,7 +206,7 @@ export default function ConfiguracionPage() {
           </div>
         </section>
 
-        <section className="nk-module-card nk-config-card">
+{canManageModules && (        <section className="nk-module-card nk-config-card">
           <header><div><h2>Módulos habilitados</h2><p>Configuración declarativa de los módulos disponibles para esta empresa.</p></div></header>
           <div className="nk-config-modules">
             {MODULE_OPTIONS.map(([key, label]) => {
@@ -211,6 +216,7 @@ export default function ConfiguracionPage() {
           </div>
           <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
         </section>
+        )}
       </div>
 
       <section className="nk-module-card nk-config-card nk-config-user-views">
