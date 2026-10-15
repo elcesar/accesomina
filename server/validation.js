@@ -8,6 +8,21 @@ export const registerSchema = z.object({
   phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
 });
 
+const workerEmailSchema = z.string().trim().max(254).email();
+function validateWorkerEmail(worker, previousWorker) {
+  // The previous record comes from the server's tenant state. Carrying its
+  // unchanged email must not force a cleanup when another record is saved.
+  if (previousWorker && sameRecord(worker.email, previousWorker.email)) return;
+  if (worker.email == null) return;
+  if (typeof worker.email === 'string' && !worker.email.trim()) {
+    worker.email = '';
+    return;
+  }
+  const result = workerEmailSchema.safeParse(worker.email);
+  if (!result.success) throw Object.assign(new Error('Worker email is invalid'), { status: 409, code: 'INVALID_WORKER_EMAIL' });
+  worker.email = result.data;
+}
+
 export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
 function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
   if (!worker.nacimiento) return;
@@ -20,14 +35,35 @@ function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(
 export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
-export function sanitizeJson(value, key = '') {
-  if (Array.isArray(value)) return value.map(v => sanitizeJson(v, key));
+export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
+  if (Array.isArray(value)) {
+    const collectionKey = key || context.collectionKey || '';
+    return value.map(item => sanitizeJson(item, '', collectionKey, {
+      ...context,
+      collectionKey,
+      directWorkerRecord: collectionKey === 'trabajadores',
+      preserveWorkerEmail: false,
+    }));
+  }
   if (value && typeof value === 'object') {
+    const childContext = { ...context, directWorkerRecord: false, preserveWorkerEmail: false };
     const out = {};
-    for (const [k, v] of Object.entries(value)) if (!blockedKeys.has(k)) out[k] = sanitizeJson(v, k);
+    for (const [k, v] of Object.entries(value)) {
+      if (blockedKeys.has(k)) continue;
+      out[k] = sanitizeJson(v, k, key, {
+        ...childContext,
+        // Preserve only the direct email field of an item in trabajadores.
+        // Nested objects and other entities still use generic sanitization.
+        preserveWorkerEmail: Boolean(context.directWorkerRecord && k === 'email'),
+      });
+    }
     return out;
   }
   if (typeof value !== 'string') return value;
+  // Worker emails are validated separately, including their original format
+  // and length. Typography replacement/truncation would change valid addresses
+  // or turn invalid input into a different, apparently valid address.
+  if (context.preserveWorkerEmail) return value;
   if (['fileData'].includes(key)) return null;
   if (['cloudUrl','inviteUrl'].includes(key)) {
     try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : ''; } catch { return ''; }
@@ -234,6 +270,7 @@ export function validateAppendChanges(current, proposed, keys) {
       worker.tel = phone;
     }
     validateWorkerBirthDate(worker);
+    validateWorkerEmail(worker);
     validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
@@ -273,10 +310,11 @@ export function validateAppendChanges(current, proposed, keys) {
 
   return true;
 }
-export function validateTenantState(input) {
+export function validateTenantState(input, { previousState } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = sanitizeJson(input);
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
+  const previousWorkers = new Map((Array.isArray(previousState?.trabajadores) ? previousState.trabajadores : []).map(worker => [String(worker.id), worker]));
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
@@ -284,7 +322,16 @@ export function validateTenantState(input) {
     if (!client.id || !String(client.nombre || '').trim()) throw Object.assign(new Error('Client requires id and name'), { status: 409, code: 'INCOMPLETE_CLIENT' });
     if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
   }
-  for(const worker of workers){if(!worker.id||!String(worker.nombre||'').trim()||!worker.rut)throw Object.assign(new Error('Worker requires id, name and RUT'),{status:409,code:'INCOMPLETE_WORKER'});if(!isValidRut(worker.rut))throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`),{status:409,code:'INVALID_WORKER_RUT'});if(worker.tel){worker.tel=normalizeChilePhone(worker.tel);if(!isValidChilePhone(worker.tel))throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`),{status:409,code:'INVALID_WORKER_PHONE'});}validateWorkerBirthDate(worker);}
+  for (const worker of workers) {
+    if (!worker.id || !String(worker.nombre || '').trim() || !worker.rut) throw Object.assign(new Error('Worker requires id, name and RUT'), { status: 409, code: 'INCOMPLETE_WORKER' });
+    if (!isValidRut(worker.rut)) throw Object.assign(new Error(`Worker ${worker.id} has invalid RUT`), { status: 409, code: 'INVALID_WORKER_RUT' });
+    if (worker.tel) {
+      worker.tel = normalizeChilePhone(worker.tel);
+      if (!isValidChilePhone(worker.tel)) throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`), { status: 409, code: 'INVALID_WORKER_PHONE' });
+    }
+    validateWorkerBirthDate(worker);
+    validateWorkerEmail(worker, previousWorkers.get(String(worker.id)));
+  }
   for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
   assertUnique(contracts.map(c => normalizedText(c.numero)), 'Duplicate contract number', 'DUPLICATE_CONTRACT_NUMBER');

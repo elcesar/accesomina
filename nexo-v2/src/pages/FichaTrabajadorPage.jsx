@@ -9,6 +9,8 @@ import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { EMAIL_ERROR, normalizeEmail, validateEmail } from '../services/email-validation.js'
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
@@ -118,8 +120,8 @@ function BadgeDisp({ value }) {
   return <StatusBadge value={value} />
 }
 
-function Field({ label, hint, children }) {
-  return <div className="nk-field"><label className="nk-label">{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
+function Field({ label, hint, htmlFor, children }) {
+  return <div className="nk-field"><label className="nk-label" htmlFor={htmlFor}>{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
 }
 
 function CardSection({ title, subtitle, action, children }) {
@@ -135,7 +137,7 @@ function SaveButton({ saving, onClick }) {
   return <button className="nk-button nk-button-primary" type="button" onClick={onClick} disabled={saving}>{saving ? <IconLoader2 size={15} className="animate-spin" /> : <IconDeviceFloppy size={15} strokeWidth={1.7} />}{saving ? 'Guardando…' : 'Guardar cambios'}</button>
 }
 
-function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
+function DataTab({ worker, emailError, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
@@ -181,7 +183,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
 
     <CardSection title="Datos personales" subtitle="Identificación, contacto y previsión."><div className="nk-person-grid">
       <Field label="Teléfono"><PhoneInput value={worker.tel || ''} onChange={value => onChange('tel', value)} /></Field>
-      <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
+      <Field label="Correo electrónico" htmlFor="worker-email"><EmailInput id="worker-email" value={worker.email} error={emailError} onChange={value => onChange('email', value)} /></Field>
       <Field label="Región"><select className="nk-select" value={worker.region || ''} onChange={updateRegion}><option value="">Seleccionar región</option>{regionesChile.map(region => <option key={region} value={region}>{region}</option>)}</select></Field>
       <Field label="Ciudad / comuna"><select className="nk-select" value={worker.ciudad || ''} disabled={!worker.region} onChange={e => onChange('ciudad', e.target.value)}><option value="">{worker.region ? 'Seleccionar comuna o ciudad' : 'Primero selecciona una región'}</option>{worker.ciudad && !comunas.includes(worker.ciudad) && <option value={worker.ciudad}>{worker.ciudad}</option>}{comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</select></Field>
       <Field label="Fecha de nacimiento"><BirthDateInput value={worker.nacimiento || ''} onChange={value => onChange('nacimiento', value)} /></Field>
@@ -355,6 +357,7 @@ export default function FichaTrabajadorPage() {
   const [tab, setTab] = useState('datos')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [emailError, setEmailError] = useState(null)
   const [ok, setOk] = useState(null)
   const [restricting, setRestricting] = useState(false)
   const [restrictionReason, setRestrictionReason] = useState('')
@@ -373,9 +376,38 @@ export default function FichaTrabajadorPage() {
     setWorker({ ...found, _asignaciones: workerAssignments, _hotelAsig: hotelAssignments }); setAssignments(s?.asignaciones || [])
   }).catch(e => setError(e.message || 'Error al cargar la ficha')) }, [id])
 
-  function onChange(field, value) { setWorker(current => ({ ...current, [field]: value })) }
+  function onChange(field, value) {
+    if (field === 'email') setEmailError(null)
+    setWorker(current => ({ ...current, [field]: value }))
+  }
+  function showEmailError(message) {
+    setEmailError(message)
+    setTab('datos')
+    requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
+  }
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
-  async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
+  async function handleSave() {
+    setError(null)
+    setOk(null)
+    const validationError = validateEmail(worker.email)
+    if (validationError) {
+      showEmailError(validationError)
+      return
+    }
+    setEmailError(null)
+    setSaving(true)
+    try {
+      const nextWorker = { ...worker, ...(typeof worker.email === 'string' ? { email: normalizeEmail(worker.email) } : {}) }
+      await persistWorker(nextWorker, `Actualización ficha ${worker.nombre}`)
+      setOk('Cambios guardados correctamente')
+      setTimeout(() => setOk(null), 2500)
+    } catch (e) {
+      if (e.code === 'INVALID_WORKER_EMAIL') showEmailError(EMAIL_ERROR)
+      else setError(e.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
   async function appendDocument(item, reason) {
     try {
       const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })
@@ -472,7 +504,7 @@ export default function FichaTrabajadorPage() {
     {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
     <main className="nk-person-content">
       {tab === 'datos' && <>
-        <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
+        <DataTab worker={worker} emailError={emailError} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
         {restricting && <CardSection title="No habilitar persona" subtitle="La no habilitación suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar no habilitación</button></div></CardSection>}
       </>}
       {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}

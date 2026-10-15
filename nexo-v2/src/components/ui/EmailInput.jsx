@@ -40,6 +40,10 @@ export function EmailInput({
         onBlur?.(event)
       }}
     />
-    {message && <p id={errorId} className="nk-field-error" role="alert">{message || EMAIL_ERROR}</p>}
+    {/* Reserve the wrapped error line so validation on blur cannot move the
+        submit button between pointer down and click. Hidden text is not read. */}
+    <p id={message ? errorId : undefined} className="nk-field-error"
+      role={message ? 'alert' : undefined} aria-hidden={message ? undefined : true}
+      style={{ visibility: message ? 'visible' : 'hidden' }}>{message || EMAIL_ERROR}</p>
   </>
 }
