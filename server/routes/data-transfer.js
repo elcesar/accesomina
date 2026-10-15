@@ -8,7 +8,7 @@ import { appendAudit } from '../audit.js';
 import { isValidRut } from '../security.js';
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
-import { opportunityRows, opportunityFields } from '../../nexo-v2/src/services/opportunity-collections.js';
+import { canonicalizeOpportunityState, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
 
 export const dataTransferRouter=Router();
 export const BACKUP_FORMAT='nexo-klar-backup';
@@ -48,12 +48,82 @@ dataTransferRouter.get('/export',async(req,res)=>{const payload=await withTenant
 dataTransferRouter.get('/export/:type',async(req,res)=>{const def=definitions[req.params.type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});assertModuleAccess(req.auth,def.module);const state=await withTenant(req.auth.tenantId,async client=>aggregate(await moduleRows(client,req.auth.tenantId)));const csv=Papa.unparse({fields:def.headers,data:csvRows(req.params.type,state)},{header:true});res.set({'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="${req.params.type}_${new Date().toISOString().slice(0,10)}.csv"`}).send(`\uFEFF${csv}`);});
 dataTransferRouter.get('/template/:type',(req,res)=>{const def=definitions[req.params.type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});res.set({'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="plantilla_${req.params.type}.csv"`}).send(`\uFEFF${Papa.unparse([Object.fromEntries(def.headers.map(h=>[h,'']))],{columns:def.headers,header:true})}`);});
 
-dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{const type=req.params.type,mode=type==='backup'||req.body.mode==='replace'?'replace':'append';if(!req.file)return res.status(400).json({error:'FILE_REQUIRED'});if(type!=='backup'){const def=definitions[type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});assertModuleAccess(req.auth,def.module);}let importModules={},importSettings=null,rowCount=0;
-  if(type==='backup'){let parsed;try{parsed=JSON.parse(req.file.buffer.toString('utf8'));}catch{return res.status(400).json({error:'INVALID_JSON'});}if(![BACKUP_FORMAT,LEGACY_BACKUP_FORMAT].includes(parsed?.format)||!parsed.modules)return res.status(400).json({error:'INVALID_BACKUP_FORMAT'});importModules=sanitizeJson(parsed.modules);Object.keys(importModules).forEach(key=>assertModuleAccess(req.auth,key));importSettings=sanitizeJson(parsed.settings||{});rowCount=Object.values(importModules).reduce((n,v)=>n+(Array.isArray(v)?v.length:1),0);
-  }else{const def=definitions[type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});const parsed=Papa.parse(req.file.buffer.toString('utf8').replace(/^\uFEFF/,''),{header:true,skipEmptyLines:'greedy',transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_')});if(parsed.errors.length)return res.status(400).json({error:'INVALID_CSV',details:parsed.errors.slice(0,10)});if(parsed.data.length>10000)return res.status(413).json({error:'TOO_MANY_ROWS'});const missing=def.required.filter(k=>!parsed.meta.fields.includes(k)),invalid=parsed.data.findIndex(r=>def.required.some(k=>!String(r[k]||'').trim())),rutType=['trabajadores','subcontratos'].includes(type),invalidRut=rutType?parsed.data.findIndex(r=>!isValidRut(r.rut)):-1;if(missing.length||invalid>=0)return res.status(400).json({error:'MISSING_REQUIRED_FIELDS',missing,invalidRow:invalid>=0?invalid+2:null});if(invalidRut>=0)return res.status(400).json({error:'INVALID_RUT',invalidRow:invalidRut+2});rowCount=parsed.data.length;importModules[def.module]={rawRows:parsed.data,definition:def};}
-  const result=await withTenant(req.auth.tenantId,async client=>{const rows=await moduleRows(client,req.auth.tenantId,true),state=aggregate(rows),before={};if(type!=='backup'){const entry=importModules[definitions[type].module],mapped=entry.rawRows.map(r=>entry.definition.map(r,state));importModules={[definitions[type].module]:mapped};}
-    if(type==='oportunidades'&&mode==='replace'){importModules.oportunidades=[];importModules.opportunities=[];}
-    const next={...state};for(const[key,value]of Object.entries(importModules)){before[key]=state[key];next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;}const clean=validateTenantState(next);
-    for(const key of Object.keys(importModules)){await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by) VALUES($1,$2,$3::jsonb,1,$4) ON CONFLICT(tenant_id,module_key) DO UPDATE SET data=$3::jsonb,version=tenant_module_state.version+1,updated_by=$4,updated_at=now()`,[req.auth.tenantId,key,JSON.stringify(clean[key]),req.auth.userId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:key,action:'module.imported',oldValue:{count:Array.isArray(before[key])?before[key].length:null},newValue:{count:Array.isArray(clean[key])?clean[key].length:null,mode,file:req.file.originalname}});}
-    if(importSettings)await client.query(`INSERT INTO tenant_settings(tenant_id,branding,modules,alerts,catalogs,updated_by) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(tenant_id) DO UPDATE SET branding=$2,modules=$3,alerts=$4,catalogs=$5,updated_by=$6,updated_at=now()`,[req.auth.tenantId,importSettings.branding||{},importSettings.modules||{},importSettings.alerts||{},importSettings.catalogs||{},req.auth.userId]);return{modules:Object.keys(importModules),rows:rowCount,mode};});res.json(result);
+dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
+  const type=req.params.type,mode=type==='backup'||req.body.mode==='replace'?'replace':'append';
+  if(!req.file)return res.status(400).json({error:'FILE_REQUIRED'});
+  if(type!=='backup'){
+    const def=definitions[type];
+    if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});
+    assertModuleAccess(req.auth,def.module);
+  }
+  let importModules={},importSettings=null,rowCount=0;
+  if(type==='backup'){
+    let parsed;
+    try{parsed=JSON.parse(req.file.buffer.toString('utf8'));}catch{return res.status(400).json({error:'INVALID_JSON'});}
+    if(![BACKUP_FORMAT,LEGACY_BACKUP_FORMAT].includes(parsed?.format)||!parsed.modules)return res.status(400).json({error:'INVALID_BACKUP_FORMAT'});
+    importModules=sanitizeJson(parsed.modules);
+    Object.keys(importModules).forEach(key=>assertModuleAccess(req.auth,key));
+    importSettings=sanitizeJson(parsed.settings||{});
+    rowCount=Object.values(importModules).reduce((n,v)=>n+(Array.isArray(v)?v.length:1),0);
+  }else{
+    const def=definitions[type];
+    if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});
+    const parsed=Papa.parse(req.file.buffer.toString('utf8').replace(/^\uFEFF/,''),{header:true,skipEmptyLines:'greedy',transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_')});
+    if(parsed.errors.length)return res.status(400).json({error:'INVALID_CSV',details:parsed.errors.slice(0,10)});
+    if(parsed.data.length>10000)return res.status(413).json({error:'TOO_MANY_ROWS'});
+    const missing=def.required.filter(k=>!parsed.meta.fields.includes(k)),invalid=parsed.data.findIndex(r=>def.required.some(k=>!String(r[k]||'').trim())),rutType=['trabajadores','subcontratos'].includes(type),invalidRut=rutType?parsed.data.findIndex(r=>!isValidRut(r.rut)):-1;
+    if(missing.length||invalid>=0)return res.status(400).json({error:'MISSING_REQUIRED_FIELDS',missing,invalidRow:invalid>=0?invalid+2:null});
+    if(invalidRut>=0)return res.status(400).json({error:'INVALID_RUT',invalidRow:invalidRut+2});
+    rowCount=parsed.data.length;
+    importModules[def.module]={rawRows:parsed.data,definition:def};
+  }
+  const result=await withTenant(req.auth.tenantId,async client=>{
+    const rows=await moduleRows(client,req.auth.tenantId,true),state=aggregate(rows),before={};
+    if(type!=='backup'){
+      const entry=importModules[definitions[type].module],mapped=entry.rawRows.map(r=>entry.definition.map(r,state));
+      importModules={[definitions[type].module]:mapped};
+    }
+
+    // Opportunities have one canonical store. Alias collections are read only
+    // during migration and are archived atomically in the audit log when written.
+    if(type==='oportunidades'){
+      const existing=opportunityRows(state);
+      if(mode==='replace'&&req.body?.confirmReplace!=='REEMPLAZAR'){
+        return {confirmationRequired:true,existingRows:existing.length,incomingRows:rowCount};
+      }
+      const nextRows=mode==='append'?[...existing,...importModules.prospectos]:importModules.prospectos;
+      importModules={prospectos:canonicalizeOpportunityState({prospectos:nextRows}).prospectos,oportunidades:[],opportunities:[]};
+    }
+
+    const next={...state};
+    for(const[key,value]of Object.entries(importModules)){
+      before[key]=state[key];
+      next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
+    }
+    const clean=validateTenantState(next);
+    for(const key of Object.keys(importModules)){
+      await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
+        VALUES($1,$2,$3::jsonb,1,$4)
+        ON CONFLICT(tenant_id,module_key) DO UPDATE
+        SET data=$3::jsonb,version=tenant_module_state.version+1,updated_by=$4,updated_at=now()`,
+        [req.auth.tenantId,key,JSON.stringify(clean[key]),req.auth.userId]);
+      await appendAudit(client,{
+        tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:key,action:'module.imported',
+        oldValue:{count:Array.isArray(before[key])?before[key].length:null},
+        newValue:{count:Array.isArray(clean[key])?clean[key].length:null,mode,file:req.file.originalname,
+          canonicalStore:type==='oportunidades'?'prospectos':undefined}
+      });
+    }
+    if(importSettings)await client.query(`INSERT INTO tenant_settings(tenant_id,branding,modules,alerts,catalogs,updated_by)
+      VALUES($1,$2,$3,$4,$5,$6)
+      ON CONFLICT(tenant_id) DO UPDATE SET branding=$2,modules=$3,alerts=$4,catalogs=$5,updated_by=$6,updated_at=now()`,
+      [req.auth.tenantId,importSettings.branding||{},importSettings.modules||{},importSettings.alerts||{},importSettings.catalogs||{},req.auth.userId]);
+    return{modules:Object.keys(importModules),rows:rowCount,mode};
+  });
+  if(result.confirmationRequired)return res.status(409).json({
+    error:'OPPORTUNITY_REPLACE_CONFIRMATION_REQUIRED',
+    message:'Esta importación reemplazará todas las oportunidades existentes. Confirma con REEMPLAZAR para continuar.',
+    existingRows:result.existingRows,incomingRows:result.incomingRows
+  });
+  res.json(result);
 });

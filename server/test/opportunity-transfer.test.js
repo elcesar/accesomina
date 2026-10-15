@@ -17,9 +17,9 @@ before(async()=>{
 after(async()=>{mock.restoreAll();await db?.close();});
 beforeEach(async()=>{await db.exec('TRUNCATE tenant_module_state,audit_log');});
 async function seed(modules){for(const[key,data]of Object.entries(modules))await db.query('INSERT INTO tenant_module_state(tenant_id,module_key,data,version) VALUES($1,$2,$3::jsonb,3)',['qa-tenant',key,JSON.stringify(data)]);}
-async function invoke(path,method,{type='oportunidades',role='client_admin',file,mode}={}){
+async function invoke(path,method,{type='oportunidades',role='client_admin',file,mode,confirmReplace}={}){
  const route=dataTransferRouter.stack.find(l=>l.route?.path===path&&l.route.methods[method]).route;
- const req={auth:{tenantId:'qa-tenant',userId:'qa-user',role},params:{type},body:{mode},file:file?{buffer:Buffer.from(file),originalname:'QA.csv'}:undefined};
+ const req={auth:{tenantId:'qa-tenant',userId:'qa-user',role},params:{type},body:{mode,confirmReplace},file:file?{buffer:Buffer.from(file),originalname:'QA.csv'}:undefined};
  const res={statusCode:200,status(n){this.statusCode=n;return this},json(body){this.body=body;return this},set(headers){this.headers=headers;return this},send(body){this.body=body;return this}};
  let allowed=false;dataTransferRouter.stack[0].handle(req,res,()=>{allowed=true});if(allowed)await route.stack.at(-1).handle(req,res);
  return res;
@@ -55,7 +55,7 @@ test('all twelve empty export endpoints preserve their declared CSV headers',asy
 });
 test('opportunity CSV import writes the portal module, retains history and can be exported again',async()=>{
  await seed({opportunities:[legacy]});const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa,monto,probabilidad\nnuevo_cliente,Empresa importada QA,prospecto,50,25\n',mode:'append'});
- assert.equal(res.statusCode,200);assert.deepEqual(res.body.modules,['prospectos']);const state=await stored();assert.equal(state.opportunities[0].id,'legacy');assert.equal(state.prospectos[0].company,'Empresa importada QA');assert.equal(opportunityRows(state).length,2);
+ assert.equal(res.statusCode,200);assert.deepEqual(res.body.modules,['prospectos','oportunidades','opportunities']);const state=await stored();assert.deepEqual(state.opportunities,[]);assert.deepEqual(state.oportunidades,[]);assert.equal(state.prospectos.some(item=>item.id==='legacy'),true);assert.equal(state.prospectos.some(item=>item.company==='Empresa importada QA'),true);assert.equal(opportunityRows(state).length,2);
  const exported=await invoke('/export/:type','get');assert.match(exported.body,/Empresa importada QA/);assert.match(exported.body,/Empresa histórica QA/);
  const log=await db.query('SELECT * FROM audit_log');assert.equal(log.rows.length,1);assert.equal(log.rows[0].entity_type,'prospectos');
 });
@@ -73,4 +73,33 @@ test('read-only accounts cannot access the export or import administrative route
 });
 test('CSV output preserves order, accents, commas and multiline notes',async()=>{
  await seed({prospectos:[{...current,company:'Empresa QA, Sur',notes:'Línea uno\nLínea dos'}]});const res=await invoke('/export/:type','get');const parsed=Papa.parse(res.body.slice(1),{header:true});assert.equal(parsed.data[0].empresa,'Empresa QA, Sur');assert.equal(parsed.data[0].notas,'Línea uno\nLínea dos');assert.deepEqual(parsed.meta.fields,definitions.oportunidades.headers);
+});
+
+
+test('the backend rejects duplicate active opportunities without RUT across legacy and canonical collections',async()=>{
+  await seed({opportunities:[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]});
+  await assert.rejects(
+    ()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa Sur QA,prospecto\\n',mode:'append'}),
+    error=>error.code==='DUPLICATE_OPPORTUNITY'
+  );
+  assert.deepEqual((await stored()).opportunities,[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]);
+});
+
+test('replace requires explicit confirmation and reports its operational impact without writing',async()=>{
+  await seed({prospectos:[current],opportunities:[legacy]});
+  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Reemplazo QA,prospecto\\n',mode:'replace'});
+  assert.equal(res.statusCode,409);
+  assert.equal(res.body.error,'OPPORTUNITY_REPLACE_CONFIRMATION_REQUIRED');
+  assert.equal(res.body.existingRows,2);
+  assert.equal(res.body.incomingRows,1);
+  const state=await stored();
+  assert.deepEqual(state.prospectos,[current]);
+  assert.deepEqual(state.opportunities,[legacy]);
+});
+
+test('legacy records without type or stage remain visibly incomplete instead of being silently classified',()=>{
+  const row=opportunityFields({id:'legacy-incomplete',company:'Sin clasificación QA'});
+  assert.equal(row.type,'');
+  assert.equal(row.stage,'');
+  assert.deepEqual(row.dataQuality,{missingType:true,missingStage:true});
 });
