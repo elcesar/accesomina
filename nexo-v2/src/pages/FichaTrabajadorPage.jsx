@@ -12,6 +12,7 @@ import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-secur
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { PPE_SIZE_FIELDS, normalizeWorkerEpp, updateWorkerEpp } from '../config/ppe-catalog.js'
 import { DOCUMENT_TYPE_OPTIONS, documentEvidenceMessage, documentRule, hasRequiredEvidence, workerItemType } from '../services/worker-document-rules.js'
 import { removeUploadedFiles, uploadDocumentFiles } from '../services/worker-document-upload.js'
 import '../styles/ficha-trabajador.css'
@@ -330,11 +331,18 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
 }
 
 function EppTab({ worker, saving, onChange, onSave, deliveries }) {
-  const epp = worker.epp || {}
-  const fields = [['ropa', 'Ropa / Polera'], ['pantalon', 'Pantalón'], ['calzado', 'Calzado'], ['guante', 'Guante'], ['casco', 'Casco'], ['arnes', 'Arnés'], ['respirador', 'Respirador / fit test']]
+  const epp = normalizeWorkerEpp(worker.epp)
   const rows = deliveries.filter(d => d.workerId === worker.id).sort((a, b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
   return <>
-    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{fields.map(([key, label]) => <Field key={key} label={label}>{key === 'casco' ? <input className="nk-input" value="Talla única" disabled aria-label="Casco talla única" /> : <input className="nk-input" value={epp[key] || ''} onChange={e => onChange('epp', { ...epp, [key]: e.target.value })} />}</Field>)}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
+    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{PPE_SIZE_FIELDS.map(field => {
+      const value = epp[field.key] ?? ''
+      const isHistorical = value && !field.sizes.includes(value)
+      return <Field key={field.key} label={field.label}><select className="nk-select" value={value} disabled={field.fixed} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, field.key, event.target.value))}>
+        {!field.fixed && <option value="">Seleccionar talla</option>}
+        {isHistorical && <option value={value}>{value} (valor histórico)</option>}
+        {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
+      </select></Field>
+    })}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
     <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Fecha</th><th>EPP</th><th>Talla</th><th>Marca / certificación</th><th>Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{d.deliveredAt || '—'}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{d.replaceAt || 'Según inspección'}</td></tr>)}</tbody></table></div>}</CardSection>
   </>
 }
