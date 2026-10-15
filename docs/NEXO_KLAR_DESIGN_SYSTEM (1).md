@@ -121,6 +121,36 @@ Usar Tabler Icons outline. No usar emojis como iconos funcionales.
 
 ---
 
+### ConfirmDialog — confirmación transversal de acciones
+
+**Componente oficial:** `src/components/ui/ConfirmDialog.jsx`. **Estilos oficiales:** `.nk-dialog*` y `.nk-button-danger` en `components.css`. No crear diálogos de confirmación locales cuando este componente cubra el caso.
+
+Usar antes de acciones destructivas o de alto impacto (eliminar evidencias, registros, desvincular recursos o descartar cambios sin guardar cuando corresponda). No mostrar confirmación en acciones reversibles o navegación ordinaria sin motivo.
+
+**Contrato:** `open`, `title`, `description`, `confirmLabel`, `cancelLabel`, `variant="danger" | "default"`, `loading`, `error`, `onConfirm`, `onCancel`. El consumidor conserva el control de la mutación y del cierre; el diálogo nunca borra ni guarda datos por sí mismo. `loading` bloquea confirmación, cancelación y Escape durante la operación; en error debe conservarse abierto y mostrar un mensaje visible.
+
+**Accesibilidad obligatoria:** portal al documento, `role="alertdialog"` para acciones destructivas, título/descripción asociados por ARIA, foco inicial en **Cancelar**, contención de Tab/Shift+Tab, Escape para cancelar cuando no esté procesando y restauración del foco al control de origen al cerrar. Validar teclado, lector de pantalla y pantallas móviles (375/480 px), además de 768/1024 px y escritorio. Si se requiere un flujo más complejo que dos acciones, usar un diálogo especializado y justificarlo.
+
+Ejemplo:
+
+```jsx
+<ConfirmDialog
+  open={Boolean(documentToRemove)}
+  title="Eliminar documento"
+  description={`Se eliminará “${documentToRemove?.name}”. Esta acción no se puede deshacer.`}
+  confirmLabel="Eliminar documento"
+  variant="danger"
+  loading={deleting}
+  error={deleteError}
+  onCancel={() => setDocumentToRemove(null)}
+  onConfirm={eliminarConfirmado}
+/>
+```
+
+**Migración:** las nuevas confirmaciones deben utilizar este componente. Los diálogos existentes se migrarán al intervenir cada módulo, comenzando por el PR #227 (eliminación de evidencias de personas). Evitar cambios masivos sin pruebas.
+
+---
+
 ## 4. Patrón estándar de página operacional
 
 La experiencia implementada en Personas, Formación, Exámenes, Salud, EPP, Turnos y Centro de Control establece este patrón:
