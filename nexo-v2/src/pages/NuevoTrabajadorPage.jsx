@@ -14,14 +14,8 @@ import { RutInput } from '../components/ui/RutInput.jsx'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { WORKER_REGIMENS, WORKER_SPECIALTIES } from '../config/worker-catalogs.js'
 import '../styles/nuevo-trabajador.css'
-
-const ESPECIALIDADES = [
-  'Mecánico Industrial','Soldador 6G','Eléctrico','Instrumentista',
-  'Rigger','Calderero','Maestro Andamios','Operador de equipos',
-  'Prevencionista','Supervisor','Técnico electrónico','Pintor industrial',
-  'Operadora','Enfermero/a','Paramédico','Conductor','Administrativo','Otro',
-]
 
 const TIPOS = [
   { value:'permanente', label:'Trabajador fijo', desc:'Vínculo laboral permanente en la empresa' },
@@ -199,7 +193,7 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
 
       <Field label="Turno / jornada habitual">
         <FSelect value={data.regimen} onChange={e => onChange('regimen', e.target.value)}>
-          <option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="6x1">6x1</option><option value="turno_especial">Turno especial</option>
+          {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </FSelect>
       </Field>
 
@@ -212,7 +206,7 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
       <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full fieldId="worker-specialty" error={errors.especialidad}>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
           <option value="">Seleccionar especialidad</option>
-          {ESPECIALIDADES.map(item => <option key={item} value={item}>{item}</option>)}
+          {WORKER_SPECIALTIES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </FSelect>
       </Field>
       <Field label="Proyecto / servicio inicial" hint="Opcional. También puedes asignarlo posteriormente desde la ficha de la persona." full>
