@@ -257,13 +257,18 @@
   border-radius: var(--radius-md);
 }
 
-.nk-hero-points article b {
+.nk-hero-points article h3,
+.nk-hero-points article p {
+  margin: 0;
+}
+
+.nk-hero-points article h3 {
   font-size: var(--text-base);
   font-weight: var(--weight-semibold);
   color: var(--ink);
 }
 
-.nk-hero-points article span {
+.nk-hero-points article p {
   font-size: var(--text-sm);
   color: var(--mut);
   line-height: var(--leading-normal);
