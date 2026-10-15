@@ -7,7 +7,7 @@ import { EMAIL_ERROR, normalizeEmail, validateEmail } from '../../services/email
  */
 export function EmailInput({
   value = '', onChange, id, name, required = false, disabled = false,
-  error, validationRequested = false, onBlur, className = '',
+  error, validationRequested = false, onBlur, normalizeOnBlur = true, className = '',
   'aria-describedby': describedBy, ...props
 }) {
   const generatedId = useId()
@@ -35,7 +35,7 @@ export function EmailInput({
       onChange={event => onChange?.(event.target.value)}
       onBlur={event => {
         setTouched(true)
-        const normalized = normalizeEmail(event.target.value)
+        const normalized = normalizeOnBlur ? normalizeEmail(event.target.value) : event.target.value
         if (normalized !== event.target.value) onChange?.(normalized)
         onBlur?.(event)
       }}

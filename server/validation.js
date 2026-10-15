@@ -20,14 +20,39 @@ function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(
 export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
-export function sanitizeJson(value, key = '') {
-  if (Array.isArray(value)) return value.map(v => sanitizeJson(v, key));
+export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
+  if (Array.isArray(value)) {
+    const collectionKey = key || context.collectionKey || '';
+    const directWorkerRecord = collectionKey === 'trabajadores';
+    const directClientRecord = ['minas', 'clientes'].includes(collectionKey);
+    const directOpportunityRecord = ['prospectos', 'oportunidades', 'opportunities'].includes(collectionKey);
+    const directClientContact = Boolean(context.directClientContact || (context.directClientRecord && collectionKey === 'contactos'));
+    return value.map(item => sanitizeJson(item, '', collectionKey, {
+      ...context, collectionKey, directWorkerRecord, directClientRecord, directOpportunityRecord, directClientContact, preserveEmail: false,
+    }));
+  }
   if (value && typeof value === 'object') {
+    const childContext = {
+      ...context, directWorkerRecord: false, directClientRecord: false,
+      directOpportunityRecord: false, directClientContact: false, preserveEmail: false,
+    };
     const out = {};
-    for (const [k, v] of Object.entries(value)) if (!blockedKeys.has(k)) out[k] = sanitizeJson(v, k);
+    for (const [k, v] of Object.entries(value)) {
+      if (blockedKeys.has(k)) continue;
+      const directBusinessEmail = Boolean(
+        (context.directWorkerRecord || context.directClientRecord || context.directOpportunityRecord || context.directClientContact) &&
+        (k === 'email' || (context.directClientRecord && k === 'emailMandante'))
+      );
+      out[k] = sanitizeJson(v, k, key, {
+        ...childContext,
+        directClientContact: Boolean(context.directClientRecord && k === 'contactos'),
+        preserveEmail: directBusinessEmail,
+      });
+    }
     return out;
   }
   if (typeof value !== 'string') return value;
+  if (context.preserveEmail) return value;
   if (['fileData'].includes(key)) return null;
   if (['cloudUrl','inviteUrl'].includes(key)) {
     try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : ''; } catch { return ''; }
@@ -76,6 +101,27 @@ function assertUnique(values, message, code = 'DUPLICATE_DATA') {
 
 const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : [];
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const clientCollections = ['minas', 'clientes'];
+const opportunityCollections = ['prospectos', 'oportunidades', 'opportunities'];
+const recordMap = rows => new Map((rows || []).filter(row => row?.id != null).map(row => [String(row.id), row]));
+function validateClientEmails(client, previousClient) {
+  client.emailMandante = validateOptionalHistoricalEmail(client.emailMandante, previousClient?.emailMandante, { code: 'INVALID_CLIENT_EMAIL' });
+  const previousContacts = Array.isArray(previousClient?.contactos) ? previousClient.contactos : [];
+  client.contactos = (Array.isArray(client.contactos) ? client.contactos : []).map((contact, index) => {
+    const previous = previousContacts.find(item => String(item?.id || '') === String(contact?.id || '')) || previousContacts[index];
+    return { ...contact, email: validateOptionalHistoricalEmail(contact?.email, previous?.email, { code: 'INVALID_CLIENT_CONTACT_EMAIL' }) };
+  });
+}
+function validateOpportunityEmails(state, previousState) {
+  const previous = recordMap(opportunityCollections.flatMap(key => Array.isArray(previousState?.[key]) ? previousState[key] : []));
+  for (const key of opportunityCollections) {
+    if (!Array.isArray(state[key])) continue;
+    state[key] = state[key].map(row => ({
+      ...row,
+      email: validateOptionalHistoricalEmail(row?.email, previous.get(String(row?.id || ''))?.email, { code: 'INVALID_OPPORTUNITY_EMAIL' }),
+    }));
+  }
+}
 // The fallback is intentionally narrow. A module can only opt in once its
 // append validation covers every strict validation rule for new records.
 export const APPEND_FALLBACK_MODULES = new Set([
@@ -273,13 +319,23 @@ export function validateAppendChanges(current, proposed, keys) {
 
   return true;
 }
-export function validateTenantState(input) {
+export function validateTenantState(input, { previousState = {} } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = sanitizeJson(input);
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
+  const previousClients = recordMap(clientCollections.flatMap(key => Array.isArray(previousState?.[key]) ? previousState[key] : []));
+  for (const key of clientCollections) {
+    if (!Array.isArray(state[key])) continue;
+    state[key] = state[key].map(client => {
+      const next = { ...client };
+      validateClientEmails(next, previousClients.get(String(client?.id || '')));
+      return next;
+    });
+  }
+  validateOpportunityEmails(state, previousState);
   for (const client of mines) {
     if (!client.id || !String(client.nombre || '').trim()) throw Object.assign(new Error('Client requires id and name'), { status: 409, code: 'INCOMPLETE_CLIENT' });
     if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
