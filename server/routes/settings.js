@@ -23,6 +23,12 @@ const boundedDay=(value,fallback)=>{const parsed=Number(value);return Number.isF
 const objectField=(value,code,label)=>{if(!isPlainObject(value))throw settingsError(code,`${label} debe ser un objeto.`);return value;};
 const stringField=(value,key,fallback)=>hasOwn(value,key)?String(value[key]??'').trim():fallback;
 
+export function assertModuleSettingsAccess(clean,role){
+  if(hasOwn(clean,'modules')&&!canManageTenantModules(role)){
+    throw settingsError('MODULE_SETTINGS_PERMISSION_DENIED','Sólo el administrador de esta empresa puede cambiar los módulos habilitados.',403);
+  }
+}
+
 export function resolveSettingsUpdate({before={},clean={},canManageModules=false}){
   const previous=isPlainObject(before)?before:{};
   const payload=isPlainObject(clean)?clean:{};
@@ -45,7 +51,7 @@ export function resolveSettingsUpdate({before={},clean={},canManageModules=false
 
   let modules={...(isPlainObject(previous.modules)?previous.modules:{})};
   if(hasOwn(payload,'modules')){
-    if(!canManageModules)throw settingsError('MODULE_SETTINGS_PERMISSION_DENIED','Sólo el administrador de esta empresa puede cambiar los módulos habilitados.',403);
+    assertModuleSettingsAccess(payload,canManageModules?'client_admin':'');
     const requested=objectField(payload.modules,'INVALID_MODULE_SETTINGS','Los módulos habilitados');
     if(Object.values(requested).some(value=>typeof value!=='boolean'))throw settingsError('INVALID_MODULE_SETTINGS','Cada módulo debe tener un valor verdadero o falso.');
     modules={...requested};
@@ -56,6 +62,7 @@ export function resolveSettingsUpdate({before={},clean={},canManageModules=false
 
 settingsRouter.put('/',admins,async(req,res)=>{
   const clean=sanitizeJson(req.body||{});
+  assertModuleSettingsAccess(clean,req.auth.role);
   const row=await withTenant(req.auth.tenantId,async client=>{
     const before=(await client.query('SELECT branding,modules,alerts,catalogs FROM tenant_settings WHERE tenant_id=$1',[req.auth.tenantId])).rows[0];
     const {branding,modules,alerts,catalogs}=resolveSettingsUpdate({before,clean,canManageModules:canManageTenantModules(req.auth.role)});

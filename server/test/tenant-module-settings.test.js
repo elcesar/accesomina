@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { canManageTenantModules as canManageFrontendTenantModules } from '../../nexo-v2/src/services/tenant-capabilities.js'
 import { canManageTenantModules } from '../tenant-capabilities.js'
-import { resolveSettingsUpdate } from '../routes/settings.js'
+import { resolveSettingsUpdate, settingsRouter } from '../routes/settings.js'
 
 const existing = {
   branding: { displayName: 'Empresa A', theme: 'dark', logoUrl: 'https://empresa.example/logo.svg' },
@@ -72,4 +72,15 @@ test('module payload structure is validated and the client capability is aligned
   for (const role of ['client_admin', 'domian_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']) {
     assert.equal(canManageFrontendTenantModules(role), canManageTenantModules(role))
   }
+})
+
+test('a direct non-client_admin settings request is rejected before any write', async () => {
+  const route = settingsRouter.stack.find(layer => layer.route?.path === '/' && layer.route.methods.put)
+  const handler = route.route.stack.at(-1).handle
+  const req = { auth: { role: 'domian_admin', tenantId: 'tenant-a', userId: 'user-a' }, body: { modules: { incidentes: true } } }
+  const res = { json() { throw new Error('The denied request must not return success') } }
+  await assert.rejects(
+    () => handler(req, res),
+    error => error.status === 403 && error.code === 'MODULE_SETTINGS_PERMISSION_DENIED',
+  )
 })
