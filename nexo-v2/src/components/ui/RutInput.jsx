@@ -42,7 +42,7 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       }}
       onBlur={event => {
         setTouched(true)
-        onChange(formatRut(value))
+        onChange(formatRut(event.target.value))
         props.onBlur?.(event)
       }}
     />
