@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
+import { operationalDay } from '../shared/operational-date.js';
 
 export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128), mfaCode:z.string().trim().min(6).max(20).optional() });
 export const registerSchema = z.object({
@@ -140,10 +141,9 @@ function assignmentIsOperationalForAvailability(assignment) {
   return OPERATIONAL_ASSIGNMENT_STATES.has(normalizedText(assignment?.recruitmentStage || assignment?.estadoGestion || assignment?.estado));
 }
 
-function workerHasBlockingRestriction(state, workerId) {
+export function workerHasBlockingRestriction(state, workerId, today = operationalDay()) {
   const worker = collection(state, 'trabajadores').find(row => String(row?.id) === String(workerId));
   if (worker?.bloqueado || normalizedText(worker?.disponibilidad) === 'bloqueado') return true;
-  const today = new Date().toISOString().slice(0, 10);
   return collection(state, 'restricted').some(restriction => (
     String(restriction?.workerId || restriction?.trabId || restriction?.personaId) === String(workerId) &&
     restriction?.activa !== false &&
@@ -311,9 +311,26 @@ export function validateAppendChanges(current, proposed, keys) {
 
   return true;
 }
-export function validateTenantState(input) {
+function assignmentIdentity(assignment) {
+  if (assignment?.id) return `id:${String(assignment.id)}`
+  return [assignment?.trabId, assignment?.mantId, assignment?.inicio || assignment?.fechaInicio || '', assignment?.termino || assignment?.fechaTermino || '']
+    .map(value => String(value || ''))
+    .join('|')
+}
+
+function requiresAvailabilityValidation(assignment, previousAssignments) {
+  if (!assignmentIsOperationalForAvailability(assignment)) return false
+  if (!previousAssignments) return true
+  const before = previousAssignments.get(assignmentIdentity(assignment))
+  return !before || !assignmentIsOperationalForAvailability(before)
+}
+
+export function validateTenantState(input, previousState = null) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = sanitizeJson(input);
+  const previousAssignments = previousState
+    ? new Map(collection(previousState, 'asignaciones').map(assignment => [assignmentIdentity(assignment), assignment]))
+    : null;
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
@@ -376,8 +393,8 @@ export function validateTenantState(input) {
   }
   for (const a of Array.isArray(state.asignaciones) ? state.asignaciones : []) {
     if (!workerIds.has(String(a.trabId)) || !projectIds.has(String(a.mantId))) throw Object.assign(new Error('Assignment references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
-    if (assignmentIsOperationalForAvailability(a) && workerHasBlockingRestriction(state, a.trabId)) {
-      throw Object.assign(new Error('Worker is not enabled for an operational assignment'), { status: 409, code: 'WORKER_NOT_AVAILABLE' });
+    if (requiresAvailabilityValidation(a, previousAssignments) && workerHasBlockingRestriction(state, a.trabId)) {
+      throw Object.assign(new Error('Worker is not enabled for a new operational assignment'), { status: 409, code: 'WORKER_NOT_AVAILABLE' });
     }
   }
   assertUnique((state.asignaciones || []).map(a => `${a.trabId}|${a.mantId}`), 'Duplicate worker assignment', 'DUPLICATE_ASSIGNMENT');
