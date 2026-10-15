@@ -51,7 +51,7 @@ export function resolveSettingsUpdate({before={},clean={},canManageModules=false
 
   let modules={...(isPlainObject(previous.modules)?previous.modules:{})};
   if(hasOwn(payload,'modules')){
-    assertModuleSettingsAccess(payload,canManageModules?'client_admin':'');
+    if(!canManageModules)throw settingsError('MODULE_SETTINGS_PERMISSION_DENIED','Sólo el administrador de esta empresa puede cambiar los módulos habilitados.',403);
     const requested=objectField(payload.modules,'INVALID_MODULE_SETTINGS','Los módulos habilitados');
     if(Object.values(requested).some(value=>typeof value!=='boolean'))throw settingsError('INVALID_MODULE_SETTINGS','Cada módulo debe tener un valor verdadero o falso.');
     modules={...requested};

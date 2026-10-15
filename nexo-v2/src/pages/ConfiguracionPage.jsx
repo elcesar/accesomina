@@ -206,7 +206,8 @@ export default function ConfiguracionPage() {
           </div>
         </section>
 
-{canManageModules && (        <section className="nk-module-card nk-config-card">
+        {canManageModules && (
+          <section className="nk-module-card nk-config-card">
           <header><div><h2>Módulos habilitados</h2><p>Configuración declarativa de los módulos disponibles para esta empresa.</p></div></header>
           <div className="nk-config-modules">
             {MODULE_OPTIONS.map(([key, label]) => {
@@ -215,7 +216,7 @@ export default function ConfiguracionPage() {
             })}
           </div>
           <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
-        </section>
+          </section>
         )}
       </div>
 
