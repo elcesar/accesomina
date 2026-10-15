@@ -48,3 +48,20 @@ export function thirdPartyPrerequisites({ loading = false, error = false, compan
     associationMessage,
   }
 }
+
+
+export function thirdPartyPrerequisiteActions({
+  needsCompanies = false,
+  needsWorkers = false,
+  canCreateCompanies = false,
+  canCreateWorkers = false,
+} = {}) {
+  const actions = []
+  if (needsCompanies && canCreateCompanies) {
+    actions.push({ id: 'companies', label: 'Ir a Terceros', path: '/app/subcontratos' })
+  }
+  if (needsWorkers && canCreateWorkers) {
+    actions.push({ id: 'workers', label: 'Ir a Capital Humano', path: '/app/trabajadores' })
+  }
+  return actions
+}
