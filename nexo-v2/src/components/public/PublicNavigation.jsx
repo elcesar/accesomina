@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { IconMenu2, IconX } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../services/auth.jsx'
 import BrandLogo from './BrandLogo.jsx'
 import '../../styles/layout/public-layout.css'
 
@@ -18,6 +19,9 @@ export const publicSections = [
 
 export default function PublicNavigation({ active = 'inicio', onNavigate, onCreateCompany }) {
   const navigate = useNavigate()
+  const { session } = useAuth()
+  const accessLabel = session ? 'Ir al panel' : 'Acceso'
+  const accessDestination = session ? '/app' : '/login'
   const [menuOpen, setMenuOpen] = useState(false)
 
   const goToSection = id => {
@@ -44,8 +48,8 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
           <button className="nk-button nk-button-secondary nk-public-create-company" type="button" onClick={onCreateCompany}>
             Crear empresa
           </button>
-          <button className="nk-button nk-button-primary" type="button" onClick={() => navigate('/login')}>
-            Acceso
+          <button className="nk-button nk-button-primary" type="button" onClick={() => navigate(accessDestination)}>
+            {accessLabel}
           </button>
           <button
             className="nk-icon-button nk-public-menu-toggle"
