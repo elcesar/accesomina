@@ -38,8 +38,8 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
         <div className="nk-card-grid nk-hero-points" aria-label="Principales beneficios">
           {points.map(([title, body]) => (
             <article key={title}>
-              <b>{title}</b>
-              <span>{body}</span>
+              <h3>{title}</h3>
+              <p>{body}</p>
             </article>
           ))}
         </div>
