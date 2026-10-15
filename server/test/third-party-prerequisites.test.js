@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { thirdPartyPrerequisites } from '../../nexo-v2/src/services/third-party-prerequisites.js'
+import { thirdPartyPrerequisiteActions, thirdPartyPrerequisites } from '../../nexo-v2/src/services/third-party-prerequisites.js'
 
 test('does not expose missing prerequisites while third-party data is loading or failed', () => {
   const loading = thirdPartyPrerequisites({ loading: true, companies: [], workers: [] })
@@ -43,4 +43,24 @@ test('enables association and convention creation only after prerequisites exist
   assert.equal(ready.associationBlocked, false)
   assert.equal(ready.showConventionNotice, false)
   assert.equal(ready.showAssociationNotice, false)
+})
+
+
+test('does not expose prerequisite actions that the user cannot execute', () => {
+  assert.deepEqual(thirdPartyPrerequisiteActions({
+    needsCompanies: true,
+    needsWorkers: true,
+    canCreateCompanies: false,
+    canCreateWorkers: false,
+  }), [])
+
+  assert.deepEqual(thirdPartyPrerequisiteActions({
+    needsCompanies: true,
+    needsWorkers: true,
+    canCreateCompanies: true,
+    canCreateWorkers: true,
+  }), [
+    { id: 'companies', label: 'Ir a Terceros', path: '/app/subcontratos' },
+    { id: 'workers', label: 'Ir a Capital Humano', path: '/app/trabajadores' },
+  ])
 })
