@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateAppendChanges, validateTenantState } from '../validation.js';
+import { sanitizeJson, validateAppendChanges, validateTenantState } from '../validation.js';
 import { friendlyApiError } from '../../nexo-v2/src/services/api.js';
 
 const worker = email => ({ id: 'qa-person', nombre: 'Persona QA', rut: '14.567.890-0', email });
