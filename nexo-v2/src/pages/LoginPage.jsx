@@ -3,6 +3,8 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
@@ -24,6 +26,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [emailValidationRequested, setEmailValidationRequested] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
   const [backendBuild, setBackendBuild] = useState(null)
@@ -45,6 +48,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!mfaRequired) {
+      setEmailValidationRequested(true)
+      if (validateEmail(form.email, { required: true })) return
+    }
     if (!isValidRut(form.rut)) {
       setError('El RUT de la empresa no es válido. Revisa sus números y dígito verificador.')
       return
@@ -157,15 +164,14 @@ export default function LoginPage() {
                 </Field>
 
                 <Field label="Correo" htmlFor="login-email" required>
-                  <input
-                    className="nk-input"
+                  <EmailInput
                     id="login-email"
                     name="email"
-                    type="email"
                     value={form.email}
-                    onChange={handleChange}
+                    onChange={value => { setForm(current => ({ ...current, email: value })); setError(null) }}
                     placeholder="correo@empresa.cl"
                     required
+                    validationRequested={emailValidationRequested}
                     autoComplete="email"
                   />
                 </Field>
