@@ -226,6 +226,10 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
   // compatible rows in the canonical store and clear aliases in the same transaction.
   const writesOpportunities=requestedKeys.some(key=>OPPORTUNITY_COLLECTIONS.includes(key));
   const keys=writesOpportunities?[...new Set([...requestedKeys,...OPPORTUNITY_COLLECTIONS])]:requestedKeys;
+  const opportunityVersions=req.body?.opportunityVersions;
+  if(writesOpportunities&&opportunityVersions&&(!OPPORTUNITY_COLLECTIONS.every(key=>Number.isFinite(Number(opportunityVersions[key]))))){
+    return res.status(400).json({error:'OPPORTUNITY_VERSION_SET_REQUIRED'});
+  }
   const result=await withTenant(req.auth.tenantId,async client=>{
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
@@ -234,6 +238,7 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
     await client.query('SELECT module_key FROM tenant_module_state WHERE tenant_id=$1 AND module_key=ANY($2::text[]) FOR UPDATE',[req.auth.tenantId,keys]);
     const all=(await client.query('SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id=$1',[req.auth.tenantId])).rows;
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
+    if(writesOpportunities&&opportunityVersions&&OPPORTUNITY_COLLECTIONS.some(key=>Number(opportunityVersions[key])!==Number(versions[key]||0)))return null;
     for(const key of requestedKeys){
       const change=changes[key];
       if(!change||Number(change.version)!==Number(versions[key]||0))return null;

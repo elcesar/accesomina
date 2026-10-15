@@ -8,7 +8,7 @@ import { appendAudit } from '../audit.js';
 import { isValidRut } from '../security.js';
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
-import { canonicalizeOpportunityState, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
+import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
 
 export const dataTransferRouter=Router();
 export const BACKUP_FORMAT='nexo-klar-backup';
@@ -86,13 +86,20 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
 
     // Opportunities have one canonical store. Alias collections are read only
     // during migration and are archived atomically in the audit log when written.
-    if(type==='oportunidades'){
+    const importsOpportunities=type==='oportunidades'||Object.keys(importModules).some(key=>OPPORTUNITY_COLLECTIONS.includes(key));
+    if(importsOpportunities){
       const existing=opportunityRows(state);
-      if(mode==='replace'&&req.body?.confirmReplace!=='REEMPLAZAR'){
+      if(type==='oportunidades'&&mode==='replace'&&req.body?.confirmReplace!=='REEMPLAZAR'){
         return {confirmationRequired:true,existingRows:existing.length,incomingRows:rowCount};
       }
-      const nextRows=mode==='append'?[...existing,...importModules.prospectos]:importModules.prospectos;
-      importModules={prospectos:canonicalizeOpportunityState({prospectos:nextRows}).prospectos,oportunidades:[],opportunities:[]};
+      if(type==='oportunidades'){
+        const nextRows=mode==='append'?[...existing,...importModules.prospectos]:importModules.prospectos;
+        importModules={prospectos:canonicalizeOpportunityState({prospectos:nextRows}).prospectos,oportunidades:[],opportunities:[]};
+      }else{
+        // A restored backup also crosses the canonicalization boundary.
+        const canonical=canonicalizeOpportunityState({...state,...importModules});
+        importModules={...importModules,prospectos:canonical.prospectos,oportunidades:[],opportunities:[]};
+      }
     }
 
     const next={...state};
@@ -109,9 +116,11 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
         [req.auth.tenantId,key,JSON.stringify(clean[key]),req.auth.userId]);
       await appendAudit(client,{
         tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:key,action:'module.imported',
-        oldValue:{count:Array.isArray(before[key])?before[key].length:null},
+        oldValue:OPPORTUNITY_COLLECTIONS.includes(key)
+          ?{count:Array.isArray(before[key])?before[key].length:null,records:before[key]||[]}
+          :{count:Array.isArray(before[key])?before[key].length:null},
         newValue:{count:Array.isArray(clean[key])?clean[key].length:null,mode,file:req.file.originalname,
-          canonicalStore:type==='oportunidades'?'prospectos':undefined}
+          canonicalStore:importsOpportunities?'prospectos':undefined}
       });
     }
     if(importSettings)await client.query(`INSERT INTO tenant_settings(tenant_id,branding,modules,alerts,catalogs,updated_by)

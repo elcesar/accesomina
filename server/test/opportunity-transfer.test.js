@@ -103,3 +103,12 @@ test('legacy records without type or stage remain visibly incomplete instead of 
   assert.equal(row.stage,'');
   assert.deepEqual(row.dataQuality,{missingType:true,missingStage:true});
 });
+
+
+test('canonical imports retain archived records in the audit log for restoration',async()=>{
+  await seed({opportunities:[legacy]});
+  await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa nueva QA,prospecto\\n',mode:'append'});
+  const audit=(await db.query("SELECT old_value,new_value FROM audit_log WHERE entity_type='opportunities'")).rows[0];
+  assert.deepEqual(audit.old_value.records,[legacy]);
+  assert.equal(audit.new_value.canonicalStore,'prospectos');
+});
