@@ -14,6 +14,7 @@ import { EMAIL_ERROR, normalizeEmail, validateEmail } from '../services/email-va
 import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, WORKER_SPECIALTIES, isCanonicalWorkerRegimen, workerRegimenLabel } from '../config/worker-catalogs.js'
 import { DOCUMENT_TYPE_OPTIONS, documentEvidenceMessage, documentRule, hasRequiredEvidence, workerItemType } from '../services/worker-document-rules.js'
 import { removeUploadedFiles, uploadDocumentFiles } from '../services/worker-document-upload.js'
 import '../styles/ficha-trabajador.css'
@@ -48,13 +49,6 @@ const REQUIRED_BY_SPECIALTY = {
   Rigger: [{ type: 'certificacion', name: 'Certificación Rigger' }, { type: 'curso', name: 'Izaje de cargas' }],
   'Maestro Andamios': [{ type: 'curso', name: 'Trabajo en altura física' }],
 }
-
-const ESPECIALIDADES = [
-  'Mecánico Industrial', 'Soldador 6G', 'Eléctrico', 'Instrumentista',
-  'Rigger', 'Calderero', 'Maestro Andamios', 'Operador de equipos',
-  'Prevencionista', 'Supervisor', 'Técnico electrónico', 'Pintor industrial',
-  'Operadora', 'Enfermero/a', 'Paramédico', 'Conductor', 'Administrativo', 'Otro',
-]
 
 const TABS = [
   { key: 'datos', label: 'Resumen', icon: IconUser },
@@ -175,7 +169,7 @@ function DataTab({ worker, emailError, clientes, proyectos, contratos, asignacio
       <div className="nk-person-assignment-form">
         <Field label="Contrato"><select className="nk-select" value={contratoId} onChange={e => { setContratoId(e.target.value); setProyectoId('') }}><option value="">Seleccionar contrato</option>{contratos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
         <Field label="Proyecto / servicio"><select className="nk-select" value={proyectoId} onChange={e => setProyectoId(e.target.value)} disabled={!contratoId}><option value="">Seleccionar proyecto</option>{proyectosFiltrados.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></Field>
-        <Field label="Turno"><select className="nk-select" value={turno} onChange={e => setTurno(e.target.value)}><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select></Field>
+        <Field label="Turno"><select className="nk-select" value={turno} onChange={e => setTurno(e.target.value)}>{WORKER_ASSIGNMENT_SHIFTS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
         <button className="nk-button nk-button-action" type="button" disabled={!proyectoId} onClick={() => onAsignar(proyectoId, turno)}><IconPlus size={15} strokeWidth={1.7} /> Asignar</button>
       </div>
       {activeAssignments.length === 0 ? <p className="nk-person-text-sub">Sin asignaciones activas.</p> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Cliente</th><th>Contrato</th><th>Proyecto</th><th>Turno</th><th /></tr></thead><tbody>{activeAssignments.map((a, i) => <tr key={a.id || i}><td>{clientName(a.mantId)}</td><td className="nk-person-text-muted">{contractName(a.mantId)}</td><td className="nk-person-text-strong">{projectName(a.mantId)}</td><td>{a.turno || '—'}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => onRetirar(a.mantId)}>Retirar</button></td></tr>)}</tbody></table></div>}
@@ -194,9 +188,9 @@ function DataTab({ worker, emailError, clientes, proyectos, contratos, asignacio
     <CardSection title="Perfil operacional" subtitle="El cargo contractual, la función en faena y la especialidad cumplen propósitos distintos."><div className="nk-person-grid">
       <Field label="Cargo contractual" hint="Puesto indicado en el contrato de trabajo."><input className="nk-input" value={worker.cargo || ''} onChange={e => onChange('cargo', e.target.value)} /></Field>
       <Field label="Función en faena" hint="Responsabilidad operacional opcional."><input className="nk-input" value={worker.rol || ''} onChange={e => onChange('rol', e.target.value)} /></Field>
-      <Field label="Especialidad" hint="Se utiliza para dotación, requisitos y cobertura."><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{ESPECIALIDADES.map(e => <option key={e} value={e}>{e}</option>)}</select></Field>
+      <Field label="Especialidad" hint="Se utiliza para dotación, requisitos y cobertura."><select className="nk-select" value={worker.especialidad || ''} onChange={e => onChange('especialidad', e.target.value)}><option value="">Seleccionar</option>{worker.especialidad && !WORKER_SPECIALTIES.some(item => item.value === worker.especialidad) && <option value={worker.especialidad}>{worker.especialidad}</option>}{WORKER_SPECIALTIES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
       <Field label="Evaluación de desempeño" hint="Se registra después del alta de la persona."><select className="nk-select" value={worker.calificacion || ''} onChange={e => onChange('calificacion', e.target.value)}><option value="">Sin evaluación</option><option value="insuficiente">Insuficiente</option><option value="en_desarrollo">En desarrollo</option><option value="suficiente">Suficiente</option><option value="bueno">Bueno</option><option value="destacado">Destacado</option>{worker.calificacion && !['insuficiente','en_desarrollo','suficiente','bueno','destacado'].includes(String(worker.calificacion)) && <option value={worker.calificacion}>Histórica: {worker.calificacion}</option>}</select></Field>
-      <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{worker.regimen && !['5x2','4x3','7x7','10x10','14x14','otro'].includes(worker.regimen) && <option value={worker.regimen}>{worker.regimen}</option>}{[['5x2','5x2'],['4x3','4x3'],['7x7','7x7'],['10x10','10x10'],['14x14','14x14'],['otro','Otro tipo de turno']].map(([value,label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
+      <Field label="Jornada habitual"><select className="nk-select" value={worker.regimen || '5x2'} onChange={e => onChange('regimen', e.target.value)}>{worker.regimen && !isCanonicalWorkerRegimen(worker.regimen) && <option value={worker.regimen}>{workerRegimenLabel(worker.regimen)} (valor histórico)</option>}{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select></Field>
       <div className="nk-person-grid-wide"><Field label="Clientes habilitados"><div className="nk-person-chip-list">{clientes.length === 0 ? <span className="nk-person-text-sub">Sin clientes configurados.</span> : clientes.map(c => { const active = (worker.mineras || []).includes(c.id); return <label key={c.id} className={`nk-person-choice ${active ? 'active' : ''}`}><input type="checkbox" checked={active} onChange={e => { const current = worker.mineras || []; onChange('mineras', e.target.checked ? [...current, c.id] : current.filter(id => id !== c.id)) }} />{c.nombre}</label> })}</div></Field></div>
     </div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
 
