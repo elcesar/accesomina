@@ -126,3 +126,18 @@ for (const { name, value, valid: accepted } of emailCases) {
     }
   });
 }
+
+
+test('actual module persistence preserves valid and invalid historical emails with apostrophes when another record changes', async () => {
+  const historicalValid = { ...legacy, email: "o'connor@example.com" };
+  const historicalInvalid = { ...valid, id: 'qa-legacy-invalid', rut: '12.345.678-5', email: "correo'antiguo-invalido" };
+  const edited = { ...valid, cargo: 'Cambio no relacionado QA' };
+  await db.query("UPDATE tenant_module_state SET data=$1::jsonb, version=3 WHERE module_key='trabajadores'", [JSON.stringify([historicalValid, historicalInvalid, edited])]);
+
+  const response = await save([historicalValid, historicalInvalid, { ...edited, especialidad: 'Especialidad QA' }]);
+  assert.equal(response.statusCode, 200);
+  const saved = await persisted();
+  assert.equal(saved.data[0].email, historicalValid.email);
+  assert.equal(saved.data[1].email, historicalInvalid.email);
+  assert.equal(saved.data[2].especialidad, 'Especialidad QA');
+})

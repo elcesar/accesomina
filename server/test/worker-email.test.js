@@ -98,3 +98,20 @@ test('contextual updates cannot accept a new invalid email through append fallba
   assert.throws(() => validateUpdate(current, proposed), invalidEmail);
   assert.throws(() => validateAppendChanges(current, proposed, ['trabajadores']), invalidEmail);
 });
+
+
+test('sanitizeJson preserves direct worker emails byte-for-byte without exempting other email fields', () => {
+  const validHistorical = "o'connor@example.com"
+  const invalidHistorical = "correo'antiguo-invalido"
+  const sanitized = sanitizeJson({
+    trabajadores: [
+      { id: 'qa-1', email: validHistorical },
+      { id: 'qa-2', email: invalidHistorical },
+    ],
+    contacto: { email: "o'connor@example.com" },
+  })
+
+  assert.equal(sanitized.trabajadores[0].email, validHistorical)
+  assert.equal(sanitized.trabajadores[1].email, invalidHistorical)
+  assert.equal(sanitized.contacto.email, 'o’connor@example.com')
+})
