@@ -119,6 +119,7 @@ export const APPEND_FALLBACK_MODULES = new Set([
   'minas',
   'contratos',
   'mantenciones',
+  'subcontratos',
 ]);
 
 export function appendOnlyRows(before, after) {
@@ -279,11 +280,20 @@ export function validateAppendChanges(current, proposed, keys) {
 
   const newMines = additions.get('minas') || [];
   for (const mine of newMines) {
-    if (!mine?.id || !String(mine.nombre || '').trim()) conflict('El cliente requiere identificador y nombre.', 'INCOMPLETE_CLIENT');
-    if (mine.rut && !isValidRut(mine.rut)) conflict('El RUT del cliente no es válido.', 'INVALID_CLIENT_RUT');
+    if (!mine?.id || !String(mine.nombre || '').trim() || !String(mine.rut || '').trim()) conflict('El cliente requiere identificador, nombre y RUT.', 'INCOMPLETE_CLIENT');
+    if (!isValidRut(mine.rut)) conflict('El RUT del cliente no es válido.', 'INVALID_CLIENT_RUT');
   }
   ensureUniqueNew(newMines, collection(current, 'minas'), row => normalizeRut(row?.rut), 'Ya existe un cliente con ese RUT.', 'DUPLICATE_CLIENT_RUT');
   ensureUniqueNew(newMines, collection(current, 'minas'), row => `${normalizedText(row?.nombre)}|${normalizedText(row?.mandante)}`, 'Ya existe un cliente equivalente.', 'DUPLICATE_CLIENT');
+
+  const newSubcontractors = additions.get('subcontratos') || [];
+  for (const subcontractor of newSubcontractors) {
+    if (!subcontractor?.id || !String(subcontractor.razon || subcontractor.nombre || '').trim() || !String(subcontractor.rut || '').trim()) {
+      conflict('El tercero requiere identificador, razón social y RUT.', 'INCOMPLETE_SUBCONTRACTOR');
+    }
+    if (!isValidRut(subcontractor.rut)) conflict('El RUT del tercero no es válido.', 'INVALID_SUBCONTRACTOR_RUT');
+  }
+  ensureUniqueNew(newSubcontractors, collection(current, 'subcontratos'), row => normalizeRut(row?.rut), 'Ya existe un tercero con ese RUT.', 'DUPLICATE_SUBCONTRACTOR_RUT');
 
   const newContracts = additions.get('contratos') || [];
   for (const contract of newContracts) {
