@@ -78,6 +78,16 @@ const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : []
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 // Health protocols read historical aliases, but every write is resolved against
 // the canonical trabajadores[].id before reference and duplicate validation.
+function healthProtocolScope(row) {
+  if (row?.scope === 'global') return 'global';
+  return row?.scope === 'cliente' || row?.minaId ? 'cliente' : 'global';
+}
+
+function healthProtocolReferenceSignature(row) {
+  return [row?.workerId || '', row?.trabId || '', row?.personaId || '', row?.scope || '', row?.minaId || '']
+    .map(value => String(value)).join('|');
+}
+
 function resolveHealthProtocolWorkerId(row, workerIds) {
   const references = [row?.workerId, row?.trabId, row?.personaId]
     .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
@@ -285,7 +295,7 @@ export function validateAppendChanges(current, proposed, keys) {
 
   return true;
 }
-export function validateTenantState(input) {
+export function validateTenantState(input, { previousState = null } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = sanitizeJson(input);
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
@@ -322,15 +332,21 @@ export function validateTenantState(input) {
   }
   const workerIds = new Set(workers.map(x => String(x.id)));
   const healthProtocols = collection(state, 'protocolosSalud');
-  const resolvedHealthProtocols = healthProtocols.map(row => ({
-    row,
-    workerId: resolveHealthProtocolWorkerId(row, workerIds),
-  }));
-  assertUnique(
-    resolvedHealthProtocols.map(({ row, workerId }) => `${workerId}|${row.minaId || ''}|${normalizedText(row.protocolo || row.tipo || row.nombre || row.title)}|${row.vence || ''}`),
-    'Duplicate health protocol',
-    'DUPLICATE_HEALTH_PROTOCOL'
+  const previousHealthProtocols = new Map(
+    collection(previousState, 'protocolosSalud').filter(row => row?.id).map(row => [String(row.id), row])
   );
+  const resolvedHealthProtocols = healthProtocols.map(row => {
+    try {
+      return { row, workerId: resolveHealthProtocolWorkerId(row, workerIds), legacyReference: false };
+    } catch (error) {
+      const before = previousHealthProtocols.get(String(row?.id || ''));
+      // Retain unchanged legacy contradictions for audit, but reject any new or edited invalid reference.
+      if (error?.code === 'INVALID_REFERENCE' && before && healthProtocolReferenceSignature(before) === healthProtocolReferenceSignature(row)) {
+        return { row, workerId: null, legacyReference: true };
+      }
+      throw error;
+    }
+  });
   const projectIds = new Set(projects.map(x => String(x.id)));
   const mineIds = new Set(mines.map(x => String(x.id)));
   const contractIds = new Set(contracts.map(x => String(x.id)));
@@ -377,9 +393,26 @@ export function validateTenantState(input) {
     if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Credential references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   assertUnique((state.credenciales || []).map(x => x.numero ? `${x.minaId}|${normalizedText(x.numero)}` : ''), 'Duplicate credential number', 'DUPLICATE_CREDENTIAL');
-  for (const { row } of resolvedHealthProtocols) {
-    if (row.minaId && !mineIds.has(String(row.minaId))) {
-      throw Object.assign(new Error('Health protocol references an unknown mine'), { status: 409, code: 'INVALID_REFERENCE' });
+  for (const { row, legacyReference } of resolvedHealthProtocols) {
+    if (legacyReference) continue;
+    if (row.scope && !['global', 'cliente'].includes(row.scope)) {
+      throw Object.assign(new Error('Health protocol has an invalid scope'), { status: 409, code: 'INVALID_HEALTH_PROTOCOL_SCOPE' });
+    }
+    const scope = healthProtocolScope(row);
+    if (scope === 'cliente') {
+      if (!row.minaId || !mineIds.has(String(row.minaId))) {
+        throw Object.assign(new Error('A client-scoped health protocol requires a known client'), { status: 409, code: 'INVALID_REFERENCE' });
+      }
+    } else if (row.minaId) {
+      throw Object.assign(new Error('A global health protocol cannot include a client reference'), { status: 409, code: 'INVALID_REFERENCE' });
+    }
+    for (const field of ['evaluatedOn', 'vence']) {
+      if (row[field] && !/^\d{4}-\d{2}-\d{2}$/.test(row[field])) {
+        throw Object.assign(new Error('Health protocol has an invalid ' + field + ' date'), { status: 409, code: 'INVALID_DATES' });
+      }
+    }
+    if (row.evaluatedOn && row.vence && row.evaluatedOn > row.vence) {
+      throw Object.assign(new Error('Health protocol has invalid evaluation and expiry dates'), { status: 409, code: 'INVALID_DATES' });
     }
   }
   for (const row of Array.isArray(state.incidentes) ? state.incidentes : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Incident references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });

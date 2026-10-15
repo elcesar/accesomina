@@ -29,9 +29,27 @@ function PersonCell({ name, rut, onClick }) {
   )
 }
 
-const statusFor = item => {
+const operationalDayString = () => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(new Date()).reduce((date, part) => ({ ...date, [part.type]: part.value }), {})
+  return parts.year + '-' + parts.month + '-' + parts.day
+}
+
+const scopeFor = item => item.scope === 'global' ? 'global' : (item.scope === 'cliente' || item.minaId ? 'cliente' : 'global')
+const evaluationKey = item => [item.workerId || '', scopeFor(item), scopeFor(item) === 'cliente' ? item.minaId || '' : '', String(item.protocolo || '').trim().toLowerCase()].join('|')
+const evaluationDate = item => item.evaluatedOn || item.createdAt || ''
+const isCurrentEvaluation = (item, records) => {
+  const group = records.filter(candidate => !candidate.referenceIssue && evaluationKey(candidate) === evaluationKey(item))
+  const latest = [...group].sort((left, right) => String(evaluationDate(right)).localeCompare(String(evaluationDate(left))) || String(right.id || '').localeCompare(String(left.id || '')))[0]
+  return latest?.id === item.id
+}
+
+const statusFor = (item, records = []) => {
+  if (item.referenceIssue) return { label: 'Requiere regularización', cls: 'nk-badge-warn', key: 'regularize' }
+  if (item.vence && item.vence < operationalDayString()) return { label: 'Vencido', cls: 'nk-badge-error', key: 'expired' }
+  if (!isCurrentEvaluation(item, records)) return { label: 'Histórico', cls: 'nk-badge-none', key: 'history' }
   const raw = String(item.estado || '').toLowerCase()
-  if (/cerrad|finalizad|resuelt/.test(raw)) return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
+  if (/cerrad|finalizad|resuelt|vigente/.test(raw)) return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
   if (/alert|pendiente|restric|seguimiento/.test(raw)) return { label: 'Requiere revisión', cls: 'nk-badge-warn', key: 'warn' }
   return { label: item.estado || 'Sin información', cls: 'nk-badge-none', key: 'none' }
 }
@@ -61,13 +79,17 @@ async function uploadHealthFile(workerId, file) {
   return response.json()
 }
 
-function HealthDialog({ workers, onClose, onSaved }) {
+function HealthDialog({ workers, clients, onClose, onSaved }) {
   const fileRef = useRef(null)
   const [form, setForm] = useState({
     workerId: '',
     protocolo: '',
     riesgo: '',
     estado: 'seguimiento',
+    scope: 'global',
+    minaId: '',
+    evaluatedOn: operationalDayString(),
+    vence: '',
     responsable: '',
     notes: '',
   })
@@ -78,6 +100,10 @@ function HealthDialog({ workers, onClose, onSaved }) {
   async function save(event) {
     event.preventDefault()
     if (!form.workerId || !form.protocolo.trim() || saving) return
+    if (form.scope === 'cliente' && !form.minaId) {
+      setError('Selecciona el cliente al que aplica este protocolo.')
+      return
+    }
 
     setSaving(true)
     setError('')
@@ -109,6 +135,10 @@ function HealthDialog({ workers, onClose, onSaved }) {
         estado: form.estado,
         responsable: form.responsable.trim(),
         notes: form.notes.trim(),
+        scope: form.scope,
+        minaId: form.scope === 'cliente' ? form.minaId : '',
+        evaluatedOn: form.evaluatedOn || operationalDayString(),
+        vence: form.vence || '',
         createdAt: new Date().toISOString(),
         ...fileMeta,
       }
@@ -163,15 +193,36 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label">Protocolo / seguimiento</label>
-              <input
-                className="nk-input"
-                required
-                value={form.protocolo}
-                onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))}
-                placeholder="Ej.: Vigilancia por exposición a ruido"
-              />
+              <input className="nk-input" required value={form.protocolo} onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))} placeholder="Ej.: Vigilancia por exposición a ruido" />
             </div>
 
+            <div className="nk-field">
+              <label className="nk-label" htmlFor="health-scope">Alcance</label>
+              <select id="health-scope" className="nk-select" value={form.scope} onChange={event => setForm(current => ({ ...current, scope: event.target.value, minaId: event.target.value === 'global' ? '' : current.minaId }))}>
+                <option value="global">Persona, aplicable en toda la empresa</option>
+                <option value="cliente">Persona y cliente específico</option>
+              </select>
+            </div>
+
+            {form.scope === 'cliente' && (
+              <div className="nk-field">
+                <label className="nk-label" htmlFor="health-client">Cliente</label>
+                <select id="health-client" className="nk-select" aria-required="true" value={form.minaId} onChange={event => setForm(current => ({ ...current, minaId: event.target.value }))}>
+                  <option value="">Seleccionar cliente</option>
+                  {clients.map(client => <option key={client.id} value={client.id}>{client.nombre}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div className="nk-field">
+              <label className="nk-label" htmlFor="health-evaluated-on">Fecha de evaluación</label>
+              <input id="health-evaluated-on" className="nk-input" type="date" required value={form.evaluatedOn} onChange={event => setForm(current => ({ ...current, evaluatedOn: event.target.value }))} />
+            </div>
+
+            <div className="nk-field">
+              <label className="nk-label" htmlFor="health-expiry">Vence</label>
+              <input id="health-expiry" className="nk-input" type="date" value={form.vence} min={form.evaluatedOn || undefined} onChange={event => setForm(current => ({ ...current, vence: event.target.value }))} />
+            </div>
             <div className="nk-field">
               <label className="nk-label">Riesgo / exposición</label>
               <input
@@ -248,6 +299,7 @@ export default function SaludOcupacionalPage() {
   const [creating, setCreating] = useState(false)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('todos')
+  const [unavailableEvidence, setUnavailableEvidence] = useState({})
 
   async function load() {
     setLoading(true)
@@ -265,12 +317,14 @@ export default function SaludOcupacionalPage() {
 
   const state = response?.state || response || {}
   const workers = state.trabajadores || []
+  const clients = state.minas || []
   const records = useMemo(() => (state.protocolosSalud || []).map(item => {
-    const workerId = item.workerId || item.trabId || item.personaId
+    const references = [item.workerId, item.trabId, item.personaId].filter(Boolean).map(String)
+    const workerId = references[0] || ''
     const worker = workers.find(person => person.id === workerId)
+    const referenceIssue = new Set(references).size !== 1 || !worker
     return {
-      ...item,
-      workerId,
+      ...item, workerId, referenceIssue,
       workerName: worker?.nombre || item.persona || 'Persona no identificada',
       workerRut: worker?.rut || item.rut || '',
       workerRole: worker?.cargo || worker?.especialidad || '',
@@ -278,10 +332,33 @@ export default function SaludOcupacionalPage() {
     }
   }), [state.protocolosSalud, workers])
 
+  async function downloadEvidence(item) {
+    try {
+      const response = await fetch('/api/files/' + encodeURIComponent(item.fileId), { credentials: 'same-origin' })
+      if (!response.ok) {
+        const message = response.status === 403 ? 'No tienes permisos para descargar esta evidencia.' : 'La evidencia ya no está disponible. Registra una nueva evaluación y adjunta el archivo.'
+        setUnavailableEvidence(current => ({ ...current, [item.fileId]: message }))
+        setError(message)
+        return
+      }
+      const blob = await response.blob()
+      const href = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = href
+      link.download = item.fileName || 'evidencia'
+      link.click()
+      URL.revokeObjectURL(href)
+    } catch {
+      const message = 'No fue posible descargar la evidencia. Registra una nueva evaluación y adjunta el archivo.'
+      setUnavailableEvidence(current => ({ ...current, [item.fileId]: message }))
+      setError(message)
+    }
+  }
+
   const filtered = useMemo(() => {
     const term = query.toLowerCase().trim()
     return records.filter(item => {
-      const status = statusFor(item)
+      const status = statusFor(item, records)
       const matchesQuery = !term || [
         item.workerName,
         item.workerRut,
@@ -297,7 +374,7 @@ export default function SaludOcupacionalPage() {
 
   const summary = useMemo(() => records.reduce((acc, item) => {
     acc.total += 1
-    const key = statusFor(item).key
+    const key = statusFor(item, records).key
     if (key === 'ok') acc.ok += 1
     if (key === 'warn') acc.warn += 1
     if (key === 'none') acc.none += 1
@@ -343,6 +420,9 @@ export default function SaludOcupacionalPage() {
               <option value="warn">Requiere revisión</option>
               <option value="ok">Cerrado</option>
               <option value="none">Sin información</option>
+              <option value="history">Histórico</option>
+              <option value="expired">Vencido</option>
+              <option value="regularize">Requiere regularización</option>
             </select>
           </div>
         </div>
@@ -374,7 +454,7 @@ export default function SaludOcupacionalPage() {
               </thead>
               <tbody>
                 {filtered.map((item, index) => {
-                  const status = statusFor(item)
+                  const status = statusFor(item, records)
                   return (
                     <tr key={item.id || index}>
                       <td>
@@ -384,11 +464,21 @@ export default function SaludOcupacionalPage() {
                           onClick={item.workerId ? () => navigate(`/app/trabajadores/${item.workerId}`) : undefined}
                         />
                       </td>
-                      <td>{item.protocolo}</td>
+                      <td>
+                        <div>{item.protocolo}</div>
+                        <span className="nk-person-text-muted">
+                          {scopeFor(item) === 'cliente' ? 'Cliente específico · ' + (clients.find(client => String(client.id) === String(item.minaId))?.nombre || 'sin cliente') : 'Aplicable en toda la empresa'}
+                          {item.evaluatedOn ? ' · Evaluado: ' + item.evaluatedOn : ''}
+                        </span>
+                      </td>
                       <td>{item.riesgo || '—'}</td>
                       <td>{item.responsable || '—'}</td>
-                      <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                      <td>{item.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(item.fileId)}`} download={item.fileName || true} aria-label={`Descargar evidencia de ${item.protocolo}`}>{item.fileName || 'Descargar evidencia'}</a> : item.fileName ? <span className="nk-person-text-muted" title="Registro histórico: no existe un archivo descargable asociado">{item.fileName} · histórico, sin archivo</span> : '—'}</td>
+                      <td><span className={'nk-badge ' + status.cls}>{status.label}</span></td>
+                      <td>{item.fileId ? (
+                        unavailableEvidence[item.fileId]
+                          ? <span className="nk-person-text-muted" role="status" title={unavailableEvidence[item.fileId]}>Evidencia no disponible</span>
+                          : <button className="nk-context-link" type="button" onClick={() => downloadEvidence(item)} aria-label={'Descargar evidencia de ' + item.protocolo}>{item.fileName || 'Descargar evidencia'}</button>
+                      ) : item.fileName ? <span className="nk-person-text-muted" title="Registro histórico: no existe un archivo descargable asociado">{item.fileName} · histórico, sin archivo</span> : '—'}</td>
                     </tr>
                   )
                 })}
@@ -401,6 +491,7 @@ export default function SaludOcupacionalPage() {
       {creating && (
         <HealthDialog
           workers={workers}
+          clients={clients}
           onClose={() => setCreating(false)}
           onSaved={() => { setCreating(false); load() }}
         />

@@ -30,11 +30,17 @@ test('rejects missing or unknown persons and explicit unknown clients', () => {
 test('permits distinct current protocols for the same person', () => {
   assert.doesNotThrow(() => validateTenantState(state([current, { ...current, id: 'second', protocolo: 'Otro seguimiento QA' }])));
 });
-test('rejects equivalent protocols after trimming and case normalization', () => {
-  assert.throws(() => validateTenantState(state([current, { ...current, id: 'second', protocolo: ' seguimiento qa ' }])), e => e.code === 'DUPLICATE_HEALTH_PROTOCOL');
+test('treats each row as an individual evaluation, including renewals with equal dates', () => {
+  const first = { ...current, evaluatedOn: '2026-10-14', vence: '2027-10-14' };
+  const renewal = { ...current, id: 'second', protocolo: ' seguimiento qa ', evaluatedOn: '2026-10-14', vence: '2027-10-14' };
+  assert.doesNotThrow(() => validateTenantState(state([first, renewal])));
 });
-test('normalizes duplicate identities across the current and historical names', () => {
-  assert.throws(() => validateTenantState(state([current, { id: 'legacy', trabId: 'qa-person', tipo: 'Seguimiento QA' }])), e => e.code === 'DUPLICATE_HEALTH_PROTOCOL');
+test('keeps global and client-scoped evaluations separate and validates the explicit scope', () => {
+  const global = { ...current, scope: 'global' };
+  const byClient = { ...current, id: 'client-evaluation', scope: 'cliente', minaId: 'qa-client' };
+  assert.doesNotThrow(() => validateTenantState(state([global, byClient])));
+  assert.throws(() => validateTenantState(state([{ ...current, scope: 'cliente' }])), error => error.code === 'INVALID_REFERENCE');
+  assert.throws(() => validateTenantState(state([{ ...current, scope: 'global', minaId: 'qa-client' }])), error => error.code === 'INVALID_REFERENCE');
 });
 test('keeps different clients and historical validity periods distinct', () => {
   const one = { id: 'one', trabId: 'qa-person', minaId: 'qa-client', tipo: 'Hipobaria', vence: '2027-01-01' };
@@ -48,7 +54,9 @@ test('resolves one canonical person identity across current and historical alias
   assert.throws(() => validateTenantState(state([{ ...current, workerId: 'qa-person', trabId: 'other-person' }])), error => error.code === 'INVALID_REFERENCE')
 })
 
-test('detects duplicates through mixed current and historical person aliases', () => {
-  const legacy = { id: 'legacy', trabId: 'qa-person', tipo: 'Seguimiento QA', estado: 'seguimiento', fileName: 'historial.pdf' }
-  assert.throws(() => validateTenantState(state([{ ...current, vence: '' }, legacy])), error => error.code === 'DUPLICATE_HEALTH_PROTOCOL')
+test('preserves an unchanged legacy reference while allowing an unrelated save, but rejects a changed contradiction', () => {
+  const legacy = { id: 'legacy', workerId: 'qa-person', trabId: 'unknown-person', tipo: 'Seguimiento QA', estado: 'seguimiento' };
+  const before = state([legacy]);
+  assert.doesNotThrow(() => validateTenantState(state([{ ...legacy, notes: 'Conservado para regularización' }]), { previousState: before }));
+  assert.throws(() => validateTenantState(state([{ ...legacy, trabId: 'another-person' }]), { previousState: before }), error => error.code === 'INVALID_REFERENCE');
 })
