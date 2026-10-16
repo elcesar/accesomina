@@ -1,0 +1,58 @@
+name: QA pull request
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'nexo-v2/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/qa-pr.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install server dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Server and shared email policy tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://qa:qa@127.0.0.1:65432/qa_mock
+        run: |
+          node --check server/index.js
+          node --check public/cloud-client.js
+          node --test server/test/*.test.js nexo-v2/test/*.test.js
+      - name: Install frontend dependencies
+        working-directory: nexo-v2
+        run: npm install
+      - name: Production build
+        working-directory: nexo-v2
+        run: npm run build
+      - name: Install test browser
+        working-directory: nexo-v2
+        run: npx playwright install --with-deps chromium
+      - name: Desktop and mobile regressions
+        working-directory: nexo-v2
+        run: npm run test:e2e
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-evidence
+          path: |
+            nexo-v2/test-results/
+            nexo-v2/playwright-report/
+          if-no-files-found: ignore

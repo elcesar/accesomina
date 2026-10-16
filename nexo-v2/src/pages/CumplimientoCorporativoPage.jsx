@@ -209,7 +209,7 @@ export default function CumplimientoCorporativoPage() {
   return (
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
-        <div><h1>Documentación de la Empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
+        <div><h1>Documentación de la empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
         <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
       </header>
 
@@ -249,17 +249,17 @@ export default function CumplimientoCorporativoPage() {
                     <td><div className="nk-compliance-doc"><strong title={doc.name}>{doc.name}</strong><span title={doc.src || requirement?.src || ''}>{doc.src || requirement?.src || ''}</span></div></td>
                     <td><span className="nk-compliance-area">{AREA_LABELS[doc.area] || doc.area}</span></td>
                     <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} />}</td>
+                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} aria-label={`Fecha de vencimiento de ${doc.name}`} />}</td>
                     <td>
                       <div className="nk-compliance-evidence-cell">
                         {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileId ? <a className="nk-context-link nk-compliance-evidence" href={`/api/files/${encodeURIComponent(doc.fileId)}`} download title={doc.fileName || 'Descargar respaldo'}><IconFile size={13} /> {doc.fileName || 'Archivo'}</a> : <span className="nk-compliance-na">Sin respaldo</span>}
                         <div className="nk-compliance-actions">
-                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> PC</button>
-                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Link</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> Cargar archivo</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Agregar enlace</button>
                         </div>
                       </div>
                     </td>
-                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" /></td>
+                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" aria-label={`Observación de ${doc.name}`} /></td>
                   </tr>
                 )
               })}</tbody>

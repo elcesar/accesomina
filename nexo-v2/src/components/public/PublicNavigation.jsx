@@ -38,7 +38,7 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
         </button>
 
         <div className="nk-public-actions nk-public-nav-cta">
-          <a className="nk-button nk-button-quiet nk-public-contact" href="mailto:contacto@nexoklar.com">
+          <a className="nk-button nk-button-quiet nk-touch-target nk-public-contact" href="mailto:contacto@nexoklar.com">
             contacto@nexoklar.com
           </a>
           <button className="nk-button nk-button-secondary nk-public-create-company" type="button" onClick={onCreateCompany}>
@@ -98,7 +98,7 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
         <button className="nk-button nk-button-secondary" type="button" onClick={() => { onCreateCompany?.(); setMenuOpen(false) }}>
           Crear empresa
         </button>
-        <a className="nk-button nk-button-quiet" href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
+        <a className="nk-button nk-button-quiet nk-touch-target" href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
       </nav>
     </header>
   )

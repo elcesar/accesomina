@@ -9,11 +9,26 @@ import {
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { BirthDateInput } from '../components/ui/BirthDateInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
-import { assignmentIsOperational, employmentRelationship, hasActiveRestriction, operationalStatus } from '../services/worker-segments.js'
+import { EMAIL_ERROR, normalizeEmail, validateEmail } from '../services/email-validation.js'
+import {
+  assignmentIsOperational,
+  employmentRelationship,
+  hasActiveRestriction,
+  operationalStatus,
+  projectCanAcceptAssignment,
+  workerOperationalAssignments,
+} from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
-import { DOCUMENT_TYPE_OPTIONS, documentEvidenceMessage, documentRule, hasRequiredEvidence, workerItemType } from '../services/worker-document-rules.js'
+import {
+  DOCUMENT_TYPE_OPTIONS,
+  documentEvidenceMessage,
+  documentRule,
+  hasRequiredEvidence,
+  workerItemType,
+} from '../services/worker-document-rules.js'
 import { removeUploadedFiles, uploadDocumentFiles } from '../services/worker-document-upload.js'
 import '../styles/ficha-trabajador.css'
 
@@ -119,8 +134,8 @@ function BadgeDisp({ value }) {
   return <StatusBadge value={value} />
 }
 
-function Field({ label, hint, children }) {
-  return <div className="nk-field"><label className="nk-label">{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
+function Field({ label, hint, htmlFor, children }) {
+  return <div className="nk-field"><label className="nk-label" htmlFor={htmlFor}>{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
 }
 
 function CardSection({ title, subtitle, action, children }) {
@@ -136,11 +151,13 @@ function SaveButton({ saving, onClick }) {
   return <button className="nk-button nk-button-primary" type="button" onClick={onClick} disabled={saving}>{saving ? <IconLoader2 size={15} className="animate-spin" /> : <IconDeviceFloppy size={15} strokeWidth={1.7} />}{saving ? 'Guardando…' : 'Guardar cambios'}</button>
 }
 
-function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
+function DataTab({ worker, emailError, clientes, proyectos, contratos, asignaciones, restrictions, saving, onChange, onSave, onAsignar, onRetirar, isRestricted, onMakeFixed, onMakeAvailable, onRestrict, onLiftRestriction }) {
   const [contratoId, setContratoId] = useState('')
   const [proyectoId, setProyectoId] = useState('')
   const [turno, setTurno] = useState('día')
-  const activeAssignments = asignaciones.filter(a => a.trabId === worker.id && assignmentIsOperational(a))
+  const assignmentGroups = workerOperationalAssignments(worker, asignaciones, proyectos)
+  const activeAssignments = assignmentGroups.current
+  const scheduledAssignments = assignmentGroups.scheduled
   const proyectosFiltrados = contratoId ? proyectos.filter(p => p.contratoId === contratoId) : []
   const projectName = id => proyectos.find(p => p.id === id)?.nombre || id
   const contractName = id => { const p = proyectos.find(current => current.id === id); return contratos.find(c => c.id === p?.contratoId)?.nombre || '—' }
@@ -148,9 +165,9 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
   const comunas = comunasDeRegion(worker.region)
   const updateRegion = event => { onChange('region', event.target.value); onChange('ciudad', '') }
   const relationship = employmentRelationship(worker)
-  const availability = operationalStatus(worker, asignaciones, restrictions)
+  const availability = operationalStatus(worker, asignaciones, restrictions, proyectos)
   const relationshipLabel = relationship === 'fijo' ? 'Trabajador fijo' : relationship === 'proyecto' ? 'Trabajador por proyecto' : 'Sin vínculo laboral definido'
-  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'No habilitado' : 'Disponible'
+  const availabilityLabel = availability === 'asignado' ? 'Asignado' : availability === 'restringido' ? 'No habilitado' : availability === 'vacaciones' ? 'Vacaciones' : availability === 'regularizacion' ? 'Requiere regularización' : 'Disponible'
 
   return <>
     <CardSection title="Estado de la persona" subtitle="La relación laboral y la situación operacional se administran por separado.">
@@ -161,7 +178,7 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
           <button className="nk-button nk-button-secondary" type="button" onClick={onLiftRestriction}><IconUserCheck size={15} /> Habilitar</button>
         </> : <>
           <span className={`nk-badge ${relationship === 'fijo' ? 'nk-badge-none' : relationship === 'proyecto' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Relación laboral: {relationshipLabel}</span>
-          <span className={`nk-badge ${availability === 'asignado' ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Disponibilidad: {availabilityLabel}</span>
+          <span className={`nk-badge ${['asignado', 'vacaciones', 'regularizacion'].includes(availability) ? 'nk-badge-warn' : 'nk-badge-ok'}`}>Disponibilidad: {availabilityLabel}</span>
           <button className="nk-button nk-button-secondary" type="button" onClick={onMakeAvailable} disabled={availability === 'disponible'}>Dejar disponible</button>
           <button className="nk-button nk-button-secondary" type="button" onClick={onMakeFixed}>Convertir en fijo</button>
           <button className="nk-button nk-button-quiet" type="button" onClick={onRestrict}><IconBan size={15} /> No habilitar</button>
@@ -175,14 +192,17 @@ function DataTab({ worker, clientes, proyectos, contratos, asignaciones, restric
         <Field label="Contrato"><select className="nk-select" value={contratoId} onChange={e => { setContratoId(e.target.value); setProyectoId('') }}><option value="">Seleccionar contrato</option>{contratos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
         <Field label="Proyecto / servicio"><select className="nk-select" value={proyectoId} onChange={e => setProyectoId(e.target.value)} disabled={!contratoId}><option value="">Seleccionar proyecto</option>{proyectosFiltrados.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}</select></Field>
         <Field label="Turno"><select className="nk-select" value={turno} onChange={e => setTurno(e.target.value)}><option value="día">Día</option><option value="noche">Noche</option><option value="ambos">Ambos</option></select></Field>
-        <button className="nk-button nk-button-action" type="button" disabled={!proyectoId} onClick={() => onAsignar(proyectoId, turno)}><IconPlus size={15} strokeWidth={1.7} /> Asignar</button>
+        <button className="nk-button nk-button-action" type="button" disabled={!proyectoId || isRestricted} onClick={() => onAsignar(proyectoId, turno)}><IconPlus size={15} strokeWidth={1.7} /> Asignar</button>
       </div>
-      {activeAssignments.length === 0 ? <p className="nk-person-text-sub">Sin asignaciones activas.</p> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Cliente</th><th>Contrato</th><th>Proyecto</th><th>Turno</th><th /></tr></thead><tbody>{activeAssignments.map((a, i) => <tr key={a.id || i}><td>{clientName(a.mantId)}</td><td className="nk-person-text-muted">{contractName(a.mantId)}</td><td className="nk-person-text-strong">{projectName(a.mantId)}</td><td>{a.turno || '—'}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => onRetirar(a.mantId)}>Retirar</button></td></tr>)}</tbody></table></div>}
+      {isRestricted && <p className="nk-person-text-sub">No se pueden crear asignaciones mientras la persona esté no habilitada.</p>}
+      {activeAssignments.length === 0 ? <p className="nk-person-text-sub">Sin asignaciones operacionales vigentes.</p> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Cliente</th><th>Contrato</th><th>Proyecto</th><th>Turno</th><th /></tr></thead><tbody>{activeAssignments.map((a, i) => <tr key={a.id || i}><td>{clientName(a.mantId)}</td><td className="nk-person-text-muted">{contractName(a.mantId)}</td><td className="nk-person-text-strong">{projectName(a.mantId)}</td><td>{a.turno || '—'}</td><td><button className="nk-button nk-button-quiet" type="button" onClick={() => onRetirar(a.mantId)}>Retirar</button></td></tr>)}</tbody></table></div>}
+      {scheduledAssignments.length > 0 && <p className="nk-person-text-sub">Programación futura: {scheduledAssignments.map(item => projectName(item.mantId)).join(' · ')}.</p>}
+      {assignmentGroups.inconsistent.length > 0 && <p className="nk-person-text-sub">Hay asignaciones con una orden inexistente o con estado no reconocido. Regularízalas antes de operar.</p>}
     </CardSection>
 
     <CardSection title="Datos personales" subtitle="Identificación, contacto y previsión."><div className="nk-person-grid">
       <Field label="Teléfono"><PhoneInput value={worker.tel || ''} onChange={value => onChange('tel', value)} /></Field>
-      <Field label="Correo electrónico"><input className="nk-input" type="email" value={worker.email || ''} onChange={e => onChange('email', e.target.value)} /></Field>
+      <Field label="Correo electrónico" htmlFor="worker-email"><EmailInput id="worker-email" value={worker.email} error={emailError} onChange={value => onChange('email', value)} /></Field>
       <Field label="Región"><select className="nk-select" value={worker.region || ''} onChange={updateRegion}><option value="">Seleccionar región</option>{regionesChile.map(region => <option key={region} value={region}>{region}</option>)}</select></Field>
       <Field label="Ciudad / comuna"><select className="nk-select" value={worker.ciudad || ''} disabled={!worker.region} onChange={e => onChange('ciudad', e.target.value)}><option value="">{worker.region ? 'Seleccionar comuna o ciudad' : 'Primero selecciona una región'}</option>{worker.ciudad && !comunas.includes(worker.ciudad) && <option value={worker.ciudad}>{worker.ciudad}</option>}{comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}</select></Field>
       <Field label="Fecha de nacimiento"><BirthDateInput value={worker.nacimiento || ''} onChange={value => onChange('nacimiento', value)} /></Field>
@@ -356,6 +376,7 @@ export default function FichaTrabajadorPage() {
   const [tab, setTab] = useState('datos')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [emailError, setEmailError] = useState(null)
   const [ok, setOk] = useState(null)
   const [restricting, setRestricting] = useState(false)
   const [restrictionReason, setRestrictionReason] = useState('')
@@ -374,9 +395,38 @@ export default function FichaTrabajadorPage() {
     setWorker({ ...found, _asignaciones: workerAssignments, _hotelAsig: hotelAssignments }); setAssignments(s?.asignaciones || [])
   }).catch(e => setError(e.message || 'Error al cargar la ficha')) }, [id])
 
-  function onChange(field, value) { setWorker(current => ({ ...current, [field]: value })) }
+  function onChange(field, value) {
+    if (field === 'email') setEmailError(null)
+    setWorker(current => ({ ...current, [field]: value }))
+  }
+  function showEmailError(message) {
+    setEmailError(message)
+    setTab('datos')
+    requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
+  }
   async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
-  async function handleSave() { setSaving(true); setError(null); setOk(null); try { await persistWorker(worker, `Actualización ficha ${worker.nombre}`); setOk('Cambios guardados correctamente'); setTimeout(() => setOk(null), 2500) } catch (e) { setError(e.message || 'Error al guardar') } finally { setSaving(false) } }
+  async function handleSave() {
+    setError(null)
+    setOk(null)
+    const validationError = validateEmail(worker.email)
+    if (validationError) {
+      showEmailError(validationError)
+      return
+    }
+    setEmailError(null)
+    setSaving(true)
+    try {
+      const nextWorker = { ...worker, ...(typeof worker.email === 'string' ? { email: normalizeEmail(worker.email) } : {}) }
+      await persistWorker(nextWorker, `Actualización ficha ${worker.nombre}`)
+      setOk('Cambios guardados correctamente')
+      setTimeout(() => setOk(null), 2500)
+    } catch (e) {
+      if (e.code === 'INVALID_WORKER_EMAIL') showEmailError(EMAIL_ERROR)
+      else setError(e.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
   async function appendDocument(item, reason) {
     try {
       const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })
@@ -401,8 +451,37 @@ export default function FichaTrabajadorPage() {
   }
   // An assignment changes operational availability, never the person's employment link.
   async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
-  async function handleAsignar(mantId, turno) { if (!mantId || assignments.some(a => a.trabId === id && a.mantId === mantId)) { if (mantId) setError('La persona ya está asignada a ese proyecto'); return } try { const next = [...assignments, { id: `asig_${Date.now()}`, mantId, trabId: id, turno, estado: 'confirmado' }]; await persistAssignments(next, 'asignado', `Asignación operacional de ${worker.nombre}`); setOk('Asignación guardada') } catch (e) { setError(e.message || 'Error al guardar asignación') } }
-  async function handleRetirar(mantId) { try { const next = assignments.map(a => a.trabId === id && a.mantId === mantId && assignmentIsOperational(a) ? { ...a, estado: 'retirado', retiradoAt: new Date().toISOString() } : a); const availability = next.some(a => a.trabId === id && assignmentIsOperational(a)) ? 'asignado' : 'disponible'; await persistAssignments(next, availability, `Retiro de asignación de ${worker.nombre}`); setOk('Asignación actualizada') } catch (e) { setError(e.message || 'Error al retirar asignación') } }
+  async function handleAsignar(mantId, turno) {
+    const projects = stateData?.mantenciones || []
+    const restrictions = stateData?.restricted || []
+    const project = projects.find(item => String(item.id) === String(mantId))
+    if (operationalStatus(worker, assignments, restrictions, projects) === 'restringido') {
+      setError('No se puede asignar una persona no habilitada. Habilítala antes de continuar.')
+      return
+    }
+    if (!projectCanAcceptAssignment(project)) {
+      setError('La orden seleccionada no está vigente para recibir asignaciones.')
+      return
+    }
+    if (!mantId || assignments.some(a => a.trabId === id && a.mantId === mantId)) {
+      if (mantId) setError('La persona ya está asignada a ese proyecto')
+      return
+    }
+    try {
+      const next = [...assignments, { id: `asig_${Date.now()}`, mantId, trabId: id, turno, estado: 'confirmado' }]
+      const availability = operationalStatus(worker, next, restrictions, projects)
+      await persistAssignments(next, availability, `Asignación operacional de ${worker.nombre}`)
+      setOk('Asignación guardada')
+    } catch (e) { setError(e.message || 'Error al guardar asignación') }
+  }
+  async function handleRetirar(mantId) {
+    try {
+      const next = assignments.map(a => a.trabId === id && a.mantId === mantId && assignmentIsOperational(a) ? { ...a, estado: 'retirado', retiradoAt: new Date().toISOString() } : a)
+      const availability = operationalStatus(worker, next, stateData?.restricted || [], stateData?.mantenciones || [])
+      await persistAssignments(next, availability, `Retiro de asignación de ${worker.nombre}`)
+      setOk('Asignación actualizada')
+    } catch (e) { setError(e.message || 'Error al retirar asignación') }
+  }
 
   async function persistLifecycle({ reason, workerPatch, assignmentsMapper, restrictionsMapper }) {
     setSaving(true); setError(null); setOk(null)
@@ -465,15 +544,15 @@ export default function FichaTrabajadorPage() {
   if (!worker) return <div className="nk-person-state">Persona no encontrada.</div>
   const pct = acreditacionPct(worker); const clientes = stateData?.minas || []; const proyectos = stateData?.mantenciones || []; const contratos = stateData?.contratos || []; const deliveries = stateData?.eppDeliveries || []
   const restrictions = stateData?.restricted || []
-  const isRestricted = operationalStatus(worker, assignments, restrictions) === 'restringido'
-  const availability = operationalStatus(worker, assignments, restrictions)
+  const isRestricted = operationalStatus(worker, assignments, restrictions, proyectos) === 'restringido'
+  const availability = operationalStatus(worker, assignments, restrictions, proyectos)
 
   return <div className="nk-person-page">
     <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={availability} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
     {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
     <main className="nk-person-content">
       {tab === 'datos' && <>
-        <DataTab worker={worker} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
+        <DataTab worker={worker} emailError={emailError} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />
         {restricting && <CardSection title="No habilitar persona" subtitle="La no habilitación suspende asignaciones operacionales y exige un motivo."><div className="nk-person-grid"><Field label="Motivo"><input className="nk-input" value={restrictionReason} onChange={event => setRestrictionReason(event.target.value)} placeholder="Motivo operacional, documental o preventivo" /></Field></div><div className="nk-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => { setRestricting(false); setRestrictionReason('') }}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={handleRestrict} disabled={saving || !restrictionReason.trim()}><IconBan size={15} /> Registrar no habilitación</button></div></CardSection>}
       </>}
       {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}
