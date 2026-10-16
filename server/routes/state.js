@@ -4,6 +4,7 @@ import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
 import { assertModuleAccess } from '../module-access.js';
 import { enforceStateScope, removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
+import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS } from '../../shared/opportunity-domain.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -217,37 +218,60 @@ stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,
 stateRouter.put('/modules',editors,async(req,res,next)=>{
   const changes=req.body?.changes;
   if(!changes||typeof changes!=='object'||Array.isArray(changes))return res.status(400).json({error:'MODULE_CHANGES_REQUIRED'});
-  const keys=Object.keys(changes);
-  if(!keys.length||keys.some(k=>!MODULE_KEY.test(k))||keys.length>30)return res.status(400).json({error:'INVALID_MODULE_KEY'});
-  try { keys.forEach(key=>assertModuleAccess(req.auth,key)); } catch (error) { return next(error); }
+  const requestedKeys=Object.keys(changes);
+  if(!requestedKeys.length||requestedKeys.some(k=>!MODULE_KEY.test(k))||requestedKeys.length>30)return res.status(400).json({error:'INVALID_MODULE_KEY'});
+  try { requestedKeys.forEach(key=>assertModuleAccess(req.auth,key)); } catch (error) { return next(error); }
+
+  // A portal/API write to prospects is a migration boundary: materialize all
+  // compatible rows in the canonical store and clear aliases in the same transaction.
+  const writesOpportunities=requestedKeys.some(key=>OPPORTUNITY_COLLECTIONS.includes(key));
+  const keys=writesOpportunities?[...new Set([...requestedKeys,...OPPORTUNITY_COLLECTIONS])]:requestedKeys;
+  const opportunityVersions=req.body?.opportunityVersions;
+  if(writesOpportunities&&opportunityVersions&&(!OPPORTUNITY_COLLECTIONS.every(key=>Number.isFinite(Number(opportunityVersions[key]))))){
+    return res.status(400).json({error:'OPPORTUNITY_VERSION_SET_REQUIRED'});
+  }
   const result=await withTenant(req.auth.tenantId,async client=>{
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
-      SELECT $1,key,'null'::jsonb,0,$3 FROM unnest($2::text[]) key ON CONFLICT(tenant_id,module_key) DO NOTHING`,[req.auth.tenantId,keys,req.auth.userId]);
+      SELECT $1,key,'null'::jsonb,0,$3 FROM unnest($2::text[]) key
+      ON CONFLICT(tenant_id,module_key) DO NOTHING`,[req.auth.tenantId,keys,req.auth.userId]);
     await client.query('SELECT module_key FROM tenant_module_state WHERE tenant_id=$1 AND module_key=ANY($2::text[]) FOR UPDATE',[req.auth.tenantId,keys]);
     const all=(await client.query('SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id=$1',[req.auth.tenantId])).rows;
     const current=rowsToState(all),versions=rowsToVersions(all),proposed={...current};
-    for(const key of keys){const change=changes[key];if(!change||Number(change.version)!==Number(versions[key]||0))return null;proposed[key]=change.data;}
-    const normalized=normalizeTenantState(proposed);
+    if(writesOpportunities&&opportunityVersions&&OPPORTUNITY_COLLECTIONS.some(key=>Number(opportunityVersions[key])!==Number(versions[key]||0)))return null;
+    for(const key of requestedKeys){
+      const change=changes[key];
+      if(!change||Number(change.version)!==Number(versions[key]||0))return null;
+      proposed[key]=change.data;
+    }
+    const normalized=normalizeTenantState(writesOpportunities?canonicalizeOpportunityState(proposed):proposed);
     let clean;
     try {
-    clean = validateTenantState(normalized, { previousState: current });
+      clean = validateTenantState(normalized, { previousState: current });
     } catch (error) {
       // Legacy data can contain stale links from before modular state validation.
       // Allow append-only creation only after validating the new records and their direct links.
-      if (!validateAppendChanges(current, normalized, keys)) throw error;
+      if (!validateAppendChanges(current, normalized, requestedKeys)) throw error;
       clean = sanitizeJson(normalized);
     }
-      enforceStateScope(
+    enforceStateScope(
       req.auth.role,
-      Object.fromEntries(keys.map(k => [k, current[k]])),
-      Object.fromEntries(keys.map(k => [k, clean[k]]))  // ← falta este )
+      Object.fromEntries(requestedKeys.map(k=>[k,current[k]])),
+      Object.fromEntries(requestedKeys.map(k=>[k,clean[k]]))
     );
     const output={};
-    for(const key of keys){const previous=current[key];const row=(await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
-      VALUES($1,$2,$3::jsonb,1,$4) ON CONFLICT(tenant_id,module_key) DO UPDATE SET data=EXCLUDED.data,version=tenant_module_state.version+1,updated_by=EXCLUDED.updated_by,updated_at=now()
-      RETURNING version,updated_at`,[req.auth.tenantId,key,JSON.stringify(clean[key]),req.auth.userId])).rows[0];output[key]=Number(row.version);
-      await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:key,action:'module.updated',oldValue:{version:versions[key]||0},newValue:{version:output[key],reason:String(req.body.reason||'Actualización operacional').slice(0,500),changes:summarizeChanges(previous,clean[key],`/${key}`)}});
+    for(const key of keys){
+      const previous=current[key];
+      const row=(await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
+        VALUES($1,$2,$3::jsonb,1,$4)
+        ON CONFLICT(tenant_id,module_key) DO UPDATE
+        SET data=EXCLUDED.data,version=tenant_module_state.version+1,updated_by=EXCLUDED.updated_by,updated_at=now()
+        RETURNING version,updated_at`,[req.auth.tenantId,key,JSON.stringify(clean[key]),req.auth.userId])).rows[0];
+      output[key]=Number(row.version);
+      await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:key,action:'module.updated',
+        oldValue:{version:versions[key]||0},
+        newValue:{version:output[key],reason:String(req.body.reason||'Actualización operacional').slice(0,500),
+          changes:summarizeChanges(previous,clean[key],`/${key}`)}});
     }
     return output;
   });

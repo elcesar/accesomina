@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { opportunityIdentity, opportunityIsClosed, opportunityRows, opportunityFields } from '../shared/opportunity-domain.js';
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 import { operationalDay } from '../shared/operational-date.js';
 
@@ -413,7 +414,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
     workers, projects, mines, contracts, state.hoteles, state.asignaciones, state.hotelAsig,
     state.turnos, state.credenciales, state.incidentes, state.protocolosSalud,
     state.vehiculos, state.subcontratos, state.firmas, state.callouts, state.waGroups,
-    state.permisosTrabajo, state.eppDeliveries, state.opportunities
+    state.permisosTrabajo, state.eppDeliveries, state.prospectos, state.oportunidades, state.opportunities
   ].filter(Array.isArray);
   for (const collection of allCollections) {
     const duplicateId = duplicate(collection.map(x => String(x.id || '')));
@@ -489,9 +490,9 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if ((row.trabIds || []).some(id => !workerIds.has(String(id)))) throw Object.assign(new Error('WhatsApp group references an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.permisosTrabajo) ? state.permisosTrabajo : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Work permit references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
-  const opportunities=Array.isArray(state.opportunities)?state.opportunities:[];
-  assertUnique(opportunities.filter(x=>x.rut&&!['ganada','perdida'].includes(normalizedText(x.stage))).map(x=>`${normalizedText(x.type)}|${normalizeRut(x.rut)}`),'Duplicate active opportunity','DUPLICATE_OPPORTUNITY');
-  for(const row of opportunities){if(row.clientId&&!mineIds.has(String(row.clientId)))throw Object.assign(new Error('Opportunity references an unknown client'),{status:409,code:'INVALID_REFERENCE'});if(row.contractId&&!contractIds.has(String(row.contractId)))throw Object.assign(new Error('Opportunity references an unknown contract'),{status:409,code:'INVALID_REFERENCE'});if(Number(row.amount)<0||Number(row.probability)<0||Number(row.probability)>100)throw Object.assign(new Error('Opportunity has invalid amount or probability'),{status:409,code:'INVALID_OPPORTUNITY'});}
+  const opportunities=opportunityRows(state).map(opportunityFields);
+  assertUnique(opportunities.filter(x=>!opportunityIsClosed(x)).map(opportunityIdentity),'Duplicate active opportunity','DUPLICATE_OPPORTUNITY');
+  for(const row of opportunities){if(row.clientId&&!mineIds.has(String(row.clientId)))throw Object.assign(new Error('Opportunity references an unknown client'),{status:409,code:'INVALID_REFERENCE'});if(row.contractId&&!contractIds.has(String(row.contractId)))throw Object.assign(new Error('Opportunity references an unknown contract'),{status:409,code:'INVALID_REFERENCE'});if(!Number.isFinite(Number(row.amount))||!Number.isFinite(Number(row.probability))||Number(row.amount)<0||Number(row.probability)<0||Number(row.probability)>100)throw Object.assign(new Error('Opportunity has invalid amount or probability'),{status:409,code:'INVALID_OPPORTUNITY'});}
   for (const delivery of Array.isArray(state.eppDeliveries) ? state.eppDeliveries : []) {
     if (!workerIds.has(String(delivery.workerId)) || (delivery.mantId && !projectIds.has(String(delivery.mantId)))) {
       throw Object.assign(new Error('EPP delivery references an unknown worker or project'), { status: 409, code: 'INVALID_REFERENCE' });
