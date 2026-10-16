@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
+import { canonicalRedirectMiddleware } from './canonical-host.js';
 import { query, withTenant, closeDatabase } from './db.js';
 import { authenticate, errorHandler, requireCsrf, requireMfa, requireOrigin } from './middleware.js';
 import { authRouter } from './routes/auth.js';
@@ -27,6 +28,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(canonicalRedirectMiddleware({
+  origin: config.origin,
+  redirectHosts: config.canonicalRedirectHosts,
+  enabled: config.env === 'production',
+}));
 
 // CSP — scriptSrcAttr requerido para event handlers inline del frontend v1
 app.use(helmet({ contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'","'unsafe-inline'"],scriptSrcAttr:["'unsafe-inline'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'",'data:','blob:','https:'],connectSrc:["'self'",'https://graph.facebook.com'],fontSrc:["'self'",'data:'],objectSrc:["'none'"],baseUri:["'self'"],frameAncestors:["'none'"]}}, crossOriginEmbedderPolicy: false }));
