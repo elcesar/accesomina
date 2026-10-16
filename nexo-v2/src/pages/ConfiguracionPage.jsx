@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconCheck, IconDeviceFloppy, IconRefresh, IconUsers } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { applyTenantBranding } from '../services/theme.js'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
@@ -32,6 +34,7 @@ export default function ConfiguracionPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
+  const [smtpValidationRequested, setSmtpValidationRequested] = useState(false)
   const [settings, setSettings] = useState({
     branding: { displayName: '', theme: 'light', logoUrl: '' },
     modules: {},
@@ -113,10 +116,15 @@ export default function ConfiguracionPage() {
   }
 
   const saveIntegration = async provider => {
+    const current = integrations[provider]
+    if (provider === 'smtp' && validateEmail(current.publicConfig.from || '', { required: false })) {
+      setSmtpValidationRequested(true)
+      setMessage('Revisa el correo remitente antes de guardar la integración.')
+      return
+    }
     setSaving(provider)
     setMessage('')
     try {
-      const current = integrations[provider]
       const payload = { enabled: current.enabled, publicConfig: current.publicConfig, secret: current.secret }
       const result = await api.put(`/settings/integrations/${provider}`, payload)
       setIntegrations(all => ({ ...all, [provider]: { ...all[provider], ...result, publicConfig: result.public_config || result.publicConfig || all[provider].publicConfig, secret: {} } }))
@@ -226,7 +234,7 @@ export default function ConfiguracionPage() {
           <article className="nk-config-integration">
             <div className="nk-config-integration-title"><h3>Correo SMTP</h3><span className={integrations.smtp.configured ? 'ready' : ''}>{integrations.smtp.configured ? 'Configurado' : 'Pendiente'}</span></div>
             <label className="nk-config-field"><span>Servidor SMTP</span><input className="nk-input" placeholder="smtp.empresa.cl" value={integrations.smtp.publicConfig.host || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'host', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Correo remitente</span><input className="nk-input" placeholder="acceso@empresa.cl" value={integrations.smtp.publicConfig.from || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'from', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Correo remitente</span><EmailInput id="smtp-from" name="smtp-from" placeholder="acceso@empresa.cl" value={integrations.smtp.publicConfig.from || ''} onChange={value => updateIntegration('smtp', 'publicConfig', 'from', value)} validationRequested={smtpValidationRequested} /></label>
             <label className="nk-config-field"><span>Usuario SMTP</span><input className="nk-input" value={integrations.smtp.publicConfig.user || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'user', e.target.value)} /></label>
             <label className="nk-config-field"><span>Clave SMTP nueva</span><input className="nk-input" type="password" value={integrations.smtp.secret.password || ''} onChange={e => updateIntegration('smtp', 'secret', 'password', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.smtp.enabled} onChange={e => setIntegrations(v => ({ ...v, smtp: { ...v.smtp, enabled: e.target.checked } }))} /> Integración activa</label>

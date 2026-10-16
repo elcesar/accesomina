@@ -78,7 +78,7 @@ export default function HabilitacionClientePage(){
     }catch(cause){setError(cause.message||'No fue posible cargar la evidencia.')}
   }
   return <div className="nk-clientreq-page">
-    <header className="nk-clientreq-header"><div><h1>Habilitación del Cliente</h1><p>Estado final por cliente, empresa, personas, flota y órdenes de servicio.</p></div><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button></header>
+    <header className="nk-clientreq-header"><div><h1>Habilitación del cliente</h1><p>Estado final por cliente, empresa, personas, flota y órdenes de servicio.</p></div><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button></header>
     {error&&<div className="nk-clientreq-feedback error">{error}</div>}
     <section className="nk-card nk-clientreq-filters">
       <select className="nk-select" value={clientFilter} onChange={e=>setClientFilter(e.target.value)}><option value="">Todos los clientes</option>{clients.map(c=><option key={c.id} value={c.id}>{c.nombre||c.name||c.id}</option>)}</select>
