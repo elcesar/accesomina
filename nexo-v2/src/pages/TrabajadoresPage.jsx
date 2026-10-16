@@ -12,7 +12,8 @@ import {
   IconX,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
-import { workerSegment } from '../services/worker-segments.js'
+import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
+import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
@@ -81,14 +82,14 @@ function initials(nombre) {
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
 }
 
-function workerProjectIds(persona, asignaciones) {
-  return asignaciones
-    .filter(asignacion => asignacion.trabId === persona.id)
+function workerProjectIds(persona, asignaciones, proyectos) {
+  return workerOperationalAssignments(persona, asignaciones, proyectos)
+    .current
     .map(asignacion => asignacion.mantId)
 }
 
 function workerContractIds(persona, asignaciones, mantenciones) {
-  const projectIds = workerProjectIds(persona, asignaciones)
+  const projectIds = workerProjectIds(persona, asignaciones, mantenciones)
   return [...new Set(
     projectIds
       .map(projectId => mantenciones.find(project => project.id === projectId)?.contratoId)
@@ -214,11 +215,11 @@ export default function TrabajadoresPage() {
   }
 
   const getContext = persona => {
-    const clientNames = (persona.mineras || [])
-      .map(id => clientes.find(cliente => cliente.id === id)?.nombre)
+    const clientNames = workerClientIds(persona, asignaciones, proyectos)
+      .map(id => clientes.find(cliente => String(cliente.id) === id)?.nombre)
       .filter(Boolean)
 
-    const workerProjects = workerProjectIds(persona, asignaciones)
+    const workerProjects = workerProjectIds(persona, asignaciones, proyectos)
     const projectNames = workerProjects
       .map(id => proyectos.find(project => project.id === id)?.nombre)
       .filter(Boolean)
@@ -234,21 +235,21 @@ export default function TrabajadoresPage() {
 
     list = list.filter(persona => workerSegment(persona, asignaciones, proyectos, restrictions) === tab)
 
-    if (search) {
-      const term = search.toLocaleLowerCase()
-      list = list.filter(p => p.nombre?.toLocaleLowerCase().includes(term) || p.rut?.includes(search))
-    }
+    if (search) list = list.filter(persona => matchesWorkerSearch(persona, search))
     if (specialty) list = list.filter(p => p.especialidad === specialty)
-    if (availability === 'bloqueado') list = list.filter(p => p.bloqueado)
-    else if (availability) list = list.filter(p => p.disponibilidad === availability && !p.bloqueado)
-    if (clientId) list = list.filter(p => (p.mineras || []).includes(clientId))
-    if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones).includes(projectId))
+    if (availability) list = list.filter(persona => operationalStatus(persona, asignaciones, restrictions, proyectos) === (availability === 'bloqueado' ? 'restringido' : availability))
+    if (clientId) list = list.filter(persona => workerClientIds(persona, asignaciones, proyectos).includes(clientId))
+    if (projectId) list = list.filter(p => workerProjectIds(p, asignaciones, proyectos).includes(projectId))
     if (contractId) list = list.filter(p => workerContractIds(p, asignaciones, proyectos).includes(contractId))
     if (qualification) list = list.filter(p => qualificationMatches(p, qualification))
 
     return [...list].sort((a, b) => {
       let valueA = a[sortCol] ?? ''
       let valueB = b[sortCol] ?? ''
+      if (sortCol === 'disponibilidad') {
+        valueA = operationalStatus(a, asignaciones, restrictions, proyectos)
+        valueB = operationalStatus(b, asignaciones, restrictions, proyectos)
+      }
       if (sortCol === 'acreditacion') {
         valueA = acreditacionPct(a)
         valueB = acreditacionPct(b)
@@ -278,6 +279,29 @@ export default function TrabajadoresPage() {
     setProjectId('')
     setContractId('')
     setQualification('')
+  }
+
+  const exportVisible = () => {
+    const typeLabels = { planta: 'Trabajador fijo', esporadico: 'Trabajador por proyecto', disponible: 'Trabajador disponible', bloqueados: 'No habilitado' }
+    const availabilityLabels = { disponible: 'Disponible', asignado: 'Asignado', vacaciones: 'Vacaciones', regularizacion: 'Requiere regularización', restringido: 'No habilitado' }
+    const records = filtered.map(persona => {
+      const context = getContext(persona)
+      return {
+        nombre: persona.nombre, rut: persona.rut, especialidad: persona.especialidad,
+        tipo: typeLabels[workerSegment(persona, asignaciones, proyectos, restrictions)],
+        clientes: context.clients.join(' / '), ordenes: context.projects.join(' / '),
+        disponibilidad: availabilityLabels[operationalStatus(persona, asignaciones, restrictions, proyectos)],
+        cumplimiento: `${acreditacionPct(persona)}%`,
+      }
+    })
+    const url = URL.createObjectURL(new Blob([workerListCsv(records)], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `nexo-klar-personas-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }
 
   const SortIcon = ({ col }) => {
@@ -310,7 +334,7 @@ export default function TrabajadoresPage() {
             </p>
           </div>
           <div className="nk-actions">
-            <button className="nk-button nk-button-secondary" type="button">
+            <button className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
               <IconDownload size={15} strokeWidth={1.7} /> Exportar
             </button>
           </div>
@@ -343,6 +367,7 @@ export default function TrabajadoresPage() {
           <option value="disponible">Disponible</option>
           <option value="asignado">Asignado</option>
           <option value="vacaciones">Vacaciones</option>
+          <option value="regularizacion">Requiere regularización</option>
           <option value="bloqueado">No habilitado</option>
         </select>
 
@@ -461,7 +486,7 @@ export default function TrabajadoresPage() {
                       <div className="nk-people-context-primary">{primaryClient || '—'}</div>
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
-                    <td><AvailabilityBadge value={persona.disponibilidad} blocked={segment === 'bloqueados'} /></td>
+                    <td><AvailabilityBadge value={operationalStatus(persona, asignaciones, restrictions, proyectos)} blocked={segment === 'bloqueados'} /></td>
                     <td><ProgressBar pct={pct} expiry={expiry} /></td>
                     <td onClick={event => event.stopPropagation()}>
                       <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>

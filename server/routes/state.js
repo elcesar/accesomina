@@ -231,7 +231,7 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
     const normalized=normalizeTenantState(proposed);
     let clean;
     try {
-      clean = validateTenantState(normalized, { previousState: current });
+    clean = validateTenantState(normalized, { previousState: current });
     } catch (error) {
       // Legacy data can contain stale links from before modular state validation.
       // Allow append-only creation only after validating the new records and their direct links.

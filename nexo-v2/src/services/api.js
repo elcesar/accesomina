@@ -24,6 +24,7 @@ const ERROR_MESSAGES = {
   LIMIT_FILE_SIZE: 'El archivo supera el tamaño máximo permitido de 25 MB.',
   MODULE_VERSION_CONFLICT: 'La información cambió mientras la estabas editando. Actualizamos los datos; revísalos y vuelve a guardar.',
   INVALID_REFERENCE: 'Uno de los registros relacionados ya no existe o no corresponde. Actualiza la página y revisa las selecciones.',
+  WORKER_NOT_AVAILABLE: 'La persona no está habilitada para recibir una asignación. Habilítala antes de continuar.',
   INVALID_EPP_DELIVERY: 'Completa persona, equipo de protección, cantidad y fecha de entrega antes de guardar.',
   INVALID_EPP_DELIVERY_STATUS: 'La condición o el estado de la entrega de EPP no es válido.',
   DUPLICATE_EPP_DELIVERY: 'Ya existe una entrega de este equipo para la misma persona, fecha y lote.',
