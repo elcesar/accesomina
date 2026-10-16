@@ -7,6 +7,8 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatChileDate, formatChilePhone } from '../services/chile-format.js'
@@ -162,7 +164,7 @@ function StepIdentidad({ data, onChange, errors }) {
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
       <Field label="Correo electrónico" fieldId="worker-email" error={errors.email}>
-        <FInput type="email" autoComplete="email" value={data.email} onChange={e => onChange('email', e.target.value)} placeholder="correo@email.com" />
+        <EmailInput autoComplete="email" value={data.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
         <FSelect value={data.region} onChange={updateRegion}>
@@ -326,7 +328,8 @@ export default function NuevoTrabajadorPage() {
       const birthError = birthDateError(data.nacimiento)
       if (birthError) errors.nacimiento = birthError
       if (data.tel && !isValidChilePhone(data.tel)) errors.tel = 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
-      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errors.email = 'Ingresa un correo electrónico válido.'
+      const emailError = validateEmail(data.email)
+      if (emailError) errors.email = emailError
     }
     if (step === 1) {
       if (!data.cargo.trim()) errors.cargo = 'Ingresa el cargo de la persona.'
