@@ -675,3 +675,96 @@
     height: var(--nk-touch-min);
   }
 }
+
+
+/* =========================================================
+   15. ACCESSIBLE TOUCH TARGET
+   ========================================================= */
+
+.nk-touch-target {
+  min-width: var(--nk-touch-min);
+  min-height: var(--nk-touch-min);
+}
+
+.nk-link.nk-touch-target {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   16. ERROR PAGE
+   Shared structure for 404, 403, 500 and 503 pages.
+   ========================================================= */
+
+.nk-error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--nk-space-5);
+  background: var(--nk-base);
+}
+
+.nk-error-page-panel {
+  width: min(calc(var(--nk-space-20) * 6), 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--nk-space-8);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-lg);
+  background: var(--nk-surface);
+  box-shadow: var(--nk-elev-2);
+  text-align: center;
+}
+
+.nk-error-page-logo {
+  width: min(calc(var(--nk-space-20) * 2), 65%);
+  height: auto;
+  margin-bottom: var(--nk-space-6);
+}
+
+.nk-error-page-icon {
+  width: var(--nk-space-16);
+  height: var(--nk-space-16);
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--nk-space-4);
+  border-radius: var(--nk-radius-lg);
+  background: var(--nk-primary-soft);
+  color: var(--nk-primary);
+}
+
+.nk-error-page-code {
+  margin: 0 0 var(--nk-space-2);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nk-error-page-panel h1 {
+  margin: 0;
+  color: var(--nk-ink);
+  font: var(--nk-font-title-2);
+}
+
+.nk-error-page-description {
+  max-width: 34ch;
+  margin: var(--nk-space-4) 0 var(--nk-space-6);
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body);
+}
+
+.nk-error-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--nk-space-3);
+}
+
+@media (max-width: 480px) {
+  .nk-error-page-panel { padding: var(--nk-space-6); }
+  .nk-error-page-actions { width: 100%; }
+  .nk-error-page-actions .nk-button { width: 100%; }
+}

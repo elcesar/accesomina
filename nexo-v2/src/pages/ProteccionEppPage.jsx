@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconPackage, IconPlus, IconRefresh, IconSearch, IconShield, IconUsers, IconX } from '@tabler/icons-react'
@@ -8,7 +9,7 @@ import { workerSegment } from '../services/worker-segments.js'
 import '../styles/proteccion-epp.css'
 
 const asRows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
-const today = () => new Date().toISOString().split('T')[0]
+const today = () => localDate()
 
 function initials(nombre) {
   if (!nombre) return '?'

@@ -247,10 +247,12 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
     const normalized=normalizeTenantState(writesOpportunities?canonicalizeOpportunityState(proposed):proposed);
     let clean;
     try {
-      clean=validateTenantState(normalized);
-    } catch(error) {
-      if(!validateAppendChanges(current,normalized,requestedKeys))throw error;
-      clean=sanitizeJson(normalized);
+      clean = validateTenantState(normalized, { previousState: current });
+    } catch (error) {
+      // Legacy data can contain stale links from before modular state validation.
+      // Allow append-only creation only after validating the new records and their direct links.
+      if (!validateAppendChanges(current, normalized, requestedKeys)) throw error;
+      clean = sanitizeJson(normalized);
     }
     enforceStateScope(
       req.auth.role,

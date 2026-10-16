@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBriefcase, IconChevronDown, IconChevronUp, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -6,7 +7,7 @@ import '../styles/prospectos.css'
 import { opportunityRows, opportunityFields } from '../services/opportunity-collections.js'
 
 const rows=value=>Array.isArray(value)?value:[]
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>localDate()
 const newId=prefix=>globalThis.crypto?.randomUUID?.()||`${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
 const STAGES=[['prospecto','Nuevo lead'],['contactada','Contactado'],['reunion','Reunión agendada'],['levantamiento','Levantamiento'],['propuesta','Propuesta enviada'],['negociacion','Negociación'],['ganada','Ganada'],['perdida','Perdida'],['pausa','En pausa']]
 const TYPES=[['nuevo_cliente','Nuevo cliente'],['nuevo_contrato','Nuevo contrato'],['nuevo_servicio','Nuevo proyecto / servicio']]
