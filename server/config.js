@@ -11,6 +11,7 @@ export const config = Object.freeze({
   commit: (process.env.GIT_SHA || 'unknown').slice(0, 7),
   port: Number(process.env.PORT || 8088),
   origin: (process.env.APP_ORIGIN || 'http://localhost:8088').replace(/\/$/, ''),
+  canonicalRedirectHosts: (process.env.CANONICAL_REDIRECT_HOSTS || 'nexoklar.cl,www.nexoklar.cl,www.nexoklar.com').split(',').map(value => value.trim().toLowerCase()).filter(Boolean),
   databaseUrl: process.env.DATABASE_URL,
   sessionTtlHours: Math.max(1, Number(process.env.SESSION_TTL_HOURS || 8)),
   jobPollSeconds: Math.max(15, Number(process.env.JOB_POLL_SECONDS || 60)),
