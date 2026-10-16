@@ -6,7 +6,7 @@ import { loginSchema, registerSchema } from '../validation.js';
 import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotpSecret, hashPassword, hashRecoveryCode, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256, timingSafeEqualString, validatePassword, verifyPassword, verifyTotp } from '../security.js';
 import { appendAudit } from '../audit.js';
 import { authenticate, clearSessionCookie, requireCsrf, setSessionCookie } from '../middleware.js';
-import { createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation } from '../password-reset.js';
+import { createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation, recordPasswordResetDelivery, validatePasswordResetRequest } from '../password-reset.js';
 
 export const authRouter = Router();
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
@@ -83,8 +83,9 @@ authRouter.post('/login', limiter, async (req, res) => {
 
 authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   const startedAt = Date.now();
-  const email = normalizeEmail(req.body?.email);
-  const rutKey = normalizeRut(req.body?.rut);
+  const input = validatePasswordResetRequest(req.body);
+  if (input.error) return res.status(400).json({ error: input.error, message: input.message });
+  const { email, rutKey } = input;
   const generic = { message: 'Si los datos corresponden a una cuenta activa, recibirás un enlace para restablecer tu contraseña.' };
   const reply = async extra => {
     const wait = Math.max(0, 300 - (Date.now() - startedAt));
@@ -92,7 +93,6 @@ authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
     return res.json({ ...generic, ...(extra || {}) });
   };
 
-  if (!email || !rutKey) return reply();
   const tenant = (await query("SELECT id,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1", [rutKey])).rows[0];
   if (!tenant || tenant.status !== 'active') return reply();
 
@@ -104,6 +104,7 @@ authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   const request = await createPasswordReset({ tenantId: tenant.id, user, ip: clientIp(req) });
   const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url })
     .catch(() => ({ delivered: false, reason: 'DELIVERY_FAILED' }));
+  await recordPasswordResetDelivery({ tenantId: tenant.id, user, delivery }).catch(() => {});
 
   if (config.env !== 'production' && !delivery.delivered) return reply({ previewUrl: request.url });
   return reply();

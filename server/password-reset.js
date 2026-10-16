@@ -2,9 +2,30 @@ import nodemailer from 'nodemailer';
 import { config } from './config.js';
 import { withTenant } from './db.js';
 import { appendAudit } from './audit.js';
-import { randomToken, sha256 } from './security.js';
+import { isValidRut, normalizeEmail, normalizeRut, randomToken, sha256 } from './security.js';
+import { isValidEmail } from './validation.js';
 
 const resetUrl = (tenantId, token) => `${config.origin}/restablecer-contrasena?tenant=${encodeURIComponent(tenantId)}&token=${encodeURIComponent(token)}`;
+
+export function validatePasswordResetRequest(input = {}) {
+  const rut = String(input?.rut || '').trim();
+  const email = normalizeEmail(input?.email);
+  if (!isValidRut(rut)) {
+    return { error: 'INVALID_COMPANY_RUT', message: 'El RUT de la empresa no es válido.' };
+  }
+  if (!isValidEmail(email)) {
+    return { error: 'INVALID_EMAIL', message: 'Ingresa un correo electrónico válido.' };
+  }
+  return { rutKey: normalizeRut(rut), email };
+}
+
+export function passwordResetSmtpReadiness(smtp = config.smtp) {
+  const missing = [];
+  if (!String(smtp?.host || '').trim()) missing.push('SMTP_HOST');
+  if (!Number.isInteger(Number(smtp?.port)) || Number(smtp.port) < 1 || Number(smtp.port) > 65_535) missing.push('SMTP_PORT');
+  if (!String(smtp?.from || '').trim()) missing.push('EMAIL_FROM');
+  return { configured: missing.length === 0, missing };
+}
 
 export async function createPasswordReset({ tenantId, user, requestedBy = null, ip = '', reason = 'self_service' }) {
   const token = randomToken(32);
@@ -33,7 +54,7 @@ export async function createPasswordReset({ tenantId, user, requestedBy = null, 
 }
 
 function transport() {
-  if (!config.smtp.host) return null;
+  if (!passwordResetSmtpReadiness().configured) return null;
   return nodemailer.createTransport({
     host: config.smtp.host,
     port: Number(config.smtp.port || 587),
@@ -58,6 +79,21 @@ export async function deliverPasswordReset({ email, fullName, url }) {
     html: `<p>Hola ${safeName},</p><p>Solicitaste restablecer tu contraseña de Nexo Klar.</p><p><a href="${url}">Restablecer contraseña</a></p><p>El enlace vence en 30 minutos y solo puede utilizarse una vez. Si no realizaste esta solicitud, ignora este mensaje.</p>`,
   });
   return { delivered: true };
+}
+
+export async function recordPasswordResetDelivery({ tenantId, user, delivery }) {
+  const delivered = Boolean(delivery?.delivered);
+  const reason = delivered ? null : String(delivery?.reason || 'DELIVERY_FAILED').slice(0, 80);
+  await withTenant(tenantId, async client => {
+    await appendAudit(client, {
+      tenantId,
+      userId: user.id,
+      entityType: 'user',
+      entityId: user.id,
+      action: delivered ? 'user.password_reset_delivery.sent' : 'user.password_reset_delivery.failed',
+      newValue: { delivered, reason },
+    });
+  });
 }
 
 export async function deliverPasswordResetConfirmation({ email, fullName }) {
