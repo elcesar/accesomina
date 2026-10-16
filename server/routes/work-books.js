@@ -7,12 +7,13 @@ import { allowRoles } from '../middleware.js';
 import { appendAudit } from '../audit.js';
 import { sanitizeJson } from '../validation.js';
 import { canTransitionWorkBookEntry, workBookFolio } from '../work-book.js';
-import { tenantIntegration } from './settings.js';
+import { tenantIntegration, tenantOperationalTimeZone } from './settings.js';
 
 export const workBooksRouter = Router();
 const editors = allowRoles('domian_admin', 'client_admin', 'rrhh', 'prevencion', 'acreditacion');
 const text = (min, max) => z.string().trim().min(min).max(max);
 const entryStates = ['borrador', 'pendiente_firma', 'observado', 'firmado', 'cerrado'];
+const operationalDateFor = (instant, timeZone) => { const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(new Date(instant)); const value = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value])); return `${value.year}-${value.month}-${value.day}`; };
 const evidenceSchema = z.array(z.object({
   objectId: z.string().uuid().optional(),
   name: text(1, 260),
@@ -29,6 +30,7 @@ const entrySchema = z.object({
   bookTitle: text(3, 240),
   entryType: z.enum(['instruccion', 'consulta', 'respuesta', 'avance', 'incidente', 'acuerdo', 'observacion', 'recepcion', 'otro']),
   occurredAt: z.string().datetime(),
+  operationalTimeZone: z.string().trim().max(64).optional(),
   subject: text(3, 240),
   body: text(3, 12000),
   responsible: z.string().trim().max(200).default(''),
@@ -305,9 +307,12 @@ workBooksRouter.post('/entries/:id/signature-requests', editors, async (req, res
 
 workBooksRouter.post('/entries', editors, async (req, res) => {
   const body = entrySchema.parse(req.body);
+  // The tenant setting, not the device value, is authoritative for operational dates.
+  const operationalTimeZone = await tenantOperationalTimeZone(req.auth.tenantId);
+  const operationalDay = operationalDateFor(body.occurredAt, operationalTimeZone);
   const row = await withTenant(req.auth.tenantId, async client => {
     validateReferences(await tenantRefs(client, req.auth.tenantId), body);
-    const year = new Date(body.occurredAt).getUTCFullYear();
+    const year = Number(operationalDay.slice(0, 4));
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`work-book:${req.auth.tenantId}:${year}`]);
     let book = (await client.query(
       `SELECT * FROM work_books WHERE tenant_id=$1 AND mine_ref=$2 AND COALESCE(contract_ref,'')=$3
@@ -322,7 +327,7 @@ workBooksRouter.post('/entries', editors, async (req, res) => {
       book = (await client.query(
         `INSERT INTO work_books(tenant_id,folio,mine_ref,contract_ref,project_ref,book_type,title,opened_at,created_by)
          VALUES($1,$2,$3,NULLIF($4,''),$5,$6,$7,$8,$9) RETURNING *`,
-        [req.auth.tenantId, workBookFolio(year, sequence), body.mineRef, body.contractRef, body.projectRef, body.bookType, body.bookTitle, body.occurredAt.slice(0, 10), req.auth.userId]
+        [req.auth.tenantId, workBookFolio(year, sequence), body.mineRef, body.contractRef, body.projectRef, body.bookType, body.bookTitle, operationalDay, req.auth.userId]
       )).rows[0];
     }
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`work-book-entry:${book.id}`]);
@@ -332,16 +337,16 @@ workBooksRouter.post('/entries', editors, async (req, res) => {
     )).rows[0].sequence);
     const signatureState = body.status === 'pendiente_firma' ? 'pendiente' : body.status === 'firmado' ? 'firmado' : 'sin_firma';
     const entry = (await client.query(
-      `INSERT INTO work_book_entries(tenant_id,book_id,entry_number,entry_type,occurred_at,subject,body,responsible,due_at,status,signature_state,evidence_files,created_by)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13) RETURNING *`,
-      [req.auth.tenantId, book.id, entryNumber, body.entryType, body.occurredAt, body.subject, body.body, body.responsible, body.dueAt || null, body.status, signatureState, JSON.stringify(sanitizeJson(body.evidenceFiles)), req.auth.userId]
+      `INSERT INTO work_book_entries(tenant_id,book_id,entry_number,entry_type,occurred_at,operational_time_zone,subject,body,responsible,due_at,status,signature_state,evidence_files,created_by)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14) RETURNING *`,
+      [req.auth.tenantId, book.id, entryNumber, body.entryType, body.occurredAt, operationalTimeZone, body.subject, body.body, body.responsible, body.dueAt || null, body.status, signatureState, JSON.stringify(sanitizeJson(body.evidenceFiles)), req.auth.userId]
     )).rows[0];
     await client.query(
       `INSERT INTO work_book_entry_history(tenant_id,entry_id,action,reason,new_value,changed_by)
        VALUES($1,$2,'creada','Creación de anotación',$3::jsonb,$4)`,
       [req.auth.tenantId, entry.id, JSON.stringify(sanitizeJson(entry)), req.auth.userId]
     );
-    await appendAudit(client, { tenantId: req.auth.tenantId, userId: req.auth.userId, entityType: 'work_book_entry', entityId: entry.id, action: 'work_book.entry.created', newValue: { folio: book.folio, entryNumber, status: body.status, projectRef: body.projectRef } });
+    await appendAudit(client, { tenantId: req.auth.tenantId, userId: req.auth.userId, entityType: 'work_book_entry', entityId: entry.id, action: 'work_book.entry.created', newValue: { folio: book.folio, entryNumber, status: body.status, projectRef: body.projectRef, operationalTimeZone } });
     return { ...entry, folio: book.folio, mine_ref: book.mine_ref, contract_ref: book.contract_ref, project_ref: book.project_ref, book_type: book.book_type, book_title: book.title };
   });
   res.status(201).json(row);

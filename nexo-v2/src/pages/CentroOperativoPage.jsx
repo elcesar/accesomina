@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconAlertTriangle, IconBook2, IconCheck, IconChevronRight, IconClipboardCheck, IconHistory, IconRefresh, IconShieldCheck } from '@tabler/icons-react'
@@ -6,7 +7,7 @@ import { mergeCollections } from '../services/report-collections.js'
 import '../styles/control-center.css'
 
 const rows=value=>Array.isArray(value)?value:[]
-const today=()=>new Date().toISOString().slice(0,10)
+const today=()=>localDate()
 const text=value=>String(value||'').trim()
 const norm=value=>String(value||'').trim().toLowerCase()
 const ACTIVE_STAGES=new Set(['asignado','habilitado','contrato_firmado','acreditacion_enviada'])

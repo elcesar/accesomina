@@ -1,7 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { api, setCsrf } from './api.js'
+import { setOperationalTimeZone } from './calendar-date.js'
 
 const AuthContext = createContext(null)
+
+async function configureOperationalCalendar(session) {
+  setOperationalTimeZone(session?.tenant?.operationalTimeZone || session?.tenant?.timeZone)
+  try {
+    const data = await api.get('/settings')
+    setOperationalTimeZone(data?.settings?.catalogs?.operationalTimeZone)
+  } catch {}
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -12,6 +21,7 @@ export function AuthProvider({ children }) {
       const data = await api.get('/auth/me')
       setCsrf(data.csrfToken)
       setSession(data)
+      await configureOperationalCalendar(data)
       return data
     } catch {
       setSession(null)
@@ -27,6 +37,7 @@ export function AuthProvider({ children }) {
     const data = await api.post('/auth/login', { rut, email, password, mfaCode })
     setCsrf(data.csrfToken)
     setSession(data)
+    await configureOperationalCalendar(data)
     return data
   }
 

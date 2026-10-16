@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconArrowLeft, IconBed, IconCheck, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
@@ -14,7 +15,7 @@ const assignmentEditors = new Set(['domian_admin', 'client_admin', 'rrhh'])
 const roomPageSize = 10
 const emptyHotel = () => ({ nombre: '', ciudad: '', direccion: '', contacto: '', telefono: '', minaIds: [], rooms: [] })
 const emptyStay = () => ({ hotelId: '', mantId: '', trabId: '', pieza: '', turno: 'día', checkin: '', checkout: '', status: 'confirmada', observacion: '' })
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDate()
 const statusLabel = value => ({ confirmada: 'Confirmada', activa: 'Activa', finalizada: 'Finalizada', cancelada: 'Cancelada', reasignada: 'Reasignada' }[normalize(value)] || value || 'Confirmada')
 const stayState = stay => {
   const current = today()

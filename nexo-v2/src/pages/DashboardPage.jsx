@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconAlertTriangle, IconArrowRight, IconClipboardCheck, IconRefresh, IconShield, IconUsers } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
@@ -58,7 +59,7 @@ export default function DashboardPage() {
     const assignments = rows(state.asignaciones)
     const shifts = rows(state.turnos)
     const orders = rows(state.mantenciones).filter(item => !['cerrada', 'cancelada'].includes(String(item.estado || '').toLowerCase()))
-    const today = new Date().toISOString().slice(0, 10)
+    const today = localDate()
 
     const restrictedIds = new Set(restrictions.map(item => item.workerId || item.trabId || item.personaId).filter(Boolean).map(String))
     people.forEach(person => { if (isRestricted(person)) restrictedIds.add(String(person.id)) })

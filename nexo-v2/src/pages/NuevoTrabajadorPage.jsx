@@ -1,3 +1,4 @@
+import { localDate } from '../services/calendar-date.js'
 import { cloneElement, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -382,7 +383,7 @@ export default function NuevoTrabajadorPage() {
         disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
         epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
-        bloqueado: false, mineras: [], workerItems: [], creado: new Date().toISOString().split('T')[0],
+        bloqueado: false, mineras: [], workerItems: [], creado: localDate(),
       }
 
       const changes = { trabajadores: { version: versionT, data: [...trabajadores, nuevo] } }
