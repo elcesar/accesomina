@@ -2,6 +2,9 @@ const BASE = '/api'
 let csrfToken = null
 
 const ERROR_MESSAGES = {
+  INVALID_PRIMARY_COLOR: 'Selecciona un color principal válido.',
+  INVALID_LOGO_FILE: 'Selecciona un logo PNG o JPG disponible de hasta 2 MB.',
+  INTEGRATION_NOT_AVAILABLE: 'Esta integración aún no está disponible. No es posible configurarla.',
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
   ACCOUNT_DISABLED: 'Tu cuenta o empresa no está habilitada para ingresar.',

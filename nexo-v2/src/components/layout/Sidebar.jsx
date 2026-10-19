@@ -134,6 +134,7 @@ const NEXO_ADMIN_NAV = {
 }
 
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
+  if(to==='/app/libro-obra')return <span className="nk-side-link nk-feature-unavailable" aria-disabled="true"><Icon size={15}/><span>{label}<small> · Próximamente</small></span></span>
   return (
     <NavLink
       to={to}
