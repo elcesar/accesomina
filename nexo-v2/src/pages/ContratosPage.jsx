@@ -1,3 +1,4 @@
+import { formatChileCount } from '../services/chile-format.js'
 import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
