@@ -1,3 +1,5 @@
+import { includesSearch } from '../services/search.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBuildingWarehouse, IconMapPin, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -36,7 +38,7 @@ export default function BodegasPage() {
     return warehouses.filter(warehouse => {
       const ownLocations = locations.filter(location => String(location.warehouseId || location.bodegaId) === String(warehouse.id))
       return [warehouse.name, warehouse.type, warehouse.zone, warehouse.location, warehouse.responsible, ...ownLocations.flatMap(location => [location.name, location.code, location.zone])]
-        .some(value => String(value || '').toLowerCase().includes(term))
+        .some(value => includesSearch(String(value || ''), term))
     })
   }, [warehouses, locations, query])
 
@@ -91,12 +93,12 @@ export default function BodegasPage() {
     <div className="nk-warehouses-page">
       <header className="nk-page-header nk-warehouses-header">
         <div className="nk-page-heading">
-          <h1 className="nk-page-title">Bodegas y almacenes</h1>
+          <h1 className="nk-page-title">Bodegas</h1>
           <p className="nk-page-description">Administra bodegas, ubicaciones internas, responsables y existencias distribuidas por ubicación.</p>
         </div>
         <div className="nk-page-header-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button>
-          <button className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton>
+          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</ActionButton>
           <button className="nk-button nk-button-primary" onClick={openWarehouse}><IconPlus size={15}/> Crear bodega</button>
         </div>
       </header>
@@ -104,7 +106,7 @@ export default function BodegasPage() {
       {error && <div className="nk-warehouses-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
       <section className="nk-card nk-warehouses-toolbar">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar registros" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
       </section>
 
       <section className="nk-warehouses-kpis">
@@ -119,8 +121,8 @@ export default function BodegasPage() {
           <div><h2>Distribución física</h2><p>Cada bodega mantiene su saldo y puede subdividirse en ubicaciones internas.</p></div>
         </div>
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-warehouses-table">
-            <thead><tr><th>Bodega</th><th>Tipo</th><th>Ubicación</th><th>Responsable</th><th>Ubicaciones internas</th><th>Existencias</th></tr></thead>
+          <table className="nk-table nk-warehouses-table"><caption className="nk-sr-only">Bodegas · tabla 1</caption>
+            <thead><tr><th scope="col">Bodega</th><th scope="col">Tipo</th><th scope="col">Ubicación</th><th scope="col">Responsable</th><th scope="col">Ubicaciones internas</th><th scope="col">Existencias</th></tr></thead>
             <tbody>{loading ? <tr><td colSpan="6">Cargando bodegas…</td></tr> : filtered.length ? filtered.map(warehouse => {
               const names = locationNames(warehouse.id)
               return <tr key={warehouse.id}>
@@ -150,7 +152,7 @@ export default function BodegasPage() {
           </>}
           <label><span>Responsable</span><input className="nk-input" value={form.responsible || ''} onChange={e => setForm({...form,responsible:e.target.value})}/></label>
         </div>
-        <div className="nk-warehouses-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor(null)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button></div>
+        <div className="nk-warehouses-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor(null)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</ActionButton></div>
       </section>}
     </div>
   )

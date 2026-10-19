@@ -1,7 +1,23 @@
 const BASE = '/api'
 let csrfToken = null
 
+function publishEvent(name, detail) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name,{detail}))
+}
+function isMutation(path,method){return !['GET','HEAD'].includes(method) && !path.startsWith('/auth/')}
+function loadFailure(path,method,status){
+  if(method==='GET' && path.split('?')[0]==='/state' && status>=500)publishEvent('nexo:load-failed',{status})
+}
+
+
 const ERROR_MESSAGES = {
+  IMPORT_VALIDATION_FAILED: 'El archivo contiene errores. Revisa el informe de filas y columnas antes de volver a importar.',
+  EMPTY_CSV: 'El archivo no contiene registros. Completa al menos una fila debajo de las cabeceras.',
+  INVALID_CSV: 'No pudimos leer el archivo CSV. Revisa las columnas y las comillas o descarga una plantilla nueva.',
+  INVALID_PRIMARY_COLOR: 'Selecciona un color principal válido.',
+  INVALID_LOGO_FILE: 'Selecciona un logo PNG o JPG disponible de hasta 2 MB.',
+  INTEGRATION_NOT_AVAILABLE: 'Esta integración aún no está disponible. No es posible configurarla.',
+  RECORD_VERSION_CONFLICT: 'Esta persona cambió mientras la editabas. Recarga su ficha y revisa los cambios antes de guardar.',
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
   ACCOUNT_DISABLED: 'Tu cuenta o empresa no está habilitada para ingresar.',
@@ -153,15 +169,20 @@ async function request(path, options = {}) {
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const method=options.method||'GET'
+  if(isMutation(path,method))publishEvent('nexo:mutation-started')
+  let res
+  try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
     ...options,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+  }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
+  if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
-  if (res.status === 204) return null
-  return res.json()
+  const result = res.status===204 ? null : await res.json()
+  if(isMutation(path,method))publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  return result
 }
 
 async function upload(path, file, fields = {}) {

@@ -5,7 +5,7 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
   const generatedId = useId()
   const inputId = id || generatedId
   const hintId = `${inputId}-rut-hint`
-  const describedBy = [props['aria-describedby'], hintId].filter(Boolean).join(' ')
+  const describedBy = [props['aria-describedby'], !props['aria-invalid'] ? hintId : ''].filter(Boolean).join(' ')
 
   return <>
     <input
@@ -18,7 +18,7 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       disabled={disabled}
       autoComplete="off"
       inputMode="text"
-      placeholder={props.placeholder || '13.848.379-7'}
+      placeholder={props.placeholder || 'Ej.: XX.XXX.XXX-X'}
       aria-invalid={props['aria-invalid']}
       aria-describedby={describedBy}
       onChange={event => onChange(formatRut(event.target.value))}
@@ -27,6 +27,6 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
         props.onBlur?.(event)
       }}
     />
-    <p id={hintId} className="nk-field-help">Formato: 12.345.678-9.</p>
+    {!props['aria-invalid'] && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
   </>
 }

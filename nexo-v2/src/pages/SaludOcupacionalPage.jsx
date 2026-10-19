@@ -1,3 +1,6 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { includesSearch } from '../services/search.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -148,7 +151,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
           <div className="nk-compliance-dialog-grid">
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label">Persona</label>
-              <select
+              <select aria-label="Persona"
                 className="nk-select"
                 required
                 value={form.workerId}
@@ -163,7 +166,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label">Protocolo / seguimiento</label>
-              <input
+              <input aria-label="Protocolo / seguimiento"
                 className="nk-input"
                 required
                 value={form.protocolo}
@@ -174,7 +177,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Riesgo / exposición</label>
-              <input
+              <input aria-label="Riesgo / exposición"
                 className="nk-input"
                 value={form.riesgo}
                 onChange={event => setForm(current => ({ ...current, riesgo: event.target.value }))}
@@ -183,7 +186,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Estado</label>
-              <select
+              <select aria-label="Estado"
                 className="nk-select"
                 value={form.estado}
                 onChange={event => setForm(current => ({ ...current, estado: event.target.value }))}
@@ -196,7 +199,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Responsable</label>
-              <input
+              <input aria-label="Responsable"
                 className="nk-input"
                 value={form.responsable}
                 onChange={event => setForm(current => ({ ...current, responsable: event.target.value }))}
@@ -205,7 +208,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Observaciones</label>
-              <input
+              <input aria-label="Observaciones"
                 className="nk-input"
                 value={form.notes}
                 onChange={event => setForm(current => ({ ...current, notes: event.target.value }))}
@@ -231,9 +234,9 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
         <footer className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
+          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
             {saving ? 'Guardando…' : 'Guardar protocolo'}
-          </button>
+          </ActionButton>
         </footer>
       </form>
     </div>
@@ -290,7 +293,7 @@ export default function SaludOcupacionalPage() {
         item.riesgo,
         item.responsable,
         item.fileName,
-      ].some(value => String(value || '').toLowerCase().includes(term))
+      ].some(value => includesSearch(String(value || ''), term))
       return matchesQuery && (statusFilter === 'todos' || status.key === statusFilter)
     })
   }, [records, query, statusFilter])
@@ -312,12 +315,12 @@ export default function SaludOcupacionalPage() {
           <p>Gestiona protocolos y seguimientos asociados a exposición, riesgo y cargo, sin mezclar esta vista con los exámenes de aptitud.</p>
         </div>
         <div className="nk-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
             <IconRefresh size={15} /> Actualizar
-          </button>
-          <button className="nk-button nk-button-primary" onClick={() => setCreating(true)} disabled={!workers.length}>
+          </ActionButton>
+          <ActionButton disabledReason="Registra al menos una persona antes de continuar." className="nk-button nk-button-primary" onClick={() => setCreating(true)} disabled={!workers.length}>
             <IconPlus size={15} /> Gestionar protocolo
-          </button>
+          </ActionButton>
         </div>
       </header>
 
@@ -334,11 +337,11 @@ export default function SaludOcupacionalPage() {
         <div className="nk-compliance-toolbar">
           <label className="nk-search">
             <IconSearch size={16} />
-            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
+            <input aria-label="Buscar registros" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
           </label>
           <div className="nk-field">
             <label className="nk-label">Estado</label>
-            <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+            <select aria-label="Estado" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
               <option value="todos">Todos</option>
               <option value="warn">Requiere revisión</option>
               <option value="ok">Cerrado</option>
@@ -355,21 +358,18 @@ export default function SaludOcupacionalPage() {
             <p className="nk-empty-title">Cargando salud ocupacional…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="nk-empty nk-compliance-empty">
-            <IconHeartRateMonitor size={30} />
-            <p className="nk-empty-title">Sin registros para mostrar</p>
-          </div>
+          <EmptyState objectLabel="registros" filtered={query !== "" || statusFilter !== "todos"} />
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
+            <table className="nk-table"><caption className="nk-sr-only">Salud ocupacional · tabla 1</caption>
               <thead>
                 <tr>
-                  <th>Persona</th>
-                  <th>Protocolo</th>
-                  <th>Riesgo / exposición</th>
-                  <th>Responsable</th>
-                  <th>Estado</th>
-                  <th>Evidencia</th>
+                  <th scope="col">Persona</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Riesgo / exposición</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Evidencia</th>
                 </tr>
               </thead>
               <tbody>

@@ -8,13 +8,13 @@ test('CV does not require an expiry date', () => {
 })
 
 test('identity and driver documents require both sides and an expiry date', () => {
-  const incomplete = { type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front' }], vence: '' }
+  const incomplete = { type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front', availability:'available' }], vence: '' }
   assert.equal(documentRule(incomplete.type, incomplete.name).twoSided, true)
   assert.equal(hasRequiredEvidence(incomplete), false)
   assert.match(documentEvidenceMessage(incomplete), /reverso/)
   assert.match(documentEvidenceMessage(incomplete), /fecha de vencimiento/)
 
-  const complete = { ...incomplete, vence: '2030-01-01', files: [...incomplete.files, { side: 'back', fileId: 'back' }] }
+  const complete = { ...incomplete, vence: '2030-01-01', files: [...incomplete.files, { side: 'back', fileId: 'back', availability:'available' }] }
   assert.equal(hasRequiredEvidence(complete), true)
 })
 

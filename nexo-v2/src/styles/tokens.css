@@ -112,8 +112,8 @@
   --nk-elev-4: 0 20px 48px rgba(20, 26, 32, 0.16);
 
   /* Type scale */
-  --nk-text-xs: 11px;
-  --nk-text-sm: 12px;
+  --nk-text-xs: 13px;
+  --nk-text-sm: 13px;
   --nk-text-base: 13px;
   --nk-text-md: 14px;
   --nk-text-lg: 16px;
@@ -141,9 +141,9 @@
   --nk-font-body-lg: 400 16px/1.55 var(--nk-family-ui);
   --nk-font-body: 400 14px/1.55 var(--nk-family-ui);
   --nk-font-body-sm: 400 13px/1.5 var(--nk-family-ui);
-  --nk-font-label: 600 12px/1.35 var(--nk-family-ui);
-  --nk-font-caption: 400 12px/1.45 var(--nk-family-ui);
-  --nk-font-overline: 700 11px/1.2 var(--nk-family-ui);
+  --nk-font-label: 600 13px/1.35 var(--nk-family-ui);
+  --nk-font-caption: 400 13px/1.45 var(--nk-family-ui);
+  --nk-font-overline: 700 13px/1.2 var(--nk-family-ui);
   --nk-font-mono: 400 13px/1.5 var(--nk-family-mono);
 
   /* Motion */

@@ -21,18 +21,9 @@ test('a calibration expiring today remains current through the operational day',
   await expect(page.locator('tbody')).toContainText('Calibración vigente')
   await expect(page.locator('tbody')).not.toContainText('Calibración vencida')
 })
-test('the work-book form displays local time while submission preserves the UTC instant', async ({ page }) => {
-  let submitted
-  await page.route('**/api/work-books/entries',route=>{
-    if(route.request().method()==='POST')submitted=route.request().postDataJSON()
-    return route.fulfill({contentType:'application/json',body:JSON.stringify(route.request().method()==='POST'?{id:'qa-entry'}:[])})
-  })
-  await page.goto('/app/libro-obra');await page.getByRole('button',{name:'Nueva anotación'}).click()
-  const form=page.locator('.nk-book-modal form')
-  await expect(form.locator('input[type=datetime-local]')).toHaveValue('2026-10-13T21:36')
-  await form.locator('select').nth(0).selectOption('qa-client');await form.locator('select').nth(2).selectOption('qa-order')
-  await form.locator('input:not([type])').nth(0).fill('Anotación QA');await form.locator('textarea').fill('Detalle ficticio QA')
-  await form.getByRole('button',{name:'Guardar anotación'}).click()
-  await expect.poll(()=>submitted?.occurredAt).toBe('2026-10-14T00:36:00.000Z')
-  await expect.poll(()=>submitted?.operationalTimeZone).toBe('America/Santiago')
+test('D-068 keeps the work-book editor unavailable without removing calendar conversion coverage', async ({ page }) => {
+ await page.goto('/app/libro-obra')
+ await expect(page.getByRole('heading',{name:'Libro de obra',exact:true})).toBeVisible()
+ await expect(page.getByText('Este módulo aún no está disponible.',{exact:false})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Nueva anotación'})).toHaveCount(0)
 })

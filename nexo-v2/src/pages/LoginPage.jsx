@@ -26,6 +26,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [rutError, setRutError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
   const [emailValidationRequested, setEmailValidationRequested] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
@@ -49,8 +51,15 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!mfaRequired) {
+      const rutMessage = isValidRut(form.rut) ? '' : 'Ingresa un RUT de empresa válido.'
+      const passwordMessage = form.password ? '' : 'Ingresa tu contraseña.'
+      setRutError(rutMessage)
+      setPasswordError(passwordMessage)
       setEmailValidationRequested(true)
-      if (validateEmail(form.email, { required: true })) return
+      if (rutMessage || passwordMessage || validateEmail(form.email, { required: true })) {
+        document.getElementById(rutMessage ? 'login-rut' : validateEmail(form.email, { required: true }) ? 'login-email' : 'login-password')?.focus()
+        return
+      }
     }
     if (!isValidRut(form.rut)) {
       setError('El RUT de la empresa no es válido. Revisa sus números y dígito verificador.')
@@ -148,19 +157,23 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="nk-login-form">
+          <form noValidate onSubmit={handleSubmit} className="nk-login-form">
             {!mfaRequired ? (
               <>
                 <Field label="RUT empresa" htmlFor="login-rut" required>
                   <RutInput
                     id="login-rut"
                     name="rut"
+                    aria-invalid={Boolean(rutError)}
+                    aria-describedby={rutError ? 'login-rut-error' : undefined}
+                    onBlur={() => setRutError(isValidRut(form.rut) ? '' : 'Ingresa un RUT de empresa válido.')}
                     value={form.rut}
                     onChange={value => { setForm(current => ({ ...current, rut: value })); setError(null) }}
-                    placeholder="12.345.678-9"
+                    placeholder="Ej.: XX.XXX.XXX-X"
                     required
                     autoComplete="organization"
                   />
+                  {rutError && <p id="login-rut-error" role="alert" className="nk-field-error">{rutError}</p>}
                 </Field>
 
                 <Field label="Correo" htmlFor="login-email" required>
@@ -182,6 +195,8 @@ export default function LoginPage() {
                       className="nk-input"
                       id="login-password"
                       name="password"
+                      aria-invalid={Boolean(passwordError)}
+                      aria-describedby={passwordError ? 'login-password-error' : undefined}
                       type={showPassword ? 'text' : 'password'}
                       value={form.password}
                       onChange={handleChange}
@@ -198,6 +213,7 @@ export default function LoginPage() {
                       {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                     </button>
                   </div>
+                  {passwordError && <p id="login-password-error" role="alert" className="nk-field-error">{passwordError}</p>}
                 </Field>
 
                 <div className="nk-login-recovery-link">
@@ -205,8 +221,9 @@ export default function LoginPage() {
                 </div>
               </>
             ) : (
-              <Field label="Código de autenticación">
+              <Field label="Código de autenticación" htmlFor="login-mfa" required>
                 <input
+                  id="login-mfa"
                   className="nk-input nk-login-mfa-input"
                   value={mfaCode}
                   onChange={e => setMfaCode(e.target.value)}

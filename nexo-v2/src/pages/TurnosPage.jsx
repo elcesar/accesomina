@@ -1,3 +1,6 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { formatChileDate } from '../services/chile-format.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -88,50 +91,50 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} onChange={e => set('trabId', e.target.value)}>
+            <select aria-label="Persona" className="nk-select" value={form.trabId} onChange={e => set('trabId', e.target.value)}>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} onChange={e => set('mantId', e.target.value)}>
+            <select aria-label="Proyecto / servicio" className="nk-select" value={form.mantId} onChange={e => set('mantId', e.target.value)}>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </Field>
           <Field label="Régimen">
-            <select className="nk-select" value={form.regimen} onChange={e => set('regimen', e.target.value)}>
+            <select aria-label="Régimen" className="nk-select" value={form.regimen} onChange={e => set('regimen', e.target.value)}>
               {REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </Field>
           <Field label="Turno">
-            <select className="nk-select" value={form.turno} onChange={e => set('turno', e.target.value)}>
+            <select aria-label="Turno" className="nk-select" value={form.turno} onChange={e => set('turno', e.target.value)}>
               {TURNOS.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
           <Field label="Fecha">
-            <input className="nk-input" type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+            <input aria-label="Fecha" className="nk-input" type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
           </Field>
           <Field label="Asistencia">
-            <select className="nk-select" value={form.asistencia} onChange={e => set('asistencia', e.target.value)}>
+            <select aria-label="Asistencia" className="nk-select" value={form.asistencia} onChange={e => set('asistencia', e.target.value)}>
               {ASISTENCIAS.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </Field>
           <Field label="Ingreso">
-            <input className="nk-input" type="time" value={form.ingreso} onChange={e => set('ingreso', e.target.value)} />
+            <input aria-label="Ingreso" className="nk-input" type="time" value={form.ingreso} onChange={e => set('ingreso', e.target.value)} />
           </Field>
           <Field label="Salida">
-            <input className="nk-input" type="time" value={form.salida} onChange={e => set('salida', e.target.value)} />
+            <input aria-label="Salida" className="nk-input" type="time" value={form.salida} onChange={e => set('salida', e.target.value)} />
           </Field>
           <Field label="HH reales" wide>
-            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} onChange={e => set('hh', e.target.value)} />
+            <input aria-label="HH reales" className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} onChange={e => set('hh', e.target.value)} />
           </Field>
         </div>
 
         {error && <p className="nk-form-error">{error}</p>}
         <div className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
+          <ActionButton disabledReason="Tu perfil no permite realizar esta acción. Solicita ayuda al administrador de tu empresa." className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
             {saving ? 'Guardando…' : 'Guardar jornada'}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -237,9 +240,9 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason={!trabajadoresProgramables.length ? "Registra una persona habilitada antes de programar una jornada." : "Registra al menos una orden de servicio antes de programar una jornada."} className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
-        </button>
+        </ActionButton>
       </header>
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">
@@ -259,11 +262,11 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
+                <table className="nk-table"><caption className="nk-sr-only">Turnos y asistencia · tabla 1</caption>
+                  <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
-                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><span className="nk-empty-description">No hay proyectos o servicios abiertos para calcular cobertura.</span></div></td></tr>
+                      <tr><EmptyState objectLabel="proyectos o servicios abiertos" filtered={false} actionLabel="Programar turno" onAction={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length} /></tr>
                     ) : cobertura.map(({ m, asigs, present, pending, status }) => {
                       const mina = minas.find(current => current.id === m.minaId)
                       return (
@@ -294,19 +297,19 @@ export default function TurnosPage() {
             </div>
 
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
-              <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{TURNOS.filter(t => t !== 'ambos').map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select aria-label="Todos los clientes" className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select aria-label="Todos los proyectos" className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select aria-label="Todos los regímenes" className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}</select>
+              <select aria-label="Todos los turnos" className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{TURNOS.filter(t => t !== 'ambos').map(t => <option key={t} value={t}>{t}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
+                <table className="nk-table"><caption className="nk-sr-only">Turnos y asistencia · tabla 2</caption>
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
-                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
+                      <tr><EmptyState objectLabel="jornadas registradas Programa una jornada" filtered={false} /></tr>
                     ) : jornadasFiltradas.map(t => (
                       <tr key={t.id}>
                         <td>
@@ -324,7 +327,7 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>

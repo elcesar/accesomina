@@ -17,9 +17,7 @@ import '../../styles/layout/header.css'
 
 const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
 
-const roleLabel = value => String(value || 'usuario')
-  .replaceAll('_', ' ')
-  .replace(/\b\w/g, letter => letter.toUpperCase())
+const roleLabel = value => ({domian_admin:'Administrador Nexo Klar',client_admin:'Administrador de empresa',rrhh:'Recursos humanos',prevencion:'Prevención de riesgos',acreditacion:'Acreditación',consulta:'Consulta'})[value] || 'Usuario'
 
 const activeModuleForPath = pathname => {
   if (pathname.startsWith('/app/trabajadores')) return 'trabajadores'
@@ -40,7 +38,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
   const legalTenantName = session?.tenant?.name || 'Nexo Klar'
   const tenantName = String(branding?.displayName || '').trim() || legalTenantName
-  const tenantLogo = String(branding?.logoUrl || '').trim()
+  const tenantLogo = branding?.logoFileId ? `/api/settings/logo?v=${encodeURIComponent(branding.logoFileId)}` : String(branding?.logoUrl || '').trim()
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
   const activeModule = activeModuleForPath(location.pathname)
   const clientDetailMatch = location.pathname.match(/^\/app\/clientes\/([^/]+)$/)

@@ -1,6 +1,8 @@
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { cloneElement, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
@@ -102,6 +104,7 @@ function Field({ label, required, hint, error, fieldId, children, full = false }
         id: fieldId,
         'aria-invalid': error ? true : undefined,
         'aria-describedby': errorId,
+        ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
     : children
 
@@ -152,28 +155,28 @@ function StepIdentidad({ data, onChange, errors }) {
   return (
     <div className="nk-person-form-grid">
       <Field label="Nombre completo" required full fieldId="worker-name" error={errors.nombre}>
-        <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
+        <FInput aria-label="Nombre completo" autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
       <Field label="RUT" required fieldId="worker-rut" error={errors.rut}>
-        <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
+        <RutInput aria-label="RUT" value={data.rut} onChange={value => onChange('rut', value)} required />
       </Field>
       <Field label="Fecha de nacimiento" fieldId="worker-birth-date" error={errors.nacimiento}>
-        <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
+        <BirthDateInput aria-label="Fecha de nacimiento" value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
       </Field>
       <Field label="Teléfono" fieldId="worker-phone" error={errors.tel}>
-        <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
+        <PhoneInput aria-label="Teléfono" value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
       <Field label="Correo electrónico" fieldId="worker-email" error={errors.email}>
-        <EmailInput autoComplete="email" value={data.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
+        <EmailInput aria-label="Correo electrónico" autoComplete="email" value={data.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
-        <FSelect value={data.region} onChange={updateRegion}>
+        <FSelect aria-label="Región" value={data.region} onChange={updateRegion}>
           <option value="">Seleccionar región</option>
           {regionesChile.map(region => <option key={region} value={region}>{region}</option>)}
         </FSelect>
       </Field>
       <Field label="Comuna" hint={data.region ? 'Selecciona una comuna de la región elegida.' : 'Primero selecciona una región.'}>
-        <FSelect value={data.ciudad} disabled={!data.region} onChange={e => onChange('ciudad', e.target.value)}>
+        <FSelect aria-label="Comuna" value={data.ciudad} disabled={!data.region} onChange={e => onChange('ciudad', e.target.value)}>
           <option value="">Seleccionar comuna</option>
           {data.ciudad && !comunas.includes(data.ciudad) && <option value={data.ciudad}>{data.ciudad}</option>}
           {comunas.map(comuna => <option key={comuna} value={comuna}>{comuna}</option>)}
@@ -201,25 +204,25 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
       </Field>
 
       <Field label="Turno / jornada habitual">
-        <FSelect value={data.regimen} onChange={e => onChange('regimen', e.target.value)}>
+        <FSelect aria-label="Turno / jornada habitual" value={data.regimen} onChange={e => onChange('regimen', e.target.value)}>
           <option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="6x1">6x1</option><option value="turno_especial">Turno especial</option>
         </FSelect>
       </Field>
 
       <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo." fieldId="worker-role" error={errors.cargo}>
-        <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
+        <FInput aria-label="Cargo contractual" value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
       <Field label="Área o función" hint="Responsabilidad general opcional dentro de la empresa.">
-        <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Operaciones, Administración, Ventas o Tecnología" />
+        <FInput aria-label="Área o función" value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Operaciones, Administración, Ventas o Tecnología" />
       </Field>
       <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full fieldId="worker-specialty" error={errors.especialidad}>
-        <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
+        <FSelect aria-label="Especialidad" value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
           <option value="">Seleccionar especialidad</option>
           {ESPECIALIDADES.map(item => <option key={item} value={item}>{item}</option>)}
         </FSelect>
       </Field>
       <Field label="Proyecto / servicio inicial" hint="Opcional. También puedes asignarlo posteriormente desde la ficha de la persona." full>
-        <FSelect value={data.mantId} onChange={e => onChange('mantId', e.target.value)}>
+        <FSelect aria-label="Proyecto / servicio inicial" value={data.mantId} onChange={e => onChange('mantId', e.target.value)}>
           <option value="">Sin asignar por ahora</option>
           {mantenciones.map(item => <option key={item.id} value={item.id}>{item.nombre}</option>)}
         </FSelect>
@@ -232,8 +235,8 @@ function StepSalud({ data, onChange }) {
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Información previsional para control de cumplimiento y acceso a faena. Puedes completarla después desde la ficha de la persona.</p>
-      <Field label="AFP"><FSelect value={data.afp} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
-      <Field label="Previsión de salud"><FSelect value={data.salud} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
+      <Field label="AFP"><FSelect aria-label="AFP" value={data.afp} onChange={e => onChange('afp', e.target.value)}><option value="">Seleccionar AFP</option>{AFP_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
+      <Field label="Previsión de salud"><FSelect aria-label="Previsión de salud" value={data.salud} onChange={e => onChange('salud', e.target.value)}><option value="">Seleccionar previsión de salud</option>{PREVISION_SALUD_CHILE.map(item => <option key={item} value={item}>{item}</option>)}</FSelect></Field>
     </div>
   )
 }
@@ -246,7 +249,7 @@ function StepEPP({ data, onChange }) {
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra tallas de referencia para la entrega de EPP. Deben confirmarse antes de la primera entrega.</p>
-      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}>{key === 'eppCasco' ? <FInput value="Talla única" disabled aria-label="Casco talla única" /> : <FInput value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} />}</Field>)}
+      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}>{key === 'eppCasco' ? <FInput value="Talla única" disabled aria-label="Casco talla única" /> : <FInput aria-label={label} value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} />}</Field>)}
     </div>
   )
 }
@@ -284,6 +287,9 @@ export default function NuevoTrabajadorPage() {
     () => Object.keys(INITIAL).some(key => data[key] !== INITIAL[key]),
     [data],
   )
+
+  const allowNavigation = useRef(false)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => hasUnsavedChanges && !allowNavigation.current && currentLocation.pathname !== nextLocation.pathname)
 
   useEffect(() => {
     const warnBeforeUnload = event => {
@@ -348,7 +354,6 @@ export default function NuevoTrabajadorPage() {
   }
 
   function leaveCreateFlow() {
-    if (hasUnsavedChanges && !window.confirm('Tienes cambios sin guardar. ¿Quieres salir y descartar la información ingresada?')) return
     navigate('/app/trabajadores')
   }
 
@@ -400,6 +405,7 @@ export default function NuevoTrabajadorPage() {
       }
 
       await api.put('/state/modules', { reason: `Alta de persona: ${nuevo.nombre}`, changes })
+      allowNavigation.current = true
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
       setError(personError(cause.code, cause.message))
@@ -418,6 +424,7 @@ export default function NuevoTrabajadorPage() {
 
   return (
     <div className="nk-person-create-page">
+      <ConfirmDialog open={blocker.state === 'blocked'} title="Salir sin guardar" description="Tienes cambios sin guardar. Si sales, se perderá la información de esta persona." confirmLabel="Salir y descartar" cancelLabel="Seguir editando" variant="danger" onConfirm={()=>blocker.proceed?.()} onCancel={()=>blocker.reset?.()} />
       <div className="nk-person-create-breadcrumb">
         <button className="nk-button nk-button-quiet" type="button" onClick={leaveCreateFlow}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
         <span className="nk-person-create-breadcrumb-separator" aria-hidden="true">/</span>
@@ -444,19 +451,19 @@ export default function NuevoTrabajadorPage() {
           )}
 
           <div className="nk-person-create-actions">
-            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
               <IconArrowLeft size={14} strokeWidth={2} />{step === 0 ? 'Cancelar' : 'Anterior'}
-            </button>
+            </ActionButton>
 
             {step < STEPS.length - 1 ? (
-              <button className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
                 Siguiente<IconArrowRight size={14} strokeWidth={2} />
-              </button>
+              </ActionButton>
             ) : (
-              <button className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? <IconLoader2 size={15} className="animate-spin" aria-hidden="true" /> : <IconCheck size={15} strokeWidth={2.5} aria-hidden="true" />}
                 {loading ? 'Guardando…' : 'Guardar persona'}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>

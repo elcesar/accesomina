@@ -1,0 +1,7 @@
+WORKFLOWS PREPARADOS, NO ACTIVOS
+
+GitHub rechazó la publicación en .github/workflows porque la conexión OAuth no tiene permiso workflow. Estos archivos son entregables para revisión; no se ejecutan desde qa/workflows.
+
+Una cuenta con ese permiso debe revisar y copiar qa-pr.yml y deploy-v2.yml a .github/workflows/. qa-pr.yml ejecuta pruebas de servidor, frontend y navegador y build sin despliegue ni secretos productivos. deploy-v2.yml conserva el despliegue existente y agrega los HTML canónicos; requiere revisión antes de activar.
+
+Un administrador debe configurar los checks obligatorios en la protección de main y verificar una ejecución real. #272 sigue abierto; #87 requiere publicar y verificar las rutas y metadatos reales. No se ha desplegado ni modificado main.

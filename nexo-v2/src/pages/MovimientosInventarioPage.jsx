@@ -1,3 +1,6 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { includesSearch } from '../services/search.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
@@ -60,7 +63,7 @@ export default function MovimientosInventarioPage() {
     const worker = workers.find(entry => String(entry.id) === String(row.workerId))
     const order = orders.find(entry => String(entry.id) === String(row.projectId || row.mantId))
     const searchable = [item?.name, item?.code, row.notes, row.user, worker?.nombre, worker?.name, order?.codigo, order?.nombre, order?.name]
-    return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) &&
+    return (!term || searchable.some(value => includesSearch(String(value || ''), term))) &&
       (!typeFilter || row.type === typeFilter) &&
       (!warehouseFilter || String(row.warehouseId) === warehouseFilter || String(row.warehouseToId) === warehouseFilter) &&
       (!dateFilter || String(row.effectiveAt || row.at || row.date || '').slice(0, 10) === dateFilter)
@@ -188,21 +191,21 @@ export default function MovimientosInventarioPage() {
   return <div className="nk-mov-page">
     <header className="nk-mov-header">
       <div className="nk-mov-heading"><h1>Movimientos de inventario</h1><p>Registra ingresos, egresos, traslados y ajustes con trazabilidad por recurso, bodega y referencia operacional.</p></div>
-      <div className="nk-mov-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nuevo movimiento</button></div>
+      <div className="nk-mov-actions"><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nuevo movimiento</button></div>
     </header>
 
     {error && <div className="nk-mov-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
     <section className="nk-card nk-mov-filters">
-      <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona, OS o referencia..."/></label>
-      <select className="nk-select" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">Todos los movimientos</option><option value="entrega">Entrega</option><option value="devolucion">Devolución</option><option value="reposicion">Reposición</option><option value="traslado">Traslado</option><option value="perdida">Pérdida</option><option value="dano">Daño / desgaste</option><option value="ajuste">Ajuste</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
-      <select className="nk-select" value={warehouseFilter} onChange={event => setWarehouseFilter(event.target.value)}><option value="">Todas las bodegas</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
-      <input className="nk-input" type="date" value={dateFilter} onChange={event => setDateFilter(event.target.value)}/>
+      <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar registros" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona, OS o referencia..."/></label>
+      <select aria-label="Tipo de registro" className="nk-select" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">Todos los movimientos</option><option value="entrega">Entrega</option><option value="devolucion">Devolución</option><option value="reposicion">Reposición</option><option value="traslado">Traslado</option><option value="perdida">Pérdida</option><option value="dano">Daño / desgaste</option><option value="ajuste">Ajuste</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
+      <select aria-label="Bodega" className="nk-select" value={warehouseFilter} onChange={event => setWarehouseFilter(event.target.value)}><option value="">Todas las bodegas</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+      <input aria-label="Fecha" className="nk-input" type="date" value={dateFilter} onChange={event => setDateFilter(event.target.value)}/>
     </section>
 
     <section className="nk-mov-kpis"><article><strong>{summary.total}</strong><span>Movimientos registrados</span></article><article><strong>{summary.inbound}</strong><span>Ingresos / devoluciones</span></article><article><strong>{summary.outbound}</strong><span>Salidas / entregas</span></article><article><strong>{summary.transfers}</strong><span>Traslados entre bodegas</span></article></section>
 
-    <section className="nk-card nk-mov-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-mov-table"><thead><tr><th>Recurso</th><th>Movimiento</th><th>Cantidad</th><th>Bodega / destino</th><th>Fecha efectiva</th><th>Referencia</th></tr></thead><tbody>{loading ? <tr><td colSpan="6">Cargando movimientos…</td></tr> : filtered.length ? filtered.map(row => { const ref = reference(row); return <tr key={row.id}><td className="nk-mov-resource"><strong>{itemName(row.itemId)}</strong><small>{itemCode(row.itemId)}</small></td><td><span className="nk-badge nk-badge-blue">{movementLabel(row.type)}</span></td><td>{Number(row.qty || 0)}</td><td>{row.type === 'traslado' ? `${warehouseName(row.warehouseId)} → ${warehouseName(row.warehouseToId)}` : warehouseName(row.warehouseId)}</td><td>{String(row.effectiveAt || row.at || row.date || '').slice(0, 10) || '—'}</td><td className="nk-mov-ref"><strong>{ref.main}</strong><small>{ref.sub}</small></td></tr> }) : <tr><td colSpan="6" className="nk-mov-empty">No hay movimientos para los filtros seleccionados.</td></tr>}</tbody></table></div></section>
+    <section className="nk-card nk-mov-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-mov-table"><caption className="nk-sr-only">Movimientos de inventario · tabla 1</caption><thead><tr><th scope="col">Recurso</th><th scope="col">Movimiento</th><th scope="col">Cantidad</th><th scope="col">Bodega / destino</th><th scope="col">Fecha efectiva</th><th scope="col">Referencia</th></tr></thead><tbody>{loading ? <tr><td colSpan="6">Cargando movimientos…</td></tr> : filtered.length ? filtered.map(row => { const ref = reference(row); return <tr key={row.id}><td className="nk-mov-resource"><strong>{itemName(row.itemId)}</strong><small>{itemCode(row.itemId)}</small></td><td><span className="nk-badge nk-badge-blue">{movementLabel(row.type)}</span></td><td>{Number(row.qty || 0)}</td><td>{row.type === 'traslado' ? `${warehouseName(row.warehouseId)} → ${warehouseName(row.warehouseToId)}` : warehouseName(row.warehouseId)}</td><td>{String(row.effectiveAt || row.at || row.date || '').slice(0, 10) || '—'}</td><td className="nk-mov-ref"><strong>{ref.main}</strong><small>{ref.sub}</small></td></tr> }) : <tr><EmptyState objectLabel="movimientos" filtered={query !== "" || typeFilter !== "" || warehouseFilter !== "" || dateFilter !== ""} /></tr>}</tbody></table></div></section>
 
     {open && <section className="nk-card nk-mov-editor"><div className="nk-mov-editor-head"><h2>Registrar movimiento</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setOpen(false)}>Cerrar</button></div><div className="nk-mov-form">
       <label><span>Recurso</span><select className="nk-select" value={form.itemId || ''} onChange={event => setForm({ ...form, itemId: event.target.value })}><option value="">Seleccionar</option>{items.map(item => <option key={item.id} value={item.id}>{item.name} · stock {Number(item.stock || 0)}</option>)}</select></label>
@@ -214,6 +217,6 @@ export default function MovimientosInventarioPage() {
       <label><span>Trabajador</span><select className="nk-select" value={form.workerId || ''} onChange={event => setForm({ ...form, workerId: event.target.value })}><option value="">No aplica</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{worker.nombre || worker.name}</option>)}</select></label>
       <label><span>Orden de servicio</span><select className="nk-select" value={form.projectId || ''} onChange={event => setForm({ ...form, projectId: event.target.value })}><option value="">No aplica</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.nombre || order.name}</option>)}</select></label>
       <label className="wide"><span>Observaciones</span><textarea className="nk-input" rows="3" value={form.notes || ''} onChange={event => setForm({ ...form, notes: event.target.value })}/></label>
-    </div><div className="nk-mov-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveMovement} disabled={saving}>{saving ? 'Guardando…' : 'Registrar movimiento'}</button></div></section>}
+    </div><div className="nk-mov-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setOpen(false)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveMovement} disabled={saving}>{saving ? 'Guardando…' : 'Registrar movimiento'}</ActionButton></div></section>}
   </div>
 }

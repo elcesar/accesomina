@@ -1,9 +1,13 @@
+import OperationFeedback from '../ui/OperationFeedback.jsx'
+import { ErrorPage } from '../ui/ErrorPage.jsx'
+import { IconLock } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
 import { api } from '../../services/api.js'
 import { applyTenantBranding } from '../../services/theme.js'
+import { portalModule } from '../../config/portal-modules.js'
 import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
@@ -18,15 +22,16 @@ function ModuleOutlet() {
   const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
+  if(pathname==='/app/libro-obra')return <section className="nk-module-page"><h1>Libro de obra</h1><p role="status">Este módulo aún no está disponible. Nexo Klar comunicará su habilitación cuando corresponda.</p></section>
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
   }
   if (['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) && !isCompanyAdmin) {
-    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración</b><span>Esta vista está disponible sólo para administradores de la empresa.</span></div></section>
+    return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
   if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
-    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración Nexo Klar</b><span>Esta vista está reservada para el administrador global de Nexo Klar.</span></div></section>
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
   return <Outlet />
 }
@@ -81,7 +86,11 @@ export default function AppLayout() {
     }
   }, [])
 
-  useEffect(() => { setMobileMenuOpen(false) }, [pathname])
+  useEffect(() => {
+    setMobileMenuOpen(false)
+    const module = portalModule(pathname)
+    document.title = `${module?.label || 'Portal'} · Nexo Klar`
+  }, [pathname])
 
   useEffect(() => {
     if (!mobileMenuOpen) return undefined
@@ -120,7 +129,7 @@ export default function AppLayout() {
           <Header branding={branding} menuOpen={mobileMenuOpen} menuButtonRef={menuButtonRef} onToggleMenu={() => setMobileMenuOpen(value => !value)} />
           <main className="nk-app-main" data-page-domain={domain || undefined}>
             {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
-            <ModuleOutlet />
+            <OperationFeedback><ModuleOutlet /></OperationFeedback>
           </main>
         </div>
       </div>

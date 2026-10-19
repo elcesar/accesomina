@@ -15,6 +15,13 @@ async function mockWorker(page, rejectSave = false) {
     const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
     if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin', nombre: 'Administrador QA' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' } })
     if (path === '/api/settings') return json({ settings: {} })
+    if (path === '/api/state/records/trabajadores/qa-person' && request.method()==='GET') return json({record:state.trabajadores[0],revision:'fixture-revision'})
+    if (path === '/api/state/records/trabajadores/qa-person' && request.method()==='PATCH') {
+      const body=request.postDataJSON();writes.push(body)
+      if(rejectSave&&writes.length===1)return json({error:'INVALID_WORKER_EMAIL'},409)
+      state.trabajadores[0]={...state.trabajadores[0],...body.patch}
+      return json({record:state.trabajadores[0],revision:'fixture-revision'})
+    }
     if (path === '/api/state') return json({ state, moduleVersions: { trabajadores: 1 } })
     if (path === '/api/state/modules' && request.method() === 'PUT') {
       const body = request.postDataJSON()
@@ -111,7 +118,8 @@ test('el guardado de una persona válida conserva intacta otra con correo antigu
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
   await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toBeVisible()
   expect(writes).toHaveLength(1)
-  expect(writes[0].changes.trabajadores.data.find(worker => worker.id === 'qa-legacy')).toEqual(historical)
+  expect(writes[0].changes).toBeUndefined()
+  expect(writes[0].patch.id).toBeUndefined()
   expect(state.trabajadores[1]).toEqual(historical)
   await page.reload()
   await expect(page.getByLabel('Correo electrónico', { exact: true })).toHaveValue('corregido@ejemplo.test')

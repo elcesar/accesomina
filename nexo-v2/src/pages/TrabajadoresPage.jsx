@@ -1,3 +1,9 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { calendarDaysUntil } from '../services/calendar-date.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { useEvidenceAvailability } from '../services/use-evidence-availability.jsx'
+import { withEvidenceAvailability } from '../services/evidence-availability.js'
+import { hasRequiredEvidence } from '../services/worker-document-rules.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,10 +23,7 @@ import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
-function diasHasta(fecha) {
-  if (!fecha) return null
-  return Math.floor((new Date(fecha) - new Date()) / 86400000)
-}
+function diasHasta(fecha) { return calendarDaysUntil(fecha) }
 
 const REQUIRED_ITEMS = [
   { type: 'documento', name: 'Cédula de identidad' },
@@ -40,8 +43,8 @@ function acreditacionPct(persona) {
     items.some(item => (
       item.type === req.type &&
       item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
-      item.estado !== 'rechazado' &&
-      !(item.vence && diasHasta(item.vence) < 0)
+      item.estado !== 'rechazado' && hasRequiredEvidence(item) &&
+      (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
     ))
   )).length
 
@@ -49,14 +52,11 @@ function acreditacionPct(persona) {
 }
 
 function nextExpiry(persona) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const dates = (persona.workerItems || [])
     .map(item => item.vence)
-    .filter(Boolean)
-    .map(value => new Date(`${value}T00:00:00`))
-    .filter(date => !Number.isNaN(date.getTime()) && date >= today)
+    .filter(value => calendarDaysUntil(value) !== null && calendarDaysUntil(value) >= 0)
+    .map(value => new Date(`${value}T12:00:00`))
+    .filter(date => !Number.isNaN(date.getTime()))
     .sort((a, b) => a - b)
 
   return dates[0] || null
@@ -138,7 +138,7 @@ const TABS = [
   { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
   { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
   { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
+  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
@@ -180,7 +180,9 @@ export default function TrabajadoresPage() {
     return () => window.removeEventListener('focus', loadState)
   }, [])
 
-  const personas = state?.trabajadores || []
+  const rawPeople = state?.trabajadores || []
+  const evidenceAvailability=useEvidenceAvailability(rawPeople)
+  const personas=useMemo(()=>rawPeople.map(worker=>withEvidenceAvailability(worker,evidenceAvailability)),[state,evidenceAvailability])
   const clientes = state?.minas || []
   const proyectos = state?.mantenciones || []
   const contratos = state?.contratos || []
@@ -305,10 +307,10 @@ export default function TrabajadoresPage() {
   }
 
   const SortIcon = ({ col }) => {
-    if (sortCol !== col) return <IconChevronDown className="nk-people-sort-muted" size={11} />
+    if (sortCol !== col) return <IconChevronDown className="nk-people-sort-muted" size={16} />
     return sortAsc
-      ? <IconChevronUp className="nk-people-sort-active" size={11} />
-      : <IconChevronDown className="nk-people-sort-active" size={11} />
+      ? <IconChevronUp className="nk-people-sort-active" size={16} />
+      : <IconChevronDown className="nk-people-sort-active" size={16} />
   }
 
   if (loading) {
@@ -334,9 +336,9 @@ export default function TrabajadoresPage() {
             </p>
           </div>
           <div className="nk-actions">
-            <button className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
+            <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
               <IconDownload size={15} strokeWidth={1.7} /> Exportar
-            </button>
+            </ActionButton>
           </div>
         </div>
 
@@ -431,29 +433,23 @@ export default function TrabajadoresPage() {
 
       <main className="nk-people-content">
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-people-table">
+          <table className="nk-table nk-people-table"><caption className="nk-sr-only">Personas · tabla 1</caption>
             <thead>
               <tr>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
-                <th>Tipo</th>
-                <th>Contexto operacional</th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
-                <th aria-label="Acciones" />
+                <th scope="col" aria-sort={sortCol === 'nombre' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
+                <th scope="col" aria-sort={sortCol === 'especialidad' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Contexto operacional</th>
+                <th scope="col" aria-sort={sortCol === 'disponibilidad' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
+                <th scope="col" aria-sort={sortCol === 'acreditacion' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
+                <th scope="col" aria-label="Acciones" />
               </tr>
             </thead>
 
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td className="nk-people-empty-cell" colSpan={7}>
-                    <div className="nk-empty">
-                      <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.</p>
-                    </div>
-                  </td>
+                  <EmptyState objectLabel="personas en esta vista Ajusta los filtros o utiliza la acción + Persona del encabezado" filtered={search !== "" || specialty !== "" || clientId !== "" || projectId !== "" || contractId !== "" || qualification !== ""} />
                 </tr>
               ) : filtered.map(persona => {
                 const segment = workerSegment(persona, asignaciones, proyectos, restrictions)
