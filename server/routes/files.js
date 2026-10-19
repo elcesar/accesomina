@@ -3,12 +3,13 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
-import { assertEntityTypeAccess } from '../module-access.js';
+import { verifyFileAvailability } from '../file-availability.js';
+import { canAccessEntityType, assertEntityTypeAccess } from '../module-access.js';
 
 export const filesRouter = Router();
 const allowedMime=/^(application\/pdf|image\/(jpeg|png)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)))$/;
@@ -90,6 +91,23 @@ filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencio
     return result;
   });
   res.status(row.deduplicated?200:201).json(row);
+});
+
+filesRouter.get('/availability',async(req,res)=>{
+ const ids=[...new Set(String(req.query.ids||'').split(',').filter(Boolean))]
+ if(ids.length>100)return res.status(400).json({error:'TOO_MANY_FILE_REFERENCES'})
+ const valid=ids.filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+ const files=valid.length?await withTenant(req.auth.tenantId,async client=>(await client.query('SELECT * FROM file_objects WHERE tenant_id=$1 AND id=ANY($2::uuid[])',[req.auth.tenantId,valid])).rows):[]
+ const results=await verifyFileAvailability({tenantId:req.auth.tenantId,ids,files,canAccess:file=>canAccessEntityType(req.auth,file.entity_type),exists:async file=>{
+  try{
+   if(file.storage_provider==='s3'){
+    if(!config.aws.bucket)return null
+    await s3.send(new HeadObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return true
+   }
+   return (await fs.stat(path.join(config.uploadDir,file.storage_key))).isFile()
+  }catch(error){if(error.code==='ENOENT'||error.name==='NotFound'||error.$metadata?.httpStatusCode===404)return false;return null}
+ }})
+ res.set('Cache-Control','private, no-store').json({files:results})
 });
 
 filesRouter.get('/:id', async (req,res) => {
