@@ -38,7 +38,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
   const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
   const legalTenantName = session?.tenant?.name || 'Nexo Klar'
   const tenantName = String(branding?.displayName || '').trim() || legalTenantName
-  const tenantLogo = String(branding?.logoUrl || '').trim()
+  const tenantLogo = branding?.logoFileId ? `/api/settings/logo?v=${encodeURIComponent(branding.logoFileId)}` : String(branding?.logoUrl || '').trim()
   const userName = session?.user?.name || session?.user?.email || 'Usuario'
   const activeModule = activeModuleForPath(location.pathname)
   const clientDetailMatch = location.pathname.match(/^\/app\/clientes\/([^/]+)$/)
