@@ -1,4 +1,5 @@
 import { includesSearch } from '../services/search.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
@@ -189,7 +190,7 @@ export default function MovimientosInventarioPage() {
   return <div className="nk-mov-page">
     <header className="nk-mov-header">
       <div className="nk-mov-heading"><h1>Movimientos de inventario</h1><p>Registra ingresos, egresos, traslados y ajustes con trazabilidad por recurso, bodega y referencia operacional.</p></div>
-      <div className="nk-mov-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nuevo movimiento</button></div>
+      <div className="nk-mov-actions"><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Nuevo movimiento</button></div>
     </header>
 
     {error && <div className="nk-mov-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
@@ -215,6 +216,6 @@ export default function MovimientosInventarioPage() {
       <label><span>Trabajador</span><select className="nk-select" value={form.workerId || ''} onChange={event => setForm({ ...form, workerId: event.target.value })}><option value="">No aplica</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{worker.nombre || worker.name}</option>)}</select></label>
       <label><span>Orden de servicio</span><select className="nk-select" value={form.projectId || ''} onChange={event => setForm({ ...form, projectId: event.target.value })}><option value="">No aplica</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.nombre || order.name}</option>)}</select></label>
       <label className="wide"><span>Observaciones</span><textarea className="nk-input" rows="3" value={form.notes || ''} onChange={event => setForm({ ...form, notes: event.target.value })}/></label>
-    </div><div className="nk-mov-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveMovement} disabled={saving}>{saving ? 'Guardando…' : 'Registrar movimiento'}</button></div></section>}
+    </div><div className="nk-mov-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setOpen(false)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveMovement} disabled={saving}>{saving ? 'Guardando…' : 'Registrar movimiento'}</ActionButton></div></section>}
   </div>
 }

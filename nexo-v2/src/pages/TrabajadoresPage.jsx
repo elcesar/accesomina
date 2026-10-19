@@ -1,4 +1,5 @@
 import { calendarDaysUntil } from '../services/calendar-date.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -329,9 +330,9 @@ export default function TrabajadoresPage() {
             </p>
           </div>
           <div className="nk-actions">
-            <button className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
+            <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
               <IconDownload size={15} strokeWidth={1.7} /> Exportar
-            </button>
+            </ActionButton>
           </div>
         </div>
 

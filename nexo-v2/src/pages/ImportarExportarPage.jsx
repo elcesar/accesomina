@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useMemo, useState } from 'react'
 import { IconDatabaseExport, IconDatabaseImport, IconDownload, IconUpload } from '@tabler/icons-react'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
@@ -162,9 +163,9 @@ export default function ImportarExportarPage() {
                   <IconDownload size={16}/> Descargar plantilla
                 </button>
               )}
-              <button className="nk-button nk-button-primary" disabled={sending || !file} aria-describedby={!file ? 'import-file-help' : undefined} onClick={() => backupImport || mode === 'replace' ? setConfirming(true) : importData()}>
+              <ActionButton disabledReason="Selecciona un archivo antes de continuar." className="nk-button nk-button-primary" disabled={sending || !file} aria-describedby={!file ? 'import-file-help' : undefined} onClick={() => backupImport || mode === 'replace' ? setConfirming(true) : importData()}>
                 <IconUpload size={16}/>{sending ? 'Procesando…' : backupImport ? 'Restaurar respaldo' : 'Validar e importar'}
-              </button>
+              </ActionButton>
             </div>
 
             {issues.length > 0 && <section aria-label="Errores de importación" role="region" tabIndex={0} style={{overflowX:'auto'}}>

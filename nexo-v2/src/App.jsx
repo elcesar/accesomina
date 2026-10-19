@@ -1,3 +1,4 @@
+import AppErrorBoundary from './components/ui/AppErrorBoundary.jsx'
 import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
@@ -94,7 +95,7 @@ function LegacyClientAccreditationRedirect() {
 }
 
 function AuthShell() {
-  return <AuthProvider><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style><Outlet /></AuthProvider>
+  return <AuthProvider><AppErrorBoundary><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style><Outlet /></AppErrorBoundary></AuthProvider>
 }
 const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<AuthShell />}>

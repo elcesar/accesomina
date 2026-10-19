@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconCategory, IconChartBar, IconDownload, IconFiles, IconRefresh, IconStack2 } from '@tabler/icons-react'
@@ -127,8 +128,8 @@ export default function ReportesPage() {
           <p>Consulta indicadores y descarga información por categoría, respetando el ownership de cada módulo.</p>
         </div>
         <div className="nk-module-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16} /> Actualizar</button>
-          <button className="nk-button nk-button-primary" onClick={() => downloadCsv(selected, collections)} disabled={loading || total === 0}><IconDownload size={16} /> Descargar categoría</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16} /> Actualizar</ActionButton>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={() => downloadCsv(selected, collections)} disabled={loading || total === 0}><IconDownload size={16} /> Descargar categoría</ActionButton>
         </div>
       </header>
 

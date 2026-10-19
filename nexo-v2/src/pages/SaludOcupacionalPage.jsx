@@ -1,5 +1,6 @@
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { includesSearch } from '../services/search.js'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -233,9 +234,9 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
         <footer className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
+          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
             {saving ? 'Guardando…' : 'Guardar protocolo'}
-          </button>
+          </ActionButton>
         </footer>
       </form>
     </div>
@@ -314,12 +315,12 @@ export default function SaludOcupacionalPage() {
           <p>Gestiona protocolos y seguimientos asociados a exposición, riesgo y cargo, sin mezclar esta vista con los exámenes de aptitud.</p>
         </div>
         <div className="nk-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}>
             <IconRefresh size={15} /> Actualizar
-          </button>
-          <button className="nk-button nk-button-primary" onClick={() => setCreating(true)} disabled={!workers.length}>
+          </ActionButton>
+          <ActionButton disabledReason="Registra al menos una persona antes de continuar." className="nk-button nk-button-primary" onClick={() => setCreating(true)} disabled={!workers.length}>
             <IconPlus size={15} /> Gestionar protocolo
-          </button>
+          </ActionButton>
         </div>
       </header>
 

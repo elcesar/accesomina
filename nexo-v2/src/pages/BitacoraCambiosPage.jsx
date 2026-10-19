@@ -1,4 +1,5 @@
 import EmptyState from '../components/ui/EmptyState.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -89,9 +90,9 @@ export default function BitacoraCambiosPage() {
           <h1>Bitácora de cambios</h1>
           <p>Quién cambió qué, cuándo y dentro de la empresa actual.</p>
         </div>
-        <button className="nk-button nk-button-secondary" onClick={loadAudit} disabled={loading}>
+        <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={loadAudit} disabled={loading}>
           <IconRefresh size={16}/>{loading ? 'Actualizando…' : 'Actualizar'}
-        </button>
+        </ActionButton>
       </header>
 
       {error && <p className="nk-form-message">{error}</p>}
