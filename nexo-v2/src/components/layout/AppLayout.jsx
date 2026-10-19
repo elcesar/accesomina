@@ -4,6 +4,7 @@ import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
 import { api } from '../../services/api.js'
 import { applyTenantBranding } from '../../services/theme.js'
+import { portalModule } from '../../config/portal-modules.js'
 import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
@@ -81,7 +82,11 @@ export default function AppLayout() {
     }
   }, [])
 
-  useEffect(() => { setMobileMenuOpen(false) }, [pathname])
+  useEffect(() => {
+    setMobileMenuOpen(false)
+    const module = portalModule(pathname)
+    document.title = `${module?.label || 'Portal'} · Nexo Klar`
+  }, [pathname])
 
   useEffect(() => {
     if (!mobileMenuOpen) return undefined

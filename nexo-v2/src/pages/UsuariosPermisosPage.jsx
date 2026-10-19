@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { IconKey, IconLock, IconPlus, IconRefresh, IconShieldCheck, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -121,8 +122,8 @@ export default function UsuariosPermisosPage() {
         </header>
 
         <div className="nk-table-wrapper nk-users-table-wrap">
-          <table className="nk-table nk-users-table">
-            <thead><tr><th>Persona</th><th>Correo de acceso</th><th>Permiso</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <table className="nk-table nk-users-table"><caption className="nk-sr-only">Usuarios y permisos · tabla 1</caption>
+            <thead><tr><th scope="col">Persona</th><th scope="col">Correo de acceso</th><th scope="col">Permiso</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
             <tbody>
               {loading ? <tr><td colSpan="5">Cargando usuarios…</td></tr> : users.length ? users.map(user => {
                 const self = user.id === session?.user?.id
@@ -133,7 +134,7 @@ export default function UsuariosPermisosPage() {
                     <td>{user.email}</td>
                     <td>
                       {admin && !protectedUser && !self ? (
-                        <select className="nk-input nk-user-role" value={user.role} disabled={busy === user.id} onChange={event => patchUser(user, { role: event.target.value })}>
+                        <select aria-label="Permiso de usuario" className="nk-input nk-user-role" value={user.role} disabled={busy === user.id} onChange={event => patchUser(user, { role: event.target.value })}>
                           {EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}
                         </select>
                       ) : <span className="nk-user-role-badge">{ROLE_LABEL[user.role] || user.role}</span>}
@@ -150,7 +151,7 @@ export default function UsuariosPermisosPage() {
                     </td>
                   </tr>
                 )
-              }) : <tr><td colSpan="5">No hay usuarios registrados.</td></tr>}
+              }) : <tr><td colSpan="5"><EmptyState objectLabel="usuarios" filtered={false} /></td></tr>}
             </tbody>
           </table>
         </div>

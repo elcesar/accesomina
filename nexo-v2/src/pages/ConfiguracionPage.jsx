@@ -16,12 +16,12 @@ const MODULE_OPTIONS = [
   ['contratos', 'Contratos y firmas'],
   ['hoteleria', 'Alojamientos y estadías'],
   ['llamados', 'Comunicaciones y convocatorias'],
-  ['vehiculos', 'Vehículos, activos y equipos'],
+  ['vehiculos', 'Flota y equipos móviles'],
   ['subcontratos', 'Terceros y subcontratos'],
-  ['credenciales', 'Credenciales'],
+  ['credenciales', 'Credenciales de acceso'],
   ['incidentes', 'Incidentes y no conformidades'],
   ['auditoria', 'Auditoría'],
-  ['reportes', 'Reportes y analítica'],
+  ['reportes', 'Reportes'],
 ]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }
@@ -208,7 +208,7 @@ export default function ConfiguracionPage() {
           <div className="nk-config-modules">
             {MODULE_OPTIONS.map(([key, label]) => {
               const enabled = settings.modules?.[key] !== false
-              return <label className="nk-config-module" key={key}><input type="checkbox" checked={enabled} onChange={() => toggleModule(key)} /><span className="nk-config-module-check">{enabled && <IconCheck size={14}/>}</span><span>{label}</span></label>
+              return <label className="nk-config-module" key={key}><input aria-label={label} type="checkbox" checked={enabled} onChange={() => toggleModule(key)} /><span className="nk-config-module-check">{enabled && <IconCheck size={14}/>}</span><span>{label}</span></label>
             })}
           </div>
           <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
@@ -225,7 +225,7 @@ export default function ConfiguracionPage() {
           {MODULE_OPTIONS.map(([key, label]) => {
             const enabledForCompany = settings.modules?.[key] !== false
             const enabledForUser = userCanSee(key)
-            return <label className={`nk-config-module ${enabledForCompany ? '' : 'disabled'}`} key={key}><input type="checkbox" checked={enabledForUser} disabled={!enabledForCompany} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany && <small>No está habilitado para la empresa</small>}</label>
+            return <label className={`nk-config-module ${enabledForCompany ? '' : 'disabled'}`} key={key}><input aria-label={label} type="checkbox" checked={enabledForUser} disabled={!enabledForCompany} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany && <small>No está habilitado para la empresa</small>}</label>
           })}
         </div> : <p className="nk-config-note">Los administradores conservan siempre acceso completo. Crea primero una cuenta no administradora desde Usuarios y permisos.</p>}
       </section>
