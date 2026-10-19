@@ -5,7 +5,7 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
   const generatedId = useId()
   const inputId = id || generatedId
   const hintId = `${inputId}-rut-hint`
-  const describedBy = [props['aria-describedby'], hintId].filter(Boolean).join(' ')
+  const describedBy = [props['aria-describedby'], !props['aria-invalid'] ? hintId : ''].filter(Boolean).join(' ')
 
   return <>
     <input
@@ -27,6 +27,6 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
         props.onBlur?.(event)
       }}
     />
-    <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>
+    {!props['aria-invalid'] && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
   </>
 }

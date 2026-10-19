@@ -1,3 +1,4 @@
+import { includesSearch } from '../../services/search.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../../services/api.js'
@@ -48,7 +49,7 @@ export default function MaterialsInventoryPage() {
 
   const filtered = useMemo(() => materials.filter(item => {
     const term = query.trim().toLowerCase()
-    const matchesText = !term || [item.name,item.code,item.type,item.unit,itemLocation(item)].some(v => String(v || '').toLowerCase().includes(term))
+    const matchesText = !term || [item.name,item.code,item.type,item.unit,itemLocation(item)].some(v => includesSearch(String(v || ''), term))
     return matchesText && (!status || stockState(item) === status) && (!warehouseFilter || String(item.warehouseId) === warehouseFilter)
   }), [materials, query, status, warehouseFilter, warehouses, locations])
 

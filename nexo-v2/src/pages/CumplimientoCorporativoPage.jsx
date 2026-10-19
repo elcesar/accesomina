@@ -1,3 +1,5 @@
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBuilding, IconExternalLink, IconFile, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react'
@@ -37,12 +39,7 @@ const REQUIREMENTS = [
 
 const asRows = value => Array.isArray(value) ? value : []
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function statusFor(doc) {
   const requirement = REQUIREMENTS.find(item => item.id === doc.reqId) || doc
@@ -117,7 +114,7 @@ export default function CumplimientoCorporativoPage() {
     const term = query.trim().toLowerCase()
     return docs.filter(doc => {
       const status = statusFor(doc)
-      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => String(value || '').toLowerCase().includes(term))
+      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => includesSearch(String(value || ''), term))
       const matchesArea = !areaFilter || doc.area === areaFilter
       const matchesStatus = !statusFilter || (statusFilter === 'ok' ? status.key === 'ok' : statusFilter === 'faltante' ? status.key === 'faltante' : ['vencido', 'critico', 'proximo'].includes(status.key))
       return matchesText && matchesArea && matchesStatus

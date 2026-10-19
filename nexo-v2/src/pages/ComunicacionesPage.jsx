@@ -1,4 +1,5 @@
 import EmptyState from '../components/ui/EmptyState.jsx'
+import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -47,7 +48,7 @@ export default function ComunicacionesPage({createMode=false}){
  const orderById=useMemo(()=>new Map(orders.map(x=>[String(x.id),x])),[orders])
  const workerById=useMemo(()=>new Map(workers.map(x=>[String(x.id),x])),[workers])
  const specialties=useMemo(()=>[...new Set(workers.map(worker=>worker.especialidad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')),[workers])
- const visible=useMemo(()=>{const term=search.trim().toLowerCase();return callouts.filter(item=>{if(statusFilter&&normalize(item.estado||item.status||'pendiente')!==statusFilter)return false;if(!term)return true;const order=orderById.get(String(item.mantId));const recipientNames=rows(item.recipients).map(recipient=>workerById.get(String(recipient.workerId||recipient.trabId))?.nombre).filter(Boolean);return[labelFor(item),item.mensaje,item.descripcion,order?.nombre,...rows(item.especialidades),...recipientNames].filter(Boolean).some(v=>String(v).toLowerCase().includes(term))})},[callouts,search,statusFilter,orderById,workerById])
+ const visible=useMemo(()=>{const term=search.trim().toLowerCase();return callouts.filter(item=>{if(statusFilter&&normalize(item.estado||item.status||'pendiente')!==statusFilter)return false;if(!term)return true;const order=orderById.get(String(item.mantId));const recipientNames=rows(item.recipients).map(recipient=>workerById.get(String(recipient.workerId||recipient.trabId))?.nombre).filter(Boolean);return[labelFor(item),item.mensaje,item.descripcion,order?.nombre,...rows(item.especialidades),...recipientNames].filter(Boolean).some(v=>includesSearch(String(v), term))})},[callouts,search,statusFilter,orderById,workerById])
  const selected=callouts.find(x=>String(x.id)===String(selectedId))||null
  const pendingCount=callouts.filter(x=>normalize(x.estado||x.status||'pendiente')==='pendiente').length
  const sentCount=callouts.filter(x=>normalize(x.estado||x.status||'pendiente')==='enviado').length
