@@ -216,9 +216,9 @@ export default function CumplimientoCorporativoPage() {
       {error && <div className="nk-compliance-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
 
       <section className="nk-card nk-compliance-filters" aria-label="Filtros de documentación corporativa">
-        <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
-        <select className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="">Todas las áreas</option>{Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Cargado y vigente</option><option value="faltante">Faltante</option><option value="vencido">Vencido / crítico</option></select>
+        <label className="nk-search"><IconSearch size={16} /><input aria-label="Buscar registros" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
+        <select aria-label="Todas las áreas" className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="">Todas las áreas</option>{Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+        <select aria-label="Estado" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Cargado y vigente</option><option value="faltante">Faltante</option><option value="vencido">Vencido / crítico</option></select>
       </section>
 
       <section className="nk-compliance-summary" aria-label="Resumen de cumplimiento corporativo">
@@ -239,8 +239,8 @@ export default function CumplimientoCorporativoPage() {
       <section className="nk-card nk-compliance-table-card">
         {loading ? <div className="nk-empty nk-compliance-empty"><IconFile size={30} /><p className="nk-empty-title">Cargando documentación…</p></div> : (
           <div className="nk-table-wrapper">
-            <table className="nk-table nk-compliance-table">
-              <thead><tr><th>Documento</th><th>Área</th><th>Estado</th><th>Vence</th><th>Respaldo</th><th>Observación</th></tr></thead>
+            <table className="nk-table nk-compliance-table"><caption className="nk-sr-only">Documentación de la empresa · tabla 1</caption>
+              <thead><tr><th scope="col">Documento</th><th scope="col">Área</th><th scope="col">Estado</th><th scope="col">Vence</th><th scope="col">Respaldo</th><th scope="col">Observación</th></tr></thead>
               <tbody>{filtered.map(doc => {
                 const status = statusFor(doc)
                 const requirement = REQUIREMENTS.find(item => item.id === doc.reqId)

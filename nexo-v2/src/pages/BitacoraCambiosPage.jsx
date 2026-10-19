@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -23,12 +24,12 @@ function actionLabel(value = '') {
     'user.created': 'Usuario creado',
     'user.updated': 'Usuario actualizado',
     'user.password_reset_by_company_admin': 'Acceso restablecido',
-    'user.mfa_reset_by_admin': 'MFA restablecido',
+    'user.mfa_reset_by_admin': 'Doble autenticación restablecida',
     'user.password_changed': 'Contraseña modificada',
-    'user.mfa_enabled': 'MFA activado',
-    'user.mfa_disabled': 'MFA desactivado',
+    'user.mfa_enabled': 'Doble autenticación activada',
+    'user.mfa_disabled': 'Doble autenticación desactivada',
   }
-  return labels[value] || value.replaceAll('.', ' · ')
+  return labels[value] || ({'module.updated':'Información actualizada','module.imported':'Información importada','settings.updated':'Configuración actualizada','worker.document.created':'Documento registrado','worker.document.deleted':'Documento eliminado','password_reset.requested':'Recuperación de acceso solicitada'})[value] || 'Cambio registrado'
 }
 
 function entityLabel(value = '') {
@@ -37,7 +38,7 @@ function entityLabel(value = '') {
     session: 'Sesión',
     user: 'Usuario',
   }
-  return labels[value] || value || '—'
+  return labels[value] || ({trabajadores:'Personas',minas:'Clientes',mantenciones:'Órdenes de servicio',contratos:'Contratos',tenant_settings:'Configuración de la empresa',files:'Archivos'})[value] || 'Registro de la empresa'
 }
 
 function changedSummary(row) {
@@ -45,12 +46,13 @@ function changedSummary(row) {
   const after = row.new_value && typeof row.new_value === 'object' ? row.new_value : null
 
   if (!before && !after) return 'Evento registrado'
-  if (!before && after) return Object.keys(after).slice(0, 3).join(', ') || 'Registro creado'
+  if (!before && after) return 'Registro creado'
   if (before && !after) return 'Registro actualizado'
 
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
   const changed = keys.filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-  return changed.slice(0, 3).join(', ') || 'Sin cambios de campos visibles'
+  const names = {name:'Nombre',fullName:'Nombre completo',email:'Correo',role:'Permiso',enabled:'Habilitación',status:'Estado',data:'Información',version:'Versión',modules:'Módulos',branding:'Apariencia',alerts:'Alertas',catalogs:'Catálogos',password:'Contraseña',count:'Cantidad de registros'}
+  return changed.slice(0,3).map(key=>names[key] || 'Información del registro').filter((value,index,list)=>list.indexOf(value)===index).join(', ') || 'Sin cambios de campos visibles'
 }
 
 export default function BitacoraCambiosPage() {
@@ -107,21 +109,21 @@ export default function BitacoraCambiosPage() {
         </header>
 
         <div className="nk-audit-table-wrap">
-          <table className="nk-audit-table">
+          <table className="nk-audit-table"><caption className="nk-sr-only">Bitácora de cambios · tabla 1</caption>
             <thead>
               <tr>
-                <th>Fecha y hora</th>
-                <th>Usuario</th>
-                <th>Evento</th>
-                <th>Entidad</th>
-                <th>Detalle</th>
+                <th scope="col">Fecha y hora</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Evento</th>
+                <th scope="col">Entidad</th>
+                <th scope="col">Detalle</th>
               </tr>
             </thead>
             <tbody>
               {loading && rows.length === 0 ? (
                 <tr><td colSpan="5" className="nk-audit-empty">Cargando eventos…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan="5" className="nk-audit-empty">No hay eventos registrados.</td></tr>
+                <tr><td colSpan="5" className="nk-audit-empty"><EmptyState objectLabel="eventos" filtered={false} /></td></tr>
               ) : rows.map(row => (
                 <tr key={row.id}>
                   <td>{formatDate(row.created_at)}</td>

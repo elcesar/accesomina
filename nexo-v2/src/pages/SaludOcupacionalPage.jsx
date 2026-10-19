@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -148,7 +149,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
           <div className="nk-compliance-dialog-grid">
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label">Persona</label>
-              <select
+              <select aria-label="Persona"
                 className="nk-select"
                 required
                 value={form.workerId}
@@ -163,7 +164,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label">Protocolo / seguimiento</label>
-              <input
+              <input aria-label="Protocolo / seguimiento"
                 className="nk-input"
                 required
                 value={form.protocolo}
@@ -174,7 +175,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Riesgo / exposición</label>
-              <input
+              <input aria-label="Riesgo / exposición"
                 className="nk-input"
                 value={form.riesgo}
                 onChange={event => setForm(current => ({ ...current, riesgo: event.target.value }))}
@@ -183,7 +184,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Estado</label>
-              <select
+              <select aria-label="Estado"
                 className="nk-select"
                 value={form.estado}
                 onChange={event => setForm(current => ({ ...current, estado: event.target.value }))}
@@ -196,7 +197,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Responsable</label>
-              <input
+              <input aria-label="Responsable"
                 className="nk-input"
                 value={form.responsable}
                 onChange={event => setForm(current => ({ ...current, responsable: event.target.value }))}
@@ -205,7 +206,7 @@ function HealthDialog({ workers, onClose, onSaved }) {
 
             <div className="nk-field">
               <label className="nk-label">Observaciones</label>
-              <input
+              <input aria-label="Observaciones"
                 className="nk-input"
                 value={form.notes}
                 onChange={event => setForm(current => ({ ...current, notes: event.target.value }))}
@@ -334,11 +335,11 @@ export default function SaludOcupacionalPage() {
         <div className="nk-compliance-toolbar">
           <label className="nk-search">
             <IconSearch size={16} />
-            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
+            <input aria-label="Buscar registros" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
           </label>
           <div className="nk-field">
             <label className="nk-label">Estado</label>
-            <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+            <select aria-label="Estado" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
               <option value="todos">Todos</option>
               <option value="warn">Requiere revisión</option>
               <option value="ok">Cerrado</option>
@@ -357,19 +358,19 @@ export default function SaludOcupacionalPage() {
         ) : filtered.length === 0 ? (
           <div className="nk-empty nk-compliance-empty">
             <IconHeartRateMonitor size={30} />
-            <p className="nk-empty-title">Sin registros para mostrar</p>
+            <p className="nk-empty-title"><EmptyState objectLabel="registros" filtered={query !== "" || statusFilter !== "todos"} /></p>
           </div>
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
+            <table className="nk-table"><caption className="nk-sr-only">Salud ocupacional · tabla 1</caption>
               <thead>
                 <tr>
-                  <th>Persona</th>
-                  <th>Protocolo</th>
-                  <th>Riesgo / exposición</th>
-                  <th>Responsable</th>
-                  <th>Estado</th>
-                  <th>Evidencia</th>
+                  <th scope="col">Persona</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Riesgo / exposición</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Evidencia</th>
                 </tr>
               </thead>
               <tbody>

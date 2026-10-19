@@ -123,7 +123,7 @@ export default function ReportesPage() {
     <section className="nk-module-page nk-reports-page">
       <header className="nk-module-header nk-reports-header">
         <div>
-          <h1>Reportes y analítica</h1>
+          <h1>Reportes</h1>
           <p>Consulta indicadores y descarga información por categoría, respetando el ownership de cada módulo.</p>
         </div>
         <div className="nk-module-actions">

@@ -171,10 +171,10 @@ export default function IncidentesPage() {
       {error && <div className="nk-incidents-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15}/></button></div>}
 
       <section className="nk-card nk-incidents-filters">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar evento, acción o responsable..."/></label>
-        <select className="nk-select" value={orderFilter} onChange={e => setOrderFilter(e.target.value)}><option value="">Todas las OS</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.nombre || order.name || order.id}</option>)}</select>
-        <select className="nk-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="">Todos los tipos</option>{Object.entries(TYPE_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
-        <select className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option>{Object.entries(STATUS_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar registros" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar evento, acción o responsable..."/></label>
+        <select aria-label="Orden de servicio" className="nk-select" value={orderFilter} onChange={e => setOrderFilter(e.target.value)}><option value="">Todas las OS</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.nombre || order.name || order.id}</option>)}</select>
+        <select aria-label="Tipo de registro" className="nk-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="">Todos los tipos</option>{Object.entries(TYPE_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <select aria-label="Estado" className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option>{Object.entries(STATUS_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
       </section>
 
       <section className="nk-incidents-kpis">
@@ -185,8 +185,8 @@ export default function IncidentesPage() {
       </section>
 
       <section className="nk-card nk-incidents-table-card">
-        <div className="nk-table-wrapper"><table className="nk-table nk-incidents-table">
-          <thead><tr><th>Evento</th><th>Orden de servicio</th><th>Prioridad</th><th>Acción y plazo</th><th>Estado</th><th></th></tr></thead>
+        <div className="nk-table-wrapper"><table className="nk-table nk-incidents-table"><caption className="nk-sr-only">Incidentes y no conformidades · tabla 1</caption>
+          <thead><tr><th scope="col">Evento</th><th scope="col">Orden de servicio</th><th scope="col">Prioridad</th><th scope="col">Acción y plazo</th><th scope="col">Estado</th><th scope="col"></th></tr></thead>
           <tbody>{loading ? <tr><td colSpan="6">Cargando eventos…</td></tr> : filtered.length ? filtered.map(item => {
             const order = orderMap.get(String(item.mantId)); const priority = priorityOf(item)
             return <tr key={item.id}>
