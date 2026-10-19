@@ -27,6 +27,7 @@ import {
   workerOperationalAssignments,
 } from '../services/worker-segments.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import {
   DOCUMENT_TYPE_OPTIONS,
@@ -249,6 +250,8 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   const [backFile, setBackFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [pendingRequirement, setPendingRequirement] = useState(null)
+  const [documentToRemove, setDocumentToRemove] = useState(null)
+  const [deleteError, setDeleteError] = useState(null)
 
   const docs = (worker.workerItems || []).filter(d => tabKey === 'cursos' ? ['curso', 'certificacion'].includes(d.type) : !['curso'].includes(d.type))
   const reqs = getRequiredItems(worker)
@@ -322,13 +325,29 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     }
   }
 
-  async function eliminar(doc) {
+  function solicitarEliminacion(doc) {
     if (uploading) return
+    setDeleteError(null)
+    setDocumentToRemove(doc)
+  }
+
+  function cancelarEliminacion() {
+    if (uploading) return
+    setDocumentToRemove(null)
+    setDeleteError(null)
+  }
+
+  async function eliminarConfirmado() {
+    if (!documentToRemove || uploading) return
+    setDeleteError(null)
     setUploading(true)
     try {
-      await onRemoveItem(doc)
+      await onRemoveItem(documentToRemove)
+      setDocumentToRemove(null)
     } catch (e) {
-      onError(e.message || 'Error al eliminar el documento')
+      const message = e.message || 'Error al eliminar el documento'
+      setDeleteError(message)
+      onError(message)
     } finally {
       setUploading(false)
     }
@@ -354,8 +373,20 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <EmptyState objectLabel="registros cargados" filtered={false} /> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><caption className="nk-sr-only">Ficha de la persona · tabla 4</caption><thead><tr><th scope="col">Tipo</th><th scope="col">Nombre</th><th scope="col">Vence</th><th scope="col">Estado</th><th scope="col">Archivo</th><th scope="col" /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = !hasRequiredEvidence(d) ? 'nk-badge-error' : days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = !hasRequiredEvidence(d) ? documentEvidenceMessage(d) : days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <EmptyState objectLabel="registros cargados" filtered={false} /> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><caption className="nk-sr-only">Ficha de la persona · tabla 4</caption><thead><tr><th scope="col">Tipo</th><th scope="col">Nombre</th><th scope="col">Vence</th><th scope="col">Estado</th><th scope="col">Archivo</th><th scope="col" /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = !hasRequiredEvidence(d) ? 'nk-badge-error' : days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = !hasRequiredEvidence(d) ? documentEvidenceMessage(d) : days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => solicitarEliminacion(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
     </CardSection>
+
+    <ConfirmDialog
+      open={Boolean(documentToRemove)}
+      title="Eliminar documento"
+      description={`Se eliminará “${documentToRemove?.name || 'este documento'}” de la ficha de la persona. Esta acción no se puede deshacer desde esta pantalla.`}
+      confirmLabel="Eliminar documento"
+      variant="danger"
+      loading={uploading}
+      error={deleteError}
+      onCancel={cancelarEliminacion}
+      onConfirm={eliminarConfirmado}
+    />
   </>
 }
 
