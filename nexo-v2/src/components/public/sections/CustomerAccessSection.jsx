@@ -4,6 +4,8 @@ import { api } from '../../../services/api.js'
 import { formatRut, isValidRut } from '../../../services/rut.js'
 import { RutInput } from '../../ui/RutInput.jsx'
 import { PhoneInput } from '../../ui/PhoneInput.jsx'
+import { validateEmail } from '../../../services/email-validation.js'
+import { isValidChilePhone } from '../../../services/chile-phone.js'
 
 const initialRegistration = {
   companyName: '',
@@ -17,7 +19,7 @@ const initialRegistration = {
 }
 
 const registrationErrorMessages = {
-  INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
+  INVITE_CODE_INVALID: 'El código de invitación no es válido. Revísalo o solicita uno nuevo a contacto@nexoklar.com.',
   WEAK_PASSWORD: 'La contraseña debe tener al menos 12 caracteres e incluir mayúsculas, minúsculas y un número.',
 }
 
@@ -28,6 +30,7 @@ export function CustomerAccessPanel() {
   const [busy, setBusy] = useState(false)
   const [registration, setRegistration] = useState(initialRegistration)
   const [fieldErrors, setFieldErrors] = useState({})
+  const [showInvite, setShowInvite] = useState(false)
 
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
@@ -43,18 +46,24 @@ export function CustomerAccessPanel() {
     if (!registration.companyName.trim()) errors.companyName = 'Ingresa el nombre de la empresa.'
     if (!isValidRut(registration.rut)) errors.rut = 'Ingresa un RUT de empresa válido.'
     if (!registration.adminName.trim()) errors.adminName = 'Ingresa el nombre del administrador.'
-    if (!registration.email.trim()) errors.email = 'Ingresa el correo del administrador.'
+    const emailError = validateEmail(registration.email, { required: true })
+    if (emailError) errors.email = emailError
+    if (registration.phone && !isValidChilePhone(registration.phone)) errors.phone = 'Ingresa un teléfono chileno válido.'
     if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) errors.emailConfirmation = 'Los correos no coinciden.'
-    if (registration.password.length < 12) errors.password = 'La contraseña debe tener al menos 12 caracteres.'
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$/.test(registration.password)) errors.password = registrationErrorMessages.WEAK_PASSWORD
     if (!registration.inviteCode.trim()) errors.inviteCode = 'Ingresa el código de invitación.'
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
+    return errors
   }
 
 
   const submitRegistration = async event => {
     event.preventDefault()
-    if (!validate()) return
+    const errors = validate()
+    setFieldErrors(errors)
+    if (Object.keys(errors).length) {
+      document.getElementById(`registration-${Object.keys(errors)[0]}`)?.focus()
+      return
+    }
     setBusy(true)
     setMessage('')
     setMessageType('status')
@@ -74,6 +83,11 @@ export function CustomerAccessPanel() {
       setMessageType('approval')
       setRegistration(initialRegistration)
     } catch (error) {
+      const field = { INVITE_CODE_INVALID: 'inviteCode', WEAK_PASSWORD: 'password', INVALID_COMPANY_RUT: 'rut', INVALID_PHONE: 'phone', INVALID_EMAIL: 'email' }[error.code]
+      if (field) {
+        setFieldErrors(current => ({ ...current, [field]: registrationErrorMessages[error.code] || error.message }))
+        document.getElementById(`registration-${field}`)?.focus()
+      }
       setMessageType('alert')
       setMessage(registrationErrorMessages[error.code] || error.message || 'No fue posible crear el sitio privado.')
     } finally {
@@ -99,31 +113,38 @@ export function CustomerAccessPanel() {
         </p>
       </div>
 
-      <form className="nk-access-form" onSubmit={submitRegistration} aria-busy={busy}>
+      <form className="nk-access-form" noValidate onSubmit={submitRegistration} onBlur={event => {
+        const key = event.target.name
+        if (key) setFieldErrors(current => ({ ...current, [key]: validate()[key] || current[key] || '' }))
+      }} aria-busy={busy}>
         <label>
-          Nombre empresa
+          Nombre empresa (obligatorio)
           <input
             required
+            id="registration-companyName"
+            name="companyName"
+            aria-invalid={Boolean(fieldErrors.companyName)}
+            aria-describedby={fieldErrors.companyName ? "registration-companyName-error" : undefined}
             value={registration.companyName}
             onChange={update('companyName')}
             placeholder="Ej: Servicios Mineros Norte SpA"
             autoComplete="organization"
-            aria-invalid={Boolean(fieldErrors.companyName)}
-            aria-describedby={fieldErrors.companyName ? "registration-company-error" : undefined}
           />
-          {fieldErrors.companyName && <span id="registration-company-error" className="nk-field-error">{fieldErrors.companyName}</span>}
+          {fieldErrors.companyName && <span id="registration-companyName-error" className="nk-field-error">{fieldErrors.companyName}</span>}
         </label>
 
         <div className="nk-access-form-row">
           <label>
-            RUT empresa
+            RUT empresa (obligatorio)
             <RutInput
               required
-              value={registration.rut}
+              id="registration-rut"
+            name="rut"
+            aria-invalid={Boolean(fieldErrors.rut)}
+            aria-describedby={fieldErrors.rut ? "registration-rut-error" : undefined}
+            value={registration.rut}
               onChange={value => setRegistration(current => ({ ...current, rut: value }))}
-              placeholder="12.345.678-9"
-              aria-invalid={Boolean(fieldErrors.rut)}
-              aria-describedby={fieldErrors.rut ? "registration-rut-error" : undefined}
+              placeholder="Ej.: XX.XXX.XXX-X"
               onBlur={() => { if (registration.rut && !isValidRut(registration.rut)) setFieldErrors(current => ({ ...current, rut: "Ingresa un RUT de empresa válido." })) }}
             />
             {fieldErrors.rut && <span id="registration-rut-error" className="nk-field-error">{fieldErrors.rut}</span>}
@@ -132,6 +153,9 @@ export function CustomerAccessPanel() {
           <label>
             Teléfono
             <PhoneInput
+              id="registration-phone"
+              name="phone"
+              error={fieldErrors.phone}
               value={registration.phone}
               onChange={value => setRegistration(current => ({ ...current, phone: value }))}
             />
@@ -139,33 +163,47 @@ export function CustomerAccessPanel() {
         </div>
 
         <label>
-          Nombre administrador
+          Nombre administrador (obligatorio)
           <input
             required
+            id="registration-adminName"
+            name="adminName"
+            aria-invalid={Boolean(fieldErrors.adminName)}
+            aria-describedby={fieldErrors.adminName ? "registration-adminName-error" : undefined}
             value={registration.adminName}
             onChange={update('adminName')}
             placeholder="Nombre y apellido"
             autoComplete="name"
           />
+          {fieldErrors.adminName && <span id="registration-adminName-error" className="nk-field-error" role="alert">{fieldErrors.adminName}</span>}
         </label>
 
         <label>
-          Correo administrador
+          Correo administrador (obligatorio)
           <input
             required
             type="email"
+            id="registration-email"
+            name="email"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? "registration-email-error" : undefined}
             value={registration.email}
             onChange={update('email')}
             placeholder="admin@empresa.cl"
             autoComplete="email"
           />
+          {fieldErrors.email && <span id="registration-email-error" className="nk-field-error" role="alert">{fieldErrors.email}</span>}
         </label>
 
         <label>
-          Confirma el correo administrador
+          Confirma el correo administrador (obligatorio)
           <input
             required
             type="email"
+            id="registration-emailConfirmation"
+            name="emailConfirmation"
+            aria-invalid={Boolean(fieldErrors.emailConfirmation)}
+            aria-describedby={fieldErrors.emailConfirmation ? "registration-emailConfirmation-error" : undefined}
             value={registration.emailConfirmation}
             onChange={update('emailConfirmation')}
             onPaste={event => event.preventDefault()}
@@ -173,35 +211,48 @@ export function CustomerAccessPanel() {
             placeholder="Escribe nuevamente el correo"
             autoComplete="off"
           />
+          {fieldErrors.emailConfirmation && <span id="registration-emailConfirmation-error" className="nk-field-error" role="alert">{fieldErrors.emailConfirmation}</span>}
         </label>
 
         <div className="nk-access-form-row">
           <label>
-            Contraseña
+            Contraseña (obligatorio)
             <input
               required
               type="password"
               minLength="12"
-              value={registration.password}
+              id="registration-password"
+            name="password"
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? "registration-password-error" : undefined}
+            value={registration.password}
               onChange={update('password')}
               placeholder="12+ caracteres"
               autoComplete="new-password"
             />
+          {fieldErrors.password && <span id="registration-password-error" className="nk-field-error" role="alert">{fieldErrors.password}</span>}
           </label>
 
           <label>
-            Código de invitación
+            Código de invitación (obligatorio)
             <input
               required
-              type="password"
-              value={registration.inviteCode}
+              type={showInvite ? 'text' : 'password'}
+              id="registration-inviteCode"
+            name="inviteCode"
+            aria-invalid={Boolean(fieldErrors.inviteCode)}
+            aria-describedby={fieldErrors.inviteCode ? "registration-inviteCode-error" : undefined}
+            value={registration.inviteCode}
               onChange={update('inviteCode')}
               placeholder="Entregado por Nexo Klar"
               autoComplete="off"
             />
+          {fieldErrors.inviteCode && <span id="registration-inviteCode-error" className="nk-field-error" role="alert">{fieldErrors.inviteCode}</span>}
           </label>
         </div>
 
+        <button type="button" className="nk-button nk-button-quiet" onClick={() => setShowInvite(value => !value)} aria-pressed={showInvite} aria-controls="registration-inviteCode">{showInvite ? 'Ocultar código' : 'Mostrar código de invitación'}</button>
+        {!config.registrationEnabled && <p className="nk-access-note" role="status">El registro está cerrado temporalmente. Solicita una invitación a <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>.</p>}
         <button
           className="nk-button nk-button-primary"
           type="submit"
@@ -231,7 +282,7 @@ export default function CustomerAccessSection() {
       <div className="nk-access-layout">
         <div>
           <p className="nk-eyebrow">Nuevo cliente</p>
-          <h2>Crea el espacio privado de tu empresa.</h2>
+          <h1>Crea el espacio privado de tu empresa.</h1>
           <p className="nk-lead">
             Registra la empresa y su administrador inicial para comenzar el proceso de habilitación en Nexo Klar.
           </p>
