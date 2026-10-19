@@ -1,3 +1,4 @@
+import { includesSearch } from '../services/search.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
@@ -60,7 +61,7 @@ export default function MovimientosInventarioPage() {
     const worker = workers.find(entry => String(entry.id) === String(row.workerId))
     const order = orders.find(entry => String(entry.id) === String(row.projectId || row.mantId))
     const searchable = [item?.name, item?.code, row.notes, row.user, worker?.nombre, worker?.name, order?.codigo, order?.nombre, order?.name]
-    return (!term || searchable.some(value => String(value || '').toLowerCase().includes(term))) &&
+    return (!term || searchable.some(value => includesSearch(String(value || ''), term))) &&
       (!typeFilter || row.type === typeFilter) &&
       (!warehouseFilter || String(row.warehouseId) === warehouseFilter || String(row.warehouseToId) === warehouseFilter) &&
       (!dateFilter || String(row.effectiveAt || row.at || row.date || '').slice(0, 10) === dateFilter)

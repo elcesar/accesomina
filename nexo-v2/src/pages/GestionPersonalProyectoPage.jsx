@@ -1,3 +1,4 @@
+import { includesSearch } from '../services/search.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -40,7 +41,7 @@ export default function GestionPersonalProyectoPage() {
     const elsewhere = assignments.some(item => String(item.trabId) === String(worker.id) && String(item.mantId) !== String(projectId) && assignmentIsOperational(item))
     return { worker, assignment, current, check, elsewhere, restricted }
   }).filter(item => {
-    const text = query.trim().toLowerCase(), matches = !text || [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(v => String(v || '').toLowerCase().includes(text))
+    const text = query.trim().toLowerCase(), matches = !text || [item.worker.nombre, item.worker.rut, item.worker.cargo, item.worker.especialidad].some(v => includesSearch(String(v || ''), text))
     const free = !item.assignment && !item.elsewhere && !item.restricted
     return matches && (!specialty || (item.worker.especialidad || item.worker.cargo) === specialty) && (!stageFilter || item.current === stageFilter) && (availability === 'todos' || availability === 'califican' && item.check.ready && !item.elsewhere || availability === 'libres' && free || availability === 'asignados' && Boolean(item.assignment))
   }), [workers, relation, assignments, restrictions, projectId, query, specialty, stageFilter, availability])

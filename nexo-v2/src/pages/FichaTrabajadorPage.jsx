@@ -1,5 +1,7 @@
+import { formatChileDate } from '../services/chile-format.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { localDate } from '../services/calendar-date.js'
-import { useEffect, useRef, useState } from 'react'
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   IconAlertTriangle, IconArrowLeft, IconBook, IconBrandWhatsapp,
@@ -86,14 +88,11 @@ function initials(name) {
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
 }
 
-function diasHasta(date) {
-  if (!date) return null
-  return Math.floor((new Date(date) - new Date()) / 86400000)
-}
+function diasHasta(date) { return calendarDaysUntil(date) }
 
 function itemValid(item) {
   if (!item || item.estado === 'rechazado') return false
-  return !(item.vence && diasHasta(item.vence) < 0)
+  return !item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0)
 }
 
 function matchItem(item, req) {
@@ -135,7 +134,12 @@ function BadgeDisp({ value }) {
 }
 
 function Field({ label, hint, htmlFor, children }) {
-  return <div className="nk-field"><label className="nk-label" htmlFor={htmlFor}>{label}</label>{children}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
+  const generatedId=useId()
+  const list=Children.toArray(children)
+  const index=list.findIndex(child=>isValidElement(child)&&(['input','select','textarea'].includes(child.type)||[PhoneInput,EmailInput,BirthDateInput].includes(child.type)))
+  const inputId=htmlFor||list[index]?.props?.id||generatedId
+  const controls=list.map((child,i)=>i===index?cloneElement(child,{id:inputId}):child)
+  return <div className="nk-field"><label className="nk-label" htmlFor={inputId}>{label}</label>{controls}{hint && <p className="nk-person-field-hint">{hint}</p>}</div>
 }
 
 function CardSection({ title, subtitle, action, children }) {
@@ -345,7 +349,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
     </CardSection>
   </>
 }
@@ -356,7 +360,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries }) {
   const rows = deliveries.filter(d => d.workerId === worker.id).sort((a, b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
   return <>
     <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{fields.map(([key, label]) => <Field key={key} label={label}>{key === 'casco' ? <input className="nk-input" value="Talla única" disabled aria-label="Casco talla única" /> : <input className="nk-input" value={epp[key] || ''} onChange={e => onChange('epp', { ...epp, [key]: e.target.value })} />}</Field>)}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
-    <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Fecha</th><th>EPP</th><th>Talla</th><th>Marca / certificación</th><th>Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{d.deliveredAt || '—'}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{d.replaceAt || 'Según inspección'}</td></tr>)}</tbody></table></div>}</CardSection>
+    <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Fecha</th><th>EPP</th><th>Talla</th><th>Marca / certificación</th><th>Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{formatChileDate(d.deliveredAt || '—')}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{formatChileDate(d.replaceAt || 'Según inspección')}</td></tr>)}</tbody></table></div>}</CardSection>
   </>
 }
 

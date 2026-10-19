@@ -1,6 +1,7 @@
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { cloneElement, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
@@ -102,6 +103,7 @@ function Field({ label, required, hint, error, fieldId, children, full = false }
         id: fieldId,
         'aria-invalid': error ? true : undefined,
         'aria-describedby': errorId,
+        ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
     : children
 
@@ -285,6 +287,9 @@ export default function NuevoTrabajadorPage() {
     [data],
   )
 
+  const allowNavigation = useRef(false)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => hasUnsavedChanges && !allowNavigation.current && currentLocation.pathname !== nextLocation.pathname)
+
   useEffect(() => {
     const warnBeforeUnload = event => {
       if (!hasUnsavedChanges) return
@@ -348,7 +353,6 @@ export default function NuevoTrabajadorPage() {
   }
 
   function leaveCreateFlow() {
-    if (hasUnsavedChanges && !window.confirm('Tienes cambios sin guardar. ¿Quieres salir y descartar la información ingresada?')) return
     navigate('/app/trabajadores')
   }
 
@@ -400,6 +404,7 @@ export default function NuevoTrabajadorPage() {
       }
 
       await api.put('/state/modules', { reason: `Alta de persona: ${nuevo.nombre}`, changes })
+      allowNavigation.current = true
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
       setError(personError(cause.code, cause.message))
@@ -418,6 +423,7 @@ export default function NuevoTrabajadorPage() {
 
   return (
     <div className="nk-person-create-page">
+      <ConfirmDialog open={blocker.state === 'blocked'} title="Salir sin guardar" description="Tienes cambios sin guardar. Si sales, se perderá la información de esta persona." confirmLabel="Salir y descartar" cancelLabel="Seguir editando" variant="danger" onConfirm={()=>blocker.proceed?.()} onCancel={()=>blocker.reset?.()} />
       <div className="nk-person-create-breadcrumb">
         <button className="nk-button nk-button-quiet" type="button" onClick={leaveCreateFlow}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
         <span className="nk-person-create-breadcrumb-separator" aria-hidden="true">/</span>
