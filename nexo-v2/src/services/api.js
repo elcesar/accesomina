@@ -2,6 +2,7 @@ const BASE = '/api'
 let csrfToken = null
 
 const ERROR_MESSAGES = {
+  RECORD_VERSION_CONFLICT: 'Esta persona cambió mientras la editabas. Recarga su ficha y revisa los cambios antes de guardar.',
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
   ACCOUNT_DISABLED: 'Tu cuenta o empresa no está habilitada para ingresar.',
