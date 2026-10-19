@@ -29,14 +29,14 @@ async function mockApi(page, { session = clientAdmin, signedIn = true } = {}) {
 test('la navegación pública muestra una sección distinta por opción', async ({ page }) => {
   await mockApi(page, { signedIn: false }); await page.goto('/')
   await expect(page.getByRole('heading', { name: /Convierte información dispersa/i })).toBeVisible()
-  await page.getByRole('button', { name: 'Plataforma' }).click(); await expect(page.getByRole('heading', { name: /De la oportunidad al servicio cerrado/i })).toBeVisible()
-  await page.getByRole('button', { name: 'Propósito' }).click(); await expect(page.locator('[data-public-page="proposito"]')).toBeVisible(); await expect(page.getByRole('heading', { name: /Creemos que las mejores decisiones nacen de información confiable/i })).toBeVisible()
+  await page.getByRole('link', { name: 'Plataforma',exact:true }).first().click(); await expect(page.getByRole('heading', { name: /De la oportunidad al servicio cerrado/i })).toBeVisible()
+  await page.getByRole('link', { name: 'Propósito',exact:true }).first().click(); await expect(page.locator('[data-public-page="proposito"]')).toBeVisible(); await expect(page.getByRole('heading', { name: /Creemos que las mejores decisiones nacen de información confiable/i })).toBeVisible()
 })
 
 test('un cliente puede iniciar sesión y llegar al panel de control', async ({ page }) => {
   await mockApi(page, { signedIn: false }); await page.goto('/login')
   await page.locator('input[name="rut"]').fill('76.123.456-0'); await page.locator('input[name="email"]').fill('cliente@empresa.cl'); await page.locator('input[name="password"]').fill('ClaveSegura123')
-  await page.getByRole('button', { name: 'Ingresar' }).click(); await expect(page).toHaveURL(/\/app$/); await expect(page.getByRole('heading', { name: 'Estado de la operación' })).toBeVisible()
+  await page.getByRole('button', { name: 'Ingresar' }).click(); await expect(page).toHaveURL(/\/app$/); await expect(page.getByRole('heading', { name: 'Panel de control' })).toBeVisible()
 })
 
 test('un Client Admin puede crear un cliente desde la ficha comercial', async ({ page }) => {

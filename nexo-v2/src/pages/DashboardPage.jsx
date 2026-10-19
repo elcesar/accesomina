@@ -1,3 +1,5 @@
+import { useVerifiedState } from '../services/use-evidence-availability.jsx'
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
@@ -50,7 +52,7 @@ export default function DashboardPage() {
   }
 
   useEffect(() => { load() }, [])
-  const state = response?.state || response || {}
+  const state = useVerifiedState(response?.state || response || {})
 
   const derived = useMemo(() => {
     const people = rows(state.trabajadores)
@@ -112,6 +114,6 @@ export default function DashboardPage() {
     {error && <div className="nk-control-feedback"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
     <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas no habilitadas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
     <section className="nk-role-focus"><div><p className="nk-module-kicker">Tu prioridad hoy</p><h2>{roleFocus.title}</h2><span>{roleFocus.copy}</span></div><button className="nk-button nk-button-primary" type="button" onClick={() => navigate(roleFocus.to)}>{roleFocus.action}<IconArrowRight size={16}/></button></section>
-    <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <div className="nk-module-empty"><IconClipboardCheck size={26}/><b>Sin brechas críticas detectadas</b><span>Las restricciones, vencimientos y reposiciones aparecerán aquí.</span></div>}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
+    <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <EmptyState objectLabel="brechas críticas detectadas Las restricciones, vencimientos y reposiciones aparecerán aquí" filtered={false} />}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
   </section>
 }

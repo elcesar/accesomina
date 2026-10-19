@@ -34,3 +34,11 @@ test('two-sided evidence requires both physical sides and expiry; old filenames 
  assert.equal(hasRequiredEvidence(withEvidenceAvailability(worker,{a:'available',b:'available'}).workerItems[0]),true)
  assert.equal(hasRequiredEvidence({type:'cv',fileName:'antiguo.pdf'}),false)
 })
+
+test('server sanitization strips client verification flags without altering unrelated availability fields',async()=>{
+ const {sanitizeJson}=await import('../validation.js')
+ const result=sanitizeJson({trabajadores:[{id:'qa',workerItems:[{fileId:'id',fileAvailability:'available',files:[{fileId:'id',availability:'available'}]}]}],inventory:[{availability:'disponible'}]})
+ assert.equal(result.trabajadores[0].workerItems[0].fileAvailability,undefined)
+ assert.equal(result.trabajadores[0].workerItems[0].files[0].availability,undefined)
+ assert.equal(result.inventory[0].availability,'disponible')
+})

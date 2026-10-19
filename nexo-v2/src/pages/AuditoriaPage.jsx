@@ -1,3 +1,5 @@
+import { useVerifiedState } from '../services/use-evidence-availability.jsx'
+import { hasRequiredEvidence } from '../services/worker-document-rules.js'
 import { includesSearch } from '../services/search.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
@@ -20,21 +22,22 @@ const REQUIRED_ITEMS=[
 function rows(v){return Array.isArray(v)?v:[]}
 function daysUntil(date){ return calendarDaysUntil(date) }
 function itemMatches(item,req){return item.type===req.type&&includesSearch(String(item.name||''), req.name.toLowerCase().split('/')[0].trim())}
-function pctFor(worker){const items=rows(worker.workerItems);const ok=REQUIRED_ITEMS.filter(req=>items.some(item=>itemMatches(item,req)&&item.estado!=='rechazado'&&!(item.vence&&daysUntil(item.vence)<0))).length;return Math.round(ok/REQUIRED_ITEMS.length*100)}
+function pctFor(worker){const items=rows(worker.workerItems);const ok=REQUIRED_ITEMS.filter(req=>items.some(item=>itemMatches(item,req)&&item.estado!=='rechazado'&&hasRequiredEvidence(item)&&!(item.vence&&daysUntil(item.vence)<0))).length;return Math.round(ok/REQUIRED_ITEMS.length*100)}
 function issuesFor(worker){const issues=[];const items=rows(worker.workerItems)
   if(worker.rut&&!/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/.test(String(worker.rut))&&!/^\d{7,8}-[\dkK]$/.test(String(worker.rut)))issues.push('Revisar formato RUT')
   if(worker.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(worker.email)))issues.push('Email no válido')
-  items.forEach(it=>{if(!(it.fileName||it.cloudUrl))issues.push(`${it.name||'Documento'}: sin respaldo`);if(it.vence&&daysUntil(it.vence)<0)issues.push(`${it.name||'Documento'}: vencido`)})
-  REQUIRED_ITEMS.forEach(req=>{if(!items.some(item=>itemMatches(item,req)&&item.estado!=='rechazado'&&!(item.vence&&daysUntil(item.vence)<0)))issues.push(`Falta o vencido: ${req.name}`)})
+  items.forEach(it=>{if(!hasRequiredEvidence(it))issues.push(`${it.name||'Documento'}: sin respaldo`);if(it.vence&&daysUntil(it.vence)<0)issues.push(`${it.name||'Documento'}: vencido`)})
+  REQUIRED_ITEMS.forEach(req=>{if(!items.some(item=>itemMatches(item,req)&&item.estado!=='rechazado'&&hasRequiredEvidence(item)&&!(item.vence&&daysUntil(item.vence)<0)))issues.push(`Falta o vencido: ${req.name}`)})
   return [...new Set(issues)]
 }
 function auditState(worker){const pct=pctFor(worker),issues=issuesFor(worker);if(issues.length||pct<60)return {key:'no_puede',label:issues.length?'Alerta':'No puede operar',cls:'nk-badge-error'};if(pct>=85)return {key:'puede',label:'Puede operar',cls:'nk-badge-ok'};return {key:'revisar',label:'Revisar',cls:'nk-badge-warn'}}
 function csvEscape(v){return `"${String(v??'').replaceAll('"','""')}"`}
 
 export default function AuditoriaPage(){
-  const [state,setState]=useState(null),[loading,setLoading]=useState(true),[query,setQuery]=useState(''),[clientFilter,setClientFilter]=useState(''),[statusFilter,setStatusFilter]=useState('')
+  const [rawState,setState]=useState(null),[loading,setLoading]=useState(true),[query,setQuery]=useState(''),[clientFilter,setClientFilter]=useState(''),[statusFilter,setStatusFilter]=useState('')
   async function load(){setLoading(true);try{const r=await api.get('/state');setState(r?.state||r)}finally{setLoading(false)}}
   useEffect(()=>{load()},[])
+  const state=useVerifiedState(rawState)
   const workers=rows(state?.trabajadores).filter(w=>!w.bloqueado),clients=rows(state?.minas).length?rows(state?.minas):rows(state?.clientes),assignments=rows(state?.asignaciones),orders=rows(state?.mantenciones).length?rows(state?.mantenciones):rows(state?.proyectos)
   const clientMap=useMemo(()=>new Map(clients.map(c=>[String(c.id),c])),[clients]),orderMap=useMemo(()=>new Map(orders.map(o=>[String(o.id),o])),[orders])
   const audited=useMemo(()=>workers.map(worker=>{const mantIds=assignments.filter(a=>String(a.trabId)===String(worker.id)).map(a=>String(a.mantId));const inferredClients=[...new Set([...rows(worker.mineras).map(String),...mantIds.map(id=>String(orderMap.get(id)?.minaId||'')).filter(Boolean)])];return {worker,mantIds,clientIds:inferredClients,pct:pctFor(worker),issues:issuesFor(worker),status:auditState(worker)}}),[workers,assignments,orderMap])

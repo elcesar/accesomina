@@ -5,6 +5,7 @@ test('physical file verification updates document status without treating a miss
  await page.route('**/api/**',route=>{
   const path=new URL(route.request().url()).pathname
   if(path==='/api/files/availability'){checks++;return route.fulfill({json:{files:[{fileId:worker.workerItems[0].fileId,availability}]}})}
+  if(path.startsWith('/api/state/records/trabajadores/'))return route.fulfill({json:{record:worker,revision:'qa-revision'}})
   return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state:{trabajadores:[worker]},moduleVersions:{}}:{}})
  })
  await page.goto('/app/trabajadores/qa')

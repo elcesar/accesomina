@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { includesSearch } from '../services/search.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
@@ -245,7 +246,7 @@ export default function TercerosSubcontratosPage() {
         {loading ? (
           <div className="nk-empty nk-third-empty"><IconBuildingFactory2 size={30} /><p className="nk-empty-title">Cargando terceros…</p></div>
         ) : filtered.length === 0 ? (
-          <div className="nk-empty nk-third-empty"><IconBuildingFactory2 size={30} /><p className="nk-empty-title">Sin terceros para mostrar</p><p className="nk-empty-description">Ajusta los filtros o registra una empresa colaboradora.</p></div>
+          <EmptyState objectLabel="terceros" filtered={query !== "" || contractFilter !== "" || statusFilter !== ""} />
         ) : (
           <div className="nk-table-wrapper">
             <table className="nk-table"><caption className="nk-sr-only">Terceros y subcontratos · tabla 1</caption>

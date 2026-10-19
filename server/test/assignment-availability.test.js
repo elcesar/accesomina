@@ -50,13 +50,13 @@ test('historical operational assignments do not block unrelated saves after a la
   proposed.trabajadores[0].especialidad = 'Mecánica'
   proposed.restricted = [{ id: 'later-restriction', workerId: worker.id, activa: true, estado: 'vigente' }]
 
-  assert.doesNotThrow(() => validateTenantState(proposed, previous))
+  assert.doesNotThrow(() => validateTenantState(proposed, {previousState:previous}))
 })
 
 test('a new operational assignment and a transition to operational remain blocked for restricted workers', () => {
   const previous = stateFor({}, [{ id: 'restriction', workerId: worker.id, activa: true, estado: 'vigente' }])
   const newAssignment = { ...structuredClone(previous), asignaciones: [assignment] }
-  assert.throws(() => validateTenantState(newAssignment, previous), error => error?.code === 'WORKER_NOT_AVAILABLE')
+  assert.throws(() => validateTenantState(newAssignment, {previousState:previous}), error => error?.code === 'WORKER_NOT_AVAILABLE')
 
   const inactive = { ...assignment, estado: 'retirado' }
   const priorInactive = { ...structuredClone(previous), asignaciones: [inactive] }

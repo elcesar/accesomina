@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from './api.js'
-import { evidenceFileIds } from './evidence-availability.js'
+import { evidenceFileIds, withEvidenceAvailability } from './evidence-availability.js'
 export function useEvidenceAvailability(workers) {
  const key=JSON.stringify(evidenceFileIds(workers))
  const [result,setResult]=useState({})
@@ -20,4 +20,9 @@ export function useEvidenceAvailability(workers) {
   return ()=>{active=false}
  },[key,revision])
  return result
+}
+
+export function useVerifiedState(state) {
+ const availability=useEvidenceAvailability(state?.trabajadores||[])
+ return useMemo(()=>state ? {...state,trabajadores:(state.trabajadores||[]).map(worker=>withEvidenceAvailability(worker,availability))} : state,[state,availability])
 }

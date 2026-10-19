@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { localDate, localDateTime, operationalDate, operationalDateTime, operationalDateTimeToUtc, operationalTimeZone } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBook, IconFileDescription, IconPlus, IconRefresh, IconSearch, IconSignature as IconFileSignature, IconX } from '@tabler/icons-react'
@@ -194,7 +195,7 @@ export default function LibroObraPage() {
               ))}</tbody>
             </table>
           </div>
-        ) : <p className="nk-book-empty">No hay anotaciones que coincidan con los filtros seleccionados.</p>}
+        ) : <EmptyState objectLabel="anotaciones que coincidan con los filtros seleccionados" filtered={quickFilter !== "todos"} />}
       </section>
 
       {showForm && <div className="nk-book-modal" onMouseDown={() => setShowForm(false)}><form onSubmit={submit} onMouseDown={event => event.stopPropagation()}>

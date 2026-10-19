@@ -57,3 +57,13 @@
 
 .nk-disabled-action-help { display: block; color: var(--nk-ink-2); font-size: 13px; max-width: 32rem; }
 .nk-operation-feedback { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 16px; margin:12px 0; border:1px solid var(--nk-state-ok); background:var(--nk-state-ok-soft); color:var(--nk-ink); border-radius:8px; }
+/* Native checkbox/radio semantics with a 44px clickable area and an 18px glyph. */
+.nk-app-shell input:is([type=checkbox],[type=radio]) { appearance:none; width:44px; height:44px; min-width:44px; min-height:44px; margin:0; display:inline-grid; place-content:center; vertical-align:middle; border:0; background:transparent; cursor:pointer; }
+.nk-app-shell input:is([type=checkbox],[type=radio])::before { content:''; grid-area:1/1; width:18px; height:18px; border:1px solid var(--nk-border-control); border-radius:3px; background:var(--nk-surface); box-sizing:border-box; }
+.nk-app-shell input[type=checkbox]:checked::before { background:var(--nk-primary); border-color:var(--nk-primary); }
+.nk-app-shell input[type=checkbox]::after { content:''; grid-area:1/1; justify-self:center; align-self:center; width:5px; height:10px; border:solid var(--nk-on-primary); border-width:0 2px 2px 0; transform:translateY(-1px) rotate(45deg); opacity:0; }
+.nk-app-shell input[type=radio]::before { border-radius:50%; }
+.nk-app-shell input[type=radio]::after { content:''; grid-area:1/1; justify-self:center; align-self:center; width:10px; height:10px; border-radius:50%; background:var(--nk-primary); opacity:0; }
+.nk-app-shell input:is([type=checkbox],[type=radio]):checked::after { opacity:1; }
+.nk-app-shell input:is([type=checkbox],[type=radio]):focus-visible { outline:2px solid var(--nk-action); outline-offset:2px; }
+.nk-app-shell input:is([type=checkbox],[type=radio]):disabled { opacity:0.6; cursor:default; }

@@ -44,3 +44,13 @@ test('main portal views fit a mobile viewport', async ({ page }) => {
   expect(await page.evaluate(()=>document.documentElement.scrollWidth),path).toBeLessThanOrEqual(391)
  }
 })
+
+test('checkboxes keep native keyboard behavior with a 44px click target',async({page})=>{
+ await page.goto('/app/configuracion')
+ const checkbox=page.getByRole('checkbox').first()
+ const box=await checkbox.boundingBox()
+ expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44)
+ await expect(checkbox).toBeChecked()
+ await checkbox.focus();await page.keyboard.press('Space')
+ await expect(checkbox).not.toBeChecked()
+})

@@ -358,10 +358,7 @@ export default function SaludOcupacionalPage() {
             <p className="nk-empty-title">Cargando salud ocupacional…</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="nk-empty nk-compliance-empty">
-            <IconHeartRateMonitor size={30} />
-            <p className="nk-empty-title"><EmptyState objectLabel="registros" filtered={query !== "" || statusFilter !== "todos"} /></p>
-          </div>
+          <EmptyState objectLabel="registros" filtered={query !== "" || statusFilter !== "todos"} />
         ) : (
           <div className="nk-table-wrapper">
             <table className="nk-table"><caption className="nk-sr-only">Salud ocupacional · tabla 1</caption>

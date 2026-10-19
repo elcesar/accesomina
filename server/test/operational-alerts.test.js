@@ -15,7 +15,7 @@ test('creates critical alerts for each required document missing from a worker p
 })
 
 test('does not duplicate an identity alert when both sides and its expiry are registered', () => {
-  const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [{ id: 'identity', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front' }, { side: 'back', fileId: 'back' }] }] }] })
+  const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [{ id: 'identity', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front', availability:'available' }, { side: 'back', fileId: 'back', availability:'available' }] }] }] })
   assert.equal(alerts.some(alert => alert.msg.includes('falta Cédula de identidad')), false)
   assert.equal(alerts.filter(alert => alert.trabId === worker.id).length, 6)
 })
@@ -29,7 +29,7 @@ test('describes an operationally blocked person as not enabled', () => {
 test('uses a complete replacement evidence when an older record is incomplete', () => {
   const alerts = operationalAlerts({ trabajadores: [{ ...worker, workerItems: [
     { id: 'identity-old', type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front-old' }] },
-    { id: 'identity-new', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front-new' }, { side: 'back', fileId: 'back-new' }] },
+    { id: 'identity-new', type: 'documento', name: 'Cédula de identidad', estado: 'aprobado', vence: '2030-01-01', files: [{ side: 'front', fileId: 'front-new', availability:'available' }, { side: 'back', fileId: 'back-new', availability:'available' }] },
   ] }] })
 
   assert.equal(alerts.some(alert => alert.msg.includes('falta Cédula de identidad')), false)

@@ -3,6 +3,7 @@ const state={trabajadores:[{id:'qa-person',nombre:'José Peña QA',rut:'11.111.1
 test.beforeEach(async({page})=>{
  await page.route('**/api/**',route=>{
  const path=new URL(route.request().url()).pathname
+ if(path.startsWith('/api/state/records/trabajadores/'))return route.fulfill({json:{record:state.trabajadores.find(worker=>worker.id===path.split('/').at(-1)),revision:'qa-revision'}})
  return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:{}})
  })
 })

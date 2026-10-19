@@ -124,7 +124,7 @@ export default function BitacoraCambiosPage() {
               {loading && rows.length === 0 ? (
                 <tr><td colSpan="5" className="nk-audit-empty">Cargando eventos…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan="5" className="nk-audit-empty"><EmptyState objectLabel="eventos" filtered={false} /></td></tr>
+                <tr><EmptyState objectLabel="eventos" filtered={false} /></tr>
               ) : rows.map(row => (
                 <tr key={row.id}>
                   <td>{formatDate(row.created_at)}</td>

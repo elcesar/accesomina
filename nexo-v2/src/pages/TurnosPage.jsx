@@ -266,7 +266,7 @@ export default function TurnosPage() {
                   <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
-                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><span className="nk-empty-description"><EmptyState objectLabel="proyectos o servicios abiertos" filtered={false} actionLabel="Programar turno" onAction={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length} /></span></div></td></tr>
+                      <tr><EmptyState objectLabel="proyectos o servicios abiertos" filtered={false} actionLabel="Programar turno" onAction={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length} /></tr>
                     ) : cobertura.map(({ m, asigs, present, pending, status }) => {
                       const mina = minas.find(current => current.id === m.minaId)
                       return (
@@ -309,7 +309,7 @@ export default function TurnosPage() {
                   <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
-                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
+                      <tr><EmptyState objectLabel="jornadas registradas Programa una jornada" filtered={false} /></tr>
                     ) : jornadasFiltradas.map(t => (
                       <tr key={t.id}>
                         <td>

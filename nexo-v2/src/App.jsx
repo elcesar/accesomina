@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import AppErrorBoundary from './components/ui/AppErrorBoundary.jsx'
-import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Route, Navigate, useParams } from 'react-router-dom'
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Route, Navigate, useParams, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
@@ -94,8 +95,13 @@ function LegacyClientAccreditationRedirect() {
   return <Navigate to="/app/habilitacion-cliente" replace />
 }
 
+function RouteMetadata() {
+ const {pathname}=useLocation()
+ useEffect(()=>{const titles={'/login':'Acceso','/recuperar-contrasena':'Recuperar contraseña','/restablecer-contrasena':'Restablecer contraseña','/cambiar-password':'Cambiar contraseña','/configurar-mfa':'Doble autenticación'};if(titles[pathname])document.title=`${titles[pathname]} · Nexo Klar`},[pathname])
+ return null
+}
 function AuthShell() {
-  return <AuthProvider><AppErrorBoundary><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style><Outlet /></AppErrorBoundary></AuthProvider>
+  return <AuthProvider><AppErrorBoundary><RouteMetadata /><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style><Outlet /></AppErrorBoundary></AuthProvider>
 }
 const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<AuthShell />}>

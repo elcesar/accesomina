@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEvidenceAvailability } from '../services/use-evidence-availability.jsx'
@@ -448,13 +449,7 @@ export default function TrabajadoresPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td className="nk-people-empty-cell" colSpan={7}>
-                    <div className="nk-empty">
-                      <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del encabezado para registrar una nueva persona.</p>
-                    </div>
-                  </td>
+                  <EmptyState objectLabel="personas en esta vista Ajusta los filtros o utiliza la acción + Persona del encabezado" filtered={search !== "" || specialty !== "" || clientId !== "" || projectId !== "" || contractId !== "" || qualification !== ""} />
                 </tr>
               ) : filtered.map(persona => {
                 const segment = workerSegment(persona, asignaciones, proyectos, restrictions)

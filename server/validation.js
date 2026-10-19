@@ -52,11 +52,14 @@ export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
     const out = {};
     for (const [k, v] of Object.entries(value)) {
       if (blockedKeys.has(k)) continue;
+      if (parentKey === 'workerItems' && k === 'fileAvailability') continue;
+      if (parentKey === 'files' && context.workerEvidenceFiles && k === 'availability') continue;
       out[k] = sanitizeJson(v, k, key, {
         ...childContext,
         // Preserve only the direct email field of an item in trabajadores.
         // Nested objects and other entities still use generic sanitization.
         preserveWorkerEmail: Boolean(context.directWorkerRecord && k === 'email'),
+        workerEvidenceFiles: context.workerEvidenceFiles || (parentKey === 'workerItems' && k === 'files'),
       });
     }
     return out;
@@ -117,6 +120,7 @@ const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(righ
 // The fallback is intentionally narrow. A module can only opt in once its
 // append validation covers every strict validation rule for new records.
 export const APPEND_FALLBACK_MODULES = new Set([
+  'asignaciones',
   'trabajadores',
   'minas',
   'contratos',

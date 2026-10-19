@@ -1,3 +1,4 @@
+import { useVerifiedState } from '../services/use-evidence-availability.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
@@ -78,7 +79,7 @@ export default function AlertasPage() {
   }
   useEffect(() => { load() }, [])
 
-  const state = response?.state || response || {}
+  const state = useVerifiedState(response?.state || response || {})
   const people = rows(state.trabajadores)
   const allAlerts = useMemo(() => operationalAlerts(state), [state])
 
@@ -146,6 +147,6 @@ export default function AlertasPage() {
         : 'Cliente, contrato, recurso u orden relacionada'
 
       return <article className="nk-alert-group" key={group.key}><button className="nk-alert-group-trigger" type="button" aria-expanded={expanded} aria-controls={detailId} aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} ${group.items.length} alertas de ${group.label}`} onClick={() => toggleGroup(group.key)}><span><b>{group.label}</b><small>{personMeta}</small></span><span className="nk-alert-toggle-summary">{summary}</span><span className="nk-alert-plus" aria-hidden="true">{expanded ? '−' : '+'}</span></button>{expanded && <div id={detailId} className="nk-alert-group-detail"><div className="nk-alert-actions">{group.person && <button className="nk-button nk-button-secondary" type="button" onClick={() => navigate(`/app/trabajadores/${group.person.id}`)}><IconUser size={15}/>Ver ficha</button>}<label className="nk-button nk-button-primary"><IconPaperclip size={15}/>Adjuntar evidencia<input type="file" onChange={event => upload(event, group)} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"/></label></div><ul className="nk-alert-list">{group.items.map((item, index) => { const path = contextPath(item, group); return <li key={item.id || index}><IconAlertTriangle size={16}/><div><b>{titleFor(item)}</b><span>{messageFor(item)}</span></div><span className={`nk-badge ${alertKind(item) === 'critical' ? 'nk-badge-error' : alertKind(item) === 'upcoming' ? 'nk-badge-warn' : 'nk-badge-neutral'}`}>{item.urgencia || 'operativa'}</span>{path && <button type="button" className="nk-button nk-button-quiet nk-alert-context-link" onClick={() => navigate(path)}>Abrir contexto</button>}</li> })}</ul></div>}</article>
-    }) : <div className="nk-module-empty"><IconAlertTriangle size={28}/><b><EmptyState objectLabel="alertas en esta categoría" filtered={status !== ""} /></b><span>La vista se recalcula desde personas, contratos, órdenes de servicio y alertas registradas.</span></div>}</div>
+    }) : <EmptyState objectLabel="alertas en esta categoría" filtered={status !== ""} />}</div>
   </section>
 }

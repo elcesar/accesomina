@@ -1,0 +1,23 @@
+[
+  {
+    "name": "antes",
+    "width": 1440,
+    "emailY": 428.359375,
+    "phoneY": 441.046875,
+    "difference": 12.6875
+  },
+  {
+    "name": "despues",
+    "width": 1440,
+    "emailY": 438.984375,
+    "phoneY": 438.984375,
+    "difference": 0
+  },
+  {
+    "name": "despues-movil",
+    "width": 390,
+    "emailY": 410.109375,
+    "phoneY": 518.5,
+    "difference": 108.390625
+  }
+]
