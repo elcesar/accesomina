@@ -1,5 +1,8 @@
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { useEvidenceAvailability } from '../services/use-evidence-availability.jsx'
+import { withEvidenceAvailability } from '../services/evidence-availability.js'
+import { hasRequiredEvidence } from '../services/worker-document-rules.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -39,7 +42,7 @@ function acreditacionPct(persona) {
     items.some(item => (
       item.type === req.type &&
       item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
-      item.estado !== 'rechazado' &&
+      item.estado !== 'rechazado' && hasRequiredEvidence(item) &&
       (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
     ))
   )).length
@@ -176,7 +179,9 @@ export default function TrabajadoresPage() {
     return () => window.removeEventListener('focus', loadState)
   }, [])
 
-  const personas = state?.trabajadores || []
+  const rawPeople = state?.trabajadores || []
+  const evidenceAvailability=useEvidenceAvailability(rawPeople)
+  const personas=useMemo(()=>rawPeople.map(worker=>withEvidenceAvailability(worker,evidenceAvailability)),[state,evidenceAvailability])
   const clientes = state?.minas || []
   const proyectos = state?.mantenciones || []
   const contratos = state?.contratos || []

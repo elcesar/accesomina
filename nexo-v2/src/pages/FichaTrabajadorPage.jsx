@@ -2,8 +2,10 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { useEvidenceAvailability } from '../services/use-evidence-availability.jsx'
+import { withEvidenceAvailability, stripEvidenceAvailability } from '../services/evidence-availability.js'
 import { localDate } from '../services/calendar-date.js'
-import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
+import { Children, cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   IconAlertTriangle, IconArrowLeft, IconBook, IconBrandWhatsapp,
@@ -333,6 +335,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   }
 
   return <>
+    <p className="nk-person-text-sub">El cumplimiento usa la disponibilidad verificada de los archivos. <button type="button" className="nk-button nk-button-quiet" onClick={()=>window.dispatchEvent(new Event('nexo:refresh-file-availability'))}>Verificar archivos nuevamente</button></p>
     <CardSection title={tabKey === 'cursos' ? 'Agregar formación o certificación' : 'Agregar documento, examen o aptitud'} subtitle={rule.twoSided ? 'La cédula y la licencia requieren anverso, reverso y fecha de vencimiento. Máximo 25 MB por archivo.' : rule.expiration === 'never' ? 'Este antecedente no requiere fecha de vencimiento. Máximo 25 MB.' : 'El archivo queda almacenado de forma privada y asociado a la persona. Máximo 25 MB.'} action={<ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="button" onClick={guardar} disabled={!form.name.trim() || uploading || (rule.twoSided && (!frontFile || !backFile || !form.vence))}>{uploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconPaperclip size={15} strokeWidth={1.7} />}{uploading ? 'Cargando…' : 'Guardar registro'}</ActionButton>}>
       <div className="nk-person-grid">
         <Field label="Tipo"><select aria-label="Tipo" className="nk-select" value={form.documentType} onChange={e => setForm(f => { const documentType = e.target.value; const selected = DOCUMENT_TYPE_OPTIONS.find(option => option.value === documentType); const previous = DOCUMENT_TYPE_OPTIONS.find(option => option.value === f.documentType); const useSuggestedName = !f.name.trim() || f.name === previous?.label; const name = useSuggestedName ? (selected?.label || '') : f.name; return { ...f, documentType, name, vence: documentRule(documentType, name).expiration === 'never' ? '' : f.vence } })}>{documentTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
@@ -351,7 +354,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title"><EmptyState objectLabel="registros cargados" filtered={false} /></p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><caption className="nk-sr-only">Registros de FichaTrabajador · tabla 4</caption><thead><tr><th scope="col">Tipo</th><th scope="col">Nombre</th><th scope="col">Vence</th><th scope="col">Estado</th><th scope="col">Archivo</th><th scope="col" /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title"><EmptyState objectLabel="registros cargados" filtered={false} /></p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><caption className="nk-sr-only">Registros de FichaTrabajador · tabla 4</caption><thead><tr><th scope="col">Tipo</th><th scope="col">Nombre</th><th scope="col">Vence</th><th scope="col">Estado</th><th scope="col">Archivo</th><th scope="col" /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = !hasRequiredEvidence(d) ? 'nk-badge-error' : days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = !hasRequiredEvidence(d) ? documentEvidenceMessage(d) : days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
     </CardSection>
   </>
 }
@@ -377,7 +380,9 @@ export default function FichaTrabajadorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [stateData, setStateData] = useState(null)
-  const [worker, setWorker] = useState(null)
+  const [workerRecord, setWorker] = useState(null)
+  const evidenceAvailability=useEvidenceAvailability(workerRecord?[workerRecord]:[])
+  const worker=useMemo(()=>withEvidenceAvailability(workerRecord,evidenceAvailability),[workerRecord,evidenceAvailability])
   const [assignments, setAssignments] = useState([])
   const [tab, setTab] = useState('datos')
   const [saving, setSaving] = useState(false)
@@ -410,7 +415,7 @@ export default function FichaTrabajadorPage() {
     setTab('datos')
     requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
   }
-  async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
+  async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; clean.workerItems=stripEvidenceAvailability(clean.workerItems); const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
   async function handleSave() {
     setError(null)
     setOk(null)
@@ -456,7 +461,7 @@ export default function FichaTrabajadorPage() {
     }
   }
   // An assignment changes operational availability, never the person's employment link.
-  async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
+  async function persistAssignments(nextAssignments, nextAvailability, reason) { const r = await api.get('/state'); const s = r?.state || r; const versionA = r?.moduleVersions?.asignaciones ?? 0; const versionT = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...cleanWorker } = worker; cleanWorker.workerItems=stripEvidenceAvailability(cleanWorker.workerItems); cleanWorker.disponibilidad = nextAvailability; const workers = (s?.trabajadores || []).map(item => item.id === id ? cleanWorker : item); await api.put('/state/modules', { reason, changes: { asignaciones: { version: versionA, data: nextAssignments }, trabajadores: { version: versionT, data: workers } } }); setAssignments(nextAssignments); setWorker(current => ({ ...current, disponibilidad: nextAvailability, _asignaciones: nextAssignments.filter(a => a.trabId === id) })) }
   async function handleAsignar(mantId, turno) {
     const projects = stateData?.mantenciones || []
     const restrictions = stateData?.restricted || []
