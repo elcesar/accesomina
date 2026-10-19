@@ -59,14 +59,14 @@ export default function ForgotPasswordPage() {
             )}
           </>
         ) : (
-          <form className="nk-recovery-form" onSubmit={submit}>
+          <form noValidate className="nk-recovery-form" onSubmit={submit}>
             <label className="nk-recovery-field">
-              RUT empresa
+              RUT empresa (obligatorio)
               <RutInput
                 required
                 value={form.rut}
                 onChange={value => { setForm(current => ({ ...current, rut: value })); setFieldErrors(current => ({ ...current, rut: '' })) }}
-                placeholder="12.345.678-9"
+                placeholder="Ej.: XX.XXX.XXX-X"
                 autoComplete="organization"
                 aria-invalid={Boolean(fieldErrors.rut)}
                 aria-describedby={fieldErrors.rut ? 'recovery-rut-error' : undefined}
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
               {fieldErrors.rut && <span id="recovery-rut-error" className="nk-field-error">{fieldErrors.rut}</span>}
             </label>
             <label className="nk-recovery-field">
-              Correo autorizado
+              Correo autorizado (obligatorio)
               <EmailInput
                 required
                 value={form.email}
