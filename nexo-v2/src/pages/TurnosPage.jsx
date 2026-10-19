@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -129,9 +130,9 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
         {error && <p className="nk-form-error">{error}</p>}
         <div className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
+          <ActionButton disabledReason="Tu perfil no permite realizar esta acción. Solicita ayuda al administrador de tu empresa." className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
             {saving ? 'Guardando…' : 'Guardar jornada'}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -237,9 +238,9 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason={!trabajadoresProgramables.length ? "Registra una persona habilitada antes de programar una jornada." : "Registra al menos una orden de servicio antes de programar una jornada."} className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
-        </button>
+        </ActionButton>
       </header>
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">

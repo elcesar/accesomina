@@ -1,6 +1,15 @@
 const BASE = '/api'
 let csrfToken = null
 
+function publishEvent(name, detail) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name,{detail}))
+}
+function isMutation(path,method){return !['GET','HEAD'].includes(method) && !path.startsWith('/auth/')}
+function loadFailure(path,method,status){
+  if(method==='GET' && path.split('?')[0]==='/state' && status>=500)publishEvent('nexo:load-failed',{status})
+}
+
+
 const ERROR_MESSAGES = {
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
@@ -153,15 +162,20 @@ async function request(path, options = {}) {
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const method=options.method||'GET'
+  if(isMutation(path,method))publishEvent('nexo:mutation-started')
+  let res
+  try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
     ...options,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+  }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
+  if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
-  if (res.status === 204) return null
-  return res.json()
+  const result = res.status===204 ? null : await res.json()
+  if(isMutation(path,method))publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  return result
 }
 
 async function upload(path, file, fields = {}) {

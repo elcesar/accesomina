@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { cloneElement, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -444,19 +445,19 @@ export default function NuevoTrabajadorPage() {
           )}
 
           <div className="nk-person-create-actions">
-            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
               <IconArrowLeft size={14} strokeWidth={2} />{step === 0 ? 'Cancelar' : 'Anterior'}
-            </button>
+            </ActionButton>
 
             {step < STEPS.length - 1 ? (
-              <button className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
                 Siguiente<IconArrowRight size={14} strokeWidth={2} />
-              </button>
+              </ActionButton>
             ) : (
-              <button className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? <IconLoader2 size={15} className="animate-spin" aria-hidden="true" /> : <IconCheck size={15} strokeWidth={2.5} aria-hidden="true" />}
                 {loading ? 'Guardando…' : 'Guardar persona'}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>

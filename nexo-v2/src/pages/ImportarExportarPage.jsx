@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useMemo, useState } from 'react'
 import { IconDatabaseExport, IconDatabaseImport, IconDownload, IconUpload } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -153,9 +154,9 @@ export default function ImportarExportarPage() {
                   <IconDownload size={16}/> Descargar plantilla
                 </button>
               )}
-              <button className="nk-button nk-button-primary" disabled={sending || !file} onClick={importData}>
+              <ActionButton disabledReason="Selecciona un archivo antes de continuar." className="nk-button nk-button-primary" disabled={sending || !file} onClick={importData}>
                 <IconUpload size={16}/>{sending ? 'Procesando…' : backupImport ? 'Restaurar respaldo' : 'Validar e importar'}
-              </button>
+              </ActionButton>
             </div>
 
             {!backupImport && <p className="nk-transfer-hint">La plantilla seleccionada corresponde a <b>{selectedImport.label}</b>. Revisa su estructura antes de cargar información masiva.</p>}

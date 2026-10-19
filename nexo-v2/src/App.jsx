@@ -1,3 +1,4 @@
+import AppErrorBoundary from './components/ui/AppErrorBoundary.jsx'
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
@@ -97,7 +98,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        <Routes>
+        <AppErrorBoundary><Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
@@ -168,7 +169,7 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
+        </Routes></AppErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   )

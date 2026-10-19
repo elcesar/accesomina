@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { IconKey, IconLock, IconPlus, IconRefresh, IconShieldCheck, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -117,7 +118,7 @@ export default function UsuariosPermisosPage() {
       <section className="nk-module-card nk-users-card">
         <header className="nk-users-card-head">
           <div><h2>Equipo con acceso al sitio privado</h2><p>Todos ven la misma empresa; ningún usuario puede consultar datos de otra empresa.</p></div>
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</ActionButton>
         </header>
 
         <div className="nk-table-wrapper nk-users-table-wrap">
@@ -142,9 +143,9 @@ export default function UsuariosPermisosPage() {
                     <td>
                       <div className="nk-user-actions">
                         {admin && !self && !protectedUser ? <>
-                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => reset(user)}><IconKey size={14}/> Restablecer acceso</button>
-                          {user.mfa_enabled && <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => resetMfa(user)}>Restablecer MFA</button>}
-                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</button>
+                          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => reset(user)}><IconKey size={14}/> Restablecer acceso</ActionButton>
+                          {user.mfa_enabled && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => resetMfa(user)}>Restablecer MFA</ActionButton>}
+                          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</ActionButton>
                         </> : <span>—</span>}
                       </div>
                     </td>
@@ -164,7 +165,7 @@ export default function UsuariosPermisosPage() {
               <label><span>Nombre</span><input className="nk-input" value={draft.fullName} onChange={e => setDraft({ ...draft, fullName: e.target.value })} required /></label>
               <label><span>Correo de acceso</span><EmailInput required value={draft.email} error={emailError} onChange={value => { setDraft({ ...draft, email: value }); setEmailError('') }} placeholder="persona@empresa.cl" /></label>
               <label><span>Permiso</span><select className="nk-input" value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}</select></label>
-              <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowCreate(false)}>Cancelar</button><button className="nk-button nk-button-primary" disabled={busy === 'create'}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</button></div>
+              <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowCreate(false)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" disabled={busy === 'create'}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</ActionButton></div>
             </form>
           </section>
         </div>

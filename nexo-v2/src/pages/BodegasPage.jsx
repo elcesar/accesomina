@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBuildingWarehouse, IconMapPin, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -95,8 +96,8 @@ export default function BodegasPage() {
           <p className="nk-page-description">Administra bodegas, ubicaciones internas, responsables y existencias distribuidas por ubicación.</p>
         </div>
         <div className="nk-page-header-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button>
-          <button className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton>
+          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</ActionButton>
           <button className="nk-button nk-button-primary" onClick={openWarehouse}><IconPlus size={15}/> Crear bodega</button>
         </div>
       </header>
@@ -150,7 +151,7 @@ export default function BodegasPage() {
           </>}
           <label><span>Responsable</span><input className="nk-input" value={form.responsible || ''} onChange={e => setForm({...form,responsible:e.target.value})}/></label>
         </div>
-        <div className="nk-warehouses-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor(null)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button></div>
+        <div className="nk-warehouses-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor(null)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</ActionButton></div>
       </section>}
     </div>
   )
