@@ -1,3 +1,4 @@
+import { patchWorkerProfile, recordRevision } from '../worker-records.js';
 import { Router } from 'express';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
@@ -111,10 +112,43 @@ export function normalizeTenantState(state){
 }
 
 stateRouter.get('/', async (req, res) => {
-  let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1 ORDER BY module_key',[req.auth.tenantId])).rows;});
+  const requested=req.query?.modules===undefined?null:[...new Set(String(req.query.modules).split(',').filter(Boolean))];
+  if(requested && (requested.length>20 || requested.some(key=>!MODULE_KEY.test(key))))return res.status(400).json({error:'INVALID_MODULE_SELECTION'});
+  if(requested)requested.forEach(key=>assertModuleAccess(req.auth,key));
+  let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1'+(requested?' AND module_key=ANY($2::text[])':'')+' ORDER BY module_key',requested?[req.auth.tenantId,requested]:[req.auth.tenantId])).rows;});
   rows=rows.filter(row=>{try{assertModuleAccess(req.auth,row.module_key);return true;}catch{return false;}});
   const state=normalizeTenantState(rowsToState(rows));
   res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
+});
+
+// Incremental pilot: worker profile reads/writes do not transfer the worker collection.
+stateRouter.get('/records/trabajadores',async(req,res)=>{
+ assertModuleAccess(req.auth,'trabajadores');const limit=Math.floor(Math.min(100,Math.max(1,Number(req.query?.limit)||50))),offset=Math.floor(Math.min(2147483647,Math.max(0,Number(req.query?.offset)||0)));
+ const workers=await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query("SELECT data FROM tenant_module_state WHERE tenant_id=$1 AND module_key='trabajadores'",[req.auth.tenantId])).rows[0]?.data||[]});
+ res.json({records:workers.slice(offset,offset+limit).map(record=>({record,revision:recordRevision(record)})),total:workers.length,limit,offset});
+});
+stateRouter.get('/records/trabajadores/:workerId',async(req,res)=>{
+ assertModuleAccess(req.auth,'trabajadores');const record=await withTenant(req.auth.tenantId,async client=>{
+  await ensureModules(client,req.auth.tenantId,req.auth.userId);
+  const workers=(await client.query("SELECT data FROM tenant_module_state WHERE tenant_id=$1 AND module_key='trabajadores'",[req.auth.tenantId])).rows[0]?.data||[];
+  return workers.find(worker=>String(worker.id)===req.params.workerId)
+ });
+ if(!record)return res.status(404).json({error:'WORKER_NOT_FOUND'});
+ res.json({record,revision:recordRevision(record)});
+});
+stateRouter.patch('/records/trabajadores/:workerId',editors,async(req,res)=>{
+ assertModuleAccess(req.auth,'trabajadores');
+ try{
+ const result=await withTenant(req.auth.tenantId,async client=>{
+  await ensureModules(client,req.auth.tenantId,req.auth.userId);
+  const workers=(await client.query("SELECT data FROM tenant_module_state WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE",[req.auth.tenantId])).rows[0]?.data||[];
+  const result=patchWorkerProfile(workers,String(req.params.workerId),req.body?.patch,req.body?.revision);
+  enforceStateScope(req.auth.role,{trabajadores:workers},{trabajadores:result.records});
+  await client.query("UPDATE tenant_module_state SET data=$2::jsonb,version=version+1,updated_by=$3,updated_at=now() WHERE tenant_id=$1 AND module_key='trabajadores'",[req.auth.tenantId,JSON.stringify(result.records),req.auth.userId]);
+  await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker',entityId:req.params.workerId,action:'worker.profile_updated',oldValue:{revision:req.body.revision},newValue:{revision:result.revision,fields:Object.keys(req.body.patch),reason:String(req.body.reason||'Perfil actualizado').slice(0,240)}});
+  return {record:result.record,revision:result.revision};
+ });res.json(result);
+ }catch(error){if(error.status<500)return res.status(error.status).json({error:error.code||'INVALID_RECORD_PATCH',field:error.field,minimumAge:error.minimumAge});throw error}
 });
 
 // Document evidence is appended independently from the full worker profile.
