@@ -209,3 +209,28 @@ test('document removal keeps files referenced by another module or verification'
   assert.equal(referenced.has('file-in-incident'),true,'another module reference is retained');
   assert.equal(referenced.has('file-in-verification'),true,'operational verification reference is retained');
 });
+
+
+test('append fallback requires a valid RUT for new commercial entities without blocking legacy records',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+
+  for(const [entity, row, code] of [
+    ['minas',{id:'m2',nombre:'Cliente sin RUT'},'INCOMPLETE_CLIENT'],
+    ['minas',{id:'m2',nombre:'Cliente con RUT inválido',rut:'13.848.379-6'},'INVALID_CLIENT_RUT'],
+    ['subcontratos',{id:'s1',razon:'Tercero sin RUT'},'INCOMPLETE_SUBCONTRACTOR'],
+    ['subcontratos',{id:'s1',razon:'Tercero con RUT inválido',rut:'13.848.379-6'},'INVALID_SUBCONTRACTOR_RUT'],
+  ]){
+    const proposed=structuredClone(current);
+    proposed[entity]=[...(proposed[entity]||[]),row];
+    assert.throws(()=>validateAppendChanges(current,proposed,[entity]),error=>error.code===code,code);
+  }
+
+  const client=structuredClone(current);
+  client.minas.push({id:'m2',nombre:'Cliente válido',rut:'14.507.215-8'});
+  assert.equal(validateAppendChanges(current,client,['minas']),true);
+
+  const subcontractor=structuredClone(current);
+  subcontractor.subcontratos=[{id:'s1',razon:'Tercero válido',rut:'14.507.215-8'}];
+  assert.equal(validateAppendChanges(current,subcontractor,['subcontratos']),true);
+});
