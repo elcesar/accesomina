@@ -115,7 +115,7 @@ export function CustomerAccessPanel() {
 
       <form className="nk-access-form" noValidate onSubmit={submitRegistration} onBlur={event => {
         const key = event.target.name
-        if (key) setFieldErrors(current => ({ ...current, [key]: validate()[key] || current[key] || '' }))
+        if (key) setFieldErrors(current => ({ ...current, [key]: validate()[key] || '' }))
       }} aria-busy={busy}>
         <label>
           Nombre empresa (obligatorio)
