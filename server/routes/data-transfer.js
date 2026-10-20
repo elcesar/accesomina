@@ -6,6 +6,7 @@ import { withTenant } from '../db.js';
 import { allowRoles } from '../middleware.js';
 import { appendAudit } from '../audit.js';
 import { isValidRut } from '../security.js';
+import { optionalHistoricalRut } from '../../shared/rut.js';
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
@@ -74,6 +75,8 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     const missing=def.required.filter(k=>!parsed.meta.fields.includes(k)),invalid=parsed.data.findIndex(r=>def.required.some(k=>!String(r[k]||'').trim())),rutType=['trabajadores','subcontratos'].includes(type),invalidRut=rutType?parsed.data.findIndex(r=>!isValidRut(r.rut)):-1;
     if(missing.length||invalid>=0)return res.status(400).json({error:'MISSING_REQUIRED_FIELDS',missing,invalidRow:invalid>=0?invalid+2:null});
     if(invalidRut>=0)return res.status(400).json({error:'INVALID_RUT',invalidRow:invalidRut+2});
+    const invalidOpportunityRut=type==='oportunidades'?parsed.data.findIndex(row=>optionalHistoricalRut(row.rut).error):-1;
+    if(invalidOpportunityRut>=0)return res.status(400).json({error:'INVALID_OPPORTUNITY_RUT',invalidRow:invalidOpportunityRut+2});
     rowCount=parsed.data.length;
     importModules[def.module]={rawRows:parsed.data,definition:def};
   }
@@ -107,7 +110,7 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       before[key]=state[key];
       next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
     }
-    const clean=validateTenantState(next);
+    const clean=validateTenantState(next,{previousState:state});
     for(const key of Object.keys(importModules)){
       await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
         VALUES($1,$2,$3::jsonb,1,$4)

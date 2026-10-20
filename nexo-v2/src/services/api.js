@@ -1,3 +1,5 @@
+import { OPTIONAL_RUT_ERROR } from './rut.js'
+
 const BASE = '/api'
 let csrfToken = null
 
@@ -45,6 +47,7 @@ const ERROR_MESSAGES = {
   INVALID_DATES: 'Revisa las fechas ingresadas: la fecha de inicio debe ser anterior a la de término.',
   INCOMPLETE_WORKER: 'Completa los datos obligatorios de la persona antes de guardar.',
   INCOMPLETE_CLIENT: 'Completa los datos obligatorios del cliente antes de guardar.',
+  INVALID_OPPORTUNITY_RUT: OPTIONAL_RUT_ERROR,
   INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
   DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
