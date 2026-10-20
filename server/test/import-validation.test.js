@@ -31,3 +31,11 @@ test('missing and unknown columns identify the header row before any data proces
  const errors=validateImportRows('trabajadores',[],definition,{}, {fields:['nombre','ajena']})
  assert.deepEqual(errors.map(e=>[e.row,e.column]),[[1,'rut'],[1,'ajena']])
 })
+
+test('references must already exist in tenant state before CSV import',()=>{
+ const definition={module:'mantenciones',required:['nombre','minera'],headers:['nombre','minera','contrato']}
+ const issues=validateImportRows('mantenciones',[
+  {nombre:'Orden QA',minera:'Cliente que se creará después',contrato:''},
+ ],definition,{minas:[],contratos:[]})
+ assert.ok(issues.some(issue=>issue.row===2&&issue.column==='cliente'&&issue.code==='INVALID_REFERENCE'))
+})
