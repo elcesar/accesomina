@@ -2,6 +2,9 @@ const BASE = '/api'
 let csrfToken = null
 
 const ERROR_MESSAGES = {
+  IMPORT_VALIDATION_FAILED: 'El archivo contiene errores. Revisa el informe de filas y columnas antes de volver a importar.',
+  EMPTY_CSV: 'El archivo no contiene registros. Completa al menos una fila debajo de las cabeceras.',
+  INVALID_CSV: 'No pudimos leer el archivo CSV. Revisa las columnas y las comillas o descarga una plantilla nueva.',
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
   ACCOUNT_DISABLED: 'Tu cuenta o empresa no está habilitada para ingresar.',
