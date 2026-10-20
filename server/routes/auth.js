@@ -6,7 +6,7 @@ import { loginSchema, registerSchema } from '../validation.js';
 import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotpSecret, hashPassword, hashRecoveryCode, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256, timingSafeEqualString, validatePassword, verifyPassword, verifyTotp } from '../security.js';
 import { appendAudit } from '../audit.js';
 import { authenticate, clearSessionCookie, requireCsrf, setSessionCookie } from '../middleware.js';
-import { createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation } from '../password-reset.js';
+import { PASSWORD_RESET_GENERIC_MESSAGE, createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation, logPasswordResetOperationalEvent, recordPasswordResetDelivery, validatePasswordResetRequest } from '../password-reset.js';
 
 export const authRouter = Router();
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
@@ -83,16 +83,16 @@ authRouter.post('/login', limiter, async (req, res) => {
 
 authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   const startedAt = Date.now();
-  const email = normalizeEmail(req.body?.email);
-  const rutKey = normalizeRut(req.body?.rut);
-  const generic = { message: 'Si los datos corresponden a una cuenta activa, recibirás un enlace para restablecer tu contraseña.' };
+  const input = validatePasswordResetRequest(req.body);
+  if (input.error) return res.status(400).json({ error: input.error, message: input.message });
+  const { email, rutKey } = input;
+  const generic = { message: PASSWORD_RESET_GENERIC_MESSAGE };
   const reply = async extra => {
     const wait = Math.max(0, 300 - (Date.now() - startedAt));
     if (wait) await new Promise(resolve => setTimeout(resolve, wait));
     return res.json({ ...generic, ...(extra || {}) });
   };
 
-  if (!email || !rutKey) return reply();
   const tenant = (await query("SELECT id,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1", [rutKey])).rows[0];
   if (!tenant || tenant.status !== 'active') return reply();
 
@@ -102,8 +102,33 @@ authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   if (!user?.active) return reply();
 
   const request = await createPasswordReset({ tenantId: tenant.id, user, ip: clientIp(req) });
-  const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url })
-    .catch(() => ({ delivered: false, reason: 'DELIVERY_FAILED' }));
+  const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url });
+  if (!delivery.delivered) {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.smtp_delivery',
+      outcome: 'failed',
+      code: delivery.reason,
+      requestId: req.requestId,
+    });
+  } else {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.smtp_delivery',
+      outcome: 'accepted_by_smtp',
+      code: 'SMTP_ACCEPTED',
+      requestId: req.requestId,
+    });
+  }
+
+  try {
+    await recordPasswordResetDelivery({ tenantId: tenant.id, user, delivery });
+  } catch {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.audit_delivery',
+      outcome: 'failed',
+      code: 'AUDIT_WRITE_FAILED',
+      requestId: req.requestId,
+    });
+  }
 
   if (config.env !== 'production' && !delivery.delivered) return reply({ previewUrl: request.url });
   return reply();
