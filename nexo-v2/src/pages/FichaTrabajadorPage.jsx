@@ -249,19 +249,21 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   const reqs = getRequiredItems(worker)
   const reqsFiltrados = tabKey === 'cursos' ? reqs.filter(r => ['curso', 'certificacion'].includes(r.type)) : reqs.filter(r => !['curso'].includes(r.type))
   const rule = documentRule(form.documentType, form.name)
+  const evidenceMissing = rule.twoSided ? (!frontFile || !backFile || !form.vence) : !selectedFile
+  const evidenceHint = rule.twoSided ? 'Adjunta anverso y reverso e ingresa el vencimiento antes de guardar.' : 'Adjunta el archivo del documento antes de guardar.'
 
   async function guardar() {
-    if (!form.name.trim() || uploading || (rule.twoSided && (!frontFile || !backFile || !form.vence))) return
+    if (!form.name.trim() || uploading || evidenceMissing) return
     setUploading(true)
     let uploadedFiles = []
     try {
       let fileMeta = {}
       if (rule.twoSided) {
         uploadedFiles = await uploadDocumentFiles({ workerId: worker.id, files: [{ side: 'front', file: frontFile }, { side: 'back', file: backFile }], uploadFile: uploadWorkerFile, removeFile: removeWorkerFile })
-        fileMeta = { files: uploadedFiles, fileId: uploadedFiles[0].fileId, fileName: uploadedFiles[0].fileName, fileType: uploadedFiles[0].fileType, fileSize: uploadedFiles[0].fileSize }
+        fileMeta = { files: uploadedFiles.map(({deduplicated,...file})=>file), fileId: uploadedFiles[0].fileId, fileName: uploadedFiles[0].fileName, fileType: uploadedFiles[0].fileType, fileSize: uploadedFiles[0].fileSize }
       } else if (selectedFile) {
         const uploaded = await uploadWorkerFile(worker.id, selectedFile)
-        uploadedFiles = [{ fileId: uploaded.id }]
+        uploadedFiles = [{ fileId: uploaded.id, deduplicated: uploaded.deduplicated === true }]
         fileMeta = { fileId: uploaded.id, fileName: uploaded.original_name || selectedFile.name, fileType: uploaded.content_type, fileSize: uploaded.byte_size }
       }
       const item = { ...form, type: workerItemType(rule.code, form.name), documentType: rule.code, vence: rule.expiration === 'never' ? '' : form.vence, ...fileMeta, id: `d_${Date.now()}`, cargado: localDate() }
@@ -293,7 +295,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     let uploadedFileId = null
     try {
       const uploaded = await uploadWorkerFile(worker.id, file)
-      uploadedFileId = uploaded.id
+      uploadedFileId = uploaded.deduplicated ? null : uploaded.id
       const item = {
         id: `d_${Date.now()}`,
         type: req.type,
@@ -346,12 +348,13 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   }
 
   return <>
-    <CardSection title={tabKey === 'cursos' ? 'Agregar formación o certificación' : 'Agregar documento, examen o aptitud'} subtitle={rule.twoSided ? 'La cédula y la licencia requieren anverso, reverso y fecha de vencimiento. Máximo 25 MB por archivo.' : rule.expiration === 'never' ? 'Este antecedente no requiere fecha de vencimiento. Máximo 25 MB.' : 'El archivo queda almacenado de forma privada y asociado a la persona. Máximo 25 MB.'} action={<button className="nk-button nk-button-primary" type="button" onClick={guardar} disabled={!form.name.trim() || uploading || (rule.twoSided && (!frontFile || !backFile || !form.vence))}>{uploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconPaperclip size={15} strokeWidth={1.7} />}{uploading ? 'Cargando…' : 'Guardar registro'}</button>}>
+    <CardSection title={tabKey === 'cursos' ? 'Agregar formación o certificación' : 'Agregar documento, examen o aptitud'} subtitle={rule.twoSided ? 'La cédula y la licencia requieren anverso, reverso y fecha de vencimiento. Máximo 25 MB por archivo.' : rule.expiration === 'never' ? 'Este antecedente no requiere fecha de vencimiento. Máximo 25 MB.' : 'El archivo queda almacenado de forma privada y asociado a la persona. Máximo 25 MB.'} action={<button className="nk-button nk-button-primary" type="button" onClick={guardar} aria-describedby={evidenceMissing ? "worker-document-evidence-hint" : undefined} disabled={!form.name.trim() || uploading || evidenceMissing}>{uploading ? <IconLoader2 size={15} className="animate-spin" /> : <IconPaperclip size={15} strokeWidth={1.7} />}{uploading ? 'Cargando…' : 'Guardar registro'}</button>}>
+      {evidenceMissing && <p id="worker-document-evidence-hint" className="nk-field-help">{evidenceHint}</p>}
       <div className="nk-person-grid">
-        <Field label="Tipo"><select className="nk-select" value={form.documentType} onChange={e => setForm(f => { const documentType = e.target.value; const selected = DOCUMENT_TYPE_OPTIONS.find(option => option.value === documentType); const previous = DOCUMENT_TYPE_OPTIONS.find(option => option.value === f.documentType); const useSuggestedName = !f.name.trim() || f.name === previous?.label; const name = useSuggestedName ? (selected?.label || '') : f.name; return { ...f, documentType, name, vence: documentRule(documentType, name).expiration === 'never' ? '' : f.vence } })}>{documentTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
-        <Field label="Nombre / referencia"><input className="nk-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value, vence: documentRule(f.documentType, e.target.value).expiration === 'never' ? '' : f.vence }))} list={`sugg-${tabKey}`} /><datalist id={`sugg-${tabKey}`}>{reqs.map(r => <option key={r.name} value={r.name} />)}</datalist></Field>
-        {rule.expiration !== 'never' && <Field label={rule.expiration === 'required' ? 'Fecha de vencimiento obligatoria' : 'Fecha de vencimiento'}><input className="nk-input" type="date" required={rule.expiration === 'required'} value={form.vence} onChange={e => setForm(f => ({ ...f, vence: e.target.value }))} /></Field>}
-        {rule.twoSided ? <><Field label="Archivo anverso"><input className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setFrontFile(e.target.files?.[0] || null)} />{frontFile && <span className="nk-person-file"><IconPaperclip size={13} />{frontFile.name}</span>}</Field><Field label="Archivo reverso"><input className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setBackFile(e.target.files?.[0] || null)} />{backFile && <span className="nk-person-file"><IconPaperclip size={13} />{backFile.name}</span>}</Field></> : <Field label="Archivo"><input ref={fileRef} className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />{selectedFile && <span className="nk-person-file"><IconPaperclip size={13} />{selectedFile.name}</span>}</Field>}
+        <Field label="Tipo" htmlFor="worker-document-type"><select id="worker-document-type" className="nk-select" value={form.documentType} onChange={e => setForm(f => { const documentType = e.target.value; const selected = DOCUMENT_TYPE_OPTIONS.find(option => option.value === documentType); const previous = DOCUMENT_TYPE_OPTIONS.find(option => option.value === f.documentType); const useSuggestedName = !f.name.trim() || f.name === previous?.label; const name = useSuggestedName ? (selected?.label || '') : f.name; return { ...f, documentType, name, vence: documentRule(documentType, name).expiration === 'never' ? '' : f.vence } })}>{documentTypes.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
+        <Field label="Nombre / referencia" htmlFor="worker-document-name"><input id="worker-document-name" className="nk-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value, vence: documentRule(f.documentType, e.target.value).expiration === 'never' ? '' : f.vence }))} list={`sugg-${tabKey}`} /><datalist id={`sugg-${tabKey}`}>{reqs.map(r => <option key={r.name} value={r.name} />)}</datalist></Field>
+        {rule.expiration !== 'never' && <Field label={rule.expiration === 'required' ? 'Fecha de vencimiento obligatoria' : 'Fecha de vencimiento'} htmlFor="worker-document-expiry"><input id="worker-document-expiry" className="nk-input" type="date" required={rule.expiration === 'required'} value={form.vence} onChange={e => setForm(f => ({ ...f, vence: e.target.value }))} /></Field>}
+        {rule.twoSided ? <><Field label="Archivo anverso" htmlFor="worker-document-front"><input id="worker-document-front" className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setFrontFile(e.target.files?.[0] || null)} />{frontFile && <span className="nk-person-file"><IconPaperclip size={13} />{frontFile.name}</span>}</Field><Field label="Archivo reverso" htmlFor="worker-document-back"><input id="worker-document-back" className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setBackFile(e.target.files?.[0] || null)} />{backFile && <span className="nk-person-file"><IconPaperclip size={13} />{backFile.name}</span>}</Field></> : <Field label="Archivo" htmlFor="worker-document-file"><input id="worker-document-file" ref={fileRef} className="nk-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />{selectedFile && <span className="nk-person-file"><IconPaperclip size={13} />{selectedFile.name}</span>}</Field>}
         <div className="nk-person-grid-wide"><Field label="Notas"><input className="nk-input" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></Field></div>
       </div>
     </CardSection>
