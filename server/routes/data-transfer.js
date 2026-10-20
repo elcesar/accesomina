@@ -107,7 +107,7 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       before[key]=state[key];
       next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
     }
-    const clean=validateTenantState(next);
+    const clean=validateTenantState(next, { previousState: state });
     for(const key of Object.keys(importModules)){
       await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
         VALUES($1,$2,$3::jsonb,1,$4)
