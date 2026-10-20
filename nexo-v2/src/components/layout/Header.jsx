@@ -17,9 +17,7 @@ import '../../styles/layout/header.css'
 
 const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
 
-const roleLabel = value => String(value || 'usuario')
-  .replaceAll('_', ' ')
-  .replace(/\b\w/g, letter => letter.toUpperCase())
+const roleLabel = value => ({domian_admin:'Administrador Nexo Klar',client_admin:'Administrador de empresa',rrhh:'Recursos humanos',prevencion:'Prevención de riesgos',acreditacion:'Acreditación',consulta:'Consulta'})[value] || 'Usuario'
 
 const activeModuleForPath = pathname => {
   if (pathname.startsWith('/app/trabajadores')) return 'trabajadores'
