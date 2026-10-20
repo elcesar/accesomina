@@ -108,6 +108,24 @@ for (const width of [1440, 375]) {
       expect(api.stored().find(row => row.id === legacy.id).rut).toBe('')
     })
 
+    test('an unchanged malformed historical object RUT survives a phone edit and reload', async ({ page }) => {
+      const historical = { ...legacy, rut: { bad: '<historic>' } }
+      const api = await backend(page, { initial: { prospectos: [historical, current] } })
+      await edit(page, historical.company)
+      const rut = page.getByLabel('RUT (opcional)', { exact: true })
+      await rut.focus()
+      await rut.press('Tab')
+      await expect(rut).toHaveAttribute('aria-invalid', 'false')
+      await page.getByRole('dialog').getByLabel('Teléfono', { exact: true }).fill('Dato ficticio QA')
+      await page.getByRole('button', { name: 'Guardar oportunidad', exact: true }).click()
+      await expect(page.getByRole('dialog')).toHaveCount(0)
+      expect(api.stored().find(row => row.id === historical.id).rut).toEqual(historical.rut)
+      await page.reload()
+      await edit(page, historical.company)
+      await expect(page.getByLabel('Teléfono', { exact: true })).toHaveValue('Dato ficticio QA')
+      expect(api.stored().find(row => row.id === historical.id).rut).toEqual(historical.rut)
+    })
+
     test('server rejection maps to RUT with focus, keeps the dialog and permits a corrected retry', async ({ page }) => {
       const api = await backend(page, { rejectFirst: true })
       await edit(page, current.company)

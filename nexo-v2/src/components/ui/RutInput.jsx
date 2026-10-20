@@ -24,8 +24,10 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       aria-describedby={describedBy}
       onChange={event => onChange(formatRut(event.target.value))}
       onBlur={event => {
-        const formatted = formatRut(value)
-        if (formatOnBlur && formatted !== value) onChange(formatted)
+        if (formatOnBlur) {
+          const formatted = formatRut(value)
+          if (formatted !== value) onChange(formatted)
+        }
         props.onBlur?.(event)
       }}
     />

@@ -62,7 +62,9 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     let parsed;
     try{parsed=JSON.parse(req.file.buffer.toString('utf8'));}catch{return res.status(400).json({error:'INVALID_JSON'});}
     if(![BACKUP_FORMAT,LEGACY_BACKUP_FORMAT].includes(parsed?.format)||!parsed.modules)return res.status(400).json({error:'INVALID_BACKUP_FORMAT'});
-    importModules=sanitizeJson(parsed.modules);
+    // Keep typed RUT values intact until the authoritative state validation
+    // compares them with persisted history inside this tenant's transaction.
+    importModules=sanitizeJson(parsed.modules,'','',{preserveOpportunityRutValues:true});
     Object.keys(importModules).forEach(key=>assertModuleAccess(req.auth,key));
     importSettings=sanitizeJson(parsed.settings||{});
     rowCount=Object.values(importModules).reduce((n,v)=>n+(Array.isArray(v)?v.length:1),0);

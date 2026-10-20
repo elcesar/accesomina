@@ -39,19 +39,24 @@ export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160)
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
 export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
+  // Only state paths that subsequently validate the typed RUT opt in. Generic
+  // sanitization still cleans object properties and blocked keys everywhere else.
+  if (context.preserveOpportunityRut && context.preserveOpportunityRutValues) return structuredClone(value);
   if (Array.isArray(value)) {
     const collectionKey = key || context.collectionKey || '';
     return value.map(item => sanitizeJson(item, '', collectionKey, {
       ...context,
       collectionKey,
+      depth: (context.depth || 0) + 1,
       directWorkerRecord: collectionKey === 'trabajadores',
-      directOpportunityRecord: OPPORTUNITY_COLLECTIONS.includes(collectionKey),
+      directOpportunityRecord: Boolean(context.opportunityCollection),
+      opportunityCollection: false,
       preserveOpportunityRut: false,
       preserveWorkerEmail: false,
     }));
   }
   if (value && typeof value === 'object') {
-    const childContext = { ...context, directWorkerRecord: false, directOpportunityRecord: false, preserveWorkerEmail: false, preserveOpportunityRut: false };
+    const childContext = { ...context, depth: (context.depth || 0) + 1, directWorkerRecord: false, directOpportunityRecord: false, preserveWorkerEmail: false, preserveOpportunityRut: false };
     const out = {};
     for (const [k, v] of Object.entries(value)) {
       if (blockedKeys.has(k)) continue;
@@ -61,7 +66,8 @@ export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
         // Preserve their raw value for comparison with persisted history.
         preserveWorkerEmail: Boolean(context.directWorkerRecord && k === 'email'),
         preserveOpportunityRut: Boolean(context.directOpportunityRecord && k === 'rut'),
-        directOpportunityRecord: OPPORTUNITY_COLLECTIONS.includes(key),
+        directOpportunityRecord: Boolean(context.opportunityCollection),
+        opportunityCollection: !context.depth && OPPORTUNITY_COLLECTIONS.includes(k),
       });
     }
     return out;
@@ -377,7 +383,7 @@ function requiresAvailabilityValidation(assignment, previousAssignments) {
 
 export function validateTenantState(input, { previousState = null } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
-  const state = sanitizeJson(input);
+  const state = sanitizeJson(input, '', '', { preserveOpportunityRutValues: true });
   const previousAssignments = previousState
     ? new Map(collection(previousState, 'asignaciones').map(assignment => [assignmentIdentity(assignment), assignment]))
     : null;
@@ -494,13 +500,19 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if ((row.trabIds || []).some(id => !workerIds.has(String(id)))) throw Object.assign(new Error('WhatsApp group references an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.permisosTrabajo) ? state.permisosTrabajo : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Work permit references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
-  // Compare against the persisted server state across canonical/legacy stores.
-  // Validate actual records (opportunityFields returns copies) so normalized RUTs persist.
-  const previousOpportunities = new Map(opportunityRows(previousState).filter(row => row?.id != null && String(row.id).trim()).map(row => [String(row.id), row]));
+  // An overlapping ID can have distinct persisted values in legacy stores.
+  // Existing rows compare within their own collection. Only migration into the
+  // canonical store may use the previously resolved winner for that identity.
+  const recordsFor = (source, key) => Array.isArray(source?.[key]) ? source[key]
+    : source?.[key] && typeof source[key] === 'object' ? Object.values(source[key]) : [];
+  const identified = rows => new Map(rows.filter(row => row?.id != null && String(row.id).trim()).map(row => [String(row.id), row]));
+  const previousByCollection = new Map(OPPORTUNITY_COLLECTIONS.map(key => [key, identified(recordsFor(previousState, key))]));
+  const previousCanonical = identified(opportunityRows(previousState));
   for (const key of OPPORTUNITY_COLLECTIONS) {
-    const records = Array.isArray(state[key]) ? state[key] : state[key] && typeof state[key] === 'object' ? Object.values(state[key]) : [];
-    for (const row of records) {
-      const previous = row?.id != null ? previousOpportunities.get(String(row.id)) : undefined;
+    for (const row of recordsFor(state, key)) {
+      const id = row?.id != null ? String(row.id) : '';
+      const previous = previousByCollection.get(key).get(id)
+        || (key === 'prospectos' ? previousCanonical.get(id) : undefined);
       const result = optionalHistoricalRut(row.rut, { hasPrevious: Boolean(previous), previousValue: previous?.rut });
       if (result.error) throw Object.assign(new Error('Opportunity RUT is invalid'), { status: 409, code: 'INVALID_OPPORTUNITY_RUT' });
       if (Object.hasOwn(row, 'rut') || result.value !== undefined) row.rut = result.value;

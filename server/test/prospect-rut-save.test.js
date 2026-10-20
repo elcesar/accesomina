@@ -23,8 +23,8 @@ beforeEach(async () => {
 });
 
 function response() { return { statusCode: 200, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; return this; } }; }
-async function save(data, { version = 3, role = 'client_admin', body = {} } = {}) {
-  const req = { auth: { tenantId: 'qa-tenant', userId: 'qa-admin', role }, body: { ...body, changes: { prospectos: { version, data } }, reason: 'Corrección ficticia QA' } };
+async function save(data, { version = 3, role = 'client_admin', body = {}, module = 'prospectos' } = {}) {
+  const req = { auth: { tenantId: 'qa-tenant', userId: 'qa-admin', role }, body: { ...body, changes: { [module]: { version, data } }, reason: 'Corrección ficticia QA' } };
   const res = response();
   let allowed = false;
   saveRoute.stack[0].handle(req, res, () => { allowed = true; });
@@ -127,4 +127,31 @@ test('backup restoration cannot introduce an invalid RUT through a legacy collec
   await assert.rejects(() => importFile(JSON.stringify(backup), 'backup'), error => error.code === 'INVALID_OPPORTUNITY_RUT');
   assert.deepEqual((await stored()).data, [legacy, valid]);
   assert.deepEqual(await audits(), []);
+});
+
+test('saving another module preserves overlapping IDs and their distinct historical RUTs', async () => {
+  const shadowed = { ...valid, rut: 'histórico sin regularizar' };
+  await db.query('INSERT INTO tenant_module_state(tenant_id,module_key,data,version) VALUES($1,$2,$3::jsonb,3)', ['qa-tenant', 'opportunities', JSON.stringify([shadowed])]);
+  const res = await save({ note: 'changed' }, { module: 'configuracion', version: 0 });
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual((await stored()).data, [legacy, valid]);
+  assert.deepEqual((await db.query("SELECT data FROM tenant_module_state WHERE tenant_id='qa-tenant' AND module_key='opportunities'")).rows[0].data, [shadowed]);
+  assert.equal((await audits()).length, 1);
+});
+
+test('real save preserves an unchanged historical object RUT and rejects modified prototype keys', async () => {
+  const old = { ...legacy, rut: { bad: '<historic>', nested: { a: 1, b: 2 } } };
+  await db.query("UPDATE tenant_module_state SET data=$1::jsonb WHERE tenant_id='qa-tenant' AND module_key='prospectos'", [JSON.stringify([old, valid])]);
+  const res = await save([{ ...old, phone: 'QA', rut: { nested: { b: 2, a: 1 }, bad: '<historic>' } }, valid]);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual((await stored()).data[0].rut, old.rut);
+  const previousAuditCount = (await audits()).length;
+  for (const key of ['__proto__', 'prototype', 'constructor']) {
+    const forged = JSON.parse(`{"bad":"<historic>","nested":{"a":1,"b":2},"${key}":{"polluted":true}}`);
+    await assert.rejects(() => save([{ ...old, rut: forged }, valid], { version: 4 }), error => error.code === 'INVALID_OPPORTUNITY_RUT');
+    assert.deepEqual((await stored()).data[0].rut, old.rut);
+    assert.equal(Number((await stored()).version), 4);
+    assert.equal((await audits()).length, previousAuditCount);
+  }
+  assert.equal({}.polluted, undefined);
 });
