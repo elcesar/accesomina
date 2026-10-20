@@ -152,12 +152,17 @@
   border-top: var(--nk-stroke-thin) solid var(--nk-line);
 }
 
-.nk-hero-points b {
+.nk-hero-points article h3,
+.nk-hero-points article p {
+  margin: 0;
+}
+
+.nk-hero-points h3 {
   color: var(--nk-ink);
   font: var(--nk-font-title-3);
 }
 
-.nk-hero-points span {
+.nk-hero-points p {
   color: var(--nk-ink-2);
   font: var(--nk-font-body-sm);
 }
