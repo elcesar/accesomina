@@ -51,3 +51,51 @@ for (const width of [390, 768, 1440]) {
     await expect(email).toHaveAttribute('aria-invalid', 'true')
   })
 }
+
+
+test('registration clears corrected field errors and can be resubmitted', async ({ page }) => {
+  let attempts = 0
+  await page.route('**/api/auth/register', route => {
+    attempts += 1
+    return attempts === 1
+      ? route.fulfill({ status: 400, json: { error: 'INVITE_CODE_INVALID' } })
+      : route.fulfill({ json: { message: 'Cuenta creada para revisión.' } })
+  })
+
+  await page.goto('/crear-empresa')
+  await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
+
+  const values = {
+    companyName: 'Empresa QA',
+    rut: '11.111.111-1',
+    adminName: 'Persona QA',
+    email: 'qa@example.com',
+    emailConfirmation: 'qa@example.com',
+    password: 'PasswordQA1234',
+    inviteCode: 'incorrecto',
+  }
+  for (const [id, value] of Object.entries(values)) {
+    const field = page.locator(`#registration-${id}`)
+    await field.fill(value)
+    await field.press('Tab')
+  }
+
+  for (const id of Object.keys(values)) {
+    await expect(page.locator(`#registration-${id}`)).toHaveAttribute('aria-invalid', 'false')
+    await expect(page.locator(`#registration-${id}-error`)).toHaveCount(0)
+  }
+
+  await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
+  await expect(page.locator('#registration-inviteCode')).toHaveAttribute('aria-invalid', 'true')
+  await expect(page.locator('#registration-inviteCode-error')).toBeVisible()
+
+  const invite = page.locator('#registration-inviteCode')
+  await invite.fill('invitacion-valida')
+  await invite.press('Tab')
+  await expect(invite).toHaveAttribute('aria-invalid', 'false')
+  await expect(page.locator('#registration-inviteCode-error')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
+  await expect(page.getByText('Cuenta creada para revisión.')).toBeVisible()
+  expect(attempts).toBe(2)
+})
