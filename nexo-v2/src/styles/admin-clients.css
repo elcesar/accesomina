@@ -57,5 +57,9 @@
 .nk-admin-ticket-list strong,.nk-admin-ticket-list small{display:block}
 .nk-admin-ticket-list small{margin-top:var(--nk-space-1);color:var(--nk-ink-2);font-size:var(--nk-text-xs)}
 .nk-admin-ticket-list select{width:min(100%,calc(var(--nk-space-20) * 2))}
+.nk-admin-erasure-dialog{width:min(calc(var(--nk-space-20) * 13),100%)}
+.nk-admin-erasure-form{display:grid;gap:var(--nk-space-4)}
+.nk-admin-erasure-form header h2{margin:var(--nk-space-0) var(--nk-space-0) var(--nk-space-2);font:var(--nk-font-title-2);color:var(--nk-state-error)}
+.nk-admin-erasure-form header p{margin:var(--nk-space-0);color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
 
 @media(max-width:56.25rem){.nk-admin-clients-card-head{flex-direction:column}.nk-admin-clients-table{min-width:calc(var(--nk-space-20) * 11)}}
