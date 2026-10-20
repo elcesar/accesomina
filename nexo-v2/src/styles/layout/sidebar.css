@@ -276,3 +276,6 @@
   .nk-mobile-backdrop { position: fixed; inset: 0; z-index: 109; border: 0; background: rgba(0,0,0,.45); cursor: pointer; }
 }
 @media (prefers-reduced-motion: reduce) { .nk-sidebar { transition: none; } }
+
+.nk-sidebar-nav { overflow-x: hidden; min-width: 0; }
+.nk-side-group, .nk-side-link { min-width: 0; max-width: 100%; box-sizing: border-box; }
