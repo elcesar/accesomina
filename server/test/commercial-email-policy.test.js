@@ -3,6 +3,8 @@ import test from 'node:test';
 import { validateTenantState } from '../validation.js';
 import { validateOptionalHistoricalEmail } from '../email-policy.js';
 
+// Covers identity-safe retention of commercial legacy email values.
+
 const historical = {
   minas: [{ id: 'client-1', nombre: 'Cliente QA', emailMandante: 'central-invalido', contactos: [{ id: 'contact-1', nombre: 'Contacto QA', email: 'contacto-invalido' }] }],
   prospectos: [{ id: 'opp-1', company: 'Prospecto QA', type: 'nuevo_cliente', stage: 'prospecto', email: 'prospecto-invalido' }],
