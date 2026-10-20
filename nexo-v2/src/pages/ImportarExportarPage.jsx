@@ -37,6 +37,7 @@ export default function ImportarExportarPage() {
   const [message, setMessage] = useState('')
   const [issues, setIssues] = useState([])
   const [hasError, setHasError] = useState(false)
+  const [noRowsSaved, setNoRowsSaved] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
   const selectedImport = useMemo(() => TYPES.find(item => item.id === importType) || TYPES[0], [importType])
@@ -59,6 +60,7 @@ export default function ImportarExportarPage() {
     setMessage('')
     setIssues([])
     setHasError(false)
+    setNoRowsSaved(false)
     try {
       if (backupImport) {
         await api.upload('/data-transfer/import/backup', file, { mode: 'replace' })
@@ -71,7 +73,11 @@ export default function ImportarExportarPage() {
       setFile(null)
     } catch (error) {
       setHasError(true)
-      setIssues(error?.issues || error?.metadata?.issues || [])
+      const reportedIssues = Array.isArray(error?.issues) ? error.issues : Array.isArray(error?.metadata?.issues) ? error.metadata.issues : []
+      const metadata = error?.metadata || error || {}
+      const location = { row: metadata.row, column: metadata.column, value: metadata.value, message: error?.message || 'Revisa este dato relacionado.' }
+      setIssues(reportedIssues.length ? reportedIssues : location.row || location.column || location.value ? [location] : [])
+      setNoRowsSaved(!backupImport)
       setMessage(error?.message || 'No fue posible importar el archivo.')
     } finally {
       setSending(false)
@@ -88,6 +94,7 @@ export default function ImportarExportarPage() {
       </header>
 
       {message && <p className="nk-form-message" role={hasError ? 'alert' : 'status'} aria-live="polite">{message}</p>}
+      {noRowsSaved && issues.length === 0 && <p className="nk-form-message" role="status">No se guardó ninguna fila. La validación del conjunto completo detuvo la importación. Corrige el mensaje anterior y vuelve a intentarlo.</p>}
 
       <div className="nk-transfer-grid">
         <section className="nk-module-card nk-transfer-panel">
@@ -130,7 +137,7 @@ export default function ImportarExportarPage() {
             <div className="nk-transfer-form-grid">
               <label className="nk-transfer-field">
                 <span>Tipo de archivo</span>
-                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage(''); setIssues([]) }}>
+                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage(''); setIssues([]); setNoRowsSaved(false) }}>
                   {TYPES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                   <option value="backup">Respaldo completo</option>
                 </select>
@@ -151,7 +158,7 @@ export default function ImportarExportarPage() {
                 key={`${importType}-${file ? file.name : 'empty'}`}
                 type="file"
                 accept={backupImport ? '.json,application/json' : '.csv,text/csv'}
-                onChange={event => { setFile(event.target.files?.[0] || null); setIssues([]); setMessage('') }}
+                onChange={event => { setFile(event.target.files?.[0] || null); setIssues([]); setMessage(''); setNoRowsSaved(false) }}
               />
               <small id="import-file-help">{file ? file.name : `Selecciona un archivo ${backupImport ? 'JSON de respaldo' : 'CSV'}`}</small>
             </label>
@@ -177,7 +184,7 @@ export default function ImportarExportarPage() {
               }}>Descargar informe de errores</button>
             </section>}
             {importType === 'trabajadores' && <button className="nk-button nk-button-quiet" type="button" onClick={() => download('/instructions/trabajadores')}>Descargar instrucciones y valores admitidos</button>}
-            {!backupImport && <p className="nk-transfer-hint">La plantilla seleccionada corresponde a <b>{selectedImport.label}</b>. Revisa su estructura antes de cargar información masiva.</p>}
+            {!backupImport && <p className="nk-transfer-hint">La plantilla corresponde a <b>{selectedImport.label}</b>. Cada CSV importa un módulo y sus referencias (cliente, contrato, persona u orden) deben existir previamente en la empresa. No se admiten referencias a registros que se creen en otra importación pendiente: importa primero el módulo relacionado y luego el archivo dependiente.</p>}
             {backupImport && <p className="nk-transfer-hint warning">La restauración reemplaza los módulos incluidos en el respaldo y requiere confirmación.</p>}
           </div>
         </section>
