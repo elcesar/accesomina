@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { opportunityIdentity, opportunityIsClosed, opportunityRows, opportunityFields } from '../shared/opportunity-domain.js';
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 import { operationalDay } from '../shared/operational-date.js';
+import { validateOptionalHistoricalEmail } from './email-policy.js';
 
 export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128), mfaCode:z.string().trim().min(6).max(20).optional() });
 export const registerSchema = z.object({
@@ -23,6 +24,65 @@ function validateWorkerEmail(worker, previousWorker) {
   const result = workerEmailSchema.safeParse(worker.email);
   if (!result.success) throw Object.assign(new Error('Worker email is invalid'), { status: 409, code: 'INVALID_WORKER_EMAIL' });
   worker.email = result.data;
+}
+
+function legacyContactKey(contact) {
+  const name = normalizedText(contact?.nombre);
+  const phone = normalizedText(contact?.telefono);
+  return name && phone ? `${name}|${phone}` : '';
+}
+
+function previousContactFor(contact, previousContacts) {
+  if (contact?.id != null && String(contact.id).trim()) {
+    return previousContacts.find(item => item?.id != null && String(item.id) === String(contact.id));
+  }
+
+  // Legacy contacts can be retained only when a stable name/phone fingerprint
+  // identifies exactly one prior contact. Position in the array is never identity.
+  const key = legacyContactKey(contact);
+  if (!key) return undefined;
+  const matches = previousContacts.filter(item => item?.id == null && legacyContactKey(item) === key);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function validateClientEmails(client, previousClient) {
+  client.emailMandante = validateOptionalHistoricalEmail(client.emailMandante, previousClient?.emailMandante, {
+    code: 'INVALID_CLIENT_EMAIL',
+    hasPreviousRecord: Boolean(previousClient),
+  });
+  const previousContacts = Array.isArray(previousClient?.contactos) ? previousClient.contactos : [];
+  client.contactos = (Array.isArray(client.contactos) ? client.contactos : []).map(contact => {
+    const previous = previousContactFor(contact, previousContacts);
+    return {
+      ...contact,
+      email: validateOptionalHistoricalEmail(contact?.email, previous?.email, {
+        code: 'INVALID_CLIENT_CONTACT_EMAIL',
+        hasPreviousRecord: Boolean(previous),
+      }),
+    };
+  });
+}
+
+function validateOpportunityEmails(state, previousState) {
+  const previous = new Map(
+    ['prospectos', 'oportunidades', 'opportunities']
+      .flatMap(key => Array.isArray(previousState?.[key]) ? previousState[key] : [])
+      .filter(row => row?.id != null)
+      .map(row => [String(row.id), row]),
+  );
+  for (const key of ['prospectos', 'oportunidades', 'opportunities']) {
+    if (!Array.isArray(state[key])) continue;
+    state[key] = state[key].map(row => {
+      const previousRecord = previous.get(String(row?.id || ''));
+      return {
+        ...row,
+        email: validateOptionalHistoricalEmail(row?.email, previousRecord?.email, {
+          code: 'INVALID_OPPORTUNITY_EMAIL',
+          hasPreviousRecord: Boolean(previousRecord),
+        }),
+      };
+    });
+  }
 }
 
 export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
@@ -379,12 +439,14 @@ export function validateTenantState(input, { previousState = null } = {}) {
     : null;
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
   const previousWorkers = new Map((Array.isArray(previousState?.trabajadores) ? previousState.trabajadores : []).map(worker => [String(worker.id), worker]));
+  const previousClients = new Map((Array.isArray(previousState?.minas) ? previousState.minas : []).filter(client => client?.id != null).map(client => [String(client.id), client]));
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
   for (const client of mines) {
     if (!client.id || !String(client.nombre || '').trim()) throw Object.assign(new Error('Client requires id and name'), { status: 409, code: 'INCOMPLETE_CLIENT' });
     if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
+    validateClientEmails(client, previousClients.get(String(client.id)));
   }
   for (const worker of workers) {
     if (!worker.id || !String(worker.nombre || '').trim() || !worker.rut) throw Object.assign(new Error('Worker requires id, name and RUT'), { status: 409, code: 'INCOMPLETE_WORKER' });
@@ -490,6 +552,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if ((row.trabIds || []).some(id => !workerIds.has(String(id)))) throw Object.assign(new Error('WhatsApp group references an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.permisosTrabajo) ? state.permisosTrabajo : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Work permit references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
+  validateOpportunityEmails(state, previousState);
   const opportunities=opportunityRows(state).map(opportunityFields);
   assertUnique(opportunities.filter(x=>!opportunityIsClosed(x)).map(opportunityIdentity),'Duplicate active opportunity','DUPLICATE_OPPORTUNITY');
   for(const row of opportunities){if(row.clientId&&!mineIds.has(String(row.clientId)))throw Object.assign(new Error('Opportunity references an unknown client'),{status:409,code:'INVALID_REFERENCE'});if(row.contractId&&!contractIds.has(String(row.contractId)))throw Object.assign(new Error('Opportunity references an unknown contract'),{status:409,code:'INVALID_REFERENCE'});if(!Number.isFinite(Number(row.amount))||!Number.isFinite(Number(row.probability))||Number(row.amount)<0||Number(row.probability)<0||Number(row.probability)>100)throw Object.assign(new Error('Opportunity has invalid amount or probability'),{status:409,code:'INVALID_OPPORTUNITY'});}
