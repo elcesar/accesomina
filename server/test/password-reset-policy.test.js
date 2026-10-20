@@ -10,6 +10,7 @@ import {
   validatePasswordResetRequest,
 } from '../password-reset.js';
 
+// Delivery is successful only when SMTP explicitly accepts the intended recipient.
 const smtpConfig = {
   host: 'smtp.example.test',
   port: 587,
