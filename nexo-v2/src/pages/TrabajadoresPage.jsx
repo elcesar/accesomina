@@ -138,7 +138,7 @@ const TABS = [
   { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
   { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
   { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
+  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
@@ -305,10 +305,10 @@ export default function TrabajadoresPage() {
   }
 
   const SortIcon = ({ col }) => {
-    if (sortCol !== col) return <IconChevronDown className="nk-people-sort-muted" size={11} />
+    if (sortCol !== col) return <IconChevronDown className="nk-people-sort-muted" size={16} />
     return sortAsc
-      ? <IconChevronUp className="nk-people-sort-active" size={11} />
-      : <IconChevronDown className="nk-people-sort-active" size={11} />
+      ? <IconChevronUp className="nk-people-sort-active" size={16} />
+      : <IconChevronDown className="nk-people-sort-active" size={16} />
   }
 
   if (loading) {
@@ -431,16 +431,16 @@ export default function TrabajadoresPage() {
 
       <main className="nk-people-content">
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-people-table">
+          <table className="nk-table nk-people-table"><caption className="nk-sr-only">Personas · tabla 1</caption>
             <thead>
               <tr>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
-                <th>Tipo</th>
-                <th>Contexto operacional</th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
-                <th aria-label="Acciones" />
+                <th scope="col" aria-sort={sortCol === 'nombre' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
+                <th scope="col" aria-sort={sortCol === 'especialidad' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Contexto operacional</th>
+                <th scope="col" aria-sort={sortCol === 'disponibilidad' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
+                <th scope="col" aria-sort={sortCol === 'acreditacion' ? (sortAsc ? 'ascending' : 'descending') : 'none'}><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
+                <th scope="col" aria-label="Acciones" />
               </tr>
             </thead>
 
