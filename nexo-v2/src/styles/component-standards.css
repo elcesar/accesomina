@@ -45,3 +45,12 @@
 .nk-opportunity-table .nk-row-actions .nk-button {
   width: 100%;
 }
+
+/* The hit area includes the visible control; small checkboxes keep their native glyph. */
+.nk-app-shell :is(button,a,input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) { min-height: 40px; }
+.nk-app-shell :is(button,a) { min-height: 44px; }
+.nk-app-shell input:is([type=checkbox],[type=radio]) { min-width: 20px; min-height: 20px; margin: 12px; }
+.nk-app-shell :is(.nk-field-help,.nk-person-field-hint) { color: var(--nk-ink-2); font-size: 13px; }
+.nk-app-shell .nk-empty-state { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 32px 16px; }
+.nk-empty-state p { margin: 0; }
+.nk-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
