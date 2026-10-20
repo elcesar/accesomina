@@ -206,7 +206,7 @@ export default function LoginPage() {
               </>
             ) : (
               <Field label="Código de autenticación">
-                <input
+                <input aria-label="Código de autenticación"
                   className="nk-input nk-login-mfa-input"
                   value={mfaCode}
                   onChange={e => setMfaCode(e.target.value)}
