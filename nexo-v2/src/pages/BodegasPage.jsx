@@ -91,7 +91,7 @@ export default function BodegasPage() {
     <div className="nk-warehouses-page">
       <header className="nk-page-header nk-warehouses-header">
         <div className="nk-page-heading">
-          <h1 className="nk-page-title">Bodegas y almacenes</h1>
+          <h1 className="nk-page-title">Bodegas</h1>
           <p className="nk-page-description">Administra bodegas, ubicaciones internas, responsables y existencias distribuidas por ubicación.</p>
         </div>
         <div className="nk-page-header-actions">
@@ -104,7 +104,7 @@ export default function BodegasPage() {
       {error && <div className="nk-warehouses-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
       <section className="nk-card nk-warehouses-toolbar">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar registros" value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
       </section>
 
       <section className="nk-warehouses-kpis">
@@ -119,8 +119,8 @@ export default function BodegasPage() {
           <div><h2>Distribución física</h2><p>Cada bodega mantiene su saldo y puede subdividirse en ubicaciones internas.</p></div>
         </div>
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-warehouses-table">
-            <thead><tr><th>Bodega</th><th>Tipo</th><th>Ubicación</th><th>Responsable</th><th>Ubicaciones internas</th><th>Existencias</th></tr></thead>
+          <table className="nk-table nk-warehouses-table"><caption className="nk-sr-only">Bodegas · tabla 1</caption>
+            <thead><tr><th scope="col">Bodega</th><th scope="col">Tipo</th><th scope="col">Ubicación</th><th scope="col">Responsable</th><th scope="col">Ubicaciones internas</th><th scope="col">Existencias</th></tr></thead>
             <tbody>{loading ? <tr><td colSpan="6">Cargando bodegas…</td></tr> : filtered.length ? filtered.map(warehouse => {
               const names = locationNames(warehouse.id)
               return <tr key={warehouse.id}>
