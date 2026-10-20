@@ -2,9 +2,50 @@ import nodemailer from 'nodemailer';
 import { config } from './config.js';
 import { withTenant } from './db.js';
 import { appendAudit } from './audit.js';
-import { randomToken, sha256 } from './security.js';
+import { isValidRut, normalizeEmail, normalizeRut, randomToken, sha256 } from './security.js';
+import { isValidEmail } from './validation.js';
 
 const resetUrl = (tenantId, token) => `${config.origin}/restablecer-contrasena?tenant=${encodeURIComponent(tenantId)}&token=${encodeURIComponent(token)}`;
+
+export const PASSWORD_RESET_GENERIC_MESSAGE = 'Si los datos corresponden a una cuenta activa, recibirás un enlace para restablecer tu contraseña. Revisa tu carpeta de spam; si no llega, contacta al administrador de tu empresa.';
+
+export function validatePasswordResetRequest(input = {}) {
+  const rut = String(input?.rut || '').trim();
+  const email = normalizeEmail(input?.email);
+  if (!isValidRut(rut)) {
+    return { error: 'INVALID_COMPANY_RUT', message: 'El RUT de la empresa no es válido.' };
+  }
+  if (!isValidEmail(email)) {
+    return { error: 'INVALID_EMAIL', message: 'Ingresa un correo electrónico válido.' };
+  }
+  return { rutKey: normalizeRut(rut), email };
+}
+
+export function passwordResetSmtpReadiness(smtp = config.smtp) {
+  const missing = [];
+  if (!String(smtp?.host || '').trim()) missing.push('SMTP_HOST');
+  if (!Number.isInteger(Number(smtp?.port)) || Number(smtp.port) < 1 || Number(smtp.port) > 65_535) missing.push('SMTP_PORT');
+  if (!String(smtp?.from || '').trim()) missing.push('EMAIL_FROM');
+  return { configured: missing.length === 0, missing };
+}
+
+export function classifySmtpFailure(error = {}) {
+  const code = String(error?.code || '').toUpperCase();
+  if (code === 'EAUTH' || Number(error?.responseCode) === 535) return 'SMTP_AUTH_FAILED';
+  if (['ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH', 'ESOCKET', 'ETIMEDOUT'].includes(code)) return 'SMTP_CONNECTION_FAILED';
+  return 'DELIVERY_FAILED';
+}
+
+export function logPasswordResetOperationalEvent({ event, code, requestId = '', outcome = 'failed' }, logger = console.error) {
+  logger(JSON.stringify({
+    at: new Date().toISOString(),
+    service: config.serviceName,
+    event,
+    outcome,
+    code: String(code || 'UNKNOWN').slice(0, 80),
+    requestId: String(requestId || '').slice(0, 100) || null,
+  }));
+}
 
 export async function createPasswordReset({ tenantId, user, requestedBy = null, ip = '', reason = 'self_service' }) {
   const token = randomToken(32);
@@ -32,32 +73,59 @@ export async function createPasswordReset({ tenantId, user, requestedBy = null, 
   return { token, expiresAt, url: resetUrl(tenantId, token) };
 }
 
-function transport() {
-  if (!config.smtp.host) return null;
-  return nodemailer.createTransport({
-    host: config.smtp.host,
-    port: Number(config.smtp.port || 587),
-    secure: config.smtp.secure === true,
-    auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.pass } : undefined,
+function transport(smtpConfig = config.smtp, createTransport = nodemailer.createTransport) {
+  if (!passwordResetSmtpReadiness(smtpConfig).configured) return null;
+  return createTransport({
+    host: smtpConfig.host,
+    port: Number(smtpConfig.port || 587),
+    secure: smtpConfig.secure === true,
+    auth: smtpConfig.user ? { user: smtpConfig.user, pass: smtpConfig.pass } : undefined,
     connectionTimeout: 15_000,
     greetingTimeout: 15_000,
     socketTimeout: 30_000,
   });
 }
 
-export async function deliverPasswordReset({ email, fullName, url }) {
-  const smtp = transport();
+export async function deliverPasswordReset({ email, fullName, url, smtpConfig = config.smtp, createTransport = nodemailer.createTransport }) {
+  const smtp = transport(smtpConfig, createTransport);
   if (!smtp) return { delivered: false, reason: 'SMTP_NOT_CONFIGURED' };
 
   const safeName = String(fullName || '').replace(/[<>&]/g, '');
-  await smtp.sendMail({
-    from: config.smtp.from,
-    to: email,
-    subject: 'Restablece tu contraseña de Nexo Klar',
-    text: `Hola ${fullName || ''},\n\nSolicitaste restablecer tu contraseña. Usa este enlace dentro de 30 minutos:\n${url}\n\nSi no realizaste esta solicitud, puedes ignorar este mensaje.`,
-    html: `<p>Hola ${safeName},</p><p>Solicitaste restablecer tu contraseña de Nexo Klar.</p><p><a href="${url}">Restablecer contraseña</a></p><p>El enlace vence en 30 minutos y solo puede utilizarse una vez. Si no realizaste esta solicitud, ignora este mensaje.</p>`,
+  try {
+    const result = await smtp.sendMail({
+      from: smtpConfig.from,
+      to: email,
+      subject: 'Restablece tu contraseña de Nexo Klar',
+      text: `Hola ${fullName || ''},\n\nSolicitaste restablecer tu contraseña. Usa este enlace dentro de 30 minutos:\n${url}\n\nSi no realizaste esta solicitud, puedes ignorar este mensaje.`,
+      html: `<p>Hola ${safeName},</p><p>Solicitaste restablecer tu contraseña de Nexo Klar.</p><p><a href="${url}">Restablecer contraseña</a></p><p>El enlace vence en 30 minutos y solo puede utilizarse una vez. Si no realizaste esta solicitud, ignora este mensaje.</p>`,
+    });
+    const recipient = String(email || '').trim().toLowerCase();
+    const smtpAccepted = Array.isArray(result?.accepted)
+      && result.accepted.some(address => String(address || '').trim().toLowerCase() === recipient);
+    if (!smtpAccepted) return { delivered: false, smtpAccepted: false, reason: 'DELIVERY_FAILED' };
+    return { delivered: true, smtpAccepted: true };
+  } catch (error) {
+    return { delivered: false, reason: classifySmtpFailure(error) };
+  }
+}
+
+export async function recordPasswordResetDelivery({ tenantId, user, delivery, withTenantFn = withTenant, appendAuditFn = appendAudit }) {
+  const delivered = Boolean(delivery?.delivered);
+  const reason = delivered ? null : String(delivery?.reason || 'DELIVERY_FAILED').slice(0, 80);
+  await withTenantFn(tenantId, async client => {
+    await appendAuditFn(client, {
+      tenantId,
+      userId: user.id,
+      entityType: 'user',
+      entityId: user.id,
+      action: delivered ? 'user.password_reset_delivery.sent' : 'user.password_reset_delivery.failed',
+      newValue: {
+        delivery: delivered ? 'accepted_by_smtp' : 'failed',
+        smtpAccepted: delivered ? Boolean(delivery?.smtpAccepted) : false,
+        reason,
+      },
+    });
   });
-  return { delivered: true };
 }
 
 export async function deliverPasswordResetConfirmation({ email, fullName }) {
