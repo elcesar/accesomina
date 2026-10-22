@@ -10,6 +10,8 @@ import { validateEmail } from '../services/email-validation.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import { mergeCollections } from '../services/report-collections.js'
 import { saveClientWithRetry } from '../services/client-save.js'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/clientes.css'
 
 const CLIENT_ERRORS={
@@ -34,7 +36,9 @@ function ContactForm({contacts,onAdd,disabled}){const[contact,setContact]=useSta
 
 export default function ClientesPage({createMode=false}){
  const{session}=useAuth();const{clientId}=useParams();const navigate=useNavigate();const canEdit=session?.user?.role!=='consulta'
- const[clientSaveError,setClientSaveError]=useState(null),[clientEmailError,setClientEmailError]=useState('')
+const confirmation = useConfirmation()
+const [clientSaveError, setClientSaveError] = useState(null)
+const [clientEmailError, setClientEmailError] = useState('')
  const[response,setResponse]=useState(null),[selectedId,setSelectedId]=useState(null),[draft,setDraft]=useState(emptyClient),[newRequirement,setNewRequirement]=useState(''),[requirementError,setRequirementError]=useState(''),[creating,setCreating]=useState(createMode),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[message,setMessage]=useState(''),[messageTone,setMessageTone]=useState(''),[search,setSearch]=useState(''),[statusFilter,setStatusFilter]=useState('')
  async function load(){setLoading(true);setMessage('');setMessageTone('');try{setResponse(await api.get('/state'))}catch{setMessage('No fue posible cargar los clientes. Revisa tu conexión e inténtalo nuevamente.');setMessageTone('error')}finally{setLoading(false)}}
  useEffect(()=>{load()},[])
@@ -47,10 +51,115 @@ export default function ClientesPage({createMode=false}){
  const relatedContracts=selected?contracts.filter(item=>String(item.minaId)===String(selected.id)):[];const relatedOrders=selected?orders.filter(item=>String(item.minaId)===String(selected.id)):[];const relatedAssignments=selected?assignments.filter(item=>relatedOrders.some(order=>String(order.id)===String(item.mantId))):[];const relatedWorkers=[...new Map(relatedAssignments.map(item=>{const worker=workerById.get(String(item.trabId));return worker?[String(worker.id),worker]:null}).filter(Boolean)).values()];const workerIds=new Set(relatedWorkers.map(worker=>String(worker.id)));const pendingAlerts=selected?alerts.filter(item=>String(item.minaId||item.clientId||'')===String(selected.id)||workerIds.has(String(item.workerId||item.trabId||item.personaId||''))).length+relatedWorkers.reduce((total,worker)=>total+rows(worker.workerItems).filter(hasAlert).length,0):0;const averageDocumentation=relatedWorkers.length?Math.round(relatedWorkers.reduce((total,worker)=>total+currentDocumentation(worker),0)/relatedWorkers.length):0;const update=key=>event=>setDraft(current=>({...current,[key]:event.target.value}));const updateRegion=event=>setDraft(current=>({...current,region:event.target.value,comuna:''}));const comunas=comunasDeRegion(draft.region);
  const selectClient=id=>{setCreating(false);setSelectedId(id);setRequirementError('');setMessage('');setMessageTone('');navigate(`/app/clientes/${encodeURIComponent(id)}`)}
  const closeDetail=()=>{setCreating(false);setSelectedId(null);setDraft(emptyClient());navigate('/app/clientes')}
- async function save(event){event.preventDefault();setClientSaveError(null);const originalEmail=selected?.emailMandante??'';const emailChanged=creating||draft.emailMandante!==originalEmail;const emailError=emailChanged?validateEmail(draft.emailMandante):null;setClientEmailError(emailError||'');if(!canEdit||draft.nombre.trim().length<2){setClientSaveError(clientError('INCOMPLETE_CLIENT'));return}if(emailError){setClientSaveError({title:'Correo no válido',message:emailError,suggestion:'Corrige el correo central antes de guardar.'});return}setSaving(true);setMessage('');setMessageTone('');try{const outcome=await saveClientWithRetry(api,{draft,creating,selectedId,createId:newId});if(outcome.duplicate){setClientSaveError(clientError('DUPLICATE_CLIENT'));return}const{response:latestResponse,state:latestState,saved,result}=outcome;const next=creating?[...mergeCollections(latestState,'minas','clientes'),saved]:mergeCollections(latestState,'minas','clientes').map(item=>String(item.id)===String(saved.id)?saved:item);setResponse({...latestResponse,state:{...latestState,minas:next},moduleVersions:{...(latestResponse?.moduleVersions||{}),...result.moduleVersions}});setSelectedId(saved.id);setCreating(false);setDraft(saved);navigate(`/app/clientes/${encodeURIComponent(saved.id)}`,{replace:true});setMessage(creating?'Cliente creado y disponible para contratos y órdenes de servicio.':'Cambios guardados con trazabilidad.');setMessageTone('ok')}catch(error){setClientSaveError(clientError(error.code,error.message))}finally{setSaving(false)}}
- const addContact=contact=>setDraft(current=>({...current,contactos:[...rows(current.contactos),contact]}));const removeContact=contact=>{if(!window.confirm(`¿Eliminar el contacto ${contact.nombre}?`))return;setDraft(current=>({...current,contactos:rows(current.contactos).filter(item=>item.id!==contact.id)}))}
+async function save(event) {
+  event.preventDefault()
+  setClientSaveError(null)
+
+  const originalEmail = selected?.emailMandante ?? ''
+  const emailChanged = creating || draft.emailMandante !== originalEmail
+  const emailError = emailChanged ? validateEmail(draft.emailMandante) : null
+
+  setClientEmailError(emailError || '')
+
+  if (!canEdit || draft.nombre.trim().length < 2) {
+    setClientSaveError(clientError('INCOMPLETE_CLIENT'))
+    return
+  }
+
+  if (emailError) {
+    setClientSaveError({
+      title: 'Correo no válido',
+      message: emailError,
+      suggestion: 'Corrige el correo central antes de guardar.'
+    })
+    return
+  }
+
+  setSaving(true)
+  setMessage('')
+  setMessageTone('')
+
+  try {
+    const outcome = await saveClientWithRetry(api, {
+      draft,
+      creating,
+      selectedId,
+      createId: newId
+    })
+
+    if (outcome.duplicate) {
+      setClientSaveError(clientError('DUPLICATE_CLIENT'))
+      return
+    }
+
+    const {
+      response: latestResponse,
+      state: latestState,
+      saved,
+      result
+    } = outcome
+
+    const next = creating
+      ? [...mergeCollections(latestState, 'minas', 'clientes'), saved]
+      : mergeCollections(latestState, 'minas', 'clientes').map(item =>
+          String(item.id) === String(saved.id) ? saved : item
+        )
+
+    setResponse({
+      ...latestResponse,
+      state: {
+        ...latestState,
+        minas: next
+      },
+      moduleVersions: {
+        ...(latestResponse?.moduleVersions || {}),
+        ...result.moduleVersions
+      }
+    })
+
+    setSelectedId(saved.id)
+    setCreating(false)
+    setDraft(saved)
+
+    navigate(`/app/clientes/${encodeURIComponent(saved.id)}`, {
+      replace: true
+    })
+
+    setMessage(
+      creating
+        ? 'Cliente creado y disponible para contratos y órdenes de servicio.'
+        : 'Cambios guardados con trazabilidad.'
+    )
+    setMessageTone('ok')
+  } catch (error) {
+    setClientSaveError(clientError(error.code, error.message))
+  } finally {
+    setSaving(false)
+  }
+}
+
+const addContact = contact =>
+  setDraft(current => ({
+    ...current,
+    contactos: [...rows(current.contactos), contact]
+  }))
+
+const removeContact = contact =>
+  confirmation.ask({
+    title: 'Eliminar contacto',
+    description: `Se quitará a ${contact.nombre} de la ficha. Guarda los cambios del cliente para conservar esta modificación.`,
+    confirmLabel: 'Eliminar contacto',
+    variant: 'danger',
+    onConfirm: () =>
+      setDraft(current => ({
+        ...current,
+        contactos: rows(current.contactos).filter(
+          item => item.id !== contact.id
+        )
+      }))
+  })
  function addRequirement(){const name=newRequirement.trim();if(!name)return;if(rows(draft.requisitos).some(item=>normalize(item.nombre)===normalize(name))){setRequirementError('Este requisito ya está configurado para el cliente.');return}setDraft(current=>({...current,requisitos:[...rows(current.requisitos),{id:newId(),nombre:name,estado:'pendiente'}]}));setNewRequirement('');setRequirementError('')}
- const removeRequirement=requirement=>{if(!window.confirm(`¿Quitar el requisito “${requirement.nombre}”?`))return;setDraft(current=>({...current,requisitos:rows(current.requisitos).filter(item=>item.id!==requirement.id)}))}
+ const removeRequirement=requirement=>confirmation.ask({title:'Quitar requisito',description:`Se quitará “${requirement.nombre}” de la ficha. Guarda los cambios del cliente para conservar esta modificación.`,confirmLabel:'Quitar requisito',variant:'danger',onConfirm:()=>setDraft(current=>({...current,requisitos:rows(current.requisitos).filter(item=>item.id!==requirement.id)}))})
  return <section className="nk-client-page">
   <header className="nk-client-header"><div><h1>Clientes</h1><p>Vista consolidada de clientes, contratos, órdenes de servicio y personas vinculadas.</p></div><div className="nk-actions nk-client-header-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></div></header>
   {message&&<div className={`nk-client-feedback ${messageTone}`}><span>{message}</span></div>}
@@ -59,9 +168,10 @@ export default function ClientesPage({createMode=false}){
   {(creating||selected)&&<><button type="button" className="nk-client-back" onClick={closeDetail}><IconArrowLeft size={16}/>Volver a Clientes</button><form className="nk-client-workspace nk-card" onSubmit={save}><div className="nk-client-workspace-head"><div><p className="nk-client-kicker">{creating?'Nuevo cliente':'Ficha del cliente'}</p><h2>{creating?'Registra la relación comercial':draft.nombre||'Cliente sin nombre'}</h2><p>{creating?'Completa lo esencial; podrás ampliar la ficha después.':'Los cambios se conservan con historial dentro de la empresa.'}</p></div>{canEdit&&<button className="nk-button nk-button-primary" disabled={saving}>{saving?<IconLoader2 className="nk-client-spin" size={16}/>:<IconCheck size={16}/>} {saving?'Guardando…':'Guardar cambios'}</button>}</div>
   <div className="nk-client-form-grid"><div className="nk-field nk-client-span-2"><label className="nk-label">Nombre o razón social</label><input className="nk-input" required disabled={!canEdit} value={draft.nombre} onChange={update('nombre')}/></div><div className="nk-field nk-client-span-2"><label className="nk-label">Organización relacionada</label><input className="nk-input" disabled={!canEdit} value={draft.mandante} onChange={update('mandante')}/></div><div className="nk-field"><label className="nk-label">RUT</label><RutInput disabled={!canEdit} value={draft.rut} onChange={value=>setDraft(current=>({...current,rut:value}))}/></div><div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" disabled={!canEdit} value={draft.estado} onChange={update('estado')}><option value="activo">Activo</option><option value="prospecto">Prospecto</option><option value="inactivo">Inactivo</option></select></div><div className="nk-field"><label className="nk-label">Región</label><select className="nk-select" disabled={!canEdit} value={draft.region} onChange={updateRegion}><option value="">Seleccionar región</option>{draft.region&&!regionesChile.includes(draft.region)&&<option value={draft.region}>{draft.region}</option>}{regionesChile.map(region=><option key={region} value={region}>{region}</option>)}</select></div><div className="nk-field"><label className="nk-label">Comuna</label><select className="nk-select" disabled={!canEdit||!draft.region} value={draft.comuna} onChange={update('comuna')}><option value="">{draft.region?'Seleccionar comuna':'Primero selecciona una región'}</option>{draft.comuna&&!comunas.includes(draft.comuna)&&<option value={draft.comuna}>{draft.comuna}</option>}{comunas.map(comuna=><option key={comuna} value={comuna}>{comuna}</option>)}</select></div><div className="nk-field nk-client-span-2"><label className="nk-label"><IconPhone size={14}/> Teléfono central</label><input className="nk-input" disabled={!canEdit} value={draft.telefonoMandante} onChange={update('telefonoMandante')}/></div><div className="nk-field nk-client-span-2"><label className="nk-label" htmlFor="client-central-email"><IconMail size={14}/> Correo central</label><EmailInput id="client-central-email" disabled={!canEdit} value={draft.emailMandante} error={clientEmailError} normalizeOnBlur={!(Boolean(selected)&&draft.emailMandante===(selected?.emailMandante??'')&&Boolean(validateEmail(draft.emailMandante)))} onChange={value=>{setClientEmailError('');setDraft(current=>({...current,emailMandante:value}))}} placeholder="contacto@empresa.cl"/></div><div className="nk-field nk-client-span-2"><label className="nk-label">Contraparte principal</label><input className="nk-input" disabled={!canEdit} value={draft.contacto} onChange={update('contacto')} placeholder="Nombre de la contraparte"/></div><div className="nk-field"><label className="nk-label">Altura de operación (msnm)</label><input className="nk-input" type="number" min="0" disabled={!canEdit} value={draft.altura} onChange={update('altura')} placeholder="Ej.: 3.200"/></div><div className="nk-field"><label className="nk-label">Sistema de acceso del cliente</label><input className="nk-input" disabled={!canEdit} value={draft.sistema} onChange={update('sistema')} placeholder="Ej.: SIGA"/></div><div className="nk-field nk-client-wide"><label className="nk-label">Condiciones y observaciones</label><textarea className="nk-textarea" disabled={!canEdit} value={draft.observacion} onChange={update('observacion')} rows="3"/></div></div>
   {!creating&&<><section className="nk-client-summary"><SummaryField label="Personas vinculadas" value={relatedWorkers.length}/><SummaryField label="Órdenes de servicio activas" value={relatedOrders.filter(isOpenOrder).length}/><SummaryField label="Documentación vigente registrada" value={`${averageDocumentation}%`}/><SummaryField label="Alertas pendientes" value={pendingAlerts}/></section><section className="nk-client-360"><div className="nk-client-360-title"><div><p className="nk-client-kicker">Ficha 360 cliente</p><h3>{draft.nombre}</h3><p>{[draft.mandante,draft.comuna||draft.region,draft.altura!==''&&draft.altura!==undefined?`${Number(draft.altura).toLocaleString('es-CL')} msnm`:null,draft.sistema].filter(Boolean).join(' · ')||'Completa el contexto operativo del cliente.'}</p></div>{Number(draft.altura)>=3000&&<span className="nk-badge nk-badge-warn"><IconAlertTriangle size={15}/>Requiere aptitud para altura geográfica</span>}</div><div className="nk-client-360-grid"><article><strong>Contacto del cliente</strong><SummaryField label="Contraparte" value={draft.contacto}/><SummaryField label="Teléfono" value={draft.telefonoMandante}/><SummaryField label="Sistema de acceso" value={draft.sistema}/></article><article><strong>Personas vinculadas</strong>{relatedWorkers.length?<div className="nk-client-worker-list">{relatedWorkers.slice(0,5).map(worker=><button type="button" key={worker.id} className="nk-client-person" aria-label={`Abrir ficha de ${worker.nombre||'persona'}`} onClick={()=>navigate(`/app/trabajadores/${encodeURIComponent(worker.id)}`)}><span className="nk-client-person-avatar" aria-hidden="true">{initials(worker.nombre)}</span><span className="nk-client-person-copy"><span className="nk-client-person-name">{worker.nombre||'Persona sin nombre'}</span><span className="nk-client-person-rut">{worker.rut||'Sin RUT'}</span></span><span className="nk-client-person-context">{worker.cargo||worker.especialidad||'Sin cargo'} · {currentDocumentation(worker)}% documentación vigente</span></button>)}{relatedWorkers.length>5&&<span>+ {relatedWorkers.length-5} personas adicionales</span>}</div>:<p className="nk-client-empty-copy">Aún no hay personas vinculadas. Asigna personas desde la orden de servicio correspondiente.</p>}</article></div></section></>}
-  <section className="nk-client-section"><header><div><h3><IconUser size={17}/>Contactos y responsables</h3><p>Personas que participan en la relación comercial u operativa.</p></div></header><ContactForm contacts={draft.contactos} disabled={!canEdit} onAdd={addContact}/><div className="nk-client-contact-list">{rows(draft.contactos).length?rows(draft.contactos).map(contact=><article key={contact.id}><div><strong>{contact.nombre}</strong><span>{[contact.cargo,contact.telefono,contact.email].filter(Boolean).join(' · ')||'Sin información complementaria'}</span></div>{canEdit&&<button type="button" className="nk-icon-button" onClick={()=>removeContact(contact)}><IconTrash size={16}/></button>}</article>):<p className="nk-client-empty-copy">Agrega contactos para asignar responsables y comunicarte desde la operación.</p>}</div></section>
-  <section className="nk-client-section"><header><div><h3><IconFileText size={17}/>Requisitos del cliente</h3><p>Documentos, condiciones o validaciones que se aplican a sus contratos y órdenes.</p></div></header><div className="nk-client-requirement-add"><input className="nk-input" disabled={!canEdit} value={newRequirement} onChange={event=>{setNewRequirement(event.target.value);setRequirementError('')}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();addRequirement()}}} placeholder="Ej.: Certificado de seguro vigente"/><button type="button" className="nk-button nk-button-secondary" disabled={!canEdit||!newRequirement.trim()} onClick={addRequirement}><IconPlus size={15}/>Agregar</button></div>{requirementError&&<p className="nk-client-inline-error">{requirementError}</p>}<div className="nk-client-tags">{rows(draft.requisitos).map(item=><span key={item.id} className="nk-badge nk-badge-none">{item.nombre}{canEdit&&<button type="button" onClick={()=>removeRequirement(item)}>×</button>}</span>)}{!rows(draft.requisitos).length&&<p className="nk-client-empty-copy">Sin requisitos adicionales configurados.</p>}</div></section>
+  <section className="nk-client-section"><header><div><h3><IconUser size={17}/>Contactos y responsables</h3><p>Personas que participan en la relación comercial u operativa.</p></div></header><ContactForm contacts={draft.contactos} disabled={!canEdit} onAdd={addContact}/><div className="nk-client-contact-list">{rows(draft.contactos).length?rows(draft.contactos).map(contact=><article key={contact.id}><div><strong>{contact.nombre}</strong><span>{[contact.cargo,contact.telefono,contact.email].filter(Boolean).join(' · ')||'Sin información complementaria'}</span></div>{canEdit&&<button type="button" className="nk-icon-button" aria-label={`Eliminar contacto ${contact.nombre}`} onClick={()=>removeContact(contact)}><IconTrash size={16}/></button>}</article>):<p className="nk-client-empty-copy">Agrega contactos para asignar responsables y comunicarte desde la operación.</p>}</div></section>
+  <section className="nk-client-section"><header><div><h3><IconFileText size={17}/>Requisitos del cliente</h3><p>Documentos, condiciones o validaciones que se aplican a sus contratos y órdenes.</p></div></header><div className="nk-client-requirement-add"><input className="nk-input" disabled={!canEdit} value={newRequirement} onChange={event=>{setNewRequirement(event.target.value);setRequirementError('')}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();addRequirement()}}} placeholder="Ej.: Certificado de seguro vigente"/><button type="button" className="nk-button nk-button-secondary" disabled={!canEdit||!newRequirement.trim()} onClick={addRequirement}><IconPlus size={15}/>Agregar</button></div>{requirementError&&<p className="nk-client-inline-error">{requirementError}</p>}<div className="nk-client-tags">{rows(draft.requisitos).map(item=><span key={item.id} className="nk-badge nk-badge-none">{item.nombre}{canEdit&&<button type="button" aria-label={`Quitar requisito ${item.nombre}`} onClick={()=>removeRequirement(item)}>×</button>}</span>)}{!rows(draft.requisitos).length&&<p className="nk-client-empty-copy">Sin requisitos adicionales configurados.</p>}</div></section>
   {!creating&&<section className="nk-client-section"><header><div><h3><IconMapPin size={17}/>Relación operativa</h3><p>Vínculos que alimentan la ejecución, el cumplimiento y los reportes.</p></div></header><div className="nk-client-relations"><article><strong>Contratos</strong>{relatedContracts.length?relatedContracts.slice(0,4).map(item=><button key={item.id} type="button" className="nk-client-relation-link" onClick={()=>navigate(`/app/contratos/${encodeURIComponent(item.id)}`)}><span><b>{item.numero||item.nombre||'Contrato sin nombre'}</b>{item.numero&&item.nombre&&<small>{item.nombre}</small>}</span><IconChevronRight size={16} aria-hidden="true"/></button>):<span>Sin contratos vinculados.</span>}{relatedContracts.length>4&&<small>+ {relatedContracts.length-4} contratos adicionales</small>}</article><article><strong>Órdenes de servicio</strong>{relatedOrders.length?relatedOrders.slice(0,4).map(item=><button type="button" className="nk-client-relation-link" key={item.id} onClick={()=>navigate(`/app/servicios/${encodeURIComponent(item.id)}`)}><span><b>{item.codigo||item.nombre||'Orden sin nombre'}</b>{item.codigo&&item.nombre&&<small>{item.nombre}</small>}</span><IconChevronRight size={16} aria-hidden="true"/></button>):<span>Sin órdenes de servicio vinculadas.</span>}{relatedOrders.length>4&&<small>+ {relatedOrders.length-4} órdenes adicionales</small>}</article></div></section>}
   </form></>}
+  <ConfirmDialog {...confirmation.dialogProps}/>
  </section>
 }

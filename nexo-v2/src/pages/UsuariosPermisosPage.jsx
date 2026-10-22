@@ -4,6 +4,8 @@ import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/users-admin.css'
 
 const ROLE_LABEL = {
@@ -19,6 +21,7 @@ const EDITABLE_ROLES = ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'c
 
 export default function UsuariosPermisosPage() {
   const { session } = useAuth()
+  const confirmation = useConfirmation()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
@@ -72,7 +75,6 @@ export default function UsuariosPermisosPage() {
   }
 
   const reset = async user => {
-    if (!window.confirm(`Se restablecerá el acceso de ${user.email}. ¿Continuar?`)) return
     setBusy(user.id)
     setMessage('')
     try {
@@ -80,19 +82,18 @@ export default function UsuariosPermisosPage() {
       setMessage(result?.temporaryPassword
         ? `Acceso restablecido para ${user.email}. Contraseña temporal: ${result.temporaryPassword}`
         : `Acceso restablecido para ${user.email}.`)
-    } catch (error) { setMessage(error.message || 'No fue posible restablecer el acceso.') }
+    } catch (error) { throw new Error(error.message || 'No fue posible restablecer el acceso.') }
     finally { setBusy('') }
   }
 
   const resetMfa = async user => {
-    if (!window.confirm(`Se restablecerá la verificación adicional de ${user.email}. Deberá configurarla nuevamente al ingresar. ¿Continuar?`)) return
     setBusy(user.id)
     setMessage('')
     try {
       const result = await api.post(`/users/${user.id}/reset-mfa`, {})
       setUsers(current => current.map(item => item.id === user.id ? { ...item, ...result.user } : item))
       setMessage(result?.message || `Verificación adicional restablecida para ${user.email}.`)
-    } catch (error) { setMessage(error.message || 'No fue posible restablecer la verificación adicional.') }
+    } catch (error) { throw new Error(error.message || 'No fue posible restablecer la verificación adicional.') }
     finally { setBusy('') }
   }
 
@@ -142,8 +143,8 @@ export default function UsuariosPermisosPage() {
                     <td>
                       <div className="nk-user-actions">
                         {admin && !self && !protectedUser ? <>
-                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => reset(user)}><IconKey size={14}/> Restablecer acceso</button>
-                          {user.mfa_enabled && <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => resetMfa(user)}>Restablecer MFA</button>}
+                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => confirmation.ask({title:'Restablecer acceso',description:`Se restablecerá el acceso de ${user.email}. Las sesiones activas se cerrarán.`,confirmLabel:'Restablecer acceso',variant:'danger',onConfirm:()=>reset(user)})}><IconKey size={14}/> Restablecer acceso</button>
+                          {user.mfa_enabled && <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => confirmation.ask({title:'Restablecer verificación adicional',description:`Se restablecerá la verificación adicional de ${user.email}. Deberá configurarla nuevamente al ingresar.`,confirmLabel:'Restablecer MFA',variant:'danger',onConfirm:()=>resetMfa(user)})}>Restablecer MFA</button>}
                           <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</button>
                         </> : <span>—</span>}
                       </div>
@@ -169,6 +170,7 @@ export default function UsuariosPermisosPage() {
           </section>
         </div>
       )}
+      <ConfirmDialog {...confirmation.dialogProps} />
     </section>
   )
 }

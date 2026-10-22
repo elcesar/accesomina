@@ -1,3 +1,5 @@
+import { OPTIONAL_RUT_ERROR } from './rut.js'
+
 const BASE = '/api'
 let csrfToken = null
 
@@ -37,6 +39,10 @@ const ERROR_MESSAGES = {
   INVALID_WORKER_BIRTH_DATE: 'La fecha de nacimiento no puede ser futura.',
   WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',
   INCOMPLETE_WORKER_DOCUMENT: 'Completa el tipo y nombre de la evidencia antes de guardarla.',
+  WORKER_DOCUMENT_FILE_REQUIRED: 'Adjunta el archivo del documento antes de guardarlo.',
+  WORKER_DOCUMENT_SIDES_REQUIRED: 'Adjunta el anverso y reverso del documento.',
+  WORKER_DOCUMENT_EXPIRY_REQUIRED: 'Ingresa una fecha de vencimiento válida para este documento.',
+  WORKER_DOCUMENT_FILE_UNAVAILABLE: 'El archivo no está disponible para adjuntarlo. Vuelve a cargarlo.',
   WORKER_NOT_FOUND: 'No encontramos a la persona asociada a esta evidencia. Actualiza la ficha e inténtalo nuevamente.',
   WORKER_DOCUMENT_NOT_FOUND: 'No encontramos la evidencia que deseas eliminar. Actualiza la ficha e inténtalo nuevamente.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
@@ -45,6 +51,7 @@ const ERROR_MESSAGES = {
   INVALID_DATES: 'Revisa las fechas ingresadas: la fecha de inicio debe ser anterior a la de término.',
   INCOMPLETE_WORKER: 'Completa los datos obligatorios de la persona antes de guardar.',
   INCOMPLETE_CLIENT: 'Completa los datos obligatorios del cliente antes de guardar.',
+  INVALID_OPPORTUNITY_RUT: OPTIONAL_RUT_ERROR,
   INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
   DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
