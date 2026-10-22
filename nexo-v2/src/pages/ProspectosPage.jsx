@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { IconBriefcase, IconChevronDown, IconChevronUp, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/prospectos.css'
@@ -33,15 +35,124 @@ function normalize(item){item=opportunityFields(item);return{...empty(),...item,
 async function saveModule(reason,transform){const response=await api.get('/state'),state=response?.state||response||{},versions=response?.moduleVersions||{},current=opportunityRows(state),data=transform(current);await api.put('/state/modules',{reason,opportunityVersions:{prospectos:versions.prospectos??0,oportunidades:versions.oportunidades??0,opportunities:versions.opportunities??0},changes:{prospectos:{version:versions.prospectos??0,data}}})}
 
 function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
- const[form,setForm]=useState(()=>opportunity?normalize(opportunity):empty()),[saving,setSaving]=useState(false),[error,setError]=useState('')
- const[rutTouched,setRutTouched]=useState(false),[rutServerError,setRutServerError]=useState('')
- const rutResult=optionalHistoricalRut(form.rut,{hasPrevious:Boolean(opportunity?.id),previousValue:opportunity?.rut})
- const rutError=rutServerError||(rutTouched?rutResult.error:null)||''
- const focusRut=()=>requestAnimationFrame(()=>document.getElementById('opportunity-rut')?.focus())
- const clientContracts=contracts.filter(item=>!form.clientId||String(item.minaId||item.clientId||'')===String(form.clientId))
- const comunas=comunasDeRegion(form.region)
- const updateRegion=event=>setForm(current=>({...current,region:event.target.value,commune:''}))
- async function save(event){event.preventDefault();if(!form.company.trim()||saving)return;setError('');setRutTouched(true);setRutServerError('');if(rutResult.error){focusRut();return}setSaving(true);try{const record={...(opportunity||{}),...form,id:opportunity?.id||newId('opp'),company:form.company.trim(),rut:rutResult.value,amount:Number(form.amount||0),probability:Number(form.probability||0),updatedAt:new Date().toISOString(),createdAt:opportunity?.createdAt||new Date().toISOString()};record.score=score(record);await saveModule(opportunity?'Oportunidad comercial actualizada':'Oportunidad comercial registrada',current=>opportunity?current.map(item=>String(item.id)===String(opportunity.id)?record:item):[...current,record]);onSaved()}catch(cause){if(cause.code==='INVALID_OPPORTUNITY_RUT'){setRutServerError(cause.message);focusRut()}else setError(cause.message||'No fue posible guardar la oportunidad.')}finally{setSaving(false)}}
+const [form, setForm] = useState(() =>
+  opportunity ? normalize(opportunity) : empty()
+)
+const [saving, setSaving] = useState(false)
+const [error, setError] = useState('')
+const [emailError, setEmailError] = useState('')
+const [rutTouched, setRutTouched] = useState(false)
+const [rutServerError, setRutServerError] = useState('')
+
+const rutResult = optionalHistoricalRut(form.rut, {
+  hasPrevious: Boolean(opportunity?.id),
+  previousValue: opportunity?.rut
+})
+
+const rutError =
+  rutServerError || (rutTouched ? rutResult.error : null) || ''
+
+const focusRut = () =>
+  requestAnimationFrame(() =>
+    document.getElementById('opportunity-rut')?.focus()
+  )
+
+const clientContracts = contracts.filter(
+  item =>
+    !form.clientId ||
+    String(item.minaId || item.clientId || '') === String(form.clientId)
+)
+
+const comunas = comunasDeRegion(form.region)
+
+const updateRegion = event =>
+  setForm(current => ({
+    ...current,
+    region: event.target.value,
+    commune: ''
+  }))
+
+// Compatibilidad con correos históricos inválidos sin modificar
+const originalEmail = opportunity?.email ?? opportunity?.correo ?? ''
+
+const historicalEmailUnchanged =
+  Boolean(opportunity) &&
+  form.email === originalEmail &&
+  Boolean(validateEmail(originalEmail))
+
+async function save(event) {
+  event.preventDefault()
+
+  if (!form.company.trim() || saving) return
+
+  setError('')
+  setRutTouched(true)
+  setRutServerError('')
+
+  // Validación del RUT
+  if (rutResult.error) {
+    focusRut()
+    return
+  }
+
+  // Validación del correo electrónico
+  const nextEmailError = historicalEmailUnchanged
+    ? null
+    : validateEmail(form.email)
+
+  setEmailError(nextEmailError || '')
+
+  if (nextEmailError) return
+
+  setSaving(true)
+
+  try {
+    const record = {
+      ...(opportunity || {}),
+      ...form,
+      id: opportunity?.id || newId('opp'),
+      company: form.company.trim(),
+      rut: rutResult.value,
+      amount: Number(form.amount || 0),
+      probability: Number(form.probability || 0),
+      updatedAt: new Date().toISOString(),
+      createdAt: opportunity?.createdAt || new Date().toISOString()
+    }
+
+    record.score = score(record)
+
+    await saveModule(
+      opportunity
+        ? 'Oportunidad comercial actualizada'
+        : 'Oportunidad comercial registrada',
+      current =>
+        opportunity
+          ? current.map(item =>
+              String(item.id) === String(opportunity.id)
+                ? record
+                : item
+            )
+          : [...current, record]
+    )
+
+    onSaved()
+  } catch (cause) {
+    if (cause.code === 'INVALID_OPPORTUNITY_RUT') {
+      setRutServerError(cause.message)
+      focusRut()
+    } else if (cause.code === 'INVALID_OPPORTUNITY_EMAIL') {
+      setEmailError(
+        cause.message || 'El correo electrónico no es válido.'
+      )
+    } else {
+      setError(
+        cause.message || 'No fue posible guardar la oportunidad.'
+      )
+    }
+  } finally {
+    setSaving(false)
+  }
+}
  return <div className="nk-dialog-backdrop" onMouseDown={onClose}><form className="nk-dialog nk-opportunity-dialog" role="dialog" aria-modal="true" aria-labelledby="nk-opportunity-dialog-title" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
   <header className="nk-dialog-header"><div><h2 id="nk-opportunity-dialog-title" className="nk-dialog-title">{opportunity?'Editar oportunidad':'Nueva oportunidad'}</h2><p className="nk-opportunity-subtle">Registra primero lo esencial de la oportunidad y completa el seguimiento comercial.</p></div><button className="nk-icon-button" type="button" onClick={onClose} aria-label="Cerrar"><IconX size={18}/></button></header>
   <div className="nk-dialog-body"><p className="nk-opportunity-dialog-note">Los campos de Cliente y Contrato son opcionales. La oportunidad puede existir antes de formalizar la relación comercial.</p>
@@ -52,7 +163,7 @@ function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
     <label className="nk-field nk-opportunity-wide nk-opportunity-field-emphasis"><span className="nk-label">Necesidad / dolor detectado</span><textarea className="nk-textarea" rows="2" value={form.need} onChange={e=>setForm({...form,need:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Contacto</strong><span>Persona con quien se gestiona la oportunidad.</span></div></div><div className="nk-opportunity-form-grid">
-    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Email</span><input className="nk-input" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
+    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Email</span><EmailInput id="opportunity-email" value={form.email} error={emailError} normalizeOnBlur={!historicalEmailUnchanged} onChange={value=>{setEmailError('');setForm({...form,email:value})}} placeholder="contacto@empresa.cl"/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Gestión comercial</strong><span>Etapa, responsable, valor y próximas acciones del pipeline.</span></div></div><div className="nk-opportunity-form-grid">
     <label className="nk-field"><span className="nk-label">Etapa</span><select className="nk-select" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{!form.stage&&<option value="" disabled>Sin etapa (histórico)</option>}{STAGES.map(([key,value])=><option key={key} value={key}>{value}</option>)}</select></label><label className="nk-field"><span className="nk-label">Responsable</span><input className="nk-input" value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label>

@@ -116,7 +116,8 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       before[key]=state[key];
       next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
     }
-    const clean=validateTenantState(next,{previousState:state});
+const clean = validateTenantState(next, { previousState: state });
+
 if (Object.hasOwn(importModules, 'trabajadores')) {
   await assertWorkerDocumentFileReferences(
     client,
