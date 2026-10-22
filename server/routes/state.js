@@ -5,6 +5,7 @@ import { allowRoles } from '../middleware.js';
 import { assertModuleAccess } from '../module-access.js';
 import { enforceStateScope, removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS } from '../../shared/opportunity-domain.js';
+import { assertWorkerDocumentFileReferences, changedWorkerDocuments } from '../worker-document-evidence.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -131,6 +132,7 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
     if(workerIndex<0)return null;
     const item=sanitizeJson(req.body?.item);
     validateWorkerDocumentAppend(workers[workerIndex],item);
+    await assertWorkerDocumentFileReferences(client,req.auth,[item]);
     const nextWorkers=[...workers];
     nextWorkers[workerIndex]={...workers[workerIndex],workerItems:[...(Array.isArray(workers[workerIndex].workerItems)?workers[workerIndex].workerItems:[]),item]};
     const updated=(await client.query(`UPDATE tenant_module_state
@@ -254,6 +256,7 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
       if (!validateAppendChanges(current, normalized, requestedKeys)) throw error;
       clean = sanitizeJson(normalized);
     }
+    if(requestedKeys.includes('trabajadores'))await assertWorkerDocumentFileReferences(client,req.auth,changedWorkerDocuments(current.trabajadores,clean.trabajadores,sanitizeJson));
     enforceStateScope(
       req.auth.role,
       Object.fromEntries(requestedKeys.map(k=>[k,current[k]])),

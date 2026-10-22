@@ -18,6 +18,21 @@ const smtpConfig = {
   from: 'Nexo Klar <acceso@example.test>',
 };
 
+const sensitiveResetData = {
+  token: 'qa-reset-token-must-stay-private',
+  password: 'qa-account-password-must-stay-private',
+  url: 'https://example.test/reset?token=qa-reset-token-must-stay-private',
+  smtpPassword: 'qa-smtp-password-must-stay-private',
+};
+
+function assertNoSensitiveResetValues(payload) {
+  const serialized = JSON.stringify(payload);
+  for (const value of Object.values(sensitiveResetData)) {
+    assert.equal(serialized.includes(value), false, 'Reset credentials must not be recorded');
+  }
+  assert.doesNotMatch(serialized, /https?:\/\//i);
+}
+
 test('password recovery accepts a valid company RUT and authorized email format', () => {
   assert.deepEqual(
     validatePasswordResetRequest({ rut: '12.345.678-5', email: ' Persona@Empresa.cl ' }),
@@ -112,28 +127,42 @@ test('password reset audit persists normalized delivery data without secrets', a
   const events = [];
   await recordPasswordResetDelivery({
     tenantId: 'tenant-1',
-    user: { id: 'user-1' },
-    delivery: { delivered: false, reason: 'SMTP_CONNECTION_FAILED' },
+    user: { id: 'user-1', ...sensitiveResetData },
+    delivery: { delivered: false, reason: 'SMTP_CONNECTION_FAILED', ...sensitiveResetData },
     withTenantFn: async (_tenantId, callback) => callback({}),
     appendAuditFn: async (_client, event) => events.push(event),
   });
-  assert.equal(events[0].action, 'user.password_reset_delivery.failed');
-  assert.deepEqual(events[0].newValue, {
-    delivery: 'failed',
-    smtpAccepted: false,
-    reason: 'SMTP_CONNECTION_FAILED',
-  });
-  assert.doesNotMatch(JSON.stringify(events[0]), /password|secret|reset\?/i);
+  assert.deepEqual(events, [{
+    tenantId: 'tenant-1',
+    userId: 'user-1',
+    entityType: 'user',
+    entityId: 'user-1',
+    action: 'user.password_reset_delivery.failed',
+    newValue: {
+      delivery: 'failed',
+      smtpAccepted: false,
+      reason: 'SMTP_CONNECTION_FAILED',
+    },
+  }]);
+  assertNoSensitiveResetValues(events[0]);
 });
 
 test('operational logs use correlation data and exclude sensitive reset values', () => {
   const lines = [];
   logPasswordResetOperationalEvent({
+    ...sensitiveResetData,
     event: 'password_reset.smtp_delivery',
     code: 'SMTP_AUTH_FAILED',
     requestId: 'request-123',
   }, line => lines.push(line));
-  assert.match(lines[0], /SMTP_AUTH_FAILED/);
-  assert.match(lines[0], /request-123/);
-  assert.doesNotMatch(lines[0], /token|password|https?:\/\//i);
+  assert.equal(lines.length, 1);
+  const entry = JSON.parse(lines[0]);
+  assert.deepEqual(Object.keys(entry).sort(), ['at', 'code', 'event', 'outcome', 'requestId', 'service']);
+  assert.equal(entry.event, 'password_reset.smtp_delivery');
+  assert.equal(entry.outcome, 'failed');
+  assert.equal(entry.code, 'SMTP_AUTH_FAILED');
+  assert.equal(entry.requestId, 'request-123');
+  assert.match(entry.at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  assert.equal(typeof entry.service, 'string');
+  assertNoSensitiveResetValues(entry);
 });

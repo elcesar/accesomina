@@ -63,6 +63,7 @@
   margin: 0 0 var(--nk-space-3);
   color: var(--nk-primary);
   font: var(--nk-font-overline);
+  font-size: var(--nk-text-base);
   text-align: left;
   text-transform: uppercase;
 }

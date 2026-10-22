@@ -7,6 +7,10 @@ import { allowRoles } from '../middleware.js';
 import { appendAudit } from '../audit.js';
 import { isValidRut } from '../security.js';
 import { optionalHistoricalRut } from '../../shared/rut.js';
+import {
+  assertWorkerDocumentFileReferences,
+  changedWorkerDocuments,
+} from '../worker-document-evidence.js';
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
@@ -113,6 +117,17 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
     }
     const clean=validateTenantState(next,{previousState:state});
+if (Object.hasOwn(importModules, 'trabajadores')) {
+  await assertWorkerDocumentFileReferences(
+    client,
+    req.auth,
+    changedWorkerDocuments(
+      state.trabajadores,
+      clean.trabajadores,
+      sanitizeJson
+    )
+  );
+}
     for(const key of Object.keys(importModules)){
       await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
         VALUES($1,$2,$3::jsonb,1,$4)

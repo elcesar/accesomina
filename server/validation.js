@@ -3,6 +3,10 @@ import { OPPORTUNITY_COLLECTIONS, opportunityIdentity, opportunityIsClosed, oppo
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 import { operationalDay } from '../shared/operational-date.js';
 import { optionalHistoricalRut } from '../shared/rut.js';
+import {
+  changedWorkerDocuments,
+  requireWorkerDocumentEvidence,
+} from './worker-document-evidence.js';
 
 export const emailSchema = z.string().trim().email().max(254);
 export function isValidEmail(value) { return emailSchema.safeParse(value).success; }
@@ -211,7 +215,7 @@ function ensureUniqueNew(rows, existing, key, message, code) {
   }
 }
 
-function validateWorkerItems(worker, reject = conflict) {
+function validateWorkerItems(worker, reject = conflict, previousWorker = null) {
   const items = collection(worker, 'workerItems');
   const duplicateId = duplicate(items.map(item => String(item.id || '')));
   if (duplicateId) reject(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
@@ -222,6 +226,7 @@ function validateWorkerItems(worker, reject = conflict) {
       reject(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
     }
   }
+  for (const item of changedWorkerDocuments(previousWorker ? [previousWorker] : [], [worker], sanitizeJson)) requireWorkerDocumentEvidence(item);
 }
 
 function validateAppendedWorkerItems(worker, previous, additions) {
@@ -237,6 +242,7 @@ function validateAppendedWorkerItems(worker, previous, additions) {
     if (item?.emision && item?.vence && item.emision > item.vence) {
       conflict(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
     }
+    requireWorkerDocumentEvidence(item);
   }
 }
 
@@ -537,7 +543,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
   for (const workerId of Object.keys(state.eppMeasurements || {})) {
     if (!workerIds.has(String(workerId))) throw Object.assign(new Error('EPP measurements reference an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
-  for (const worker of workers) validateWorkerItems(worker);
+  for (const worker of workers) validateWorkerItems(worker, conflict, previousWorkers.get(String(worker.id)));
   const workBookEntries=Array.isArray(state.workBookEntries)?state.workBookEntries:[];
   assertUnique(workBookEntries.map(row=>`${normalizedText(row.folio)}|${Number(row.entryNumber)||1}`),'Duplicate work book entry','DUPLICATE_WORK_BOOK_ENTRY');
   for(const row of workBookEntries){
