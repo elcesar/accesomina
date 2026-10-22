@@ -768,3 +768,45 @@
   .nk-error-page-actions { width: 100%; }
   .nk-error-page-actions .nk-button { width: 100%; }
 }
+
+
+/* =========================================================
+   11. PREREQUISITE NOTICE
+   ========================================================= */
+
+.nk-prerequisite-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nk-space-3);
+  margin-block: var(--nk-space-4);
+  padding: var(--nk-space-3) var(--nk-space-4);
+  border: var(--nk-stroke-thin) solid var(--nk-border-control);
+  border-left: var(--nk-stroke-strong) solid var(--nk-action);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-action-soft);
+  color: var(--nk-ink);
+  font: var(--nk-font-body);
+}
+
+.nk-prerequisite-notice-icon {
+  flex: 0 0 auto;
+  color: var(--nk-action);
+}
+
+.nk-prerequisite-notice-content {
+  flex: 1 1 20rem;
+}
+
+.nk-prerequisite-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--nk-space-2);
+}
+
+@media (max-width: 480px) {
+  .nk-prerequisite-notice-actions,
+  .nk-prerequisite-notice-actions .nk-button {
+    width: 100%;
+  }
+}
