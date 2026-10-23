@@ -1,4 +1,5 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -238,7 +239,7 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <ActionButton disabledReason={!trabajadoresProgramables.length ? "Registra una persona habilitada antes de programar una jornada." : "Registra al menos una orden de servicio antes de programar una jornada."} className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason="Acción no disponible." className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
         </ActionButton>
       </header>
@@ -325,7 +326,7 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>

@@ -1,3 +1,4 @@
+import { calendarDaysUntil as daysUntil, isCalendarDate } from '../../../shared/operational-date.js'
 export const DEFAULT_OPERATIONAL_TIME_ZONE = 'America/Santiago'
 
 let activeOperationalTimeZone = DEFAULT_OPERATIONAL_TIME_ZONE
@@ -87,10 +88,16 @@ export function addCalendarDays(date, days, timeZone) {
 }
 
 export function isCalendarDateExpired(value, now = new Date(), timeZone) {
-  return Boolean(value) && String(value).slice(0, 10) < operationalDate(now, timeZone)
+  const days = daysUntil(value, now, resolvedTimeZone(timeZone))
+  return days !== null && days < 0
 }
 
 // Compatibility names. These now represent the configured operational calendar,
 // never the browser locale.
 export const localDate = operationalDate
 export const localDateTime = operationalDateTime
+
+export { isCalendarDate }
+export function calendarDaysUntil(value, now = new Date(), timeZone) {
+  return daysUntil(value, now, resolvedTimeZone(timeZone))
+}

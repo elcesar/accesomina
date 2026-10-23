@@ -1,4 +1,5 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -18,10 +19,7 @@ import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
-function diasHasta(fecha) {
-  if (!fecha) return null
-  return Math.floor((new Date(fecha) - new Date()) / 86400000)
-}
+function diasHasta(fecha) { return calendarDaysUntil(fecha) }
 
 const REQUIRED_ITEMS = [
   { type: 'documento', name: 'Cédula de identidad' },
@@ -42,7 +40,7 @@ function acreditacionPct(persona) {
       item.type === req.type &&
       item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
       item.estado !== 'rechazado' &&
-      !(item.vence && diasHasta(item.vence) < 0)
+      (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
     ))
   )).length
 
@@ -50,14 +48,11 @@ function acreditacionPct(persona) {
 }
 
 function nextExpiry(persona) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const dates = (persona.workerItems || [])
     .map(item => item.vence)
-    .filter(Boolean)
-    .map(value => new Date(`${value}T00:00:00`))
-    .filter(date => !Number.isNaN(date.getTime()) && date >= today)
+    .filter(value => calendarDaysUntil(value) !== null && calendarDaysUntil(value) >= 0)
+    .map(value => new Date(`${value}T12:00:00`))
+    .filter(date => !Number.isNaN(date.getTime()))
     .sort((a, b) => a - b)
 
   return dates[0] || null
@@ -451,8 +446,16 @@ export default function TrabajadoresPage() {
                   <td className="nk-people-empty-cell" colSpan={7}>
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.</p>
+                      {personas.length === 0 ? <>
+                        <p className="nk-empty-title">Aún no hay personas registradas</p>
+                        <p className="nk-empty-description">Usa + Persona en el encabezado para crear la primera.</p>
+                      </> : activeFilters > 0 ? <>
+                        <p className="nk-empty-title">No encontramos personas que coincidan con tu búsqueda o los filtros seleccionados</p>
+                        <p className="nk-empty-description">Ajusta los filtros o límpialos para ver más resultados.</p>
+                      </> : <>
+                        <p className="nk-empty-title">No hay personas en {TAB_LABELS[tab]}</p>
+                        <p className="nk-empty-description">Cambia de vista para revisar las personas registradas en otros segmentos.</p>
+                      </>}
                     </div>
                   </td>
                 </tr>

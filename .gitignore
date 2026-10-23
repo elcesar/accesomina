@@ -7,3 +7,7 @@ node_modules/
 uploads/
 backups/
 *.zip
+
+nexo-v2/dist/
+nexo-v2/test-results/
+nexo-v2/playwright-report/

@@ -1,4 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconArrowLeft, IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
@@ -11,12 +13,7 @@ const EMPTY_FORM = {
   f30: '', f301: '', cotizaciones: '', seguro: '', estado: 'vigente', observaciones: '',
 }
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function expiryState(date) {
   const days = daysUntil(date)
@@ -129,7 +126,7 @@ export default function TercerosSubcontratosPage() {
     const term = query.trim().toLowerCase()
     return rows.filter(item => {
       const matchesText = !term || [item.razon, item.nombre, item.rut, item.responsable, item.servicios, item.servicio]
-        .some(value => String(value || '').toLowerCase().includes(term))
+        .some(value => includesSearch(String(value || ''), term))
       return matchesText && (!contractFilter || String(item.contratoId) === String(contractFilter)) && (!statusFilter || item.estado === statusFilter)
     })
   }, [rows, query, contractFilter, statusFilter])
