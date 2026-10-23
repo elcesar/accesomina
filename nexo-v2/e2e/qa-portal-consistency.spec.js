@@ -69,3 +69,33 @@ test('empty states distinguish empty catalogs, filtered results, and person segm
   await expect(page.getByText('No hay personas en trabajadores disponibles')).toBeVisible()
   await expect(page.getByText('Cambia de vista para revisar las personas registradas en otros segmentos.')).toBeVisible()
 })
+
+test('convocation with no specialties explains the next step without resetting its draft', async ({ page }) => {
+  let state = {
+    trabajadores: [{id: 'qa-worker', nombre: 'Persona QA', especialidad: ''}],
+    callouts: [],
+    mantenciones: [],
+    asignaciones: [],
+    restricted: [],
+  }
+  await page.route('**/api/state', route => route.fulfill({json: {state, moduleVersions: {}}}))
+  await page.setViewportSize({width: 390, height: 844})
+  await page.goto('/app/comunicaciones')
+  await page.locator('.nk-comms-header').getByRole('button', {name: 'Nueva comunicación'}).click()
+  const title = page.getByPlaceholder('Convocatoria a turno')
+  await title.fill('Convocatoria de prueba')
+  const specialtyArea = page.locator('.nk-comms-specialties')
+  await expect(specialtyArea).toContainText('No hay especialidades registradas.')
+  await expect(specialtyArea).toContainText('Agrégalas desde Personas para utilizarlas en esta convocatoria.')
+  await expect(specialtyArea.getByRole('button')).toHaveCount(0)
+  await expect(title).toHaveValue('Convocatoria de prueba')
+
+  state = {
+    ...state,
+    trabajadores: [{id: 'qa-worker', nombre: 'Persona QA', especialidad: 'Mecánica'}],
+  }
+  await page.locator('.nk-comms-header').getByRole('button', {name: 'Actualizar'}).click()
+  await expect(page.getByRole('checkbox', {name: 'Mecánica'})).toBeVisible()
+  await expect(title).toHaveValue('Convocatoria de prueba')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391)
+})
