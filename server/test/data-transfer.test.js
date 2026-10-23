@@ -61,7 +61,7 @@ test('state import validation preserves an existing operational assignment after
   const previousState={
     trabajadores:[{id:'w1',nombre:'Persona QA',rut:'12.345.678-5',workerItems:[],mineras:[]}],
     mantenciones:[{id:'m1',nombre:'Orden QA'}],
-    asignaciones:[{id:'a1',trabId:'w1',mantId:'m1',estado:'confirmada'}],
+    asignaciones:[{id:'a1',trabId:'w1',mantId:'m1',estado:'confirmado'}],
     restricted:[{workerId:'w1',activa:true,hasta:'2099-01-01'}],
   };
   assert.throws(()=>validateTenantState(previousState),error=>error.code==='WORKER_NOT_AVAILABLE');
