@@ -1,4 +1,5 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBuildingWarehouse, IconMapPin, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -37,7 +38,7 @@ export default function BodegasPage() {
     return warehouses.filter(warehouse => {
       const ownLocations = locations.filter(location => String(location.warehouseId || location.bodegaId) === String(warehouse.id))
       return [warehouse.name, warehouse.type, warehouse.zone, warehouse.location, warehouse.responsible, ...ownLocations.flatMap(location => [location.name, location.code, location.zone])]
-        .some(value => String(value || '').toLowerCase().includes(term))
+        .some(value => includesSearch(String(value || ''), term))
     })
   }, [warehouses, locations, query])
 
@@ -97,7 +98,7 @@ export default function BodegasPage() {
         </div>
         <div className="nk-page-header-actions">
           <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton>
-          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</ActionButton>
+          <ActionButton disabledReason="Primero debes crear una bodega." className="nk-button nk-button-secondary" onClick={openLocation} disabled={!warehouses.length}><IconMapPin size={15}/> Ubicación interna</ActionButton>
           <button className="nk-button nk-button-primary" onClick={openWarehouse}><IconPlus size={15}/> Crear bodega</button>
         </div>
       </header>
