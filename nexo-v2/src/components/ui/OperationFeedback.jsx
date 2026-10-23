@@ -39,10 +39,10 @@ export default function OperationFeedback({ children }) {
     if (retrying) return
     setRetrying(true)
     try {
-      await api.get('/state')
+      const result = await api.get('/state')
       setFailure(null)
       // Let mounted modules refresh their data without losing local form state.
-      window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded'))
+      window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', { detail: { result } }))
     } catch (error) {
       setFailure({ status: error.status === 500 ? 500 : 503 })
     } finally {
