@@ -4,7 +4,15 @@ let csrfToken = null
 function publishEvent(name, detail) {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name,{detail}))
 }
-function isMutation(path,method){return !['GET','HEAD'].includes(method) && !path.startsWith('/auth/')}
+// Only explicit user-facing writes publish global success messages.
+// State synchronization and authentication operations must not look like a user save.
+function isMutation(path, method) {
+  if (['GET', 'HEAD'].includes(method)) return false
+  const pathname = path.split('?')[0]
+  if (pathname === '/state' || pathname.startsWith('/state/')) return false
+  if (pathname === '/auth' || pathname.startsWith('/auth/')) return false
+  return pathname === '/settings' || /^\/(clients|contracts|workers|users|tenants|projects|orders|documents|incidents|tickets)(\/|$)/.test(pathname)
+}
 function loadFailure(path,method,status){
   if(method==='GET' && path.split('?')[0]==='/state' && status>=500)publishEvent('nexo:load-failed',{status})
 }
