@@ -168,7 +168,8 @@ async function parseError(res) {
 }
 
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const { feedback, ...fetchOptions } = options
+  const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers }
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
   }
@@ -178,10 +179,9 @@ async function request(path, options = {}) {
   let res
   try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
-    ...options,
-    feedback: undefined,
+    ...fetchOptions,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: fetchOptions.body ? JSON.stringify(fetchOptions.body) : undefined,
   }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
   if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
