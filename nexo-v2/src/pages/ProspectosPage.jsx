@@ -1,11 +1,18 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBriefcase, IconChevronDown, IconChevronUp, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/prospectos.css'
 import { opportunityRows, opportunityFields } from '../services/opportunity-collections.js'
+import { RutInput } from '../components/ui/RutInput.jsx'
+import { optionalHistoricalRut } from '../services/rut.js'
 
 const rows=value=>Array.isArray(value)?value:[]
 const today=()=>localDate()
@@ -30,11 +37,124 @@ function normalize(item){item=opportunityFields(item);return{...empty(),...item,
 async function saveModule(reason,transform){const response=await api.get('/state'),state=response?.state||response||{},versions=response?.moduleVersions||{},current=opportunityRows(state),data=transform(current);await api.put('/state/modules',{reason,opportunityVersions:{prospectos:versions.prospectos??0,oportunidades:versions.oportunidades??0,opportunities:versions.opportunities??0},changes:{prospectos:{version:versions.prospectos??0,data}}})}
 
 function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
- const[form,setForm]=useState(()=>opportunity?normalize(opportunity):empty()),[saving,setSaving]=useState(false),[error,setError]=useState('')
- const clientContracts=contracts.filter(item=>!form.clientId||String(item.minaId||item.clientId||'')===String(form.clientId))
- const comunas=comunasDeRegion(form.region)
- const updateRegion=event=>setForm(current=>({...current,region:event.target.value,commune:''}))
- async function save(event){event.preventDefault();if(!form.company.trim()||saving)return;setSaving(true);setError('');try{const record={...(opportunity||{}),...form,id:opportunity?.id||newId('opp'),company:form.company.trim(),amount:Number(form.amount||0),probability:Number(form.probability||0),updatedAt:new Date().toISOString(),createdAt:opportunity?.createdAt||new Date().toISOString()};record.score=score(record);await saveModule(opportunity?'Oportunidad comercial actualizada':'Oportunidad comercial registrada',current=>opportunity?current.map(item=>String(item.id)===String(opportunity.id)?record:item):[...current,record]);onSaved()}catch(cause){setError(cause.message||'No fue posible guardar la oportunidad.')}finally{setSaving(false)}}
+const [form, setForm] = useState(() =>
+  opportunity ? normalize(opportunity) : empty()
+)
+const [saving, setSaving] = useState(false)
+const [error, setError] = useState('')
+const [emailError, setEmailError] = useState('')
+const [rutTouched, setRutTouched] = useState(false)
+const [rutServerError, setRutServerError] = useState('')
+
+const rutResult = optionalHistoricalRut(form.rut, {
+  hasPrevious: Boolean(opportunity?.id),
+  previousValue: opportunity?.rut
+})
+
+const rutError =
+  rutServerError || (rutTouched ? rutResult.error : null) || ''
+
+const focusRut = () =>
+  requestAnimationFrame(() =>
+    document.getElementById('opportunity-rut')?.focus()
+  )
+
+const clientContracts = contracts.filter(
+  item =>
+    !form.clientId ||
+    String(item.minaId || item.clientId || '') === String(form.clientId)
+)
+
+const comunas = comunasDeRegion(form.region)
+
+const updateRegion = event =>
+  setForm(current => ({
+    ...current,
+    region: event.target.value,
+    commune: ''
+  }))
+
+// Compatibilidad con correos históricos inválidos sin modificar
+const originalEmail = opportunity?.email ?? opportunity?.correo ?? ''
+
+const historicalEmailUnchanged =
+  Boolean(opportunity) &&
+  form.email === originalEmail &&
+  Boolean(validateEmail(originalEmail))
+
+async function save(event) {
+  event.preventDefault()
+
+  if (!form.company.trim() || saving) return
+
+  setError('')
+  setRutTouched(true)
+  setRutServerError('')
+
+  // Validación del RUT
+  if (rutResult.error) {
+    focusRut()
+    return
+  }
+
+  // Validación del correo electrónico
+  const nextEmailError = historicalEmailUnchanged
+    ? null
+    : validateEmail(form.email)
+
+  setEmailError(nextEmailError || '')
+
+  if (nextEmailError) return
+
+  setSaving(true)
+
+  try {
+    const record = {
+      ...(opportunity || {}),
+      ...form,
+      id: opportunity?.id || newId('opp'),
+      company: form.company.trim(),
+      rut: rutResult.value,
+      amount: Number(form.amount || 0),
+      probability: Number(form.probability || 0),
+      updatedAt: new Date().toISOString(),
+      createdAt: opportunity?.createdAt || new Date().toISOString()
+    }
+
+    record.score = score(record)
+
+    await saveModule(
+      opportunity
+        ? 'Oportunidad comercial actualizada'
+        : 'Oportunidad comercial registrada',
+      current =>
+        opportunity
+          ? current.map(item =>
+              String(item.id) === String(opportunity.id)
+                ? record
+                : item
+            )
+          : [...current, record]
+    )
+
+    onSaved()
+  } catch (cause) {
+    if (cause.code === 'INVALID_OPPORTUNITY_RUT') {
+      setRutServerError(cause.message)
+      focusRut()
+    } else if (cause.code === 'INVALID_OPPORTUNITY_EMAIL') {
+      setEmailError(
+        cause.message || 'El correo electrónico no es válido.'
+      )
+    } else {
+      setError(
+        cause.message || 'No fue posible guardar la oportunidad.'
+      )
+    }
+  } finally {
+    setSaving(false)
+  }
+}
  return <div className="nk-dialog-backdrop" onMouseDown={onClose}><form className="nk-dialog nk-opportunity-dialog" role="dialog" aria-modal="true" aria-labelledby="nk-opportunity-dialog-title" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
   <header className="nk-dialog-header"><div><h2 id="nk-opportunity-dialog-title" className="nk-dialog-title">{opportunity?'Editar oportunidad':'Nueva oportunidad'}</h2><p className="nk-opportunity-subtle">Registra primero lo esencial de la oportunidad y completa el seguimiento comercial.</p></div><button className="nk-icon-button" type="button" onClick={onClose} aria-label="Cerrar"><IconX size={18}/></button></header>
   <div className="nk-dialog-body"><p className="nk-opportunity-dialog-note">Los campos de Cliente y Contrato son opcionales. La oportunidad puede existir antes de formalizar la relación comercial.</p>
@@ -45,7 +165,7 @@ function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
     <label className="nk-field nk-opportunity-wide nk-opportunity-field-emphasis"><span className="nk-label">Necesidad / dolor detectado</span><textarea className="nk-textarea" rows="2" value={form.need} onChange={e=>setForm({...form,need:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Contacto</strong><span>Persona con quien se gestiona la oportunidad.</span></div></div><div className="nk-opportunity-form-grid">
-    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Email</span><input className="nk-input" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
+    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Email</span><EmailInput id="opportunity-email" value={form.email} error={emailError} normalizeOnBlur={!historicalEmailUnchanged} onChange={value=>{setEmailError('');setForm({...form,email:value})}} placeholder="contacto@empresa.cl"/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Gestión comercial</strong><span>Etapa, responsable, valor y próximas acciones del pipeline.</span></div></div><div className="nk-opportunity-form-grid">
     <label className="nk-field"><span className="nk-label">Etapa</span><select className="nk-select" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{!form.stage&&<option value="" disabled>Sin etapa (histórico)</option>}{STAGES.map(([key,value])=><option key={key} value={key}>{value}</option>)}</select></label><label className="nk-field"><span className="nk-label">Responsable</span><input className="nk-input" value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label>
@@ -53,7 +173,7 @@ function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
     <label className="nk-field"><span className="nk-label">Cierre estimado</span><input className="nk-input" type="date" value={form.expectedClose} onChange={e=>setForm({...form,expectedClose:e.target.value})}/></label><label className="nk-field nk-opportunity-field-emphasis"><span className="nk-label">Próxima gestión</span><input className="nk-input" type="date" value={form.nextAction} onChange={e=>setForm({...form,nextAction:e.target.value})}/></label>{form.stage==='perdida'&&<label className="nk-field nk-opportunity-wide"><span className="nk-label">Motivo de pérdida</span><input className="nk-input" value={form.lossReason} onChange={e=>setForm({...form,lossReason:e.target.value})}/></label>}
    </div></section>
    <section className="nk-opportunity-section nk-opportunity-section-secondary"><div className="nk-opportunity-section-header"><div><strong>Información adicional</strong><span>Contexto de segmentación, ubicación y vínculos existentes.</span></div></div><div className="nk-opportunity-form-grid">
-    <label className="nk-field"><span className="nk-label">RUT</span><input className="nk-input" value={form.rut} onChange={e=>setForm({...form,rut:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Industria</span><input className="nk-input" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Origen</span><input className="nk-input" value={form.source} onChange={e=>setForm({...form,source:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Región</span><select className="nk-select" value={form.region} onChange={updateRegion}><option value="">Seleccionar región</option>{form.region&&!regionesChile.includes(form.region)&&<option value={form.region}>{form.region}</option>}{regionesChile.map(region=><option key={region} value={region}>{region}</option>)}</select></label><label className="nk-field"><span className="nk-label">Comuna o ciudad</span><select className="nk-select" value={form.commune} disabled={!form.region} onChange={e=>setForm({...form,commune:e.target.value})}><option value="">{form.region?'Seleccionar comuna o ciudad':'Primero selecciona una región'}</option>{form.commune&&!comunas.includes(form.commune)&&<option value={form.commune}>{form.commune}</option>}{comunas.map(comuna=><option key={comuna} value={comuna}>{comuna}</option>)}</select></label>
+    <div className="nk-field"><label className="nk-label" htmlFor="opportunity-rut">RUT (opcional)</label><RutInput id="opportunity-rut" maxLength={20} value={form.rut} formatOnBlur={false} error={rutError} aria-invalid={Boolean(rutError)} onBlur={()=>setRutTouched(true)} onChange={value=>{setRutServerError('');setForm(current=>({...current,rut:value}))}}/></div><label className="nk-field"><span className="nk-label">Industria</span><input className="nk-input" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Origen</span><input className="nk-input" value={form.source} onChange={e=>setForm({...form,source:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Región</span><select className="nk-select" value={form.region} onChange={updateRegion}><option value="">Seleccionar región</option>{form.region&&!regionesChile.includes(form.region)&&<option value={form.region}>{form.region}</option>}{regionesChile.map(region=><option key={region} value={region}>{region}</option>)}</select></label><label className="nk-field"><span className="nk-label">Comuna o ciudad</span><select className="nk-select" value={form.commune} disabled={!form.region} onChange={e=>setForm({...form,commune:e.target.value})}><option value="">{form.region?'Seleccionar comuna o ciudad':'Primero selecciona una región'}</option>{form.commune&&!comunas.includes(form.commune)&&<option value={form.commune}>{form.commune}</option>}{comunas.map(comuna=><option key={comuna} value={comuna}>{comuna}</option>)}</select></label>
     <label className="nk-field"><span className="nk-label">Cliente existente</span><select className="nk-select" value={form.clientId} onChange={e=>setForm({...form,clientId:e.target.value,contractId:''})}><option value="">Sin cliente asociado</option>{clients.map(item=><option key={item.id} value={item.id}>{item.razon||item.nombre||item.name||item.id}</option>)}</select></label><label className="nk-field"><span className="nk-label">Contrato existente</span><select className="nk-select" value={form.contractId} onChange={e=>setForm({...form,contractId:e.target.value})}><option value="">Sin contrato asociado</option>{clientContracts.map(item=><option key={item.id} value={item.id}>{item.codigo||item.numero||item.nombre||item.id}</option>)}</select></label><label className="nk-field nk-opportunity-wide"><span className="nk-label">Notas</span><textarea className="nk-textarea" rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
    </div></section>{error&&<p className="nk-form-error">{error}</p>}
   </div><footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" disabled={saving}>{saving?'Guardando…':'Guardar oportunidad'}</ActionButton></footer>
@@ -67,21 +187,26 @@ function FollowDialog({opportunity,onClose,onSaved}){
 }
 
 export default function ProspectosPage(){
+ const confirmation=useConfirmation()
  const[response,setResponse]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[query,setQuery]=useState(''),[typeFilter,setTypeFilter]=useState('todos'),[stageFilter,setStageFilter]=useState('todos'),[industryFilter,setIndustryFilter]=useState(''),[heatFilter,setHeatFilter]=useState(''),[regionFilter,setRegionFilter]=useState(''),[communeFilter,setCommuneFilter]=useState(''),[more,setMore]=useState(false),[editing,setEditing]=useState(null),[following,setFollowing]=useState(null),[convertingId,setConvertingId]=useState('')
  async function load(){setLoading(true);setError('');try{setResponse(await api.get('/state'))}catch(cause){setError(cause.message||'No fue posible cargar oportunidades.')}finally{setLoading(false)}}
  useEffect(()=>{load()},[])
  const state=response?.state||response||{},opportunities=opportunityRows(state).map(normalize),clients=rows(state.minas).length?rows(state.minas):rows(state.clientes),contracts=rows(state.contratos)
  const unique=mapper=>[...new Set(opportunities.map(mapper).filter(Boolean))].sort(),industries=unique(item=>item.industry),regions=unique(item=>item.region),communes=unique(item=>item.commune||item.comuna)
- const filtered=useMemo(()=>{const text=query.trim().toLowerCase();return opportunities.filter(item=>{const temperature=heat(item)[0];return(!text||[company(item),contact(item),item.service,item.need,item.rut,item.owner].some(value=>String(value||'').toLowerCase().includes(text)))&&(typeFilter==='todos'||item.type===typeFilter)&&(stageFilter==='todos'||stageOf(item)===stageFilter)&&(!industryFilter||item.industry===industryFilter)&&(!regionFilter||item.region===regionFilter)&&(!communeFilter||(item.commune||item.comuna)===communeFilter)&&(!heatFilter||(heatFilter==='hot'?temperature==='Caliente':heatFilter==='medium'?temperature==='Media':heatFilter==='weak'?temperature==='Débil':temperature==='Seguimiento vencido'))})},[opportunities,query,typeFilter,stageFilter,industryFilter,heatFilter,regionFilter,communeFilter])
+ const filtered=useMemo(()=>{const text=query.trim().toLowerCase();return opportunities.filter(item=>{const temperature=heat(item)[0];return(!text||[company(item),contact(item),item.service,item.need,item.rut,item.owner].some(value=>includesSearch(String(value||''), text)))&&(typeFilter==='todos'||item.type===typeFilter)&&(stageFilter==='todos'||stageOf(item)===stageFilter)&&(!industryFilter||item.industry===industryFilter)&&(!regionFilter||item.region===regionFilter)&&(!communeFilter||(item.commune||item.comuna)===communeFilter)&&(!heatFilter||(heatFilter==='hot'?temperature==='Caliente':heatFilter==='medium'?temperature==='Media':heatFilter==='weak'?temperature==='Débil':temperature==='Seguimiento vencido'))})},[opportunities,query,typeFilter,stageFilter,industryFilter,heatFilter,regionFilter,communeFilter])
  const summary=filtered.reduce((acc,item)=>{acc.total++;if(isOpen(item)){acc.gross+=amount(item);acc.weighted+=amount(item)*probability(item)/100;if(nextAction(item)&&nextAction(item)<today())acc.overdue++}if(heat(item)[0]==='Caliente')acc.hot++;return acc},{total:0,gross:0,weighted:0,overdue:0,hot:0})
  async function advance(item){const index=STAGES.findIndex(([key])=>key===stageOf(item)),next=STAGES[Math.min(5,Math.max(0,index+1))]?.[0]||'contactada',at=new Date().toISOString(),entry={id:newId('of'),type:'cambio_etapa',date:today(),detail:`Etapa cambiada de ${label(STAGES,stageOf(item))} a ${label(STAGES,next)}`,owner:item.owner||'',at};await saveModule('Etapa comercial actualizada',current=>current.map(row=>String(row.id)===String(item.id)?{...row,stage:next,score:score({...row,stage:next}),history:[...rows(row.history),{at,action:'cambio_etapa',from:stageOf(item),to:next}],followUps:[entry,...rows(row.followUps)],updatedAt:at}:row));load()}
- async function convert(item){
+ function requestConversion(item){
   if(stageOf(item)!=='ganada'||item.convertedId||convertingId)return
   const kind=typeOf(item)
   if(kind==='nuevo_contrato'&&!item.clientId){setError('Para convertir esta oportunidad en contrato, primero asocia un cliente existente.');return}
   if(kind==='nuevo_servicio'&&!item.contractId){setError('Para convertir esta oportunidad en Orden de servicio, primero asocia un contrato existente.');return}
   const target=kind==='nuevo_cliente'?'Cliente':kind==='nuevo_contrato'?'Contrato':'Orden de servicio'
-  if(!window.confirm(`¿Convertir “${company(item)}” en ${target}? Esta acción mantiene la trazabilidad con la oportunidad.`))return
+  confirmation.ask({title:'Convertir oportunidad',description:`Se convertirá “${company(item)}” en ${target}. Esta acción mantiene la trazabilidad con la oportunidad.`,confirmLabel:`Convertir a ${target}`,onConfirm:()=>convert(item)})
+ }
+ async function convert(item){
+  if(convertingId)return
+  const kind=typeOf(item),target=kind==='nuevo_cliente'?'Cliente':kind==='nuevo_contrato'?'Contrato':'Orden de servicio'
   setConvertingId(item.id);setError('')
   try{
    const latest=await api.get('/state'),latestState=latest?.state||latest||{},versions=latest?.moduleVersions||{},prospects=opportunityRows(latestState),at=new Date().toISOString(),id=newId(kind==='nuevo_cliente'?'cliente':kind==='nuevo_contrato'?'contrato':'os'),changes={}
@@ -105,15 +230,16 @@ export default function ProspectosPage(){
    const updatedProspects=prospects.map(row=>String(row.id)===String(item.id)?{...row,clientId:clientId||row.clientId||'',contractId:contractId||row.contractId||'',convertedId:id,convertedType:kind,convertedAt:at,updatedAt:at,followUps:[{id:newId('of'),type:'conversion',date:today(),detail:`Oportunidad convertida a ${target}`,owner:row.owner||'',at},...rows(row.followUps)]}:row)
    changes.prospectos={version:Number(versions.prospectos||0),data:updatedProspects}
    await api.put('/state/modules',{reason:`Oportunidad ganada convertida a ${target}`,changes});await load()
-  }catch(cause){setError(cause.message||'No fue posible convertir la oportunidad.')}finally{setConvertingId('')}
+  }catch(cause){throw new Error(cause.message||'No fue posible convertir la oportunidad.')}finally{setConvertingId('')}
  }
  return <div className="nk-opportunity-page">
   <header className="nk-opportunity-header"><div><h1>Prospectos y oportunidades</h1><p>Gestiona el embudo comercial, score, seguimiento y próxima acción antes de convertir una oportunidad.</p></div><div className="nk-actions"><button className="nk-button nk-button-secondary" onClick={load}><IconRefresh size={15}/>Actualizar</button><button className="nk-button nk-button-primary" onClick={()=>setEditing({})}><IconPlus size={15}/>Nueva oportunidad</button></div></header>
   {error&&<div className="nk-opportunity-feedback error">{error}</div>}
   <section className="nk-card nk-opportunity-filter-card"><div className="nk-opportunity-toolbar"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar empresa, contacto o servicio"/></label><select className="nk-select" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}><option value="todos">Todos los tipos</option>{TYPES.map(([key,value])=><option key={key} value={key}>{value}</option>)}</select><select className="nk-select" value={stageFilter} onChange={e=>setStageFilter(e.target.value)}><option value="todos">Todas las etapas</option>{STAGES.map(([key,value])=><option key={key} value={key}>{value}</option>)}</select><button className="nk-button nk-button-secondary" type="button" onClick={()=>setMore(value=>!value)}>Más filtros {more?<IconChevronUp size={14}/>:<IconChevronDown size={14}/>}</button></div>{more&&<div className="nk-opportunity-more-filters"><select className="nk-select" value={industryFilter} onChange={e=>setIndustryFilter(e.target.value)}><option value="">Todas las industrias</option>{industries.map(value=><option key={value}>{value}</option>)}</select><select className="nk-select" value={heatFilter} onChange={e=>setHeatFilter(e.target.value)}><option value="">Toda temperatura</option><option value="hot">Calientes</option><option value="medium">Media</option><option value="weak">Débil</option><option value="late">Seguimiento vencido</option></select><select className="nk-select" value={regionFilter} onChange={e=>setRegionFilter(e.target.value)}><option value="">Todas las regiones</option>{regions.map(value=><option key={value}>{value}</option>)}</select><select className="nk-select" value={communeFilter} onChange={e=>setCommuneFilter(e.target.value)}><option value="">Todas las comunas</option>{communes.map(value=><option key={value}>{value}</option>)}</select></div>}</section>
   <section className="nk-opportunity-summary"><article><strong>{loading?'…':summary.total}</strong><span>Oportunidades</span></article><article><strong>{loading?'…':money(summary.gross)}</strong><span>Pipeline bruto</span></article><article><strong>{loading?'…':money(summary.weighted)}</strong><span>Pipeline ponderado</span></article><article><strong>{loading?'…':summary.hot}</strong><span>Calientes</span></article><article><strong>{loading?'…':summary.overdue}</strong><span>Gestiones vencidas</span></article></section>
-  {!loading&&<section className="nk-card nk-kanban-card"><div className="nk-kanban-head"><div><strong>Embudo comercial visual</strong><span>Prioriza oportunidades por score y próxima gestión.</span></div></div><div className="nk-kanban">{STAGES.filter(([key])=>key!=='pausa').map(([key,value])=>{const list=filtered.filter(item=>stageOf(item)===key);return <div className="nk-kanban-column" key={key}><header><strong>{value}</strong><span>{list.length}</span></header><small>{money(list.reduce((total,item)=>total+amount(item),0))}</small>{list.slice(0,8).map(item=>{const temperature=heat(item);return <article key={item.id}><strong>{company(item)}</strong><p>{item.service||item.need||'Sin necesidad'}</p><div><span className={`nk-heat nk-heat-${temperature[1]}`}>{temperature[0]}</span><span>{score(item)}/100</span></div><small>Próx: {nextAction(item)||'sin fecha'}</small><footer><button type="button" onClick={()=>setFollowing(item)}>Bitácora</button>{isOpen(item)&&stageOf(item)!=='pausa'&&<button type="button" onClick={()=>advance(item)}>Avanzar</button>}{stageOf(item)==='ganada'&&!item.convertedId&&<button type="button" onClick={()=>convert(item)} disabled={convertingId===item.id}>Convertir</button>}</footer></article>})}{!list.length&&<p className="nk-opportunity-subtle">Sin oportunidades</p>}</div>})}</div></section>}
-  <section className="nk-card nk-opportunity-table-card">{loading?<div className="nk-empty"><IconBriefcase size={30}/><p className="nk-empty-title">Cargando oportunidades…</p></div>:!filtered.length?<div className="nk-empty"><p className="nk-empty-title">Sin oportunidades para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table nk-opportunity-table"><thead><tr><th>Empresa / oportunidad</th><th>Tipo</th><th>Contacto</th><th>Etapa / score</th><th>Monto / prob.</th><th>Próxima gestión</th><th>Acciones</th></tr></thead><tbody>{filtered.map(item=>{const temperature=heat(item);return <tr key={item.id}><td><strong>{company(item)}</strong><div className="nk-opportunity-subtle">{item.service||item.need||'Sin necesidad definida'}{item.industry?` · ${item.industry}`:''}{item.source?` · ${item.source}`:''}</div>{(item.dataQuality?.missingType||item.dataQuality?.missingStage)&&<div className="nk-opportunity-subtle">Información histórica incompleta: {[item.dataQuality?.missingType&&'tipo',item.dataQuality?.missingStage&&'etapa'].filter(Boolean).join(' y ')} pendiente de regularizar.</div>}</td><td>{label(TYPES,typeOf(item))}</td><td>{contact(item)}<div className="nk-opportunity-subtle">{item.role||item.email||'—'}</div></td><td><span className={`nk-heat nk-heat-${temperature[1]}`}>{temperature[0]}</span><div className="nk-opportunity-subtle">{label(STAGES,stageOf(item))} · {score(item)}/100{item.convertedId?' · Convertida':''}</div></td><td><strong>{money(amount(item),item.currency)}</strong><div className="nk-opportunity-subtle">{probability(item)}% · pond. {money(amount(item)*probability(item)/100,item.currency)}</div></td><td className={nextAction(item)&&nextAction(item)<today()&&isOpen(item)?'nk-opportunity-overdue':''}>{nextAction(item)||'Sin fecha'}<div className="nk-opportunity-subtle">{item.owner||'Sin responsable'} · {rows(item.followUps).length} gestiones</div></td><td><div className="nk-row-actions"><button className="nk-button nk-button-secondary nk-button-small" type="button" onClick={()=>setFollowing(item)}>Bitácora</button><button className="nk-button nk-button-secondary nk-button-small" type="button" onClick={()=>setEditing(item)}>Abrir</button>{stageOf(item)==='ganada'&&!item.convertedId&&<ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary nk-button-small" type="button" disabled={convertingId===item.id} onClick={()=>convert(item)}>{convertingId===item.id?'Convirtiendo…':'Convertir'}</ActionButton>}</div></td></tr>})}</tbody></table></div>}</section>
+  {!loading&&<section className="nk-card nk-kanban-card"><div className="nk-kanban-head"><div><strong>Embudo comercial visual</strong><span>Prioriza oportunidades por score y próxima gestión.</span></div></div><div className="nk-kanban">{STAGES.filter(([key])=>key!=='pausa').map(([key,value])=>{const list=filtered.filter(item=>stageOf(item)===key);return <div className="nk-kanban-column" key={key}><header><strong>{value}</strong><span>{list.length}</span></header><small>{money(list.reduce((total,item)=>total+amount(item),0))}</small>{list.slice(0,8).map(item=>{const temperature=heat(item);return <article key={item.id}><strong>{company(item)}</strong><p>{item.service||item.need||'Sin necesidad'}</p><div><span className={`nk-heat nk-heat-${temperature[1]}`}>{temperature[0]}</span><span>{score(item)}/100</span></div><small>Próx: {nextAction(item)||'sin fecha'}</small><footer><button type="button" onClick={()=>setFollowing(item)}>Bitácora</button>{isOpen(item)&&stageOf(item)!=='pausa'&&<button type="button" onClick={()=>advance(item)}>Avanzar</button>}{stageOf(item)==='ganada'&&!item.convertedId&&<button type="button" onClick={()=>requestConversion(item)} disabled={convertingId===item.id}>Convertir</button>}</footer></article>})}{!list.length&&<p className="nk-opportunity-subtle">Sin oportunidades</p>}</div>})}</div></section>}
+  <section className="nk-card nk-opportunity-table-card">{loading?<div className="nk-empty"><IconBriefcase size={30}/><p className="nk-empty-title">Cargando oportunidades…</p></div>:!filtered.length?<div className="nk-empty"><p className="nk-empty-title">Sin oportunidades para mostrar</p></div>:<div className="nk-table-wrapper"><table className="nk-table nk-opportunity-table"><thead><tr><th>Empresa / oportunidad</th><th>Tipo</th><th>Contacto</th><th>Etapa / score</th><th>Monto / prob.</th><th>Próxima gestión</th><th>Acciones</th></tr></thead><tbody>{filtered.map(item=>{const temperature=heat(item);return <tr key={item.id}><td><strong>{company(item)}</strong><div className="nk-opportunity-subtle">{item.service||item.need||'Sin necesidad definida'}{item.industry?` · ${item.industry}`:''}{item.source?` · ${item.source}`:''}</div>{(item.dataQuality?.missingType||item.dataQuality?.missingStage)&&<div className="nk-opportunity-subtle">Información histórica incompleta: {[item.dataQuality?.missingType&&'tipo',item.dataQuality?.missingStage&&'etapa'].filter(Boolean).join(' y ')} pendiente de regularizar.</div>}</td><td>{label(TYPES,typeOf(item))}</td><td>{contact(item)}<div className="nk-opportunity-subtle">{item.role||item.email||'—'}</div></td><td><span className={`nk-heat nk-heat-${temperature[1]}`}>{temperature[0]}</span><div className="nk-opportunity-subtle">{label(STAGES,stageOf(item))} · {score(item)}/100{item.convertedId?' · Convertida':''}</div></td><td><strong>{money(amount(item),item.currency)}</strong><div className="nk-opportunity-subtle">{probability(item)}% · pond. {money(amount(item)*probability(item)/100,item.currency)}</div></td><td className={nextAction(item)&&nextAction(item)<today()&&isOpen(item)?'nk-opportunity-overdue':''}>{nextAction(item)||'Sin fecha'}<div className="nk-opportunity-subtle">{item.owner||'Sin responsable'} · {rows(item.followUps).length} gestiones</div></td><td><div className="nk-row-actions"><button className="nk-button nk-button-secondary nk-button-small" type="button" onClick={()=>setFollowing(item)}>Bitácora</button><button className="nk-button nk-button-secondary nk-button-small" type="button" onClick={()=>setEditing(item)}>Abrir</button>{stageOf(item)==='ganada'&&!item.convertedId&&<ActionButton disabledReason="Espera mientras se convierte esta oportunidad." className="nk-button nk-button-primary nk-button-small" type="button" disabled={convertingId===item.id} onClick={()=>requestConversion(item)}>{convertingId===item.id?'Convirtiendo…':'Convertir'}</ActionButton>}</div></td></tr>})}</tbody></table></div>}</section>
   {editing!==null&&<OpportunityDialog opportunity={editing.id?editing:null} clients={clients} contracts={contracts} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);load()}}/>}{following&&<FollowDialog opportunity={following} onClose={()=>setFollowing(null)} onSaved={()=>{setFollowing(null);load()}}/>}
+  <ConfirmDialog {...confirmation.dialogProps}/>
  </div>
 }
