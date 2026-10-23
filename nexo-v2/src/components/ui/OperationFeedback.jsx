@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { IconAlertTriangle } from '@tabler/icons-react'
 import { api } from '../../services/api.js'
@@ -8,27 +8,30 @@ export default function OperationFeedback({ children }) {
   const [message, setMessage] = useState('')
   const [failure, setFailure] = useState(null)
   const [retrying, setRetrying] = useState(false)
+  const timerRef = useRef(null)
+  const retryRef = useRef(0)
 
   useEffect(() => {
+    clearTimeout(timerRef.current)
+    retryRef.current += 1
     setMessage('')
     setFailure(null)
     setRetrying(false)
   }, [pathname])
 
   useEffect(() => {
-    let timer
-    const started = () => { clearTimeout(timer); setMessage('') }
+    const started = () => { clearTimeout(timerRef.current); setMessage('') }
     const completed = event => {
-      clearTimeout(timer)
+      clearTimeout(timerRef.current)
       setMessage(event.detail?.message || 'Información guardada correctamente.')
-      timer = setTimeout(() => setMessage(''), 8000)
+      timerRef.current = setTimeout(() => setMessage(''), 8000)
     }
     const failed = event => setFailure(event.detail || { status: 503 })
     window.addEventListener('nexo:mutation-started', started)
     window.addEventListener('nexo:mutation-completed', completed)
     window.addEventListener('nexo:load-failed', failed)
     return () => {
-      clearTimeout(timer)
+      clearTimeout(timerRef.current)
       window.removeEventListener('nexo:mutation-started', started)
       window.removeEventListener('nexo:mutation-completed', completed)
       window.removeEventListener('nexo:load-failed', failed)
@@ -38,15 +41,17 @@ export default function OperationFeedback({ children }) {
   async function retryLoad() {
     if (retrying) return
     setRetrying(true)
+    const retryId = ++retryRef.current
     try {
       const result = await api.get('/state')
+      if (retryId !== retryRef.current) return
       setFailure(null)
       // Let mounted modules refresh their data without losing local form state.
       window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', { detail: { result } }))
     } catch (error) {
-      setFailure({ status: error.status === 500 ? 500 : 503 })
+      if (retryId === retryRef.current) setFailure({ status: error.status === 500 ? 500 : 503 })
     } finally {
-      setRetrying(false)
+      if (retryId === retryRef.current) setRetrying(false)
     }
   }
 
