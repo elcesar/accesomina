@@ -1,4 +1,5 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
 import { localDate, addCalendarDays } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch, IconTool } from '@tabler/icons-react'
@@ -71,13 +72,13 @@ export default function MantenimientoPage() {
   const filteredPlans = useMemo(() => plans.filter(plan => {
     const term = query.trim().toLowerCase()
     const stateLabel = planState(plan).label
-    return (!term || `${itemName(plan.assetId)} ${itemCode(plan.assetId)} ${plan.type || ''} ${plan.owner || ''} ${plan.checklist || ''}`.toLowerCase().includes(term)) &&
+    return (!term || includesSearch(`${itemName(plan.assetId)} ${itemCode(plan.assetId)} ${plan.type || ''} ${plan.owner || ''} ${plan.checklist || ''}`, term)) &&
       (!status || stateLabel === status)
   }), [plans, query, status, assets])
 
   const filteredRecords = useMemo(() => records.filter(record => {
     const term = query.trim().toLowerCase()
-    return !term || `${itemName(record.assetId)} ${itemCode(record.assetId)} ${record.type || ''} ${record.note || ''} ${orderName(record.projectId)}`.toLowerCase().includes(term)
+    return !term || includesSearch(`${itemName(record.assetId)} ${itemCode(record.assetId)} ${record.type || ''} ${record.note || ''} ${orderName(record.projectId)}`, term)
   }), [records, query, assets, orders])
 
   const summary = useMemo(() => ({
