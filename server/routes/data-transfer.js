@@ -85,7 +85,9 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     const rows=await moduleRows(client,req.auth.tenantId,true),state=aggregate(rows),before={};
     if(type!=='backup'){
       const entry=importModules[definitions[type].module];
-      const issues=validateImportRows(type,entry.rawRows,entry.definition,state,{mode});
+      const settings=(await client.query('SELECT catalogs FROM tenant_settings WHERE tenant_id=$1',[req.auth.tenantId])).rows[0]||{};
+      const allowedSpecialties=Array.isArray(settings.catalogs?.specialties)?settings.catalogs.specialties:[];
+      const issues=validateImportRows(type,entry.rawRows,entry.definition,state,{mode,allowedSpecialties});
       if(issues.length)return {validationIssues:issues};
       const mapped=entry.rawRows.map(r=>entry.definition.map(r,state));
       importModules={[definitions[type].module]:mapped};
@@ -114,7 +116,7 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       before[key]=state[key];
       next[key]=mode==='append'&&Array.isArray(value)&&!OPPORTUNITY_COLLECTIONS.includes(key)?[...(state[key]||[]),...value]:value;
     }
-    const clean=validateTenantState(next);
+    const clean=validateTenantState(next,{previousState:mode==='append'?state:null});
     for(const key of Object.keys(importModules)){
       await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
         VALUES($1,$2,$3::jsonb,1,$4)
