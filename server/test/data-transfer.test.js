@@ -35,3 +35,35 @@ test('CSV templates declare required business columns',async()=>{
     assert.ok(definitions[type].required.length>=2,`${type} has no required fields`);
   }
 });
+
+test('worker CSV validates configured specialties per tenant without restricting empty catalogs',async()=>{
+  process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
+  const [{validateImportRows},{definitions}]=await Promise.all([
+    import('../import-validation.js'),
+    import('../routes/data-transfer.js'),
+  ]);
+  const fields=definitions.trabajadores.headers;
+  const rows=[{nombre:'Persona QA',rut:'14.567.890-1',especialidad:'Mantenimiento'}];
+  assert.deepEqual(validateImportRows('trabajadores',rows,definitions.trabajadores,{},{
+    fields,allowedSpecialties:['Mantenimiento','Electricidad'],
+  }),[]);
+  const invalid=validateImportRows('trabajadores',[{...rows[0],especialidad:'Especialidad ajena'}],definitions.trabajadores,{},{
+    fields,allowedSpecialties:['Mantenimiento','Electricidad'],
+  });
+  assert.ok(invalid.some(issue=>issue.code==='INVALID_SPECIALTY'));
+  assert.deepEqual(validateImportRows('trabajadores',[{...rows[0],especialidad:'Valor histórico'}],definitions.trabajadores,{},{
+    fields,allowedSpecialties:[],
+  }),[]);
+});
+
+test('state import validation preserves an existing operational assignment after a later restriction',async()=>{
+  const {validateTenantState}=await import('../validation.js');
+  const previousState={
+    trabajadores:[{id:'w1',nombre:'Persona QA',rut:'14.567.890-1',workerItems:[],mineras:[]}],
+    mantenciones:[{id:'m1',nombre:'Orden QA'}],
+    asignaciones:[{id:'a1',trabId:'w1',mantId:'m1',estado:'confirmada'}],
+    restricted:[{workerId:'w1',activa:true,hasta:'2099-01-01'}],
+  };
+  assert.throws(()=>validateTenantState(previousState),error=>error.code==='WORKER_NOT_AVAILABLE');
+  assert.doesNotThrow(()=>validateTenantState(previousState,{previousState}));
+});
