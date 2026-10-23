@@ -445,8 +445,16 @@ export default function TrabajadoresPage() {
                   <td className="nk-people-empty-cell" colSpan={7}>
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.</p>
+                      {personas.length === 0 ? <>
+                        <p className="nk-empty-title">Aún no hay personas registradas</p>
+                        <p className="nk-empty-description">Usa + Persona en el encabezado para crear la primera.</p>
+                      </> : activeFilters > 0 ? <>
+                        <p className="nk-empty-title">No encontramos personas que coincidan con tu búsqueda o los filtros seleccionados</p>
+                        <p className="nk-empty-description">Ajusta los filtros o límpialos para ver más resultados.</p>
+                      </> : <>
+                        <p className="nk-empty-title">No hay personas en {TAB_LABELS[tab]}</p>
+                        <p className="nk-empty-description">Cambia de vista para revisar las personas registradas en otros segmentos.</p>
+                      </>}
                     </div>
                   </td>
                 </tr>

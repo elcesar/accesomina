@@ -41,7 +41,7 @@ export default function ImplementationSection() {
       <div className="nk-two-columns">
         <div>
           <p className="nk-eyebrow">Puesta en marcha simple</p>
-          <h2>Empieza ordenado, sin detener tu operación.</h2>
+          <h1>Empieza ordenado, sin detener tu operación.</h1>
           <p className="nk-lead">
             Partimos con una estructura clara, acompañamos la carga inicial y dejamos la información disponible para cada equipo autorizado.
           </p>

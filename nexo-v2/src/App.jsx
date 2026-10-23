@@ -93,11 +93,19 @@ function LegacyClientAccreditationRedirect() {
   return <Navigate to="/app/habilitacion-cliente" replace />
 }
 
+
 function AuthShell() {
-  return <AuthProvider><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style><Outlet /></AuthProvider>
+  return (
+    <AuthProvider>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <Outlet />
+    </AuthProvider>
+  )
 }
+
 const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<AuthShell />}>
+
           {Object.values(PUBLIC_PAGES).map(page => <Route key={page.path} path={page.path} element={<LandingPage />} />)}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />

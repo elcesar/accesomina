@@ -51,3 +51,9 @@ src/
 ## Lineamiento UX aplicado
 
 Ver `docs/UX_GUIDELINES.md` en la raíz del repositorio.
+
+## Rutas públicas y metadatos (QA R02)
+
+El build genera un `index.html` con título, descripción, Open Graph y canonical propios dentro de cada ruta pública, además de `sitemap.xml`. La navegación conserva enlaces hash antiguos y usa enlaces de historial. En S3/CloudFront se deben publicar también esos HTML y resolver `/plataforma` a `/plataforma/index.html` (y equivalentes) antes del fallback SPA. El workflow actual sólo copia el HTML raíz; el cambio de infraestructura sigue pendiente en #87 hasta verificar HTTP 200 y metadatos por URL en el ambiente objetivo. No cambiar la redirección .cl ya resuelta en #89.
+
+La ilustración `public/product-overview.svg` es un diagrama de producto identificado, sin datos de clientes; reemplaza la captura de AccesoMina. Teléfono y ciudad comerciales no se agregan sin datos aprobados.
