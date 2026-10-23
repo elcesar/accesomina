@@ -49,7 +49,19 @@ export default function DashboardPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const onStateRecovered = event => {
+      if (event.detail?.result) {
+        setResponse(event.detail.result)
+        setUpdatedAt(new Date())
+        setError('')
+        setLoading(false)
+      }
+    }
+    window.addEventListener('nexo:state-retry-succeeded', onStateRecovered)
+    return () => window.removeEventListener('nexo:state-retry-succeeded', onStateRecovered)
+  }, [])
   const state = response?.state || response || {}
 
   const derived = useMemo(() => {
