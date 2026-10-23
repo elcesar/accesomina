@@ -26,7 +26,7 @@ Se aceptan cabeceras históricas y las actuales. Corregir todos los errores info
 `
 const validDay = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value
 const REFS = { contratos:{minera:'minas'}, mantenciones:{minera:'minas',contrato:'contratos'}, turnos:{trabajador:'trabajadores',proyecto:'mantenciones'}, credenciales:{trabajador:'trabajadores',minera:'minas'}, epp:{trabajador:'trabajadores',proyecto:'mantenciones'}, oportunidades:{cliente:'minas',contrato:'contratos'}, subcontratos:{contrato:'contratos'}, vehiculos:{operador:'trabajadores'} }
-export function validateImportRows(type, rows, definition, state = {}, { fields, mode = 'append', today = operationalDay(), minimumAge = Number(process.env.MINIMUM_WORKER_AGE || 18) } = {}) {
+export function validateImportRows(type, rows, definition, state = {}, { fields, mode = 'append', today = operationalDay(), minimumAge = Number(process.env.MINIMUM_WORKER_AGE || 18), allowedSpecialties = [] } = {}) {
   const issues=[]
   const add=(row,column,code,message,value='')=>issues.push({row,column:publicCsvHeader(column),code,message,value:String(value ?? '').slice(0,200)})
   if (fields) {
@@ -62,6 +62,7 @@ export function validateImportRows(type, rows, definition, state = {}, { fields,
       if(row.region && !region) add(line,'region','INVALID_REGION','Selecciona una región del catálogo de Chile.',row.region)
       if(row.ciudad && region && !region.comunas.some(value=>normalize(value)===normalize(row.ciudad))) add(line,'ciudad','INVALID_CITY','La comuna no pertenece a la región indicada.',row.ciudad)
       for(const [column,options] of [['afp',AFP_CHILE],['salud',PREVISION_SALUD_CHILE]]) if(row[column]&&!options.some(value=>normalize(value)===normalize(row[column]))) add(line,column,'INVALID_CATALOG',`Usa un valor admitido: ${options.join(', ')}.`,row[column])
+      if (row.especialidad && allowedSpecialties.length && !allowedSpecialties.some(value => normalize(value) === normalize(row.especialidad))) add(line,'especialidad','INVALID_SPECIALTY','Selecciona una especialidad configurada para esta empresa.',row.especialidad)
     }
     // Validate references only after loading the authorized tenant state, never globally.
     if(!fields) for(const [column,allowed] of Object.entries(refSets)) if(row[column]&&!allowed.has(String(row[column]))&&!allowed.has(normalize(row[column]))) add(line,column,'INVALID_REFERENCE','No existe un registro relacionado con ese nombre o identificador en esta empresa.',row[column])
