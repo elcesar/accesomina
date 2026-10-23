@@ -3,6 +3,25 @@ import { OPTIONAL_RUT_ERROR } from './rut.js'
 const BASE = '/api'
 let csrfToken = null
 
+function publishEvent(name, detail) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name,{detail}))
+}
+// Only explicit user-facing writes publish global success messages.
+// State synchronization and authentication operations must not look like a user save.
+function isMutation(path, method, feedback) {
+  if (feedback === false) return false
+  if (feedback === true) return !['GET', 'HEAD'].includes(method)
+  if (['GET', 'HEAD'].includes(method)) return false
+  const pathname = path.split('?')[0]
+  if (pathname === '/state' || pathname.startsWith('/state/')) return false
+  if (pathname === '/auth' || pathname.startsWith('/auth/')) return false
+  return pathname === '/settings' || /^\/(clients|contracts|workers|users|tenants|projects|orders|documents|incidents|tickets)(\/|$)/.test(pathname)
+}
+function loadFailure(path,method,status){
+  if(method==='GET' && path.split('?')[0]==='/state' && status>=500)publishEvent('nexo:load-failed',{status})
+}
+
+
 const ERROR_MESSAGES = {
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
@@ -38,11 +57,12 @@ const ERROR_MESSAGES = {
   INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',
   INVALID_WORKER_BIRTH_DATE: 'La fecha de nacimiento no puede ser futura.',
   WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',
-  INCOMPLETE_WORKER_DOCUMENT: 'Completa el tipo y nombre de la evidencia antes de guardarla.',
   WORKER_DOCUMENT_FILE_REQUIRED: 'Adjunta el archivo del documento antes de guardarlo.',
   WORKER_DOCUMENT_SIDES_REQUIRED: 'Adjunta el anverso y reverso del documento.',
   WORKER_DOCUMENT_EXPIRY_REQUIRED: 'Ingresa una fecha de vencimiento válida para este documento.',
   WORKER_DOCUMENT_FILE_UNAVAILABLE: 'El archivo no está disponible para adjuntarlo. Vuelve a cargarlo.',
+  INVALID_OPPORTUNITY_RUT: OPTIONAL_RUT_ERROR,
+  INCOMPLETE_WORKER_DOCUMENT: 'Completa el tipo y nombre de la evidencia antes de guardarla.',
   WORKER_NOT_FOUND: 'No encontramos a la persona asociada a esta evidencia. Actualiza la ficha e inténtalo nuevamente.',
   WORKER_DOCUMENT_NOT_FOUND: 'No encontramos la evidencia que deseas eliminar. Actualiza la ficha e inténtalo nuevamente.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
@@ -51,7 +71,6 @@ const ERROR_MESSAGES = {
   INVALID_DATES: 'Revisa las fechas ingresadas: la fecha de inicio debe ser anterior a la de término.',
   INCOMPLETE_WORKER: 'Completa los datos obligatorios de la persona antes de guardar.',
   INCOMPLETE_CLIENT: 'Completa los datos obligatorios del cliente antes de guardar.',
-  INVALID_OPPORTUNITY_RUT: OPTIONAL_RUT_ERROR,
   INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
   DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
@@ -156,22 +175,29 @@ async function parseError(res) {
 }
 
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const { feedback, ...fetchOptions } = options
+  const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers }
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const method=options.method||'GET'
+  const notify = isMutation(path, method, options.feedback)
+  if(notify)publishEvent('nexo:mutation-started')
+  let res
+  try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
-    ...options,
+    ...fetchOptions,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+    body: fetchOptions.body ? JSON.stringify(fetchOptions.body) : undefined,
+  }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
+  if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
-  if (res.status === 204) return null
-  return res.json()
+  const result = res.status===204 ? null : await res.json()
+  if(notify)publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  return result
 }
 
-async function upload(path, file, fields = {}) {
+async function upload(path, file, fields = {}, options = {}) {
   const body = new FormData()
   body.append('file', file)
   Object.entries(fields).forEach(([key, value]) => {
@@ -181,6 +207,8 @@ async function upload(path, file, fields = {}) {
   const headers = {}
   if (csrfToken) headers['x-csrf-token'] = csrfToken
 
+  const notify = isMutation(path, 'POST', options.feedback)
+  if (notify) publishEvent('nexo:mutation-started')
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'same-origin',
@@ -188,14 +216,16 @@ async function upload(path, file, fields = {}) {
     body,
   })
   if (!res.ok) await parseError(res)
-  return res.json()
+  const result = res.status === 204 ? null : await res.json()
+  if (notify) publishEvent('nexo:mutation-completed', { message: 'Archivo cargado correctamente.' })
+  return result
 }
 
 export const api = {
   get: (path) => request(path, { method: 'GET' }),
-  post: (path, body) => request(path, { method: 'POST', body }),
-  put: (path, body) => request(path, { method: 'PUT', body }),
-  patch: (path, body) => request(path, { method: 'PATCH', body }),
-  delete: (path) => request(path, { method: 'DELETE' }),
+  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
+  put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
+  patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
+  delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' }),
   upload,
 }
