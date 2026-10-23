@@ -38,6 +38,7 @@ export default function ImportarExportarPage() {
   const [issues, setIssues] = useState([])
   const [hasError, setHasError] = useState(false)
   const [noRowsSaved, setNoRowsSaved] = useState(false)
+  const [outcomeUnknown, setOutcomeUnknown] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
   const selectedImport = useMemo(() => TYPES.find(item => item.id === importType) || TYPES[0], [importType])
@@ -61,6 +62,7 @@ export default function ImportarExportarPage() {
     setIssues([])
     setHasError(false)
     setNoRowsSaved(false)
+    setOutcomeUnknown(false)
     try {
       if (backupImport) {
         await api.upload('/data-transfer/import/backup', file, { mode: 'replace' })
@@ -77,8 +79,10 @@ export default function ImportarExportarPage() {
       const metadata = error?.metadata || error || {}
       const location = { row: metadata.row, column: metadata.column, value: metadata.value, message: error?.message || 'Revisa este dato relacionado.' }
       setIssues(reportedIssues.length ? reportedIssues : location.row || location.column || location.value ? [location] : [])
-      setNoRowsSaved(!backupImport)
-      setMessage(error?.message || 'No fue posible importar el archivo.')
+      const confirmedRejection = Number.isInteger(error?.status) && error.status >= 400 && error.status < 500
+      setNoRowsSaved(!backupImport && confirmedRejection)
+      setOutcomeUnknown(!confirmedRejection)
+      setMessage(error?.message || 'No fue posible completar la importación.')
     } finally {
       setSending(false)
     }
@@ -94,7 +98,8 @@ export default function ImportarExportarPage() {
       </header>
 
       {message && <p className="nk-form-message" role={hasError ? 'alert' : 'status'} aria-live="polite">{message}</p>}
-      {noRowsSaved && issues.length === 0 && <p className="nk-form-message" role="status">No se guardó ninguna fila. La validación del conjunto completo detuvo la importación. Corrige el mensaje anterior y vuelve a intentarlo.</p>}
+      {noRowsSaved && issues.length === 0 && <p className="nk-form-message" role="status">La solicitud fue rechazada y no se guardaron filas. Corrige el mensaje anterior antes de volver a intentarlo.</p>}
+      {outcomeUnknown && <p className="nk-form-message" role="status">No se pudo confirmar si la importación se completó. Revisa los registros antes de volver a importar para evitar duplicados.</p>}
 
       <div className="nk-transfer-grid">
         <section className="nk-module-card nk-transfer-panel">
@@ -137,7 +142,7 @@ export default function ImportarExportarPage() {
             <div className="nk-transfer-form-grid">
               <label className="nk-transfer-field">
                 <span>Tipo de archivo</span>
-                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage(''); setIssues([]); setNoRowsSaved(false) }}>
+                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage(''); setIssues([]); setNoRowsSaved(false); setOutcomeUnknown(false) }}>
                   {TYPES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                   <option value="backup">Respaldo completo</option>
                 </select>
@@ -158,7 +163,7 @@ export default function ImportarExportarPage() {
                 key={`${importType}-${file ? file.name : 'empty'}`}
                 type="file"
                 accept={backupImport ? '.json,application/json' : '.csv,text/csv'}
-                onChange={event => { setFile(event.target.files?.[0] || null); setIssues([]); setMessage(''); setNoRowsSaved(false) }}
+                onChange={event => { setFile(event.target.files?.[0] || null); setIssues([]); setMessage(''); setNoRowsSaved(false); setOutcomeUnknown(false) }}
               />
               <small id="import-file-help">{file ? file.name : `Selecciona un archivo ${backupImport ? 'JSON de respaldo' : 'CSV'}`}</small>
             </label>
@@ -175,7 +180,7 @@ export default function ImportarExportarPage() {
             </div>
 
             {issues.length > 0 && <section aria-label="Errores de importación" role="region" tabIndex={0} style={{overflowX:'auto'}}>
-              <p role="status">Se encontraron {issues.length} errores. Corrige el archivo y vuelve a cargarlo. No se guardó ninguna fila.</p>
+              <p role="status">{noRowsSaved ? `Se encontraron ${issues.length} errores. No se guardó ninguna fila; corrige el archivo antes de volver a intentarlo.` : `Se encontraron ${issues.length} observaciones. El resultado de la importación no está confirmado; revisa los registros antes de volver a intentarlo.`}</p>
               <table className="nk-table"><caption>Informe de validación del archivo</caption><thead><tr>{['Fila','Columna','Valor','Qué corregir'].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{issues.map((issue,index)=><tr key={index}><td>{issue.row || 'Cabecera'}</td><th scope="row">{issue.column || 'Archivo'}</th><td>{issue.value}</td><td>{issue.message}</td></tr>)}</tbody></table>
               <button className="nk-button nk-button-secondary" type="button" onClick={() => {
                 const escape = value => `"${String(value ?? '').replace(/^[=+@-]/, "'$&").replaceAll('"','""')}"`
