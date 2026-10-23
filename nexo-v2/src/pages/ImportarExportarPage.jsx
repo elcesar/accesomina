@@ -99,7 +99,7 @@ export default function ImportarExportarPage() {
 
       {message && <p className="nk-form-message" role={hasError ? 'alert' : 'status'} aria-live="polite">{message}</p>}
       {noRowsSaved && issues.length === 0 && <p className="nk-form-message" role="status">La solicitud fue rechazada y no se guardaron filas. Corrige el mensaje anterior antes de volver a intentarlo.</p>}
-      {outcomeUnknown && <p className="nk-form-message" role="status">No se pudo confirmar si la importación se completó. Revisa los registros antes de volver a importar para evitar duplicados.</p>}
+      {outcomeUnknown && <p className="nk-form-message" role="status">No se pudo confirmar si ${backupImport ? 'la restauración' : 'la importación'} se completó. Revisa los registros antes de volver a intentarlo para evitar duplicados.</p>}
 
       <div className="nk-transfer-grid">
         <section className="nk-module-card nk-transfer-panel">
