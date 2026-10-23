@@ -13,7 +13,7 @@ test('mass import parser supports Excel CSV quoting and maps workers',async()=>{
 test('worker CSV imports keep category separate from availability without an assignment',async()=>{
   process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
   const {definitions}=await import('../routes/data-transfer.js');
-  const legacy=definitions.trabajadores.map({nombre:'Persona histórica',rut:'14.567.890-1',tipo:'esporadico'});
+  const legacy=definitions.trabajadores.map({nombre:'Persona histórica',rut:'12.345.678-5',tipo:'esporadico'});
   const fixed=definitions.trabajadores.map({nombre:'Persona fija',rut:'12.345.678-5',tipo:'permanente'});
   const temporary=definitions.trabajadores.map({nombre:'Persona temporal',rut:'11.111.111-1',tipo:'temporal'});
   assert.equal(legacy.tipo,'esporadico');
@@ -43,7 +43,7 @@ test('worker CSV validates configured specialties per tenant without restricting
     import('../routes/data-transfer.js'),
   ]);
   const fields=definitions.trabajadores.headers;
-  const rows=[{nombre:'Persona QA',rut:'14.567.890-1',especialidad:'Mantenimiento'}];
+  const rows=[{nombre:'Persona QA',rut:'12.345.678-5',especialidad:'Mantenimiento'}];
   assert.deepEqual(validateImportRows('trabajadores',rows,definitions.trabajadores,{},{
     fields,allowedSpecialties:['Mantenimiento','Electricidad'],
   }),[]);
@@ -59,7 +59,7 @@ test('worker CSV validates configured specialties per tenant without restricting
 test('state import validation preserves an existing operational assignment after a later restriction',async()=>{
   const {validateTenantState}=await import('../validation.js');
   const previousState={
-    trabajadores:[{id:'w1',nombre:'Persona QA',rut:'14.567.890-1',workerItems:[],mineras:[]}],
+    trabajadores:[{id:'w1',nombre:'Persona QA',rut:'12.345.678-5',workerItems:[],mineras:[]}],
     mantenciones:[{id:'m1',nombre:'Orden QA'}],
     asignaciones:[{id:'a1',trabId:'w1',mantId:'m1',estado:'confirmada'}],
     restricted:[{workerId:'w1',activa:true,hasta:'2099-01-01'}],
