@@ -18,6 +18,7 @@ function ModuleOutlet() {
   const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
+  if(pathname==='/app/libro-obra')return <section className="nk-module-page"><h1>Libro de obra</h1><p role="status">Este módulo aún no está disponible. Nexo Klar comunicará su habilitación cuando corresponda.</p></section>
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
