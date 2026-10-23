@@ -6,7 +6,9 @@ function publishEvent(name, detail) {
 }
 // Only explicit user-facing writes publish global success messages.
 // State synchronization and authentication operations must not look like a user save.
-function isMutation(path, method) {
+function isMutation(path, method, feedback) {
+  if (feedback === false) return false
+  if (feedback === true) return !['GET', 'HEAD'].includes(method)
   if (['GET', 'HEAD'].includes(method)) return false
   const pathname = path.split('?')[0]
   if (pathname === '/state' || pathname.startsWith('/state/')) return false
@@ -171,22 +173,24 @@ async function request(path, options = {}) {
     headers['x-csrf-token'] = csrfToken
   }
   const method=options.method||'GET'
-  if(isMutation(path,method))publishEvent('nexo:mutation-started')
+  const notify = isMutation(path, method, options.feedback)
+  if(notify)publishEvent('nexo:mutation-started')
   let res
   try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
     ...options,
+    feedback: undefined,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
   }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
   if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
   const result = res.status===204 ? null : await res.json()
-  if(isMutation(path,method))publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  if(notify)publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
   return result
 }
 
-async function upload(path, file, fields = {}) {
+async function upload(path, file, fields = {}, options = {}) {
   const body = new FormData()
   body.append('file', file)
   Object.entries(fields).forEach(([key, value]) => {
@@ -196,6 +200,8 @@ async function upload(path, file, fields = {}) {
   const headers = {}
   if (csrfToken) headers['x-csrf-token'] = csrfToken
 
+  const notify = isMutation(path, 'POST', options.feedback)
+  if (notify) publishEvent('nexo:mutation-started')
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'same-origin',
@@ -203,14 +209,16 @@ async function upload(path, file, fields = {}) {
     body,
   })
   if (!res.ok) await parseError(res)
-  return res.json()
+  const result = res.status === 204 ? null : await res.json()
+  if (notify) publishEvent('nexo:mutation-completed', { message: 'Archivo cargado correctamente.' })
+  return result
 }
 
 export const api = {
   get: (path) => request(path, { method: 'GET' }),
-  post: (path, body) => request(path, { method: 'POST', body }),
-  put: (path, body) => request(path, { method: 'PUT', body }),
-  patch: (path, body) => request(path, { method: 'PATCH', body }),
-  delete: (path) => request(path, { method: 'DELETE' }),
+  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
+  put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
+  patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
+  delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' }),
   upload,
 }
