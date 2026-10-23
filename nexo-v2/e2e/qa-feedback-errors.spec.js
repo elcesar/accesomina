@@ -20,7 +20,7 @@ test('saving confirms success and route navigation clears feedback',async({page}
  await page.goto('/app/configuracion')
  await page.getByRole('button',{name:'Guardar configuración',exact:true}).click()
  await expect(page.locator('.nk-operation-feedback')).toContainText('Información guardada correctamente.')
- await page.getByRole('button',{name:'+ Persona',exact:true}).click()
+ await page.goto('/app/turnos')
  await expect(page.locator('.nk-operation-feedback')).toHaveCount(0)
 })
 test('administration denial renders a clear 403 page with a return action',async({page})=>{
@@ -29,9 +29,18 @@ test('administration denial renders a clear 403 page with a return action',async
  await expect(page.getByText('Error 403',{exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Ir al panel',exact:true})).toBeVisible()
 })
-for(const code of [500,503])test(`state load failure renders a recoverable ${code} page`,async({page})=>{
+for(const code of [500,503])test(`state load failure shows a nonblocking ${code} alert and allows retry`,async({page})=>{
  status=code
  await page.goto('/app/trabajadores')
- await expect(page.getByText(`Error ${code}`,{exact:true})).toBeVisible()
+ const alert=page.locator('.nk-operation-feedback-error')
+ await expect(alert).toBeVisible()
+ await expect(alert).toContainText(`Error ${code}`)
  await expect(page.getByRole('button',{name:'Volver a intentar'})).toBeVisible()
+ await expect(page.getByRole('button',{name:'Cerrar aviso'})).toBeVisible()
+ // The module remains mounted; the error is an inline alert, not a full-page replacement.
+ await expect(page.locator('.nk-people-page')).toBeVisible()
+ status=200
+ await page.getByRole('button',{name:'Volver a intentar'}).click()
+ await expect(alert).toHaveCount(0)
+ await expect(page.locator('.nk-people-page')).toBeVisible()
 })
