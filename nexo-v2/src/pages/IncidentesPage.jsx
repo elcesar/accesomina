@@ -1,4 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
+import { includesSearch } from '../services/search.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -82,7 +84,7 @@ export default function IncidentesPage() {
     const term = query.trim().toLowerCase()
     const order = orderMap.get(String(item.mantId))
     const orderName = order?.nombre || order?.name || order?.titulo || order?.codigo || ''
-    return (!term || [item.descripcion, item.accion, item.responsable, orderName].some(v => String(v || '').toLowerCase().includes(term))) &&
+    return (!term || [item.descripcion, item.accion, item.responsable, orderName].some(v => includesSearch(String(v || ''), term))) &&
       (!orderFilter || String(item.mantId) === orderFilter) &&
       (!typeFilter || item.tipo === typeFilter) &&
       (!statusFilter || item.estado === statusFilter)
@@ -191,7 +193,7 @@ export default function IncidentesPage() {
           <tbody>{loading ? <tr><td colSpan="6">Cargando eventos…</td></tr> : filtered.length ? filtered.map(item => {
             const order = orderMap.get(String(item.mantId)); const priority = priorityOf(item)
             return <tr key={item.id}>
-              <td><div className="nk-incident-event"><span className="nk-badge nk-badge-warn">{TYPE_LABELS[item.tipo] || item.tipo}</span><strong>{item.descripcion || 'Sin descripción'}</strong><small>{item.fecha || 'Sin fecha'} · {item.severity || 'media'}</small></div></td>
+              <td><div className="nk-incident-event"><span className="nk-badge nk-badge-warn">{TYPE_LABELS[item.tipo] || item.tipo}</span><strong>{item.descripcion || 'Sin descripción'}</strong><small>{formatChileDate(item.fecha || 'Sin fecha')} · {item.severity || 'media'}</small></div></td>
               <td>{order ? <Link className="nk-context-link" to={`/app/servicios/${order.id}`}>{order.codigo || order.nombre || order.name || order.id}</Link> : '—'}</td>
               <td><span className={`nk-badge ${priorityClass(priority)}`}>{priority}</span></td>
               <td><div className="nk-incident-action"><strong>{item.accion || 'Sin acción definida'}</strong><small>{item.responsable || 'Sin responsable'} · {item.compromiso || 'Sin plazo'}</small></div></td>
