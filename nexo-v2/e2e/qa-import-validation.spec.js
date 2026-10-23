@@ -12,6 +12,8 @@ test('CSV errors display every row and successful import displays server count',
  await expect(page.getByRole('table')).toContainText('Revisa el RUT.')
  await expect(page.getByRole('table')).toContainText('Ingresa un correo válido.')
  await expect(page.getByRole('button',{name:'Descargar informe de errores'})).toBeVisible()
+ await expect(page.getByText(/no se guardó ninguna fila/i)).toBeVisible()
+ await expect(page.getByText(/no se pudo confirmar/i)).toHaveCount(0)
  payload={rows:2}
  await page.getByRole('button',{name:'Validar e importar'}).click()
  await expect(page.getByRole('status')).toContainText('2 registros procesados')
@@ -30,4 +32,39 @@ test('global consistency errors state that no rows were saved and show supplied 
  await expect(page.getByRole('status')).toContainText('No se guardó ninguna fila')
  await expect(page.getByRole('table')).toContainText('Cliente QA no importado')
  await expect(page.getByRole('table')).toContainText('Fila')
+})
+
+test('network interruption reports an uncertain import outcome', async ({ page }) => {
+ await page.route('**/api/**', route => {
+  const path = new URL(route.request().url()).pathname
+  if (path.includes('/data-transfer/import/')) return route.abort('timedout')
+  const body = path === '/api/auth/me'
+   ? { user: { id: 'qa', role: 'client_admin' }, tenant: { name: 'Empresa QA' } }
+   : path === '/api/settings' ? { settings: {} } : {}
+  return route.fulfill({ status: 200, json: body })
+ })
+ await page.goto('/app/transferencia')
+ await page.locator('input[type=file]').setInputFiles({ name: 'qa.csv', mimeType: 'text/csv', buffer: Buffer.from('nombre,rut\\nQA,incorrecto') })
+ await page.getByRole('button', { name: 'Validar e importar' }).click()
+ await expect(page.getByRole('status')).toContainText('No se pudo confirmar si la importación se completó')
+ await expect(page.getByRole('status')).toContainText('Revisa los registros antes de volver a importar')
+ await expect(page.getByText(/no se guardó ninguna fila/i)).toHaveCount(0)
+})
+
+test('server errors do not claim that the import saved zero rows', async ({ page }) => {
+ await page.route('**/api/**', route => {
+  const path = new URL(route.request().url()).pathname
+  if (path.includes('/data-transfer/import/')) {
+   return route.fulfill({ status: 503, json: { error: 'SERVICE_UNAVAILABLE', message: 'Servicio no disponible' } })
+  }
+  const body = path === '/api/auth/me'
+   ? { user: { id: 'qa', role: 'client_admin' }, tenant: { name: 'Empresa QA' } }
+   : path === '/api/settings' ? { settings: {} } : {}
+  return route.fulfill({ status: 200, json: body })
+ })
+ await page.goto('/app/transferencia')
+ await page.locator('input[type=file]').setInputFiles({ name: 'qa.csv', mimeType: 'text/csv', buffer: Buffer.from('nombre,rut\\nQA,incorrecto') })
+ await page.getByRole('button', { name: 'Validar e importar' }).click()
+ await expect(page.getByRole('status')).toContainText('No se pudo confirmar si la importación se completó')
+ await expect(page.getByText(/no se guardó ninguna fila/i)).toHaveCount(0)
 })
