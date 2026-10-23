@@ -1,4 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -16,8 +18,8 @@ const REQUIRED_ITEMS=[
   {type:'curso',name:'Reglamento Interno'},
 ]
 function rows(v){return Array.isArray(v)?v:[]}
-function daysUntil(date){if(!date)return null;const d=new Date(`${date}T23:59:59`);return Number.isNaN(d.getTime())?null:Math.ceil((d-new Date())/86400000)}
-function itemMatches(item,req){return item.type===req.type&&String(item.name||'').toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim())}
+function daysUntil(date){ return calendarDaysUntil(date) }
+function itemMatches(item,req){return item.type===req.type&&includesSearch(String(item.name||''), req.name.toLowerCase().split('/')[0].trim())}
 function pctFor(worker){const items=rows(worker.workerItems);const ok=REQUIRED_ITEMS.filter(req=>items.some(item=>itemMatches(item,req)&&item.estado!=='rechazado'&&!(item.vence&&daysUntil(item.vence)<0))).length;return Math.round(ok/REQUIRED_ITEMS.length*100)}
 function issuesFor(worker){const issues=[];const items=rows(worker.workerItems)
   if(worker.rut&&!/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/.test(String(worker.rut))&&!/^\d{7,8}-[\dkK]$/.test(String(worker.rut)))issues.push('Revisar formato RUT')
@@ -36,7 +38,7 @@ export default function AuditoriaPage(){
   const workers=rows(state?.trabajadores).filter(w=>!w.bloqueado),clients=rows(state?.minas).length?rows(state?.minas):rows(state?.clientes),assignments=rows(state?.asignaciones),orders=rows(state?.mantenciones).length?rows(state?.mantenciones):rows(state?.proyectos)
   const clientMap=useMemo(()=>new Map(clients.map(c=>[String(c.id),c])),[clients]),orderMap=useMemo(()=>new Map(orders.map(o=>[String(o.id),o])),[orders])
   const audited=useMemo(()=>workers.map(worker=>{const mantIds=assignments.filter(a=>String(a.trabId)===String(worker.id)).map(a=>String(a.mantId));const inferredClients=[...new Set([...rows(worker.mineras).map(String),...mantIds.map(id=>String(orderMap.get(id)?.minaId||'')).filter(Boolean)])];return {worker,mantIds,clientIds:inferredClients,pct:pctFor(worker),issues:issuesFor(worker),status:auditState(worker)}}),[workers,assignments,orderMap])
-  const filtered=audited.filter(row=>{const term=query.trim().toLowerCase();return (!term||[row.worker.nombre,row.worker.rut].some(v=>String(v||'').toLowerCase().includes(term)))&&(!clientFilter||row.clientIds.includes(clientFilter))&&(!statusFilter||row.status.key===statusFilter)})
+  const filtered=audited.filter(row=>{const term=query.trim().toLowerCase();return (!term||[row.worker.nombre,row.worker.rut].some(v=>includesSearch(String(v||''), term)))&&(!clientFilter||row.clientIds.includes(clientFilter))&&(!statusFilter||row.status.key===statusFilter)})
   const summary={total:filtered.length,puede:filtered.filter(r=>r.status.key==='puede').length,revisar:filtered.filter(r=>r.status.key==='revisar').length,noPuede:filtered.filter(r=>r.status.key==='no_puede').length}
   function exportCsv(){const lines=[['Trabajador','RUT','Clientes','Ordenes de servicio','Requisitos','Validacion','Cumplimiento','Estado'],...filtered.map(r=>[r.worker.nombre||'',r.worker.rut||'',r.clientIds.map(id=>clientMap.get(id)?.nombre||clientMap.get(id)?.name||id).join(' / '),r.mantIds.map(id=>orderMap.get(id)?.codigo||orderMap.get(id)?.nombre||id).join(' / '),REQUIRED_ITEMS.length,r.issues.join(' | '),`${r.pct}%`,r.status.label])].map(row=>row.map(csvEscape).join(',')).join('\n');const blob=new Blob([lines],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`auditoria_documental_${localDate()}.csv`;a.click();URL.revokeObjectURL(url)}
   return <div className="nk-audit-page">
