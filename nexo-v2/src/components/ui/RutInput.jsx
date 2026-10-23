@@ -6,7 +6,10 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
   const inputId = id || generatedId
   const hintId = `${inputId}-rut-hint`
   const errorId = `${inputId}-error`
-  const describedBy = [props['aria-describedby'], hintId, error ? errorId : null].filter(Boolean).join(' ')
+
+  const hasError = Boolean(error || props['aria-invalid'])
+  const describedBy = [props['aria-describedby'], !hasError ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
+
 
   return <>
     <input
@@ -20,8 +23,10 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       autoComplete="off"
       inputMode="text"
       placeholder={props.placeholder || 'Ej.: XX.XXX.XXX-X'}
-      aria-invalid={error ? true : props['aria-invalid']}
-      aria-describedby={describedBy}
+
+      aria-invalid={hasError}
+      aria-describedby={describedBy || undefined}
+
       onChange={event => onChange(formatRut(event.target.value))}
       onBlur={event => {
         if (formatOnBlur) {
@@ -31,7 +36,9 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
         props.onBlur?.(event)
       }}
     />
-    <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>
+
+    {!hasError && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
+
     {error !== undefined && <p id={error ? errorId : undefined} className="nk-field-error"
       role={error ? 'alert' : undefined} aria-hidden={error ? undefined : true}
       style={{ visibility: error ? 'visible' : 'hidden' }}>{error || OPTIONAL_RUT_ERROR}</p>}

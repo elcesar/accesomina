@@ -1,3 +1,4 @@
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -17,10 +18,7 @@ import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
-function diasHasta(fecha) {
-  if (!fecha) return null
-  return Math.floor((new Date(fecha) - new Date()) / 86400000)
-}
+function diasHasta(fecha) { return calendarDaysUntil(fecha) }
 
 const REQUIRED_ITEMS = [
   { type: 'documento', name: 'Cédula de identidad' },
@@ -41,7 +39,7 @@ function acreditacionPct(persona) {
       item.type === req.type &&
       item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
       item.estado !== 'rechazado' &&
-      !(item.vence && diasHasta(item.vence) < 0)
+      (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
     ))
   )).length
 
@@ -49,14 +47,11 @@ function acreditacionPct(persona) {
 }
 
 function nextExpiry(persona) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const dates = (persona.workerItems || [])
     .map(item => item.vence)
-    .filter(Boolean)
-    .map(value => new Date(`${value}T00:00:00`))
-    .filter(date => !Number.isNaN(date.getTime()) && date >= today)
+    .filter(value => calendarDaysUntil(value) !== null && calendarDaysUntil(value) >= 0)
+    .map(value => new Date(`${value}T12:00:00`))
+    .filter(date => !Number.isNaN(date.getTime()))
     .sort((a, b) => a - b)
 
   return dates[0] || null

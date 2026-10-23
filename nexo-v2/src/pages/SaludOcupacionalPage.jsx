@@ -1,3 +1,4 @@
+import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -290,7 +291,7 @@ export default function SaludOcupacionalPage() {
         item.riesgo,
         item.responsable,
         item.fileName,
-      ].some(value => String(value || '').toLowerCase().includes(term))
+      ].some(value => includesSearch(String(value || ''), term))
       return matchesQuery && (statusFilter === 'todos' || status.key === statusFilter)
     })
   }, [records, query, statusFilter])

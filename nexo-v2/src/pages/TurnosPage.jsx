@@ -1,3 +1,4 @@
+import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -324,7 +325,7 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>

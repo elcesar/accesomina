@@ -1,3 +1,4 @@
+import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBuildingWarehouse, IconMapPin, IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -36,7 +37,7 @@ export default function BodegasPage() {
     return warehouses.filter(warehouse => {
       const ownLocations = locations.filter(location => String(location.warehouseId || location.bodegaId) === String(warehouse.id))
       return [warehouse.name, warehouse.type, warehouse.zone, warehouse.location, warehouse.responsible, ...ownLocations.flatMap(location => [location.name, location.code, location.zone])]
-        .some(value => String(value || '').toLowerCase().includes(term))
+        .some(value => includesSearch(String(value || ''), term))
     })
   }, [warehouses, locations, query])
 
