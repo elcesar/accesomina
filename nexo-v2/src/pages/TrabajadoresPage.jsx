@@ -178,7 +178,14 @@ export default function TrabajadoresPage() {
   useEffect(() => {
     loadState()
     window.addEventListener('focus', loadState)
-    return () => window.removeEventListener('focus', loadState)
+    const onStateRecovered = event => {
+      if (event.detail?.result) setState(event.detail.result.state || event.detail.result)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', onStateRecovered)
+    return () => {
+      window.removeEventListener('focus', loadState)
+      window.removeEventListener('nexo:state-retry-succeeded', onStateRecovered)
+    }
   }, [])
 
   const personas = state?.trabajadores || []
