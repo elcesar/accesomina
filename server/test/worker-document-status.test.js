@@ -38,6 +38,9 @@ test('a legacy filename without a stored file is no habilitado and does not coun
 test('expiry boundaries are evaluated by local calendar day', () => {
   assert.equal(daysUntilExpiry('2026-01-15', today), 0)
   assert.equal(daysUntilExpiry('2026-02-14', today), 30)
+  assert.equal(documentStatus({ ...regularFile, vence: '2026-01-15' }, today).label, 'Vigente')
+  assert.equal(documentStatus({ ...regularFile, vence: '2026-01-16' }, today).label, 'Por vencer')
+  assert.equal(documentStatus({ ...regularFile, vence: '2026-02-14' }, today).label, 'Por vencer')
   assert.equal(documentStatus({ ...regularFile, vence: '2026-01-25' }, today).label, 'Por vencer')
   assert.equal(documentStatus({ ...regularFile, vence: '2026-01-14' }, today).label, 'No habilitado')
 })
