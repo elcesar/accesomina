@@ -1,16 +1,15 @@
 import { formatChilePhone } from './chile-phone.js'
+import { isCalendarDate } from '../../../shared/operational-date.js'
 
 export { formatChilePhone }
 
 export function formatChileDate(value) {
-  const date = String(value || '')
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return value || ''
-
-  // Keep date-only values in local time so their day cannot shift by timezone.
-  const [year, month, day] = date.split('-').map(Number)
-  return new Intl.DateTimeFormat('es-CL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(new Date(year, month - 1, day, 12))
+  const text = String(value || '')
+  if (!isCalendarDate(text)) return value || ''
+  const [year,month,day] = text.split('-')
+  return `${day}-${month}-${year}`
+}
+export function formatChileCount(value, singular, plural = `${singular}s`) {
+  const count = Number(value) || 0
+  return `${new Intl.NumberFormat('es-CL').format(count)} ${count === 1 ? singular : plural}`
 }

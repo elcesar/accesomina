@@ -5,6 +5,7 @@ export const EMAIL_ERROR = 'Ingresa un correo electrónico válido.'
 export const EMAIL_REQUIRED_ERROR = 'Ingresa un correo electrónico.'
 export const normalizeEmail = value => typeof value === 'string' ? value.trim() : ''
 export function validateEmail(value, { required = false } = {}) {
+  if (value != null && typeof value !== 'string') return EMAIL_ERROR
   const email = normalizeEmail(value)
   if (!email) return required ? EMAIL_REQUIRED_ERROR : null
   return email.length <= 254 && EMAIL_FORMAT.test(email) ? null : EMAIL_ERROR

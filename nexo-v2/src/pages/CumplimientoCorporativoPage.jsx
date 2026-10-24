@@ -1,3 +1,7 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBuilding, IconExternalLink, IconFile, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -36,12 +40,7 @@ const REQUIREMENTS = [
 
 const asRows = value => Array.isArray(value) ? value : []
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function statusFor(doc) {
   const requirement = REQUIREMENTS.find(item => item.id === doc.reqId) || doc
@@ -71,7 +70,7 @@ function normalizeDocs(current) {
       cloudUrl: '',
       notes: '',
       src: requirement.src,
-      created: new Date().toISOString().slice(0, 10),
+      created: localDate(),
       documents: [],
     }
   })
@@ -116,7 +115,7 @@ export default function CumplimientoCorporativoPage() {
     const term = query.trim().toLowerCase()
     return docs.filter(doc => {
       const status = statusFor(doc)
-      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => String(value || '').toLowerCase().includes(term))
+      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => includesSearch(String(value || ''), term))
       const matchesArea = !areaFilter || doc.area === areaFilter
       const matchesStatus = !statusFilter || (statusFilter === 'ok' ? status.key === 'ok' : statusFilter === 'faltante' ? status.key === 'faltante' : ['vencido', 'critico', 'proximo'].includes(status.key))
       return matchesText && matchesArea && matchesStatus
@@ -186,7 +185,7 @@ export default function CumplimientoCorporativoPage() {
         fileType: uploaded.content_type || file.type,
         fileSize: uploaded.byte_size || file.size,
         cloudUrl: '',
-        created: new Date().toISOString().slice(0, 10),
+        created: localDate(),
       }
       const persisted = await persistDoc(documentId, patch)
       if (!persisted) await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(() => {})
@@ -208,8 +207,8 @@ export default function CumplimientoCorporativoPage() {
   return (
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
-        <div><h1>Documentación de la Empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
-        <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
+        <div><h1>Documentación de la empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
+        <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</ActionButton>
       </header>
 
       {error && <div className="nk-compliance-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
@@ -248,17 +247,17 @@ export default function CumplimientoCorporativoPage() {
                     <td><div className="nk-compliance-doc"><strong title={doc.name}>{doc.name}</strong><span title={doc.src || requirement?.src || ''}>{doc.src || requirement?.src || ''}</span></div></td>
                     <td><span className="nk-compliance-area">{AREA_LABELS[doc.area] || doc.area}</span></td>
                     <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} />}</td>
+                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} aria-label={`Fecha de vencimiento de ${doc.name}`} />}</td>
                     <td>
                       <div className="nk-compliance-evidence-cell">
                         {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileId ? <a className="nk-context-link nk-compliance-evidence" href={`/api/files/${encodeURIComponent(doc.fileId)}`} download title={doc.fileName || 'Descargar respaldo'}><IconFile size={13} /> {doc.fileName || 'Archivo'}</a> : <span className="nk-compliance-na">Sin respaldo</span>}
                         <div className="nk-compliance-actions">
-                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> PC</button>
-                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Link</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> Cargar archivo</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Agregar enlace</button>
                         </div>
                       </div>
                     </td>
-                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" /></td>
+                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" aria-label={`Observación de ${doc.name}`} /></td>
                   </tr>
                 )
               })}</tbody>

@@ -1,7 +1,12 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { IconKey, IconLock, IconPlus, IconRefresh, IconShieldCheck, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/users-admin.css'
 
 const ROLE_LABEL = {
@@ -17,12 +22,14 @@ const EDITABLE_ROLES = ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'c
 
 export default function UsuariosPermisosPage() {
   const { session } = useAuth()
+  const confirmation = useConfirmation()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [draft, setDraft] = useState({ fullName: '', email: '', role: 'consulta' })
+  const [emailError, setEmailError] = useState('')
   const admin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
 
   const load = async () => {
@@ -40,13 +47,16 @@ export default function UsuariosPermisosPage() {
 
   const createUser = async event => {
     event.preventDefault()
-    if (!draft.fullName.trim() || !draft.email.trim()) return
+    const nextEmailError = validateEmail(draft.email, { required: true })
+    setEmailError(nextEmailError || '')
+    if (!draft.fullName.trim() || nextEmailError) return
     setBusy('create')
     setMessage('')
     try {
       const result = await api.post('/users', draft)
       setShowCreate(false)
       setDraft({ fullName: '', email: '', role: 'consulta' })
+      setEmailError('')
       await load()
       setMessage(result?.temporaryPassword
         ? `Acceso creado para ${result.user.email}. Contraseña temporal: ${result.temporaryPassword}`
@@ -66,7 +76,6 @@ export default function UsuariosPermisosPage() {
   }
 
   const reset = async user => {
-    if (!window.confirm(`Se restablecerá el acceso de ${user.email}. ¿Continuar?`)) return
     setBusy(user.id)
     setMessage('')
     try {
@@ -74,19 +83,18 @@ export default function UsuariosPermisosPage() {
       setMessage(result?.temporaryPassword
         ? `Acceso restablecido para ${user.email}. Contraseña temporal: ${result.temporaryPassword}`
         : `Acceso restablecido para ${user.email}.`)
-    } catch (error) { setMessage(error.message || 'No fue posible restablecer el acceso.') }
+    } catch (error) { throw new Error(error.message || 'No fue posible restablecer el acceso.') }
     finally { setBusy('') }
   }
 
   const resetMfa = async user => {
-    if (!window.confirm(`Se restablecerá la verificación adicional de ${user.email}. Deberá configurarla nuevamente al ingresar. ¿Continuar?`)) return
     setBusy(user.id)
     setMessage('')
     try {
       const result = await api.post(`/users/${user.id}/reset-mfa`, {})
       setUsers(current => current.map(item => item.id === user.id ? { ...item, ...result.user } : item))
       setMessage(result?.message || `Verificación adicional restablecida para ${user.email}.`)
-    } catch (error) { setMessage(error.message || 'No fue posible restablecer la verificación adicional.') }
+    } catch (error) { throw new Error(error.message || 'No fue posible restablecer la verificación adicional.') }
     finally { setBusy('') }
   }
 
@@ -111,7 +119,7 @@ export default function UsuariosPermisosPage() {
       <section className="nk-module-card nk-users-card">
         <header className="nk-users-card-head">
           <div><h2>Equipo con acceso al sitio privado</h2><p>Todos ven la misma empresa; ningún usuario puede consultar datos de otra empresa.</p></div>
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</ActionButton>
         </header>
 
         <div className="nk-table-wrapper nk-users-table-wrap">
@@ -136,9 +144,9 @@ export default function UsuariosPermisosPage() {
                     <td>
                       <div className="nk-user-actions">
                         {admin && !self && !protectedUser ? <>
-                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => reset(user)}><IconKey size={14}/> Restablecer acceso</button>
-                          {user.mfa_enabled && <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => resetMfa(user)}>Restablecer MFA</button>}
-                          <button className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</button>
+                          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => confirmation.ask({title:'Restablecer acceso',description:`Se restablecerá el acceso de ${user.email}. Las sesiones activas se cerrarán.`,confirmLabel:'Restablecer acceso',variant:'danger',onConfirm:()=>reset(user)})}><IconKey size={14}/> Restablecer acceso</ActionButton>
+                          {user.mfa_enabled && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => confirmation.ask({title:'Restablecer verificación adicional',description:`Se restablecerá la verificación adicional de ${user.email}. Deberá configurarla nuevamente al ingresar.`,confirmLabel:'Restablecer MFA',variant:'danger',onConfirm:()=>resetMfa(user)})}>Restablecer MFA</ActionButton>}
+                          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={busy === user.id} onClick={() => patchUser(user, { active: !user.active })}>{user.active ? 'Suspender' : 'Activar'}</ActionButton>
                         </> : <span>—</span>}
                       </div>
                     </td>
@@ -156,13 +164,14 @@ export default function UsuariosPermisosPage() {
             <header><div><h2 id="nk-user-create-title">Dar acceso</h2><p>Crea un usuario para esta empresa y define su permiso inicial.</p></div><button className="nk-user-dialog-close" onClick={() => setShowCreate(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
             <form onSubmit={createUser}>
               <label><span>Nombre</span><input className="nk-input" value={draft.fullName} onChange={e => setDraft({ ...draft, fullName: e.target.value })} required /></label>
-              <label><span>Correo de acceso</span><input className="nk-input" type="email" value={draft.email} onChange={e => setDraft({ ...draft, email: e.target.value })} required /></label>
+              <label><span>Correo de acceso</span><EmailInput required value={draft.email} error={emailError} onChange={value => { setDraft({ ...draft, email: value }); setEmailError('') }} placeholder="persona@empresa.cl" /></label>
               <label><span>Permiso</span><select className="nk-input" value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}</select></label>
-              <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowCreate(false)}>Cancelar</button><button className="nk-button nk-button-primary" disabled={busy === 'create'}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</button></div>
+              <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" onClick={() => setShowCreate(false)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" disabled={busy === 'create'}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</ActionButton></div>
             </form>
           </section>
         </div>
       )}
+      <ConfirmDialog {...confirmation.dialogProps} />
     </section>
   )
 }

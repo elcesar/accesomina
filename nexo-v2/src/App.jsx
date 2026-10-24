@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import AppErrorBoundary from './components/ui/AppErrorBoundary.jsx'
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
+import { PUBLIC_PAGES } from './config/public-pages.js'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
@@ -92,13 +94,20 @@ function LegacyClientAccreditationRedirect() {
   return <Navigate to="/app/habilitacion-cliente" replace />
 }
 
-export default function App() {
+
+function AuthShell() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
+    <AuthProvider>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <AppErrorBoundary><Outlet /></AppErrorBoundary>
+    </AuthProvider>
+  )
+}
+
+const router = createBrowserRouter(createRoutesFromElements(
+  <Route element={<AuthShell />}>
+
+          {Object.values(PUBLIC_PAGES).map(page => <Route key={page.path} path={page.path} element={<LandingPage />} />)}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
@@ -168,8 +177,6 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  )
-}
+  </Route>
+))
+export default function App() { return <RouterProvider router={router} /> }

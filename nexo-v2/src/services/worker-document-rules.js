@@ -78,20 +78,21 @@ export function workerItemType(documentType, name = '') {
 
 export function hasRequiredEvidence(item) {
   const rule = documentRule(item?.type, item?.name, item?.documentType)
-  if (!rule.twoSided) return true
+
   const files = Array.isArray(item?.files) ? item.files : []
+  if (!rule.twoSided) return Boolean(item?.fileId || files.some(file => file?.fileId))
   const sides = new Set(files.filter(file => file?.fileId && file?.side).map(file => file.side))
-  return sides.has('front') && sides.has('back') && Boolean(item?.vence)
+  return sides.has('front') && sides.has('back')
 }
 
 export function documentEvidenceMessage(item) {
+  if (hasRequiredEvidence(item)) return ''
   const rule = documentRule(item?.type, item?.name, item?.documentType)
-  if (!rule.twoSided || hasRequiredEvidence(item)) return ''
   const files = Array.isArray(item?.files) ? item.files : []
+  if (!rule.twoSided) return 'archivo no disponible'
   const sides = new Set(files.filter(file => file?.fileId && file?.side).map(file => file.side))
   const missing = []
   if (!sides.has('front')) missing.push('anverso')
   if (!sides.has('back')) missing.push('reverso')
-  if (!item?.vence) missing.push('fecha de vencimiento')
   return `Falta ${missing.join(', ')}`
 }

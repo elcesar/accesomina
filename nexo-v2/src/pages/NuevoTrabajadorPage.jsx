@@ -1,11 +1,16 @@
-import { cloneElement, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import { localDate } from '../services/calendar-date.js'
+import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatChileDate, formatChilePhone } from '../services/chile-format.js'
@@ -99,6 +104,7 @@ function Field({ label, required, hint, error, fieldId, children, full = false }
         id: fieldId,
         'aria-invalid': error ? true : undefined,
         'aria-describedby': errorId,
+        ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
     : children
 
@@ -161,7 +167,7 @@ function StepIdentidad({ data, onChange, errors }) {
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
       <Field label="Correo electrónico" fieldId="worker-email" error={errors.email}>
-        <FInput type="email" autoComplete="email" value={data.email} onChange={e => onChange('email', e.target.value)} placeholder="correo@email.com" />
+        <EmailInput autoComplete="email" value={data.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
         <FSelect value={data.region} onChange={updateRegion}>
@@ -282,6 +288,9 @@ export default function NuevoTrabajadorPage() {
     [data],
   )
 
+  const allowNavigation = useRef(false)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => hasUnsavedChanges && !allowNavigation.current && currentLocation.pathname !== nextLocation.pathname)
+
   useEffect(() => {
     const warnBeforeUnload = event => {
       if (!hasUnsavedChanges) return
@@ -325,7 +334,8 @@ export default function NuevoTrabajadorPage() {
       const birthError = birthDateError(data.nacimiento)
       if (birthError) errors.nacimiento = birthError
       if (data.tel && !isValidChilePhone(data.tel)) errors.tel = 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
-      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errors.email = 'Ingresa un correo electrónico válido.'
+      const emailError = validateEmail(data.email)
+      if (emailError) errors.email = emailError
     }
     if (step === 1) {
       if (!data.cargo.trim()) errors.cargo = 'Ingresa el cargo de la persona.'
@@ -344,7 +354,6 @@ export default function NuevoTrabajadorPage() {
   }
 
   function leaveCreateFlow() {
-    if (hasUnsavedChanges && !window.confirm('Tienes cambios sin guardar. ¿Quieres salir y descartar la información ingresada?')) return
     navigate('/app/trabajadores')
   }
 
@@ -382,7 +391,7 @@ export default function NuevoTrabajadorPage() {
         disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
         epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
-        bloqueado: false, mineras: [], workerItems: [], creado: new Date().toISOString().split('T')[0],
+        bloqueado: false, mineras: [], workerItems: [], creado: localDate(),
       }
 
       const changes = { trabajadores: { version: versionT, data: [...trabajadores, nuevo] } }
@@ -396,6 +405,7 @@ export default function NuevoTrabajadorPage() {
       }
 
       await api.put('/state/modules', { reason: `Alta de persona: ${nuevo.nombre}`, changes })
+      allowNavigation.current = true
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
       setError(personError(cause.code, cause.message))
@@ -414,6 +424,7 @@ export default function NuevoTrabajadorPage() {
 
   return (
     <div className="nk-person-create-page">
+      <ConfirmDialog open={blocker.state === 'blocked'} title="Salir sin guardar" description="Tienes cambios sin guardar. Si sales, se perderá la información de esta persona." confirmLabel="Salir y descartar" cancelLabel="Seguir editando" variant="danger" onConfirm={()=>blocker.proceed?.()} onCancel={()=>blocker.reset?.()} />
       <div className="nk-person-create-breadcrumb">
         <button className="nk-button nk-button-quiet" type="button" onClick={leaveCreateFlow}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
         <span className="nk-person-create-breadcrumb-separator" aria-hidden="true">/</span>
@@ -440,19 +451,19 @@ export default function NuevoTrabajadorPage() {
           )}
 
           <div className="nk-person-create-actions">
-            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
               <IconArrowLeft size={14} strokeWidth={2} />{step === 0 ? 'Cancelar' : 'Anterior'}
-            </button>
+            </ActionButton>
 
             {step < STEPS.length - 1 ? (
-              <button className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
                 Siguiente<IconArrowRight size={14} strokeWidth={2} />
-              </button>
+              </ActionButton>
             ) : (
-              <button className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? <IconLoader2 size={15} className="animate-spin" aria-hidden="true" /> : <IconCheck size={15} strokeWidth={2.5} aria-hidden="true" />}
                 {loading ? 'Guardando…' : 'Guardar persona'}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>

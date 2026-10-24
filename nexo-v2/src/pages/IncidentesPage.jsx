@@ -1,3 +1,7 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
+import { includesSearch } from '../services/search.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconAlertTriangle, IconCheck, IconExternalLink, IconPaperclip, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
@@ -15,7 +19,7 @@ const STATUS_LABELS = { abierto: 'Abierto', en_cierre: 'En cierre', cerrado: 'Ce
 const SEVERITIES = ['baja', 'media', 'alta', 'critica']
 
 function rows(value) { return Array.isArray(value) ? value : [] }
-function today() { return new Date().toISOString().slice(0, 10) }
+function today() { return localDate() }
 
 function priorityOf(item) {
   if (item.priority) return item.priority
@@ -80,7 +84,7 @@ export default function IncidentesPage() {
     const term = query.trim().toLowerCase()
     const order = orderMap.get(String(item.mantId))
     const orderName = order?.nombre || order?.name || order?.titulo || order?.codigo || ''
-    return (!term || [item.descripcion, item.accion, item.responsable, orderName].some(v => String(v || '').toLowerCase().includes(term))) &&
+    return (!term || [item.descripcion, item.accion, item.responsable, orderName].some(v => includesSearch(String(v || ''), term))) &&
       (!orderFilter || String(item.mantId) === orderFilter) &&
       (!typeFilter || item.tipo === typeFilter) &&
       (!statusFilter || item.estado === statusFilter)
@@ -164,7 +168,7 @@ export default function IncidentesPage() {
     <div className="nk-incidents-page">
       <header className="nk-incidents-header">
         <div><h1>Incidentes y no conformidades</h1><p>Registra eventos, evalúa prioridad, asigna acciones y cierra solo con verificación y evidencia.</p></div>
-        <div className="nk-incidents-header-actions"><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" type="button" onClick={startNew}><IconPlus size={15}/> Registrar incidente</button></div>
+        <div className="nk-incidents-header-actions"><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton><button className="nk-button nk-button-primary" type="button" onClick={startNew}><IconPlus size={15}/> Registrar incidente</button></div>
       </header>
 
       {error && <div className="nk-incidents-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15}/></button></div>}
@@ -189,7 +193,7 @@ export default function IncidentesPage() {
           <tbody>{loading ? <tr><td colSpan="6">Cargando eventos…</td></tr> : filtered.length ? filtered.map(item => {
             const order = orderMap.get(String(item.mantId)); const priority = priorityOf(item)
             return <tr key={item.id}>
-              <td><div className="nk-incident-event"><span className="nk-badge nk-badge-warn">{TYPE_LABELS[item.tipo] || item.tipo}</span><strong>{item.descripcion || 'Sin descripción'}</strong><small>{item.fecha || 'Sin fecha'} · {item.severity || 'media'}</small></div></td>
+              <td><div className="nk-incident-event"><span className="nk-badge nk-badge-warn">{TYPE_LABELS[item.tipo] || item.tipo}</span><strong>{item.descripcion || 'Sin descripción'}</strong><small>{formatChileDate(item.fecha || 'Sin fecha')} · {item.severity || 'media'}</small></div></td>
               <td>{order ? <Link className="nk-context-link" to={`/app/servicios/${order.id}`}>{order.codigo || order.nombre || order.name || order.id}</Link> : '—'}</td>
               <td><span className={`nk-badge ${priorityClass(priority)}`}>{priority}</span></td>
               <td><div className="nk-incident-action"><strong>{item.accion || 'Sin acción definida'}</strong><small>{item.responsable || 'Sin responsable'} · {item.compromiso || 'Sin plazo'}</small></div></td>
@@ -214,7 +218,7 @@ export default function IncidentesPage() {
           {!newOpen && <><label className="wide"><span>Causa raíz / investigación</span><textarea className="nk-textarea" value={form.rootCause || ''} onChange={e => setForm({...form,rootCause:e.target.value})}/></label><label><span>Responsable de cierre</span><input className="nk-input" value={form.closeOwner || ''} onChange={e => setForm({...form,closeOwner:e.target.value})}/></label><label><span>Estado seguimiento</span><select className="nk-select" value={form.estado === 'cerrado' ? 'cerrado' : form.estado || 'abierto'} onChange={e => setForm({...form,estado:e.target.value === 'cerrado' ? 'en_cierre' : e.target.value})} disabled={form.estado === 'cerrado'}><option value="abierto">Abierto</option><option value="en_cierre">En cierre</option>{form.estado === 'cerrado' && <option value="cerrado">Cerrado</option>}</select></label><label className="wide"><span>Verificación / nota de cierre</span><textarea className="nk-textarea" value={form.closeNote || ''} onChange={e => setForm({...form,closeNote:e.target.value})}/></label></>}
           <div className="wide nk-incident-evidence"><span>Evidencia</span><div>{evidenceFile ? <span className="nk-badge nk-badge-info"><IconPaperclip size={13}/> {evidenceFile.name}</span> : form.evidenceUrl ? <a className="nk-context-link" href={form.evidenceUrl} target="_blank" rel="noreferrer"><IconExternalLink size={14}/> Ver respaldo</a> : form.fileId ? <a className="nk-context-link" href={`/api/files/${encodeURIComponent(form.fileId)}`} download><IconPaperclip size={14}/> {form.evidenceName || 'Descargar evidencia'}</a> : <span className="nk-muted">Sin evidencia</span>}<button className="nk-button nk-button-secondary nk-button-sm" type="button" onClick={() => fileRef.current?.click()}><IconPaperclip size={14}/> Archivo</button><button className="nk-button nk-button-quiet nk-button-sm" type="button" onClick={() => { const url = window.prompt('URL https de la evidencia', form.evidenceUrl || ''); if (url !== null) { setEvidenceFile(null); setForm({...form,evidenceUrl:url,evidenceName:'',fileId:''}) } }}>Link</button></div></div>
         </div>
-        <div className="nk-incident-editor-actions"><button className="nk-button nk-button-secondary" type="button" onClick={closeEditor}>Cancelar</button><button className="nk-button nk-button-primary" type="button" onClick={() => saveIncident()} disabled={saving}>{saving ? 'Guardando…' : 'Guardar seguimiento'}</button>{!newOpen && form.estado !== 'cerrado' && <button className="nk-button nk-button-primary" type="button" onClick={() => saveIncident({close:true})} disabled={saving}><IconCheck size={15}/> Verificar y cerrar</button>}</div>
+        <div className="nk-incident-editor-actions"><button className="nk-button nk-button-secondary" type="button" onClick={closeEditor}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={() => saveIncident()} disabled={saving}>{saving ? 'Guardando…' : 'Guardar seguimiento'}</ActionButton>{!newOpen && form.estado !== 'cerrado' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={() => saveIncident({close:true})} disabled={saving}><IconCheck size={15}/> Verificar y cerrar</ActionButton>}</div>
       </section>}
 
       <input ref={fileRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={selectEvidence}/>

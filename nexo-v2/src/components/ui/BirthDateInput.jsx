@@ -1,12 +1,8 @@
+import { useId } from 'react'
+import { localDate as localToday } from '../../services/calendar-date.js'
 export const MINIMUM_WORKER_AGE = 18
 
-function localToday() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+
 
 export function minimumBirthDate(age = MINIMUM_WORKER_AGE, today = localToday()) {
   const [year, month, day] = today.split('-').map(Number)
@@ -20,20 +16,25 @@ export function birthDateError(value, minimumAge = MINIMUM_WORKER_AGE, today = l
   return ''
 }
 
-export function BirthDateInput({ value = '', onChange, minimumAge = MINIMUM_WORKER_AGE, ...props }) {
-  const error = birthDateError(value, minimumAge)
+export function BirthDateInput({ value = '', onChange, minimumAge = MINIMUM_WORKER_AGE, id, error: externalError, showError = true, ...props }) {
+  const generatedId = useId()
+  const inputId = id || generatedId
+  const error = externalError || birthDateError(value, minimumAge)
+  const errorId = `${inputId}-birth-error`
   return (
     <div>
       <input
+        id={inputId}
         className="nk-input"
         type="date"
         value={value}
         max={minimumBirthDate(minimumAge)}
         onChange={event => onChange?.(event.target.value)}
-        aria-invalid={error ? 'true' : undefined}
         {...props}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={[props['aria-describedby'], error && showError ? errorId : ''].filter(Boolean).join(' ') || undefined}
       />
-      {error && <p className="nk-person-field-hint" role="alert">{error}</p>}
+      {error && showError && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
     </div>
   )
 }
