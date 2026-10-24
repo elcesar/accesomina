@@ -199,6 +199,28 @@ function assertUnique(values, message, code = 'DUPLICATE_DATA') {
 
 const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : [];
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+// Health protocols read historical aliases, but every write is resolved against
+// the canonical trabajadores[].id before reference and duplicate validation.
+function healthProtocolScope(row) {
+  if (row?.scope === 'global') return 'global';
+  return row?.scope === 'cliente' || row?.minaId ? 'cliente' : 'global';
+}
+
+function healthProtocolReferenceSignature(row) {
+  return [row?.workerId || '', row?.trabId || '', row?.personaId || '', row?.scope || '', row?.minaId || '']
+    .map(value => String(value)).join('|');
+}
+
+function resolveHealthProtocolWorkerId(row, workerIds) {
+  const references = [row?.workerId, row?.trabId, row?.personaId]
+    .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+    .map(value => String(value).trim());
+  if (new Set(references).size !== 1 || !workerIds.has(references[0])) {
+    throw Object.assign(new Error('Health protocol references an unknown or ambiguous worker'), { status: 409, code: 'INVALID_REFERENCE' });
+  }
+  return references[0];
+}
+
 // The fallback is intentionally narrow. A module can only opt in once its
 // append validation covers every strict validation rule for new records.
 export const APPEND_FALLBACK_MODULES = new Set([
@@ -494,7 +516,6 @@ export function validateTenantState(input, { previousState = null } = {}) {
   assertUnique((state.hoteles || []).map(h => `${normalizedText(h.nombre)}|${normalizedText(h.ciudad)}`), 'Duplicate hotel', 'DUPLICATE_HOTEL');
   assertUnique((state.subcontratos || []).map(s => normalizeRut(s.rut)), 'Duplicate subcontractor RUT', 'DUPLICATE_SUBCONTRACTOR_RUT');
   assertUnique((state.vehiculos || []).flatMap(v => [v.patente ? `p:${normalizedText(v.patente).replace(/[^a-z0-9]/g, '')}` : '', v.serie ? `s:${normalizedText(v.serie)}` : '']), 'Duplicate vehicle plate or serial', 'DUPLICATE_VEHICLE');
-  assertUnique((state.protocolosSalud || []).map(x => `${x.trabId}|${x.minaId}|${normalizedText(x.tipo)}|${x.vence || ''}`), 'Duplicate health protocol', 'DUPLICATE_HEALTH_PROTOCOL');
   assertUnique((state.incidentes || []).map(x => `${x.mantId}|${x.fecha || ''}|${normalizedText(x.tipo)}|${normalizedText(x.descripcion)}`), 'Duplicate incident', 'DUPLICATE_INCIDENT');
   assertUnique((state.permisosTrabajo || []).map(x => `${x.mantId}|${normalizedText(x.nombre)}`), 'Duplicate work permit', 'DUPLICATE_WORK_PERMIT');
   assertUnique((state.waGroups || []).map(x => `${x.minaId || ''}|${x.mantId || ''}|${normalizedText(x.nombre)}`), 'Duplicate WhatsApp group', 'DUPLICATE_WHATSAPP_GROUP');
@@ -510,6 +531,22 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if (duplicateId) throw Object.assign(new Error(`Duplicate entity id: ${duplicateId}`), { status: 409, code: 'DUPLICATE_ID' });
   }
   const workerIds = new Set(workers.map(x => String(x.id)));
+  const healthProtocols = collection(state, 'protocolosSalud');
+  const previousHealthProtocols = new Map(
+    collection(previousState, 'protocolosSalud').filter(row => row?.id).map(row => [String(row.id), row])
+  );
+  const resolvedHealthProtocols = healthProtocols.map(row => {
+    try {
+      return { row, workerId: resolveHealthProtocolWorkerId(row, workerIds), legacyReference: false };
+    } catch (error) {
+      const before = previousHealthProtocols.get(String(row?.id || ''));
+      // Retain unchanged legacy contradictions for audit, but reject any new or edited invalid reference.
+      if (error?.code === 'INVALID_REFERENCE' && before && healthProtocolReferenceSignature(before) === healthProtocolReferenceSignature(row)) {
+        return { row, workerId: null, legacyReference: true };
+      }
+      throw error;
+    }
+  });
   const projectIds = new Set(projects.map(x => String(x.id)));
   const mineIds = new Set(mines.map(x => String(x.id)));
   const contractIds = new Set(contracts.map(x => String(x.id)));
@@ -559,8 +596,27 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Credential references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   assertUnique((state.credenciales || []).map(x => x.numero ? `${x.minaId}|${normalizedText(x.numero)}` : ''), 'Duplicate credential number', 'DUPLICATE_CREDENTIAL');
-  for (const row of Array.isArray(state.protocolosSalud) ? state.protocolosSalud : []) {
-    if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Health protocol references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
+  for (const { row, legacyReference } of resolvedHealthProtocols) {
+    if (legacyReference) continue;
+    if (row.scope && !['global', 'cliente'].includes(row.scope)) {
+      throw Object.assign(new Error('Health protocol has an invalid scope'), { status: 409, code: 'INVALID_HEALTH_PROTOCOL_SCOPE' });
+    }
+    const scope = healthProtocolScope(row);
+    if (scope === 'cliente') {
+      if (!row.minaId || !mineIds.has(String(row.minaId))) {
+        throw Object.assign(new Error('A client-scoped health protocol requires a known client'), { status: 409, code: 'INVALID_REFERENCE' });
+      }
+    } else if (row.minaId) {
+      throw Object.assign(new Error('A global health protocol cannot include a client reference'), { status: 409, code: 'INVALID_REFERENCE' });
+    }
+    for (const field of ['evaluatedOn', 'vence']) {
+      if (row[field] && !/^\d{4}-\d{2}-\d{2}$/.test(row[field])) {
+        throw Object.assign(new Error('Health protocol has an invalid ' + field + ' date'), { status: 409, code: 'INVALID_DATES' });
+      }
+    }
+    if (row.evaluatedOn && row.vence && row.evaluatedOn > row.vence) {
+      throw Object.assign(new Error('Health protocol has invalid evaluation and expiry dates'), { status: 409, code: 'INVALID_DATES' });
+    }
   }
   for (const row of Array.isArray(state.incidentes) ? state.incidentes : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Incident references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
   for (const row of Array.isArray(state.subcontratos) ? state.subcontratos : []) if (row.contratoId && !contractIds.has(String(row.contratoId))) throw Object.assign(new Error('Subcontractor references an unknown contract'), { status: 409, code: 'INVALID_REFERENCE' });
