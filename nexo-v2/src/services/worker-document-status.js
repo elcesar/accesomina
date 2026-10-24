@@ -35,7 +35,7 @@ export function documentStatus(item, today = new Date()) {
     const days = daysUntilExpiry(item.vence, today)
     if (days === null) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'fecha inválida' }
     if (days < 0) return { ok: false, label: 'No habilitado', className: 'nk-badge-error', source: 'vencido' }
-    if (days <= 30) return { ok: true, label: 'Por vencer', className: 'nk-badge-warn', source: 'cargado' }
+    if (days > 0 && days <= 30) return { ok: true, label: 'Por vencer', className: 'nk-badge-warn', source: 'cargado' }
   }
   return { ok: true, label: 'Vigente', className: 'nk-badge-ok', source: 'cargado' }
 }
