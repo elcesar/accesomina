@@ -78,6 +78,7 @@ export function workerItemType(documentType, name = '') {
 
 export function hasRequiredEvidence(item) {
   const rule = documentRule(item?.type, item?.name, item?.documentType)
+
   const files = Array.isArray(item?.files) ? item.files : []
   if (!rule.twoSided) return Boolean(item?.fileId || files.some(file => file?.fileId))
   const sides = new Set(files.filter(file => file?.fileId && file?.side).map(file => file.side))

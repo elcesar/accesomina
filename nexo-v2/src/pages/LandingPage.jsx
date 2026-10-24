@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { PUBLIC_PAGES, publicPageKey } from '../config/public-pages.js'
 import '../styles/landing.css'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
@@ -26,26 +28,13 @@ const publicSections = {
   contacto: ContactSection,
 };
 
-const publicPageMetadata = {
-  inicio: { title: 'Control operativo en un solo lugar', description: 'Nexo Klar centraliza personas, contratos, documentos, recursos y servicios para controlar la operación con información clara y trazable.' },
-  solucion: { title: 'La plataforma', description: 'Conoce cómo Nexo Klar reúne información operativa para tomar decisiones con contexto.' },
-  resultados: { title: 'Resultados', description: 'Descubre los resultados operativos que Nexo Klar ayuda a ordenar y anticipar.' },
-  producto: { title: 'Producto', description: 'Explora el portal Nexo Klar para personas, contratos, documentos y operación.' },
-  capacidades: { title: 'Capacidades', description: 'Revisa las capacidades de Nexo Klar para gestionar información operacional.' },
-  industrias: { title: 'Industrias', description: 'Nexo Klar se adapta a equipos que coordinan trabajo, cumplimiento y servicios en terreno.' },
-  implementacion: { title: 'Implementación', description: 'Conoce el acompañamiento para implementar Nexo Klar en tu operación.' },
-  proposito: { title: 'Propósito', description: 'Conoce el propósito y los principios que orientan a Nexo Klar.' },
-  'registro-empresa': { title: 'Registro de empresa', description: 'Registra tu empresa para comenzar a usar el portal privado de Nexo Klar.' },
-  contacto: { title: 'Contacto', description: 'Comunícate con Nexo Klar o solicita una demostración de la plataforma.' },
-}
-
 function ProductPreview({ onClose }) {
   return (
-    <div className="nk-lightbox" role="dialog" aria-modal="true" aria-label="Vista ampliada de Nexo Klar" onClick={onClose}>
+    <div className="nk-lightbox" role="dialog" aria-modal="true" aria-label="Ilustración ampliada de Nexo Klar" onClick={onClose}>
       <button type="button" aria-label="Cerrar vista ampliada" onClick={onClose}>×</button>
       <img
-        src="/assets/dashboard-demo.png"
-        alt="Vista ampliada de Nexo Klar"
+        src="/product-overview.svg"
+        alt="Ilustración ampliada de Nexo Klar"
         onClick={event => event.stopPropagation()}
       />
     </div>
@@ -53,7 +42,9 @@ function ProductPreview({ onClose }) {
 }
 
 export default function LandingPage() {
-  const [active, setActive] = useState('inicio')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const active = publicPageKey(location.pathname) || 'inicio'
   const [preview, setPreview] = useState(false)
   const [dialog, setDialog] = useState(null)
 
@@ -63,9 +54,14 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
-    const metadata = publicPageMetadata[active] || publicPageMetadata.inicio
+    const metadata = PUBLIC_PAGES[active] || PUBLIC_PAGES.inicio
     document.title = `Nexo Klar · ${metadata.title}`
     document.querySelector('meta[name="description"]')?.setAttribute('content', metadata.description)
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title)
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', metadata.description)
+    const canonical = `https://nexoklar.com${metadata.path}`
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical)
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonical)
   }, [active])
 
   useEffect(() => {
@@ -78,22 +74,15 @@ export default function LandingPage() {
     }
   }, [dialog, preview])
 
+  // Preserve shared links from the previous hash navigation.
   useEffect(() => {
-    const syncSectionFromHash = () => {
-      const hash = window.location.hash.replace('#', '')
-      setActive(publicSections[hash] ? hash : 'inicio')
-    }
-
-    syncSectionFromHash()
-    window.addEventListener('hashchange', syncSectionFromHash)
-    return () => window.removeEventListener('hashchange', syncSectionFromHash)
-  }, [])
+    const key = location.hash.slice(1)
+    if (PUBLIC_PAGES[key]) navigate(PUBLIC_PAGES[key].path, { replace: true })
+  }, [location.hash, navigate])
 
   const goTo = id => {
-    if (!publicSections[id]) return
-
-    setActive(id)
-    window.history.replaceState(null, '', `#${id}`)
+    if (!PUBLIC_PAGES[id]) return
+    navigate(PUBLIC_PAGES[id].path)
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
@@ -132,8 +121,8 @@ export default function LandingPage() {
       <footer className="nk-public-footer">
         <span>Nexo Klar · Información que conecta</span>
         <div>
-          <button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button>
-          <a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a>
+          <Link to="/">Volver al inicio</Link>
+          <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
         </div>
       </footer>
 

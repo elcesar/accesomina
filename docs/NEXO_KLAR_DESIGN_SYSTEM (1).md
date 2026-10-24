@@ -121,6 +121,36 @@ Usar Tabler Icons outline. No usar emojis como iconos funcionales.
 
 ---
 
+### ConfirmDialog — confirmación transversal de acciones
+
+**Componente oficial:** `src/components/ui/ConfirmDialog.jsx`. **Estilos oficiales:** `.nk-dialog*` y `.nk-button-danger` en `components.css`. No crear diálogos de confirmación locales cuando este componente cubra el caso.
+
+Usar antes de acciones destructivas o de alto impacto (eliminar evidencias, registros, desvincular recursos o descartar cambios sin guardar cuando corresponda). No mostrar confirmación en acciones reversibles o navegación ordinaria sin motivo.
+
+**Contrato:** `open`, `title`, `description`, `confirmLabel`, `cancelLabel`, `variant="danger" | "default"`, `loading`, `error`, `onConfirm`, `onCancel`. El consumidor conserva el control de la mutación y del cierre; el diálogo nunca borra ni guarda datos por sí mismo. `loading` bloquea confirmación, cancelación y Escape durante la operación; en error debe conservarse abierto y mostrar un mensaje visible.
+
+**Accesibilidad obligatoria:** portal al documento, `role="alertdialog"` para acciones destructivas, título/descripción asociados por ARIA, foco inicial en **Cancelar**, contención de Tab/Shift+Tab, Escape para cancelar cuando no esté procesando y restauración del foco al control de origen al cerrar. Validar teclado, lector de pantalla y pantallas móviles (375/480 px), además de 768/1024 px y escritorio. Si se requiere un flujo más complejo que dos acciones, usar un diálogo especializado y justificarlo.
+
+Ejemplo:
+
+```jsx
+<ConfirmDialog
+  open={Boolean(documentToRemove)}
+  title="Eliminar documento"
+  description={`Se eliminará “${documentToRemove?.name}”. Esta acción no se puede deshacer.`}
+  confirmLabel="Eliminar documento"
+  variant="danger"
+  loading={deleting}
+  error={deleteError}
+  onCancel={() => setDocumentToRemove(null)}
+  onConfirm={eliminarConfirmado}
+/>
+```
+
+**Migración:** las nuevas confirmaciones deben utilizar este componente. Los diálogos existentes se migrarán al intervenir cada módulo, comenzando por el PR #227 (eliminación de evidencias de personas). Evitar cambios masivos sin pruebas.
+
+---
+
 ## 4. Patrón estándar de página operacional
 
 La experiencia implementada en Personas, Formación, Exámenes, Salud, EPP, Turnos y Centro de Control establece este patrón:
@@ -365,6 +395,25 @@ Por tanto, la validación de formularios **no se resuelve solo con CSS**. CSS de
 
 ---
 
+### 5.7 EmailInput — componente especializado obligatorio
+
+Toda captura editable de correo electrónico en Nexo Klar debe utilizar un **componente reutilizable `EmailInput`** (a implementar en `nexo-v2/src/components/ui/EmailInput.jsx`), siguiendo el contrato de `RutInput`, `PhoneInput` y `BirthDateInput`. No crear validadores o mensajes de correo particulares en cada página. La migración de pantallas existentes puede realizarse de forma incremental, pero toda pantalla nueva y toda corrección de validación de correo debe utilizar este patrón.
+
+**Contrato funcional y de accesibilidad:**
+
+- Aceptar `value`, `onChange`, `id`, `name`, `required`, `disabled` y propiedades accesibles apropiadas. El campo es **opcional por defecto**; la obligatoriedad depende de la regla del formulario, no del componente.
+- Utilizar `type="email"`, `autocomplete="email"` cuando corresponda, longitud máxima de 254 caracteres y normalización de espacios exteriores al validar/guardar, **sin alterar arbitrariamente el texto durante la escritura**.
+- Centralizar la política de formato y la función de validación en una utilidad compartida de frontend consumida por `EmailInput`; no depender únicamente de la validación HTML del navegador. Un campo opcional vacío es válido; uno obligatorio vacío no lo es.
+- Presentar error contextual junto al campo con identificador estable, `aria-invalid`, `aria-describedby`, label asociado y foco accesible cuando un intento de guardar falle. Evitar mensajes duplicados en el mismo formulario.
+- Usar las clases, tokens y estados visuales definidos en `tokens.css` y `components.css`; **no introducir CSS paralelo ni colores hardcodeados**.
+- Mantener el error de backend `INVALID_WORKER_EMAIL` u otros equivalentes asociados al campo correspondiente, con mensaje funcional en español; nunca anunciar éxito si el servidor rechaza la operación.
+- **Backend como autoridad:** validar nuevamente en servidor. La política frontend/backend debe ser **equivalente y demostrable mediante pruebas compartidas de casos válidos, inválidos y límites**. Si se usan motores distintos (por ejemplo, regex y Zod), no asumir equivalencia: contrastar explícitamente los casos y corregir divergencias.
+- **Compatibilidad histórica:** cuando el servidor guarda un módulo completo, un correo inválido preexistente y sin modificaciones no debe impedir guardar otra entidad válida; todo correo nuevo o modificado sí debe validarse. Esta excepción se decide en servidor comparando contra el estado persistido, nunca con un `previousState` confiado al cliente.
+
+**Criterios mínimos de QA:** correo opcional vacío; correo requerido vacío; formato inválido; subdominio y caracteres permitidos; longitud límite; normalización de espacios; error devuelto por API; foco/lector de pantalla; escritorio y móvil; persistencia y recarga; registros históricos inválidos intactos; pruebas de paridad frontend/backend.
+
+**Precedencia:** si un issue o PR plantea un campo de correo con layout, validación o feedback distinto, implementar `EmailInput` conforme a este documento y registrar la divergencia en el issue. No duplicar reglas en `FichaTrabajadorPage`, Clientes, Usuarios u otros módulos.
+
 ## 6. Protección de cambios sin guardar
 
 La protección frente a pérdida accidental de información es un patrón transversal para formularios de alta, edición y asistentes.
@@ -515,3 +564,64 @@ No corregir un defecto transversal copiando media queries en varias páginas. Si
 Toda funcionalidad nueva o corrección visual debe comprobarse al menos en escritorio, 1024 px, 768 px y 375/480 px según corresponda. La validación debe confirmar ausencia de overflow de página, acceso a las acciones críticas, legibilidad, navegación operable, formularios utilizables y comportamiento correcto de diálogos.
 
 Un PR que modifica una estructura responsive debe indicar qué rangos fueron verificados y si el cambio pertenece a componente, layout o excepción de página.
+
+
+---
+
+## 8. Patrón transversal de páginas y estados de error
+
+### 8.1 Alcance y precedencia
+
+Las páginas de error de Nexo Klar constituyen **un patrón de experiencia compartido**, no layouts independientes por código HTTP. La página 404 es la primera aplicación del patrón; las futuras vistas 403, 500 y 503 deben reutilizar la misma estructura visual. También pueden incorporarse sesión expirada, enlace inválido y conectividad, respetando su comportamiento particular.
+
+**Este Design System tiene precedencia gráfica y de UX frente a mockups, capturas o soluciones de layout descritas en issues anteriores.** Si un issue solicita un layout distinto o incompatible, se corrige el problema utilizando el patrón oficial y se deja constancia en el issue de la divergencia y de la solución adoptada. Si se justifica modificar un patrón transversal, primero se propone y revisa el cambio en este documento; no se crean excepciones locales implícitas.
+
+### 8.2 Composición común
+
+Orden visual y semántico de una página de error completa:
+
+1. Logo oficial de Nexo Klar adecuado al fondo, obtenido de `public/brand/`.
+2. Icono contextual Tabler outline, con tratamiento neutro o semántico conforme a tokens (no usar color de estado como decoración).
+3. Código o etiqueta de estado, como `Error 404`, cuando ayude a reconocer el problema.
+4. **Un único H1** en lenguaje claro, que explique qué ocurrió.
+5. Descripción breve y orientada a la recuperación, sin trazas, IDs internos ni datos sensibles.
+6. Máximo **una acción primaria**, con etiqueta explícita, y acciones secundarias opcionales.
+
+La presentación utiliza `--nk-base` como lienzo, `--nk-surface` para el panel cuando corresponda, y tokens canónicos para texto, borde, elevación, tipografía y espaciado. Reutilizar `.nk-button` y sus variantes de `components.css`. El CSS de página resuelve únicamente composición. No introducir colores hexadecimales, fuentes, botones ni tokens nuevos en el CSS específico.
+
+La vista debe ser legible y utilizable en escritorio, 1024 px, 768 px y 375/480 px, sin scroll horizontal. Mantener orden de lectura y foco, contraste y foco visible. Las áreas táctiles deben medir al menos **44 × 44 px**; `--nk-control-min` (40 px) no sustituye a `--nk-touch-min` (44 px).
+
+### 8.3 Reutilización técnica
+
+Implementar una **composición o componente compartido parametrizable** para páginas completas, por ejemplo `ErrorPage`, con propiedades para código/estado, icono, título, descripción y acciones. No copiar una página JSX y un CSS por cada código. Las diferencias de contenido y navegación se configuran por caso, sin introducir lógica de autenticación o permisos dentro del componente puramente visual.
+
+Distinguir tres niveles de presentación:
+- **Página completa:** ruta inexistente, acceso denegado, fallo global o servicio indisponible (404, 403, 500, 503).
+- **Estado de módulo:** carga fallida o servicio parcial indisponible; mostrar el error dentro del módulo y permitir reintento sin reemplazar toda la aplicación.
+- **Error de operación/formulario:** mensaje contextual junto al control o acción, siguiendo la sección 5; no convertir validaciones corrientes en páginas completas.
+
+Reutilizar tokens, semántica, iconografía y jerarquía de acciones entre niveles, pero no forzar el mismo contenedor para todos.
+
+### 8.4 Casos y acciones de referencia
+
+| Caso | H1 orientativo | Acción principal orientativa | Consideraciones |
+| --- | --- | --- | --- |
+| 404 · ruta inexistente | Página no encontrada | Ir al inicio / Ir al panel | Volver atrás opcional; navegación según sesión |
+| 403 · acceso denegado | No tienes acceso a esta sección | Volver al panel | No exponer recursos restringidos ni detalles de permisos |
+| 500 · fallo inesperado | Ocurrió un problema inesperado | Reintentar, cuando sea seguro | Contención de errores de render y recuperación controlada |
+| 503 · indisponibilidad | Servicio temporalmente no disponible | Reintentar | No prometer plazos sin información verificada |
+| Sesión expirada | Tu sesión ha finalizado | Iniciar sesión | Manejar autenticación de manera centralizada |
+| Sin conexión | No pudimos conectar con el servicio | Reintentar | Distinguir fallo de red de error de servidor |
+| Enlace inválido o vencido | Este enlace ya no es válido | Solicitar un nuevo enlace | No revelar existencia de cuentas o tokens |
+
+Los códigos HTTP **no determinan automáticamente** una navegación de página completa: el manejo de API y los errores recuperables deben conservar el contexto del usuario. La acción `Reintentar` solo debe repetir operaciones seguras o diseñadas para ser idempotentes.
+
+### 8.5 Criterios de aceptación
+
+1. Componente/patrón compartido sin duplicación de estructura o estilos para cada código.
+2. Logo, tipografía, superficies, iconos y acciones alineados con tokens y componentes oficiales.
+3. Un H1, explicación comprensible, foco de teclado visible, orden semántico y áreas táctiles ≥ 44 × 44 px.
+4. Navegación coherente para usuarios autenticados y visitantes, sin bucles ni exposición de información protegida.
+5. Pruebas en escritorio y móvil; verificación de reintento, accesibilidad y estados según el caso.
+6. Issues y PRs documentan cualquier diferencia entre evidencia de QA antigua y el layout oficial vigente.
+7. No cerrar issues por el solo hecho de agregar la página: comprobar integración, manejo real del error y recuperación.
