@@ -1,6 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
-import { calendarDaysUntil } from '../services/calendar-date.js'
+import { documentStatus, requirementStatus, requirementSummary } from '../services/worker-document-status.js'
 import { localDate } from '../services/calendar-date.js'
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -28,9 +28,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import {
   DOCUMENT_TYPE_OPTIONS,
-  documentEvidenceMessage,
   documentRule,
-  hasRequiredEvidence,
   workerItemType,
 } from '../services/worker-document-rules.js'
 import { removeUploadedFiles, uploadDocumentFiles } from '../services/worker-document-upload.js'
@@ -90,13 +88,6 @@ function initials(name) {
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
 }
 
-function diasHasta(date) { return calendarDaysUntil(date) }
-
-function itemValid(item) {
-  if (!item || item.estado === 'rechazado') return false
-  return !item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0)
-}
-
 function matchItem(item, req) {
   if (req.documentType && item.documentType) return req.documentType === item.documentType
   const expectedName = req.name.toLowerCase().split('/')[0].trim()
@@ -110,19 +101,12 @@ function getRequiredItems(worker) {
 }
 
 function reqStatus(worker, req) {
-  const matches = (worker.workerItems || []).filter(current => matchItem(current, req))
-  const item = matches.find(current => itemValid(current) && hasRequiredEvidence(current)) || matches[0]
-  if (!item) return { ok: false, src: 'faltante' }
-  if (!hasRequiredEvidence(item)) return { ok: false, src: documentEvidenceMessage(item) }
-  return itemValid(item)
-    ? { ok: true, src: 'cargado' }
-    : { ok: false, src: 'vencido/rechazado' }
+  return requirementStatus((worker.workerItems || []).filter(current => matchItem(current, req)))
 }
 
 function acreditacionPct(worker) {
   const reqs = getRequiredItems(worker)
-  if (!reqs.length) return 0
-  return Math.round(reqs.filter(req => reqStatus(worker, req).ok).length / reqs.length * 100)
+  return requirementSummary(reqs.map(req => (worker.workerItems || []).filter(current => matchItem(current, req)))).percentage
 }
 
 function statusClass(pct) {
@@ -367,13 +351,13 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     <CardSection title="Requisitos de documentos y aptitudes" subtitle="Requisitos base y por especialidad. Los faltantes pueden cargarse directamente desde esta tabla.">
       <input ref={checklistFileRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={uploadRequirement} />
       <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Requisito</th><th>Tipo</th><th>Estado</th><th>Fuente</th><th /></tr></thead><tbody>
-        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.ok ? 'nk-badge-ok' : 'nk-badge-error'}`}>{st.ok ? 'Vigente' : 'No habilitado'}</span></td><td className="nk-person-text-muted">{st.src}</td><td>{!st.ok && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</ActionButton>}</td></tr> })}
+        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.className}`}>{st.label}</span></td><td className="nk-person-text-muted">{st.source}</td><td>{!st.ok && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</ActionButton>}</td></tr> })}
       </tbody></table></div>
     </CardSection>
 
     <CardSection title={tabKey === 'cursos' ? `Formación registrada (${docs.length})` : `Documentos cargados (${docs.length})`} subtitle="Los archivos nuevos pueden descargarse directamente desde la ficha.">
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
-      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const days = diasHasta(d.vence); const cls = days === null ? 'nk-badge-none' : days < 0 ? 'nk-badge-error' : days <= 30 ? 'nk-badge-warn' : 'nk-badge-ok'; const label = days === null ? 'Sin información' : days < 0 ? 'No habilitado' : days <= 30 ? 'Por vencer' : 'Vigente'; const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${cls}`}>{label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => solicitarEliminacion(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const status = documentStatus(d); const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{formatChileDate(d.vence || '—')}</td><td><span className={`nk-badge ${status.className}`}>{status.label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => eliminar(d)}>Eliminar</ActionButton></td></tr> })}</tbody></table></div>}
+      {docs.length === 0 ? <div className="nk-empty"><IconFileText size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin registros cargados</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Tipo</th><th>Nombre</th><th>Vence</th><th>Estado</th><th>Archivo</th><th /></tr></thead><tbody>{docs.map((d, i) => { const status = documentStatus(d); const files = Array.isArray(d.files) ? d.files : []; return <tr key={d.id || i}><td><span className="nk-badge nk-badge-none">{ITEM_TYPES[d.type] || d.type}</span></td><td><strong>{d.name}</strong>{d.notes && <div className="nk-person-text-sub">{d.notes}</div>}</td><td>{d.vence || '—'}</td><td><span className={`nk-badge ${status.className}`}>{status.label}</span></td><td>{files.length ? <div className="nk-actions">{files.map(file => <a key={file.fileId} className="nk-button nk-button-quiet" href={`/api/files/${file.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{file.side === 'front' ? 'Anverso' : 'Reverso'}</a>)}</div> : d.fileId ? <a className="nk-button nk-button-quiet" href={`/api/files/${d.fileId}`}><IconDownload size={14} strokeWidth={1.7} />{d.fileName || 'Descargar'}</a> : d.fileName ? <span className="nk-person-text-muted" title="Registro antiguo: el archivo físico no fue almacenado">{d.fileName} · no disponible</span> : <span className="nk-person-text-sub">Sin archivo</span>}</td><td><button className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => solicitarEliminacion(d)}>Eliminar</button></td></tr> })}</tbody></table></div>}
     </CardSection>
 
     <ConfirmDialog
