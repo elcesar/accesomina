@@ -31,7 +31,7 @@ function StatusBadge({ value }) {
   const map = {
     vigente: ['nk-badge-ok', 'Vigente'],
     observado: ['nk-badge-warn', 'Observado'],
-    bloqueado: ['nk-badge-error', 'Restringido'],
+    bloqueado: ['nk-badge-error', 'No habilitado'],
   }
   const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin estado']
   return <span className={`nk-badge ${cls}`}>{label}</span>
@@ -230,7 +230,7 @@ export default function TercerosSubcontratosPage() {
           <option value="">Todos los estados</option>
           <option value="vigente">Vigente</option>
           <option value="observado">Observado</option>
-          <option value="bloqueado">Restringido</option>
+          <option value="bloqueado">No habilitado</option>
         </select>
       </section>
 
@@ -284,7 +284,7 @@ export default function TercerosSubcontratosPage() {
           <div className="nk-third-form">
             <div className="nk-field nk-third-span-2"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
+            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
             <div className="nk-field nk-third-span-2"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
