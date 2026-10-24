@@ -46,8 +46,8 @@ const isCurrentEvaluation = (item, records) => {
 
 const statusFor = (item, records = []) => {
   if (item.referenceIssue) return { label: 'Requiere regularización', cls: 'nk-badge-warn', key: 'regularize' }
-  if (item.vence && item.vence < operationalDayString()) return { label: 'Vencido', cls: 'nk-badge-error', key: 'expired' }
   if (!isCurrentEvaluation(item, records)) return { label: 'Histórico', cls: 'nk-badge-none', key: 'history' }
+  if (item.vence && item.vence < operationalDayString()) return { label: 'Vencido', cls: 'nk-badge-error', key: 'expired' }
   const raw = String(item.estado || '').toLowerCase()
   if (/cerrad|finalizad|resuelt|vigente/.test(raw)) return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
   if (/alert|pendiente|restric|seguimiento/.test(raw)) return { label: 'Requiere revisión', cls: 'nk-badge-warn', key: 'warn' }
