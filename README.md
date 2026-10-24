@@ -52,3 +52,9 @@ Se ejecutan en orden desde `database/postgres/` y quedan registradas en `schema_
 6. Ejecutar pruebas de aislamiento con al menos tres empresas.
 
 Ver [arquitectura cloud](docs/CLOUD_ARCHITECTURE.md) y [despliegue AWS](docs/AWS_RDS_DEPLOY.md).
+
+### QA #132: migración incremental de la ficha de Persona
+
+La ficha lee su perfil con `GET /api/state/records/trabajadores/:id` y solicita sólo los módulos relacionados mediante `GET /api/state?modules=...`. Guarda campos de perfil con `PATCH /api/state/records/trabajadores/:id`, un objeto `patch` y la revisión recibida al cargar. La revisión protege los campos del perfil; documentos y operaciones se conservan y mantienen sus endpoints propios. Una edición concurrente del mismo perfil devuelve `409 RECORD_VERSION_CONFLICT`; editar otra persona no provoca un conflicto falso de módulo. La API también ofrece lectura paginada de perfiles (máximo 100 por solicitud).
+
+Es una primera etapa de #132. La persistencia sigue en JSONB por módulo y conserva un bloqueo de módulo durante la transacción. Faltan la migración de las demás pantallas y altas, la paginación del listado en la interfaz y la evaluación de almacenamiento normalizado por entidad. No retirar los endpoints anteriores hasta migrar sus consumidores. Las pruebas cubren concurrencia, datos históricos inválidos en otras personas, aislamiento de empresa, validación por campo y rollback si falla la auditoría.
