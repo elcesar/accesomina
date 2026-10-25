@@ -104,10 +104,10 @@ export default function LoginPage() {
         />
 
         <div className="nk-login-brand-copy">
-          <h2 className="nk-login-brand-title">
+          <p className="nk-login-brand-title">
             Personas, operaciones<br />y cumplimiento<br />
             <span className="nk-login-brand-accent">en un solo lugar.</span>
-          </h2>
+          </p>
           <p className="nk-login-brand-description">
             Gestiona dotación, contratos, acreditaciones y proyectos desde una plataforma segura y conectada.
           </p>
@@ -264,7 +264,7 @@ export default function LoginPage() {
 
           <div className="nk-login-footer">
             <IconLock size={12} />
-            <p>Sesión con cookie segura · Solo HTTPS</p>
+            <p>Conexión segura</p>
           </div>
 
           <p className="nk-login-back-home">
