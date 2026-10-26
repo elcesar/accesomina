@@ -7,6 +7,7 @@ import { PUBLIC_PAGES } from './config/public-pages.js'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import AcceptInvitationPage from './pages/AcceptInvitationPage.jsx'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import MfaSetupPage from './pages/MfaSetupPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
@@ -111,6 +112,7 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+          <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
           <Route path="/cambiar-password" element={<ProtectedRoute allowPasswordChange><ChangePasswordPage /></ProtectedRoute>} />
           <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaEnrollment><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
