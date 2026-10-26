@@ -41,8 +41,12 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const logout = async () => {
-    try { await api.post('/auth/logout') } catch {}
+  const logout = async ({ requireSuccess = false } = {}) => {
+    try { await api.post('/auth/logout') }
+    catch (error) {
+      // A 401 confirms there is no server session left to close.
+      if (requireSuccess && error.status !== 401) throw error
+    }
     setCsrf(null)
     setSession(null)
   }

@@ -22,6 +22,7 @@ export default function AcceptInvitationPage() {
   const [saving, setSaving] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const running = useRef(false)
+  const leavingRequest = useRef(false), accessButtonRef = useRef(null)
   const passwordRef = useRef(null), confirmationRef = useRef(null)
 
   useEffect(() => {
@@ -80,10 +81,20 @@ export default function AcceptInvitationPage() {
   }
 
   async function goToAccess() {
-    if (leaving) return
+    if (leavingRequest.current) return
+    leavingRequest.current = true
     setLeaving(true)
-    await logout()
-    navigate('/login', { replace: true })
+    setMessage('')
+    try {
+      await logout({ requireSuccess: true })
+      navigate('/login', { replace: true })
+    } catch {
+      setMessage('No pudimos cerrar la sesión actual. Sigue abierta. Inténtalo nuevamente para ir a Acceso con tu cuenta invitada.')
+      requestAnimationFrame(() => accessButtonRef.current?.focus())
+    } finally {
+      leavingRequest.current = false
+      setLeaving(false)
+    }
   }
 
   return <main className="nk-recovery-page">
@@ -107,8 +118,9 @@ export default function AcceptInvitationPage() {
         <p className="nk-recovery-copy">{invitation?.companyName} · RUT {invitation?.companyRut}<br />{invitation?.email}</p>
         <p className="nk-recovery-copy">Al ingresar, completa la verificación adicional que corresponda.</p>
         {session && <p className="nk-recovery-copy">Hay otra sesión abierta en este navegador. La siguiente acción la cerrará también en las demás pestañas para que puedas ingresar con tu cuenta invitada.</p>}
+        {message && <p className="nk-recovery-error" role="alert">{message}</p>}
         {session || sessionLoading
-          ? <button className="nk-button nk-button-primary" type="button" disabled={sessionLoading || leaving} onClick={goToAccess}>{leaving ? 'Cerrando sesión…' : 'Cerrar sesión actual e ir a Acceso'}</button>
+          ? <button ref={accessButtonRef} className="nk-button nk-button-primary" type="button" disabled={sessionLoading || leaving} onClick={goToAccess}>{leaving ? 'Cerrando sesión…' : 'Cerrar sesión actual e ir a Acceso'}</button>
           : <Link className="nk-button nk-button-primary" to="/login">Ir a Acceso</Link>}
       </>}
       {phase === 'ready' && <>

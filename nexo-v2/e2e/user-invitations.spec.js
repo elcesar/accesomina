@@ -40,7 +40,7 @@ async function adminBackend(page, { createStatus = 'sent', initial = [], role = 
   }
 }
 
-async function publicBackend(page, { invalid = false, verifyFailure = false, acceptFailures = [], existingSession = false } = {}) {
+async function publicBackend(page, { invalid = false, verifyFailure = false, acceptFailures = [], existingSession = false, logoutFailures = [] } = {}) {
   let accepted = false, failVerify = verifyFailure ? 2 : 0, pausedAccept = null, sessionActive = existingSession
   const verifies = [], accepts = [], logins = [], logouts = []
   await page.route('**/api/**', async route => {
@@ -50,7 +50,15 @@ async function publicBackend(page, { invalid = false, verifyFailure = false, acc
       ? json({ user: { id: 'qa-admin', role: 'client_admin' }, tenant: { id: 'qa-admin-tenant', name: 'Empresa administradora QA' }, csrfToken: 'qa-csrf' })
       : json({ error: 'AUTH_REQUIRED' }, 401)
     if (path === '/api/settings') return json({ settings: {} })
-    if (path === '/api/auth/logout') { logouts.push(path); sessionActive = false; return route.fulfill({ status: 204 }) }
+    if (path === '/api/auth/logout') {
+      logouts.push(path)
+      const failure = logoutFailures.shift()
+      if (failure === 'network') return route.abort('failed')
+      if (failure === 401) { sessionActive = false; return json({ error: 'AUTH_REQUIRED' }, 401) }
+      if (failure) return json({ error: failure === 403 ? 'CSRF_INVALID' : 'QA_UNAVAILABLE' }, failure)
+      sessionActive = false
+      return route.fulfill({ status: 204 })
+    }
     if (path === '/api/auth/invitations/verify') {
       verifies.push(req.postDataJSON())
       if (failVerify) { failVerify--; return json({ error: 'QA_UNAVAILABLE' }, 503) }
@@ -221,6 +229,30 @@ for (const width of [1440, 375]) {
       await expect(page.getByRole('button', { name: 'Ingresar', exact: true })).toBeVisible()
       expect(api.logouts).toHaveLength(1)
       expect(api.logins).toHaveLength(0)
+    })
+
+    test('un fallo al cerrar sesión conserva el acceso actual y permite reintentar antes de navegar', async ({ page }) => {
+      const api = await publicBackend(page, { existingSession: true, logoutFailures: [503, 'network', 403, 401] })
+      await page.goto(requestUrl)
+      await fillPasswords(page)
+      await page.getByRole('button', { name: 'Guardar contraseña' }).click()
+      const button = page.getByRole('button', { name: 'Cerrar sesión actual e ir a Acceso' })
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await button.click()
+        await expect(page.getByRole('alert')).toContainText('No pudimos cerrar la sesión actual. Sigue abierta.')
+        await expect(page).toHaveURL(/\/aceptar-invitacion\?/)
+        await expect(page.getByRole('heading', { name: 'Tu contraseña está lista' })).toBeVisible()
+        await expect(button).toBeEnabled()
+        await expect(button).toBeFocused()
+        await expect(page.getByRole('link', { name: 'Ir a Acceso' })).toHaveCount(0)
+        expect(api.logouts).toHaveLength(attempt)
+      }
+      await button.click()
+      await expect(page).toHaveURL(/\/login$/)
+      await expect(page.getByRole('button', { name: 'Ingresar', exact: true })).toBeVisible()
+      expect(api.logouts).toHaveLength(4)
+      expect(api.logins).toHaveLength(0)
+      expect(api.accepts).toHaveLength(1)
     })
 
     test('un enlace vencido no ofrece definir clave y explica cómo pedir otro', async ({ page }) => {
