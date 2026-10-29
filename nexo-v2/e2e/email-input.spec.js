@@ -1,0 +1,56 @@
+import { test, expect } from '@playwright/test'
+
+for (const width of [1440, 375]) {
+  test(`EmailInput opcional, obligatorio y descripción accesible a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/e2e/fixtures/email-input.html')
+    const optional = page.getByLabel('Correo opcional', { exact: true })
+    const required = page.getByLabel('Correo obligatorio', { exact: true })
+    await expect(optional).toHaveAttribute('type', 'email')
+    await expect(optional).toHaveAttribute('autocomplete', 'email')
+    await optional.focus()
+    await required.focus()
+    await expect(optional).toHaveAttribute('aria-invalid', 'false')
+    await expect(optional).toHaveAttribute('aria-describedby', 'email-help')
+    await page.getByRole('button').click()
+    await expect(required).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.locator('#required-email-error')).toHaveText('Ingresa un correo electrónico.')
+    await optional.fill('persona@dominio')
+    await page.getByRole('button').click()
+    await expect(optional).toHaveAttribute('aria-describedby', 'email-help optional-email-error')
+    await expect(page.locator('#optional-email-error')).toBeVisible()
+    await required.fill(' persona+qa@example.com ')
+    await page.getByRole('button').click()
+    await expect(required).toHaveValue('persona+qa@example.com')
+    await expect(required).toHaveAttribute('aria-invalid', 'false')
+    await optional.fill('')
+    await page.getByRole('button').click()
+    await expect(optional).toHaveAttribute('aria-invalid', 'false')
+    await expect(optional).toHaveAttribute('aria-describedby', 'email-help')
+    await expect(page.locator('#optional-email-error')).toHaveCount(0)
+  })
+
+  test(`EmailInput conserva el límite de 254 caracteres a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('/e2e/fixtures/email-input.html')
+    const email = page.getByLabel('Correo opcional', { exact: true })
+    const atLimit = 'a'.repeat(242) + '@example.com'
+    await expect(email).toHaveAttribute('maxlength', '254')
+    await email.fill(atLimit)
+    await page.getByRole('button').click()
+    await expect(email).toHaveValue(atLimit)
+    await expect(email).toHaveAttribute('aria-invalid', 'false')
+    await email.focus()
+    await email.press('End')
+    await email.press('a')
+    await expect(email).toHaveValue(atLimit)
+    // Check imported/controlled over-limit data too, bypassing native typing.
+    await email.evaluate((element, value) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(element, value)
+      element.dispatchEvent(new Event('input', { bubbles: true }))
+    }, 'a' + atLimit)
+    await page.getByRole('button').click()
+    await expect(email).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.locator('#optional-email-error')).toHaveText('Ingresa un correo electrónico válido.')
+  })
+}

@@ -1,10 +1,13 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { localDate, addCalendarDays } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch, IconTool } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/mantenimiento.css'
 
 const rows = value => Array.isArray(value) ? value : []
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDate()
 
 function inventoryCategory(item) {
   const source = `${item.type || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase()
@@ -19,7 +22,7 @@ function inventoryCategory(item) {
 function planState(plan) {
   if (!plan?.nextDue) return { label: 'Sin programación', cls: 'nk-badge-warn' }
   if (plan.nextDue < today()) return { label: 'Vencido', cls: 'nk-badge-error' }
-  const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  const soon = localDate(addCalendarDays(new Date(), 30))
   if (plan.nextDue <= soon) return { label: 'Próximo', cls: 'nk-badge-warn' }
   return { label: 'Programado', cls: 'nk-badge-ok' }
 }
@@ -69,13 +72,13 @@ export default function MantenimientoPage() {
   const filteredPlans = useMemo(() => plans.filter(plan => {
     const term = query.trim().toLowerCase()
     const stateLabel = planState(plan).label
-    return (!term || `${itemName(plan.assetId)} ${itemCode(plan.assetId)} ${plan.type || ''} ${plan.owner || ''} ${plan.checklist || ''}`.toLowerCase().includes(term)) &&
+    return (!term || includesSearch(`${itemName(plan.assetId)} ${itemCode(plan.assetId)} ${plan.type || ''} ${plan.owner || ''} ${plan.checklist || ''}`, term)) &&
       (!status || stateLabel === status)
   }), [plans, query, status, assets])
 
   const filteredRecords = useMemo(() => records.filter(record => {
     const term = query.trim().toLowerCase()
-    return !term || `${itemName(record.assetId)} ${itemCode(record.assetId)} ${record.type || ''} ${record.note || ''} ${orderName(record.projectId)}`.toLowerCase().includes(term)
+    return !term || includesSearch(`${itemName(record.assetId)} ${itemCode(record.assetId)} ${record.type || ''} ${record.note || ''} ${orderName(record.projectId)}`, term)
   }), [records, query, assets, orders])
 
   const summary = useMemo(() => ({
@@ -135,7 +138,7 @@ export default function MantenimientoPage() {
       if (plan?.frequencyDays) {
         const due = new Date(`${recordForm.date}T12:00:00`)
         due.setDate(due.getDate() + Number(plan.frequencyDays))
-        nextDue = due.toISOString().slice(0, 10)
+        nextDue = localDate(due)
         nextPlans = plans.map(row => row.id === plan.id ? { ...row, nextDue } : row)
       }
 
@@ -178,7 +181,7 @@ export default function MantenimientoPage() {
           <p className="nk-page-description">Programa mantenimiento preventivo, controla vencimientos y registra costo y disponibilidad real de activos.</p>
         </div>
         <div className="nk-maint-actions nk-page-header-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton>
           <button className="nk-button nk-button-secondary" onClick={openPlan}><IconPlus size={15}/> Programar preventivo</button>
           <button className="nk-button nk-button-primary" onClick={openRecord}><IconTool size={15}/> Registrar mantenimiento</button>
         </div>
@@ -224,7 +227,7 @@ export default function MantenimientoPage() {
           <label><span>Responsable</span><input className="nk-input" value={planForm.owner} onChange={e => setPlanForm({ ...planForm, owner: e.target.value })} placeholder="Persona o cargo responsable"/></label>
           <label className="wide"><span>Checklist o instrucciones</span><textarea className="nk-input" value={planForm.checklist} onChange={e => setPlanForm({ ...planForm, checklist: e.target.value })} placeholder="Inspecciones, lubricación, certificados, fotografías..."/></label>
         </div>
-        <div className="nk-maint-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor('')}>Cancelar</button><button className="nk-button nk-button-primary" onClick={savePlan} disabled={saving}>{saving ? 'Guardando…' : 'Guardar plan'}</button></div>
+        <div className="nk-maint-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor('')}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={savePlan} disabled={saving}>{saving ? 'Guardando…' : 'Guardar plan'}</ActionButton></div>
       </section>}
 
       {editor === 'record' && <section className="nk-card nk-maint-editor">
@@ -239,7 +242,7 @@ export default function MantenimientoPage() {
           <label><span>Orden de servicio</span><select className="nk-select" value={recordForm.projectId} onChange={e => setRecordForm({ ...recordForm, projectId: e.target.value })}><option value="">Sin orden</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.code || order.nombre || order.name}</option>)}</select></label>
           <label className="wide"><span>Observación</span><textarea className="nk-input" value={recordForm.note} onChange={e => setRecordForm({ ...recordForm, note: e.target.value })} placeholder="Trabajo realizado, hallazgos, repuestos o recomendaciones..."/></label>
         </div>
-        <div className="nk-maint-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor('')}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveRecord} disabled={saving}>{saving ? 'Guardando…' : 'Registrar mantenimiento'}</button></div>
+        <div className="nk-maint-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor('')}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveRecord} disabled={saving}>{saving ? 'Guardando…' : 'Registrar mantenimiento'}</ActionButton></div>
       </section>}
     </div>
   )

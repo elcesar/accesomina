@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { IconMenu2, IconX } from '@tabler/icons-react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { PUBLIC_PAGES } from '../../config/public-pages.js'
 import BrandLogo from './BrandLogo.jsx'
 import '../../styles/layout/public-layout.css'
 
@@ -17,7 +18,6 @@ export const publicSections = [
 ]
 
 export default function PublicNavigation({ active = 'inicio', onNavigate, onCreateCompany }) {
-  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const goToSection = id => {
@@ -28,14 +28,14 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
   return (
     <header className="nk-public-header">
       <nav className="nk-public-topbar" aria-label="Navegación principal">
-        <button
+        <Link
           className="nk-public-brand-button"
-          type="button"
-          onClick={() => goToSection('inicio')}
+          to="/"
+          onClick={() => setMenuOpen(false)}
           aria-label="Ir al inicio"
         >
           <BrandLogo claim={false} className="nk-public-logo" />
-        </button>
+        </Link>
 
         <div className="nk-public-actions nk-public-nav-cta">
           <a className="nk-button nk-button-quiet nk-touch-target nk-public-contact" href="mailto:contacto@nexoklar.com">
@@ -44,9 +44,9 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
           <button className="nk-button nk-button-secondary nk-public-create-company" type="button" onClick={onCreateCompany}>
             Crear empresa
           </button>
-          <button className="nk-button nk-button-primary" type="button" onClick={() => navigate('/login')}>
+          <Link className="nk-button nk-button-primary" to="/login">
             Acceso
-          </button>
+          </Link>
           <button
             className="nk-icon-button nk-public-menu-toggle"
             type="button"
@@ -65,15 +65,15 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
           const isActive = active === id
 
           return (
-            <button
+            <Link
               key={id}
               className={isActive ? 'is-active' : ''}
-              type="button"
+              to={PUBLIC_PAGES[id].path}
               aria-current={isActive ? 'page' : undefined}
-              onClick={() => goToSection(id)}
+              onClick={() => setMenuOpen(false)}
             >
               {label}
-            </button>
+            </Link>
           )
         })}
       </nav>
@@ -85,15 +85,15 @@ export default function PublicNavigation({ active = 'inicio', onNavigate, onCrea
         hidden={!menuOpen}
       >
         {publicSections.map(([id, label]) => (
-          <button
+          <Link
             key={id}
             className={active === id ? 'is-active' : ''}
-            type="button"
+            to={PUBLIC_PAGES[id].path}
             aria-current={active === id ? 'page' : undefined}
-            onClick={() => goToSection(id)}
+            onClick={() => setMenuOpen(false)}
           >
             {label}
-          </button>
+          </Link>
         ))}
         <button className="nk-button nk-button-secondary" type="button" onClick={() => { onCreateCompany?.(); setMenuOpen(false) }}>
           Crear empresa

@@ -1,3 +1,6 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
@@ -7,7 +10,7 @@ import '../styles/turnos.css'
 
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
 
-const hoy = () => new Date().toISOString().slice(0, 10)
+const hoy = () => localDate()
 
 function initials(nombre) {
   if (!nombre) return '?'
@@ -127,9 +130,9 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
         {error && <p className="nk-form-error">{error}</p>}
         <div className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
+          <ActionButton disabledReason="Tu perfil no permite realizar esta acción. Solicita ayuda al administrador de tu empresa." className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
             {saving ? 'Guardando…' : 'Guardar jornada'}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -235,9 +238,9 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason="Acción no disponible." className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
-        </button>
+        </ActionButton>
       </header>
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">
@@ -322,7 +325,7 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>
