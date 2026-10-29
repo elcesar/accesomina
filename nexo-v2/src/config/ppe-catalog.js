@@ -16,7 +16,7 @@ export function normalizeWorkerEpp(epp = {}) {
     calzado: epp.calzado ?? epp.zapato ?? '',
     guante: epp.guante ?? '',
     arnes: epp.arnes ?? '',
-    fitTest: epp.fitTest === true || epp.fitTest === 'aprobado' || epp.fitTest === 'fit test aprobado' || (epp.fitTest == null && /aprobado/i.test(String(epp.respirador ?? ''))),
+    fitTest: epp.fitTest === true || epp.fitTest === 'aprobado' || epp.fitTest === 'fit test aprobado' || (epp.fitTest == null && /^(?:fit\s*test\s*)?aprobado$/i.test(String(epp.respirador ?? '').trim())),
   }
 }
 

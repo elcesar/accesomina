@@ -34,3 +34,9 @@ test('Fit Test is a checkbox outside the size catalog', () => {
   assert.equal(normalizeWorkerEpp({}).fitTest, false)
   assert.equal(updateWorkerEpp({}, 'fitTest', true).fitTest, true)
 })
+
+test('historical Fit Test rejection is not considered approved', () => {
+  assert.equal(normalizeWorkerEpp({ respirador: 'fit test no aprobado' }).fitTest, false)
+  assert.equal(normalizeWorkerEpp({ respirador: 'no aprobado' }).fitTest, false)
+  assert.equal(normalizeWorkerEpp({ respirador: 'fit test aprobado' }).fitTest, true)
+})
