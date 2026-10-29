@@ -71,7 +71,10 @@ function ProtectedRoute({ children, allowPasswordChange = false, allowMfaEnrollm
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
-  if (session.user?.mustChangePassword && !allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+  if (session.user?.mustChangePassword) {
+    if (!allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+    return children
+  }
   if (session.user?.mfaEnrollmentRequired && !allowMfaEnrollment) return <Navigate to="/configurar-mfa" replace />
   return children
 }
