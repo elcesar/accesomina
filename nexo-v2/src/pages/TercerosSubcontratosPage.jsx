@@ -1,3 +1,6 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconArrowLeft, IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
@@ -10,12 +13,7 @@ const EMPTY_FORM = {
   f30: '', f301: '', cotizaciones: '', seguro: '', estado: 'vigente', observaciones: '',
 }
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function expiryState(date) {
   const days = daysUntil(date)
@@ -33,7 +31,7 @@ function StatusBadge({ value }) {
   const map = {
     vigente: ['nk-badge-ok', 'Vigente'],
     observado: ['nk-badge-warn', 'Observado'],
-    bloqueado: ['nk-badge-error', 'Restringido'],
+    bloqueado: ['nk-badge-error', 'No habilitado'],
   }
   const [cls, label] = map[value] || ['nk-badge-none', value || 'Sin estado']
   return <span className={`nk-badge ${cls}`}>{label}</span>
@@ -128,7 +126,7 @@ export default function TercerosSubcontratosPage() {
     const term = query.trim().toLowerCase()
     return rows.filter(item => {
       const matchesText = !term || [item.razon, item.nombre, item.rut, item.responsable, item.servicios, item.servicio]
-        .some(value => String(value || '').toLowerCase().includes(term))
+        .some(value => includesSearch(String(value || ''), term))
       return matchesText && (!contractFilter || String(item.contratoId) === String(contractFilter)) && (!statusFilter || item.estado === statusFilter)
     })
   }, [rows, query, contractFilter, statusFilter])
@@ -215,7 +213,7 @@ export default function TercerosSubcontratosPage() {
           <p>Empresas colaboradoras, contratos asociados, dotación y control laboral/previsional.</p>
         </div>
         <div className="nk-actions">
-          <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</ActionButton>
           <button className="nk-button nk-button-primary" type="button" onClick={openNew}><IconPlus size={15} /> Nuevo tercero</button>
         </div>
       </header>
@@ -232,7 +230,7 @@ export default function TercerosSubcontratosPage() {
           <option value="">Todos los estados</option>
           <option value="vigente">Vigente</option>
           <option value="observado">Observado</option>
-          <option value="bloqueado">Restringido</option>
+          <option value="bloqueado">No habilitado</option>
         </select>
       </section>
 
@@ -280,13 +278,13 @@ export default function TercerosSubcontratosPage() {
         <section className="nk-card nk-third-detail">
           <div className="nk-third-detail-head">
             <div><button className="nk-third-back" type="button" onClick={closeDetail}><IconArrowLeft size={16} />Volver a terceros y subcontratos</button><p className="nk-third-eyebrow">{creating ? 'Nuevo tercero' : 'Ficha del tercero'}</p><h2>{creating ? 'Registrar tercero' : form.razon || 'Empresa colaboradora'}</h2></div>
-            <div className="nk-actions"><button className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</button></div>
+            <div className="nk-actions"><ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</ActionButton></div>
           </div>
 
           <div className="nk-third-form">
             <div className="nk-field nk-third-span-2"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">Restringido</option></select></div>
+            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
             <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
             <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
             <div className="nk-field nk-third-span-2"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>

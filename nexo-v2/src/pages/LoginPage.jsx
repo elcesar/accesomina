@@ -3,14 +3,16 @@ import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { isValidRut } from '../services/rut.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { IconEye, IconEyeOff, IconLoader2, IconLock, IconShieldCheck } from '@tabler/icons-react'
 import '../styles/login.css'
 
-function Field({ label, children }) {
+function Field({ label, htmlFor, required = false, children }) {
   return (
     <div className="nk-field nk-login-field">
-      <label className="nk-label">{label}</label>
+      <label className="nk-label" htmlFor={htmlFor}>{label}{required ? ' (obligatorio)' : ''}</label>
       {children}
     </div>
   )
@@ -24,6 +26,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [rutError, setRutError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [emailValidationRequested, setEmailValidationRequested] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [mfaCode, setMfaCode] = useState('')
   const [backendBuild, setBackendBuild] = useState(null)
@@ -45,6 +50,17 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!mfaRequired) {
+      const rutMessage = isValidRut(form.rut) ? '' : 'Ingresa un RUT de empresa válido.'
+      const passwordMessage = form.password ? '' : 'Ingresa tu contraseña.'
+      setRutError(rutMessage)
+      setPasswordError(passwordMessage)
+      setEmailValidationRequested(true)
+      if (rutMessage || passwordMessage || validateEmail(form.email, { required: true })) {
+        document.getElementById(rutMessage ? 'login-rut' : validateEmail(form.email, { required: true }) ? 'login-email' : 'login-password')?.focus()
+        return
+      }
+    }
     if (!isValidRut(form.rut)) {
       setError('El RUT de la empresa no es válido. Revisa sus números y dígito verificador.')
       return
@@ -141,38 +157,46 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="nk-login-form">
+          <form noValidate onSubmit={handleSubmit} className="nk-login-form">
             {!mfaRequired ? (
               <>
-                <Field label="RUT empresa">
+                <Field label="RUT empresa" htmlFor="login-rut" required>
                   <RutInput
+                    id="login-rut"
                     name="rut"
+                    aria-invalid={Boolean(rutError)}
+                    aria-describedby={rutError ? 'login-rut-error' : undefined}
+                    onBlur={() => setRutError(isValidRut(form.rut) ? '' : 'Ingresa un RUT de empresa válido.')}
                     value={form.rut}
                     onChange={value => { setForm(current => ({ ...current, rut: value })); setError(null) }}
-                    placeholder="13.848.379-7"
+                    placeholder="Ej.: XX.XXX.XXX-X"
                     required
                     autoComplete="organization"
                   />
+                  {rutError && <p id="login-rut-error" role="alert" className="nk-field-error">{rutError}</p>}
                 </Field>
 
-                <Field label="Correo">
-                  <input
-                    className="nk-input"
+                <Field label="Correo" htmlFor="login-email" required>
+                  <EmailInput
+                    id="login-email"
                     name="email"
-                    type="email"
                     value={form.email}
-                    onChange={handleChange}
+                    onChange={value => { setForm(current => ({ ...current, email: value })); setError(null) }}
                     placeholder="correo@empresa.cl"
                     required
+                    validationRequested={emailValidationRequested}
                     autoComplete="email"
                   />
                 </Field>
 
-                <Field label="Contraseña">
+                <Field label="Contraseña" htmlFor="login-password" required>
                   <div className="nk-login-password">
                     <input
                       className="nk-input"
+                      id="login-password"
                       name="password"
+                      aria-invalid={Boolean(passwordError)}
+                      aria-describedby={passwordError ? 'login-password-error' : undefined}
                       type={showPassword ? 'text' : 'password'}
                       value={form.password}
                       onChange={handleChange}
@@ -181,7 +205,7 @@ export default function LoginPage() {
                       autoComplete="current-password"
                     />
                     <button
-                      className="nk-login-password-toggle"
+                      className="nk-icon-button nk-touch-target nk-login-password-toggle"
                       type="button"
                       aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       onClick={() => setShowPassword(v => !v)}
@@ -189,15 +213,17 @@ export default function LoginPage() {
                       {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
                     </button>
                   </div>
+                  {passwordError && <p id="login-password-error" role="alert" className="nk-field-error">{passwordError}</p>}
                 </Field>
 
                 <div className="nk-login-recovery-link">
-                  <Link className="nk-link" to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+                  <Link className="nk-link nk-touch-target" to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
                 </div>
               </>
             ) : (
-              <Field label="Código de autenticación">
+              <Field label="Código de autenticación" htmlFor="login-mfa" required>
                 <input
+                  id="login-mfa"
                   className="nk-input nk-login-mfa-input"
                   value={mfaCode}
                   onChange={e => setMfaCode(e.target.value)}
@@ -242,7 +268,7 @@ export default function LoginPage() {
           </div>
 
           <p className="nk-login-back-home">
-            <Link className="nk-link" to="/">← Volver al inicio</Link>
+            <Link className="nk-link nk-touch-target" to="/">← Volver al inicio</Link>
           </p>
 
           <div className="nk-login-build-version" title="Versiones desplegadas">

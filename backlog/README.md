@@ -521,3 +521,35 @@ Revisar progresivamente los códigos y flujos asociados a:
 
 ### Prioridad
 Mejora transversal de experiencia usuaria, consistencia y reducción de errores operacionales.
+
+---
+
+## 2026-09-30 — Eliminación definitiva y consistente de una cuenta/tenant
+
+> **Estado: EN IMPLEMENTACIÓN** — Implementación asociada al PR #73 (`feat(tenants): permitir eliminacion definitiva segura`).
+
+### Mejora
+Incorporar una funcionalidad administrativa para eliminar definitivamente una cuenta/tenant de NEXOKLAR de forma controlada y consistente, incluyendo la información de la empresa, usuarios, personas, registros operacionales, documentos y archivos asociados.
+
+### Objetivo
+Evitar eliminaciones parciales que dejen información huérfana o archivos residuales, y disponer de un procedimiento explícito para la baja definitiva de una empresa cuando corresponda.
+
+### Alcance
+- Exigir que la cuenta esté suspendida antes de permitir la eliminación definitiva.
+- Proteger la cuenta administrativa de NEXOKLAR frente a eliminación.
+- Solicitar un motivo de eliminación y una confirmación explícita asociada al tenant.
+- Eliminar los registros persistidos asociados al tenant de forma consistente.
+- Eliminar los archivos físicos asociados, tanto en almacenamiento S3 como local según configuración.
+- Revocar/eliminar usuarios, sesiones y datos operacionales relacionados.
+- Mantener únicamente la trazabilidad mínima anonimizada necesaria para registrar que la eliminación fue ejecutada.
+- Incorporar pruebas que validen la eliminación en cascada y la eliminación de archivos.
+
+### Clasificación
+**Mejora / nueva funcionalidad.** No corresponde actualmente a la corrección de un incidente o hallazgo declarado en la ronda QA R01.
+
+### Implementación
+PR #73 — `feat(tenants): permitir eliminacion definitiva segura`.
+
+### Prioridad
+Mejora administrativa, de seguridad y consistencia de datos. Debe validarse técnicamente antes de integrar por su impacto en frontend, backend, base de datos y almacenamiento.
+

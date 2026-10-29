@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
+import { PhoneInput } from '../ui/PhoneInput.jsx'
+import { EmailInput } from '../ui/EmailInput.jsx'
+import { validateEmail } from '../../services/email-validation.js'
+import { isValidChilePhone } from '../../services/chile-phone.js'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -119,19 +123,48 @@ const COMPANY_SIZES = ['Hasta 30', '31 a 75', '76 a 200', 'Más de 200']
 
 export function DemoRequestDialog({ onClose }) {
   const [form, setForm] = useState(INITIAL_DEMO_FORM)
+  const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const updateField = (field, value) => {
     setForm(current => ({ ...current, [field]: value }))
+    setErrors(current => ({ ...current, [field]: '' }))
   }
 
-  const submit = event => {
-    event.preventDefault()
+  const fallbackMailto = () => {
     const body = Object.entries(form)
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n')
+    window.location.href = `mailto:contacto@nexoklar.com?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
+  }
 
-    window.location.href = `mailto:contacto@nexoklar.cl?subject=${encodeURIComponent('Solicitud de demostración Nexo Klar')}&body=${encodeURIComponent(body)}`
-    onClose()
+  const submit = async event => {
+    event.preventDefault()
+    const nextErrors = {}
+    if (!form.nombre.trim()) nextErrors.nombre = 'Ingresa tu nombre.'
+    const emailError = validateEmail(form.correo, { required: true })
+    if (emailError) nextErrors.correo = emailError
+    if (form.telefono && !isValidChilePhone(form.telefono)) nextErrors.telefono = 'Ingresa un teléfono chileno válido.'
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length) return
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(payload.message || 'No pudimos enviar tu solicitud en este momento.')
+      setSubmitted(true)
+    } catch (error) {
+      setSubmitError(error.message || 'No pudimos enviar tu solicitud en este momento.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -140,17 +173,42 @@ export function DemoRequestDialog({ onClose }) {
         Cuéntanos lo esencial y prepararemos una conversación enfocada en tu operación.
       </p>
 
-      <form className="nk-public-form" onSubmit={submit}>
+      {submitted ? <div className="nk-public-form" role="status">
+        <p className="nk-dialog-copy">Recibimos tu solicitud. El equipo de Nexo Klar te contactará pronto.</p>
+        <footer><button className="nk-button nk-button-primary" type="button" onClick={onClose}>Cerrar</button></footer>
+      </div> : <form className="nk-public-form" noValidate onSubmit={submit}>
         {BASIC_FIELDS.map(([key, label, placeholder]) => (
           <label key={key}>
-            {label}
-            <input
-              required={key === 'nombre' || key === 'correo'}
-              type={key === 'correo' ? 'email' : 'text'}
-              value={form[key]}
-              onChange={event => updateField(key, event.target.value)}
-              placeholder={placeholder}
-            />
+            {label}{(key === 'nombre' || key === 'correo') ? ' (obligatorio)' : ''}
+            {key === 'telefono' ? (
+              <PhoneInput
+                error={errors.telefono}
+                value={form.telefono}
+                onChange={value => updateField('telefono', value)}
+              />
+            ) : key === 'correo' ? (
+              <EmailInput
+                id={`demo-${key}`}
+                required
+                value={form.correo}
+                error={errors.correo}
+                onChange={value => updateField('correo', value)}
+                placeholder={placeholder}
+              />
+            ) : (
+              <input
+                id={`demo-${key}`}
+                required={key === 'nombre'}
+                aria-required={key === 'nombre' || undefined}
+                aria-invalid={Boolean(errors[key]) || undefined}
+                aria-describedby={errors[key] ? `demo-${key}-error` : undefined}
+                type="text"
+                value={form[key]}
+                onChange={event => updateField(key, event.target.value)}
+                placeholder={placeholder}
+              />
+            )}
+            {errors[key] && !['correo', 'telefono'].includes(key) && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
           </label>
         ))}
 
@@ -182,9 +240,13 @@ export function DemoRequestDialog({ onClose }) {
 
         <footer>
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="submit">Preparar solicitud</button>
+          <button className="nk-button nk-button-primary" type="submit" disabled={submitting}>{submitting ? 'Enviando…' : 'Enviar solicitud'}</button>
         </footer>
+        {submitError && <div className="nk-field-error" role="alert">
+          {submitError} <button className="nk-button nk-button-quiet" type="button" onClick={fallbackMailto}>Abrir correo como alternativa</button>
+        </div>}
       </form>
+      }
     </Dialog>
   )
 }

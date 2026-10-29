@@ -12,7 +12,7 @@ import {
   IconBuildingCommunity, IconCircleCheck, IconAlertTriangle, IconClipboard,
   IconChartBar, IconArrowsUpDown, IconUsersGroup, IconHistory, IconShieldLock,
   IconSettings, IconPackage, IconTruckDelivery, IconTools,
-  IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown,
+  IconBox, IconTestPipe, IconBuildingWarehouse, IconArrowsExchange, IconChevronDown, IconX,
 } from '@tabler/icons-react'
 import '../../styles/layout/sidebar.css'
 
@@ -37,7 +37,7 @@ const NAV = [
       { to: '/app/cursos', label: 'Formación y certificaciones', icon: IconSchool },
       { to: '/app/examenes', label: 'Exámenes y aptitudes', icon: IconMicroscope },
       { to: '/app/salud', label: 'Salud ocupacional', icon: IconStethoscope },
-      { to: '/app/bloqueados', label: 'Restringidos', icon: IconBan },
+      { to: '/app/bloqueados', label: 'No habilitados', icon: IconBan },
     ],
   },
   {
@@ -51,8 +51,8 @@ const NAV = [
     ],
   },
   {
-    key: 'contratistas',
-    label: 'Contratistas',
+    key: 'terceros',
+    label: 'Terceros',
     items: [
       { to: '/app/subcontratos', label: 'Terceros y subcontratos', icon: IconSitemap },
       { to: '/app/convenios', label: 'Convenios y contratos de terceros', icon: IconFileText },
@@ -75,7 +75,7 @@ const NAV = [
     label: 'Cumplimiento y calidad',
     items: [
       { to: '/app/acreditacion-empresa', label: 'Documentación de la empresa', icon: IconBuildingCommunity },
-      { to: '/app/acreditacion-mandante', label: 'Habilitación del cliente', icon: IconCircleCheck },
+      { to: '/app/habilitacion-cliente', label: 'Habilitación del cliente', icon: IconCircleCheck },
       { to: '/app/incidentes', label: 'Incidentes y no conformidades', icon: IconAlertTriangle },
       { to: '/app/auditoria', label: 'Auditoría', icon: IconClipboard },
     ],
@@ -189,7 +189,7 @@ function NavGroup({ group, badges, defaultOpen = true, pathname }) {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation()
   const navRef = useRef(null)
   const { session } = useAuth()
@@ -227,14 +227,15 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="nk-sidebar">
+    <aside id="nk-primary-sidebar" className={`nk-sidebar ${mobileOpen ? 'nk-sidebar-mobile-open' : ''}`} aria-label="Menú principal">
       <div className="nk-sidebar-brand">
         <NavLink className="nk-sidebar-brand-link" to="/app" aria-label="Ir al Panel de control">
           <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
         </NavLink>
+        <button className="nk-sidebar-mobile-close" type="button" onClick={onClose} aria-label="Cerrar menú"><IconX size={22} /></button>
       </div>
 
-      <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal">
+      <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal" onClick={event => { if (event.target.closest('a')) onClose() }}>
         {!loading && NAV.map(group => {
           const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
           return items.length ? <NavGroup

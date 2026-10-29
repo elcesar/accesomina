@@ -2,7 +2,7 @@ const industries = [
   {
     number: '01',
     title: 'Minería',
-    body: 'Habilitación, centros de trabajo, contratistas y documentos críticos siempre al día.',
+    body: 'Habilitación, centros de trabajo, empresas colaboradoras y documentos críticos siempre al día.',
   },
   {
     number: '02',
@@ -12,7 +12,7 @@ const industries = [
   {
     number: '03',
     title: 'Construcción',
-    body: 'Contratistas, avances, turnos, evidencias y control por obra.',
+    body: 'Empresas colaboradoras, avances, turnos, evidencias y control por obra.',
   },
   {
     number: '04',
@@ -22,7 +22,7 @@ const industries = [
   {
     number: '05',
     title: 'Gestión de instalaciones',
-    body: 'Servicios recurrentes, personal externo, alojamiento, recursos y reportes por cliente.',
+    body: 'Servicios recurrentes, trabajadores de empresas colaboradoras, alojamiento, recursos y reportes por cliente.',
   },
   {
     number: '06',
@@ -37,7 +37,7 @@ const industries = [
   {
     number: '08',
     title: 'Agroindustria',
-    body: 'Temporadas, cuadrillas, EPP, asistencia y documentación del personal.',
+    body: 'Temporadas, cuadrillas, EPP, asistencia y documentación de los trabajadores.',
   },
   {
     number: '09',
@@ -53,7 +53,7 @@ export default function IndustriesSection() {
         <div className="nk-industry-heading">
           <div>
             <p className="nk-eyebrow">Adaptable a tu industria</p>
-            <h2>Se adapta a la forma en que trabaja tu empresa.</h2>
+            <h1>Se adapta a la forma en que trabaja tu empresa.</h1>
           </div>
           <p className="nk-lead">
             Una misma base de información para coordinar personas, recursos, documentación, turnos y servicios en terreno, adaptada a la realidad de cada industria.

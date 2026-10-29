@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import OperationFeedback from '../ui/OperationFeedback.jsx'
+import { ErrorPage } from '../ui/ErrorPage.jsx'
+import { IconLock } from '@tabler/icons-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
 import { api } from '../../services/api.js'
@@ -7,23 +10,36 @@ import { applyTenantBranding } from '../../services/theme.js'
 import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
+import { useAuth } from '../../services/auth.jsx'
 import '../../styles/layout/app-layout.css'
 
 function ModuleOutlet() {
   const { pathname } = useLocation()
   const { loading, isEnabled } = useModuleAccess()
+  const { session } = useAuth()
   const moduleKey = moduleForPath(pathname)
+  const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
+  const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
+  }
+  if (['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) && !isCompanyAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
+  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
   return <Outlet />
 }
 
 export default function AppLayout() {
   const { pathname } = useLocation()
+  const { session } = useAuth()
   const domain = pageDomain(pathname)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuButtonRef = useRef(null)
   const [branding, setBranding] = useState({})
   const [modules, setModules] = useState({})
   const [loadingModules, setLoadingModules] = useState(true)
@@ -68,15 +84,46 @@ export default function AppLayout() {
     }
   }, [])
 
+  useEffect(() => { setMobileMenuOpen(false) }, [pathname])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined
+    const sidebar = document.getElementById('nk-primary-sidebar')
+    sidebar?.querySelector('.nk-sidebar-mobile-close')?.focus()
+    const onKeyDown = event => {
+      if (event.key === 'Tab' && sidebar) {
+        const focusable = [...sidebar.querySelectorAll('a[href], button:not([disabled])')].filter(element => element.getClientRects().length)
+        if (focusable.length) {
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          if (event.shiftKey && (document.activeElement === first || !sidebar.contains(document.activeElement))) { event.preventDefault(); last.focus() }
+          else if (!event.shiftKey && (document.activeElement === last || !sidebar.contains(document.activeElement))) { event.preventDefault(); first.focus() }
+        }
+      }
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false)
+        menuButtonRef.current?.focus()
+      }
+    }
+    const onResize = () => { if (window.innerWidth >= 1024) setMobileMenuOpen(false) }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [mobileMenuOpen])
+
   return (
-    <ModuleAccessProvider modules={modules} loading={loadingModules}>
+    <ModuleAccessProvider modules={modules} userModules={['client_admin', 'domian_admin'].includes(session?.user?.role) ? {} : (session?.user?.permissions?.modules || {})} loading={loadingModules}>
       <div className="nk-app-shell">
-        <Sidebar />
+        {mobileMenuOpen && <button className="nk-mobile-backdrop" type="button" aria-label="Cerrar navegación" onClick={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />}
+        <Sidebar mobileOpen={mobileMenuOpen} onClose={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />
         <div className="nk-app-content">
-          <Header branding={branding} />
+          <Header branding={branding} menuOpen={mobileMenuOpen} menuButtonRef={menuButtonRef} onToggleMenu={() => setMobileMenuOpen(value => !value)} />
           <main className="nk-app-main" data-page-domain={domain || undefined}>
             {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
-            <ModuleOutlet />
+            <OperationFeedback><ModuleOutlet /></OperationFeedback>
           </main>
         </div>
       </div>

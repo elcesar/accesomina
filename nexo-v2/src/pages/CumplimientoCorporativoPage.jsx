@@ -1,3 +1,7 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBuilding, IconExternalLink, IconFile, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -12,36 +16,31 @@ const AREA_LABELS = {
 }
 
 const REQUIREMENTS = [
-  { id: 'rut_empresa', area: 'legal', name: 'RUT empresa / carpeta tributaria', expires: false, src: 'SII / acreditación mandante' },
+  { id: 'rut_empresa', area: 'legal', name: 'RUT empresa / carpeta tributaria', expires: false, src: 'SII / acreditación del cliente' },
   { id: 'escritura', area: 'legal', name: 'Escritura de constitución y poderes', expires: false, src: 'Acreditación empresa' },
   { id: 'vigencia_sociedad', area: 'legal', name: 'Certificado de vigencia de sociedad', expires: true, src: 'Registro de Comercio' },
-  { id: 'mutualidad', area: 'sst', name: 'Certificado de adhesión a mutualidad', expires: true, src: 'Ley 16.744 / mandante' },
+  { id: 'mutualidad', area: 'sst', name: 'Certificado de adhesión a mutualidad', expires: true, src: 'Ley 16.744 / cliente' },
   { id: 'reglamento_interno', area: 'sst', name: 'Reglamento Interno de Orden, Higiene y Seguridad', expires: false, src: 'Código del Trabajo / DT' },
   { id: 'comite_paritario', area: 'sst', name: 'Comité Paritario o registro de no obligación', expires: true, src: 'Prevención de riesgos' },
   { id: 'f30', area: 'laboral', name: 'Certificado F30 obligaciones laborales y previsionales', expires: true, src: 'Dirección del Trabajo' },
   { id: 'f30_1', area: 'laboral', name: 'Certificado F30-1 trabajadores por contrato', expires: true, src: 'Dirección del Trabajo' },
   { id: 'cotizaciones', area: 'laboral', name: 'Pago de cotizaciones previsionales', expires: true, src: 'RRHH / Previred' },
-  { id: 'nomina_contrato', area: 'laboral', name: 'Nómina de personal por contrato, proyecto o mantención', expires: true, src: 'Acreditación mandante' },
+  { id: 'nomina_contrato', area: 'laboral', name: 'Nómina de personal por contrato, proyecto o mantención', expires: true, src: 'Acreditación del cliente' },
   { id: 'matriz_riesgos', area: 'sst', name: 'Matriz IPER / matriz de riesgos por actividad', expires: true, src: 'DS 44 / gestión preventiva' },
-  { id: 'procedimientos', area: 'sst', name: 'Procedimientos de trabajo seguro aplicables', expires: true, src: 'DS 132 / mandante' },
+  { id: 'procedimientos', area: 'sst', name: 'Procedimientos de trabajo seguro aplicables', expires: true, src: 'DS 132 / cliente' },
   { id: 'programa_sst', area: 'sst', name: 'Programa de Seguridad y Salud en el Trabajo', expires: true, src: 'DS 44 / Ley 16.744' },
   { id: 'prevencionista', area: 'sst', name: 'Registro del prevencionista responsable', expires: true, src: 'Organización preventiva' },
-  { id: 'organigrama', area: 'operacional', name: 'Organigrama y responsables del contrato', expires: false, src: 'Mandante / contratista' },
+  { id: 'organigrama', area: 'operacional', name: 'Organigrama y responsables del contrato', expires: false, src: 'Cliente / empresa colaboradora' },
   { id: 'polizas', area: 'financiero', name: 'Pólizas de seguro exigidas por contrato', expires: true, src: 'Contrato comercial' },
-  { id: 'tributarios', area: 'financiero', name: 'Certificados tributarios y comerciales', expires: true, src: 'Mandante / finanzas' },
-  { id: 'reglamento_especial', area: 'operacional', name: 'Reglamento Especial de Empresas Contratistas firmado', expires: true, src: 'Ley 20.123 / mandante' },
-  { id: 'credenciales_portal', area: 'operacional', name: 'Usuarios y vigencia en portal de acreditación minera', expires: true, src: 'Sistema mandante' },
+  { id: 'tributarios', area: 'financiero', name: 'Certificados tributarios y comerciales', expires: true, src: 'Cliente / finanzas' },
+  { id: 'reglamento_especial', area: 'operacional', name: 'Reglamento Especial aplicable a empresas colaboradoras firmado', expires: true, src: 'Ley 20.123 / cliente' },
+  { id: 'credenciales_portal', area: 'operacional', name: 'Usuarios y vigencia en portal de acreditación minera', expires: true, src: 'Sistema del cliente' },
   { id: 'equipos_vehiculos', area: 'operacional', name: 'Listado de vehículos/equipos y documentación asociada', expires: true, src: 'Acceso a faena' },
 ]
 
 const asRows = value => Array.isArray(value) ? value : []
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function statusFor(doc) {
   const requirement = REQUIREMENTS.find(item => item.id === doc.reqId) || doc
@@ -71,7 +70,7 @@ function normalizeDocs(current) {
       cloudUrl: '',
       notes: '',
       src: requirement.src,
-      created: new Date().toISOString().slice(0, 10),
+      created: localDate(),
       documents: [],
     }
   })
@@ -116,7 +115,7 @@ export default function CumplimientoCorporativoPage() {
     const term = query.trim().toLowerCase()
     return docs.filter(doc => {
       const status = statusFor(doc)
-      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => String(value || '').toLowerCase().includes(term))
+      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => includesSearch(String(value || ''), term))
       const matchesArea = !areaFilter || doc.area === areaFilter
       const matchesStatus = !statusFilter || (statusFilter === 'ok' ? status.key === 'ok' : statusFilter === 'faltante' ? status.key === 'faltante' : ['vencido', 'critico', 'proximo'].includes(status.key))
       return matchesText && matchesArea && matchesStatus
@@ -138,7 +137,7 @@ export default function CumplimientoCorporativoPage() {
   }
 
   async function persistDoc(id, patch = {}) {
-    if (savingId) return
+    if (savingId) return false
     setSavingId(id)
     setError('')
     try {
@@ -157,8 +156,10 @@ export default function CumplimientoCorporativoPage() {
         state: { ...(currentResponse?.state || state), empresaDocs: next },
         moduleVersions: { ...(currentResponse?.moduleVersions || moduleVersions), ...(result?.moduleVersions || {}) },
       }))
+      return true
     } catch (cause) {
       setError(cause.message || 'No fue posible guardar el documento.')
+      return false
     } finally {
       setSavingId('')
     }
@@ -169,21 +170,35 @@ export default function CumplimientoCorporativoPage() {
     fileInputRef.current?.click()
   }
 
-  function onFileSelected(event) {
+  async function onFileSelected(event) {
     const file = event.target.files?.[0]
     if (!file || !uploadId) return
-    patchDraft(uploadId, 'fileName', file.name)
-    patchDraft(uploadId, 'cloudUrl', '')
-    persistDoc(uploadId, { fileName: file.name, cloudUrl: '', created: new Date().toISOString().slice(0, 10) })
+    const documentId = uploadId
     event.target.value = ''
     setUploadId('')
+    setError('')
+    try {
+      const uploaded = await api.upload('/files', file, { entityType: 'company_document', entityId: documentId })
+      const patch = {
+        fileId: uploaded.id,
+        fileName: uploaded.original_name || file.name,
+        fileType: uploaded.content_type || file.type,
+        fileSize: uploaded.byte_size || file.size,
+        cloudUrl: '',
+        created: localDate(),
+      }
+      const persisted = await persistDoc(documentId, patch)
+      if (!persisted) await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(() => {})
+    } catch (cause) {
+      setError(cause.message || 'No fue posible cargar el respaldo.')
+    }
   }
 
   function setCloudUrl(doc) {
     const url = window.prompt('URL https del respaldo', doc.cloudUrl || '')
     if (url === null) return
     patchDraft(doc.id, 'cloudUrl', url)
-    persistDoc(doc.id, { cloudUrl: url, fileName: '' })
+    persistDoc(doc.id, { cloudUrl: url, fileId: '', fileName: '' })
   }
 
   const company = state.empresa || {}
@@ -192,8 +207,8 @@ export default function CumplimientoCorporativoPage() {
   return (
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
-        <div><h1>Documentación de la Empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
-        <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
+        <div><h1>Documentación de la empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
+        <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</ActionButton>
       </header>
 
       {error && <div className="nk-compliance-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
@@ -232,17 +247,17 @@ export default function CumplimientoCorporativoPage() {
                     <td><div className="nk-compliance-doc"><strong title={doc.name}>{doc.name}</strong><span title={doc.src || requirement?.src || ''}>{doc.src || requirement?.src || ''}</span></div></td>
                     <td><span className="nk-compliance-area">{AREA_LABELS[doc.area] || doc.area}</span></td>
                     <td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td>
-                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} />}</td>
+                    <td>{requirement?.expires === false ? <span className="nk-compliance-na">No aplica</span> : <input className="nk-input nk-compliance-date" type="date" value={doc.vence || ''} onChange={event => patchDraft(doc.id, 'vence', event.target.value)} onBlur={() => persistDoc(doc.id)} aria-label={`Fecha de vencimiento de ${doc.name}`} />}</td>
                     <td>
                       <div className="nk-compliance-evidence-cell">
-                        {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileName ? <span className="nk-compliance-file" title={doc.fileName}><IconFile size={13} /> Archivo</span> : <span className="nk-compliance-na">Sin respaldo</span>}
+                        {doc.cloudUrl ? <a className="nk-context-link nk-compliance-evidence" href={doc.cloudUrl} target="_blank" rel="noreferrer" title={doc.cloudUrl}><IconExternalLink size={13} /> Ver</a> : doc.fileId ? <a className="nk-context-link nk-compliance-evidence" href={`/api/files/${encodeURIComponent(doc.fileId)}`} download title={doc.fileName || 'Descargar respaldo'}><IconFile size={13} /> {doc.fileName || 'Archivo'}</a> : <span className="nk-compliance-na">Sin respaldo</span>}
                         <div className="nk-compliance-actions">
-                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> PC</button>
-                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Link</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => chooseFile(doc.id)} disabled={savingId === doc.id} title="Cargar archivo desde PC"><IconUpload size={13} /> Cargar archivo</button>
+                          <button className="nk-compliance-action" type="button" onClick={() => setCloudUrl(doc)} disabled={savingId === doc.id} title="Registrar enlace en nube">Agregar enlace</button>
                         </div>
                       </div>
                     </td>
-                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" /></td>
+                    <td><input className="nk-input nk-compliance-note" title={doc.notes || ''} value={doc.notes || ''} onChange={event => patchDraft(doc.id, 'notes', event.target.value)} onBlur={() => persistDoc(doc.id)} placeholder="Observación" aria-label={`Observación de ${doc.name}`} /></td>
                   </tr>
                 )
               })}</tbody>

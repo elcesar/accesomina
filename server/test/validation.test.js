@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeJson, summarizeChanges, validateTenantState } from '../validation.js';
+import { removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
+import { documentFileIds, referencedFileIds, referencedFileIdsOutsideRemovedDocument } from '../routes/state.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -22,3 +23,189 @@ test('state rejects duplicate worker documents and overlapping lodging',()=>{con
 test('sanitizer removes executable markup and embedded files',()=>{const clean=sanitizeJson({name:'<img src=x onerror="bad">',fileData:'data:secret',cloudUrl:'javascript:alert(1)'});assert.equal(clean.name.includes('<'),false);assert.equal(clean.fileData,null);assert.equal(clean.cloudUrl,'');});
 test('audit change summary records changed paths',()=>{const changes=summarizeChanges({a:1,b:2},{a:2,b:2});assert.deepEqual(changes,[{path:'/a',before:1,after:2}]);});
 test('audit change summary identifies changed entities inside modules',()=>{const changes=summarizeChanges([{id:'w1',name:'A'},{id:'w2',name:'B'}],[{id:'w1',name:'Updated'},{id:'w3',name:'C'}],'/trabajadores');assert.ok(changes.some(x=>x.path==='/trabajadores/w1/name'));assert.ok(changes.some(x=>x.path==='/trabajadores/w2'&&x.action==='deleted'));assert.ok(changes.some(x=>x.path==='/trabajadores/w3'&&x.action==='created'));});
+test('state rejects future and underage worker birth dates',()=>{const today=new Date().toISOString().slice(0,10);const [year,month,day]=today.split('-').map(Number);const date=y=>`${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const future=validState();future.trabajadores[0].nacimiento=date(year+1);assert.throws(()=>validateTenantState(future),error=>error.code==='INVALID_WORKER_BIRTH_DATE');const underage=validState();underage.trabajadores[0].nacimiento=date(year-17);assert.throws(()=>validateTenantState(underage),error=>error.code==='WORKER_UNDERAGE');const adult=validState();adult.trabajadores[0].nacimiento=date(year-18);assert.doesNotThrow(()=>validateTenantState(adult));});
+test('a valid new worker is not blocked by an unrelated legacy reference',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Pamela Navarro',rut:'14.507.215-8',tel:'+56976490489'});
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('append fallback still rejects a new worker with an invalid direct reference',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine']});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='INVALID_REFERENCE');
+});
+test('append fallback fails closed for modules without equivalent validation',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.turnos=[{id:'t1',trabId:'w1',mantId:'p1',fecha:'2026-07-01',turno:'dia'}];
+  assert.equal(validateAppendChanges(current,proposed,['turnos']),false);
+});
+test('append fallback preserves strict duplicate rules for its supported modules',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0'});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_RUT');
+});
+test('append fallback applies every client rule despite unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.minas[0].rut='14.567.890-0';
+  const invalidClients = [
+    { mine:{id:'m2',nombre:''}, code:'INCOMPLETE_CLIENT' },
+    { mine:{id:'m2',nombre:'Cliente nuevo',rut:'145678900'}, code:'DUPLICATE_CLIENT_RUT' },
+    { mine:{id:'m2',nombre:'  MINA ',mandante:''}, code:'DUPLICATE_CLIENT' },
+  ];
+  for (const { mine, code } of invalidClients) {
+    const proposed=structuredClone(current);
+    proposed.minas.push(mine);
+    assert.throws(()=>validateAppendChanges(current,proposed,['minas']),error=>error.code===code,code);
+  }
+});
+test('append fallback rejects a duplicate service order despite unrelated legacy data',()=>{
+  const current=validState();
+  current.mantenciones[0].nombre='Mantención chancado';
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.mantenciones.push({
+    id:'p2',
+    minaId:'m1',
+    contratoId:'c1',
+    nombre:'  MANTENCIÓN   CHANCADO ',
+    inicio:'2026-01-01',
+    termino:'2026-01-03',
+  });
+  assert.throws(()=>validateAppendChanges(current,proposed,['mantenciones']),error=>error.code==='DUPLICATE_PROJECT');
+});
+test('append fallback keeps unsupported operational modules closed',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  for (const module of ['eppDeliveries', 'vehiculos', 'hoteles', 'bodegas', 'turnos', 'asignaciones']) {
+    const proposed=structuredClone(current);
+    proposed[module]=[{id:`${module}-1`}];
+    assert.equal(validateAppendChanges(current,proposed,[module]),false,module);
+  }
+});
+test('append fallback applies every worker document rule despite unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const invalidDocuments = [
+    { items:[{id:'same',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'same',type:'curso',name:'ODI',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT_ID' },
+    { items:[{id:'a',type:'documento',name:'Cédula',vence:'2027-01-01'},{id:'b',type:'documento',name:'  CÉDULA ',vence:'2027-01-01'}], code:'DUPLICATE_WORKER_DOCUMENT' },
+    { items:[{id:'a',type:'examen',name:'Preocupacional',emision:'2027-01-02',vence:'2027-01-01'}], code:'INVALID_DATES' },
+  ];
+  for (const { items, code } of invalidDocuments) {
+    const proposed=structuredClone(current);
+    proposed.trabajadores.push({id:`w-${code}`,nombre:'Persona nueva',rut:'14.507.215-8',workerItems:items});
+    assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
+  }
+});
+test('worker document append is not blocked by unrelated legacy data',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.trabajadores[0].workerItems=[{id:'doc-1',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01',fileId:'qa-contract-file'}];
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('append fallback keeps worker document updates as append-only and validates every new item',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[{id:'doc-existing',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01'}];
+  const cases=[
+    { item:{id:'doc-existing',type:'documento',name:'CV'}, code:'DUPLICATE_WORKER_DOCUMENT_ID' },
+    { item:{id:'doc-new',type:'documento',name:' contrato  de trabajo ',vence:'2027-01-01'}, code:'DUPLICATE_WORKER_DOCUMENT' },
+    { item:{id:'doc-new',type:'examen',name:'Preocupacional',emision:'2027-01-02',vence:'2027-01-01'}, code:'INVALID_DATES' },
+  ];
+  for(const {item,code} of cases){
+    const proposed=structuredClone(current);
+    proposed.trabajadores[0].workerItems.push(item);
+    assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
+  }
+  const changedProfile=structuredClone(current);
+  changedProfile.trabajadores[0].nombre='Nombre alterado';
+  assert.equal(validateAppendChanges(current,changedProfile,['trabajadores']),false);
+  const replacedDocument=structuredClone(current);
+  replacedDocument.trabajadores[0].workerItems[0].name='Contrato reemplazado';
+  assert.equal(validateAppendChanges(current,replacedDocument,['trabajadores']),false);
+});
+test('a legacy document inconsistency does not block a later valid document append',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[
+    {id:'doc-legacy-1',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01'},
+    {id:'doc-legacy-2',type:'documento',name:' contrato  de trabajo ',vence:'2027-01-01'},
+  ];
+  const proposed=structuredClone(current);
+  proposed.trabajadores[0].workerItems.push({id:'doc-cv',type:'documento',name:'Currículum vitae',fileId:'qa-cv-file'});
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('contract and service annex remain distinct evidence even when their reference is initially the same',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  current.trabajadores[0].workerItems=[{
+    id:'doc-contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',vence:'',
+  }];
+  const proposed=structuredClone(current);
+  proposed.trabajadores[0].workerItems.push({
+    id:'doc-annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Contrato de trabajo',vence:'',fileId:'qa-annex-file',
+  });
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
+});
+test('worker documents with the same semantic classification, reference and expiry remain duplicates',()=>{
+  const state=validState();
+  state.trabajadores[0].workerItems=[
+    {id:'d1',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',vence:'2027-01-01'},
+    {id:'d2',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:' contrato  de trabajo ',vence:'2027-01-01'},
+  ];
+  assert.throws(()=>validateTenantState(state),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
+});
+test('worker document fallback never accepts a duplicate worker row',()=>{
+  const current=validState(), proposed=structuredClone(current);
+  proposed.trabajadores.push({...proposed.trabajadores[0]});
+  assert.equal(validateAppendChanges(current,proposed,['trabajadores']),false);
+});
+test('direct document append accepts a second evidence despite an underage legacy worker',()=>{
+  const worker={id:'w1',nombre:'Sophia',nacimiento:'2016-01-01',workerItems:[{id:'contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}]};
+  assert.doesNotThrow(()=>validateWorkerDocumentAppend(worker,{id:'annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Anexo asociado al servicio',fileId:'qa-annex-file'}));
+  assert.throws(()=>validateWorkerDocumentAppend(worker,{id:'duplicate',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
+});
+test('atomic worker document removal permits a later replacement despite legacy worker data',()=>{
+  const worker={id:'w1',nombre:'Sophia',nacimiento:'2016-01-01',workerItems:[
+    {id:'contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',fileId:'file-contract'},
+    {id:'annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Anexo asociado al servicio',fileId:'file-annex'},
+  ]};
+  const removed=removeWorkerDocument(worker,'contract');
+  assert.equal(removed.item.id,'contract');
+  assert.deepEqual(removed.worker.workerItems.map(item=>item.id),['annex']);
+  assert.doesNotThrow(()=>validateWorkerDocumentAppend(removed.worker,{id:'contract-replacement',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo',fileId:'file-replacement'}));
+  assert.throws(()=>removeWorkerDocument(worker,'missing'),error=>error.code==='WORKER_DOCUMENT_NOT_FOUND');
+});
+test('file reference collection preserves shared evidence across every tenant module',()=>{
+  const shared={id:'shared',files:[{side:'front',fileId:'file-front'},{side:'back',fileId:'file-back'}]};
+  assert.deepEqual(documentFileIds(shared),['file-front','file-back']);
+
+  const remainingWorkers=[{id:'worker-b',workerItems:[{id:'other-document',fileId:'file-back'}]}];
+  const otherModules={incidentes:[{id:'incident-1',evidence:{fileId:'file-front'}}]};
+  const referenced=new Set([...referencedFileIds(remainingWorkers),...referencedFileIds(otherModules)]);
+
+  assert.equal(referenced.has('file-exclusive'),false,'an exclusive file can be deleted');
+  assert.equal(referenced.has('file-front'),true,'a file referenced by another module is retained');
+  assert.equal(referenced.has('file-back'),true,'a file referenced by another worker evidence is retained');
+});
+test('document removal keeps files referenced by another module or verification',async()=>{
+  const client={query:async(sql)=>{
+    if(sql.includes('SELECT data FROM tenant_module_state'))return {rows:[{data:{incidentes:[{evidence:{fileId:'file-in-incident'}}]}}]};
+    if(sql.includes('SELECT file_id FROM document_verifications'))return {rows:[{file_id:'file-in-verification'}]};
+    throw new Error(`Unexpected query: ${sql}`);
+  }};
+  const referenced=await referencedFileIdsOutsideRemovedDocument(client,'tenant-1',[
+    {id:'worker-b',workerItems:[{id:'document-b',files:[{fileId:'file-shared-worker'}]}]},
+  ],['file-exclusive','file-shared-worker','file-in-incident','file-in-verification']);
+  assert.equal(referenced.has('file-exclusive'),false,'exclusive evidence is eligible for removal');
+  assert.equal(referenced.has('file-shared-worker'),true,'shared worker evidence is retained');
+  assert.equal(referenced.has('file-in-incident'),true,'another module reference is retained');
+  assert.equal(referenced.has('file-in-verification'),true,'operational verification reference is retained');
+});

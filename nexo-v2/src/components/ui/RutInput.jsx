@@ -1,13 +1,15 @@
-import { useId, useState } from 'react'
-import { formatRut, isValidRut } from '../../services/rut.js'
+import { useId } from 'react'
+import { formatRut, OPTIONAL_RUT_ERROR } from '../../services/rut.js'
 
-export function RutInput({ value = '', onChange, required = false, disabled = false, id, ...props }) {
+export function RutInput({ value = '', onChange, required = false, disabled = false, id, error, formatOnBlur = true, ...props }) {
   const generatedId = useId()
   const inputId = id || generatedId
-  const helpId = `${inputId}-rut-error`
-  const [touched, setTouched] = useState(false)
-  const invalid = Boolean(value) && !isValidRut(value)
-  const showError = touched && invalid
+  const hintId = `${inputId}-rut-hint`
+  const errorId = `${inputId}-error`
+
+  const hasError = Boolean(error || props['aria-invalid'])
+  const describedBy = [props['aria-describedby'], !hasError ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
+
 
   return <>
     <input
@@ -15,20 +17,30 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       id={inputId}
       className="nk-input"
       type="text"
-      value={value}
+      value={value ?? ''}
       required={required}
       disabled={disabled}
       autoComplete="off"
       inputMode="text"
-      placeholder={props.placeholder || '13.848.379-7'}
-      aria-invalid={showError || undefined}
-      aria-describedby={showError ? helpId : props['aria-describedby']}
+      placeholder={props.placeholder || 'Ej.: XX.XXX.XXX-X'}
+
+      aria-invalid={hasError}
+      aria-describedby={describedBy || undefined}
+
       onChange={event => onChange(formatRut(event.target.value))}
-      onBlur={() => {
-        setTouched(true)
-        onChange(formatRut(value))
+      onBlur={event => {
+        if (formatOnBlur) {
+          const formatted = formatRut(value)
+          if (formatted !== value) onChange(formatted)
+        }
+        props.onBlur?.(event)
       }}
     />
-    {showError && <p id={helpId} className="nk-field-error" role="alert">Ingresa un RUT chileno válido.</p>}
+
+    {!hasError && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
+
+    {error !== undefined && <p id={error ? errorId : undefined} className="nk-field-error"
+      role={error ? 'alert' : undefined} aria-hidden={error ? undefined : true}
+      style={{ visibility: error ? 'visible' : 'hidden' }}>{error || OPTIONAL_RUT_ERROR}</p>}
   </>
 }

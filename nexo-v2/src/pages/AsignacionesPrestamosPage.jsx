@@ -1,10 +1,12 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import '../styles/asignaciones-prestamos.css'
 
 const rows = value => Array.isArray(value) ? value : []
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDate()
 
 function categoryOf(item) {
   const source = `${item.type || ''} ${item.category || ''} ${item.name || ''}`.toLowerCase()
@@ -181,7 +183,7 @@ export default function AsignacionesPrestamosPage() {
     <div className="nk-assign-page">
       <header className="nk-assign-header">
         <div className="nk-assign-heading"><h1>Asignaciones y préstamos</h1><p>Entrega maquinaria, equipos o herramientas a una persona u orden de servicio y controla su devolución.</p></div>
-        <div className="nk-assign-actions"><button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</button><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Asignar recurso</button></div>
+        <div className="nk-assign-actions"><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={15}/> Actualizar</ActionButton><button className="nk-button nk-button-primary" onClick={openNew}><IconPlus size={15}/> Asignar recurso</button></div>
       </header>
 
       {error && <div className="nk-assign-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
@@ -200,7 +202,7 @@ export default function AsignacionesPrestamosPage() {
         const order = orders.find(entry => String(entry.id) === String(move.projectId || move.mantId))
         const due = move.expectedReturnAt ? String(move.expectedReturnAt).slice(0, 10) : ''
         const overdue = due && due < today()
-        return <tr key={move.id}><td><strong className="nk-assign-primary">{item?.name || 'Recurso'}</strong><small className="nk-assign-secondary">{item?.code || item?.serial || 'Sin código'}</small></td><td><span className="nk-assign-primary">{workerLabel(worker)}</span></td><td><span className="nk-assign-primary">{orderLabel(order)}</span></td><td>{Number(move.qty || 1)}</td><td>{String(move.at || '').slice(0, 10) || '—'}</td><td><div className="nk-assign-due"><span>{due || 'Sin fecha'}</span>{overdue && <span className="nk-badge nk-badge-error">Vencida</span>}</div></td><td><button className="nk-button nk-button-secondary nk-button-sm" onClick={() => returnLoan(move)} disabled={saving}>Devolver</button></td></tr>
+        return <tr key={move.id}><td><strong className="nk-assign-primary">{item?.name || 'Recurso'}</strong><small className="nk-assign-secondary">{item?.code || item?.serial || 'Sin código'}</small></td><td><span className="nk-assign-primary">{workerLabel(worker)}</span></td><td><span className="nk-assign-primary">{orderLabel(order)}</span></td><td>{Number(move.qty || 1)}</td><td>{String(move.at || '').slice(0, 10) || '—'}</td><td><div className="nk-assign-due"><span>{due || 'Sin fecha'}</span>{overdue && <span className="nk-badge nk-badge-error">Vencida</span>}</div></td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" onClick={() => returnLoan(move)} disabled={saving}>Devolver</ActionButton></td></tr>
       }) : <tr><td colSpan="7" className="nk-assign-empty">No hay préstamos activos para este filtro.</td></tr>}</tbody></table></div></section>
 
       {formOpen && <section className="nk-card nk-assign-editor"><div className="nk-assign-editor-head"><h2>Asignar recurso</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setFormOpen(false)}>Cerrar</button></div><div className="nk-assign-form">
@@ -211,7 +213,7 @@ export default function AsignacionesPrestamosPage() {
         <label><span>Cantidad</span><input className="nk-input" type="number" min="1" value={form.qty} onChange={event => setForm({ ...form, qty: event.target.value })}/></label>
         <label><span>Devolución esperada</span><input className="nk-input" type="date" value={form.expectedReturnAt} onChange={event => setForm({ ...form, expectedReturnAt: event.target.value })}/></label>
         <label className="wide"><span>Observaciones</span><textarea className="nk-input" value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} placeholder="Responsable, condición de entrega u otra referencia..."/></label>
-      </div><div className="nk-assign-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setFormOpen(false)}>Cancelar</button><button className="nk-button nk-button-primary" onClick={saveAssignment} disabled={saving}>{saving ? 'Guardando…' : 'Registrar asignación'}</button></div></section>}
+      </div><div className="nk-assign-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setFormOpen(false)}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveAssignment} disabled={saving}>{saving ? 'Guardando…' : 'Registrar asignación'}</ActionButton></div></section>}
     </div>
   )
 }

@@ -45,9 +45,9 @@ export default function PlatformSection() {
       <div className="nk-two-columns">
         <div>
           <p className="nk-eyebrow">Una operación conectada de principio a fin</p>
-          <h2>De la oportunidad al servicio cerrado.</h2>
+          <h1>De la oportunidad al servicio cerrado.</h1>
           <p className="nk-lead">
-            Nexo Klar transforma datos dispersos en una operación clara, trazable y fácil de seguir. La información se registra una vez y se relaciona con el cliente, contrato, orden de servicio, persona y recurso correspondiente.
+            Nexo Klar transforma información dispersa en una operación clara, trazable y fácil de seguir. La información se registra una vez y se relaciona con el cliente, contrato, orden de servicio, persona y recurso correspondiente.
           </p>
 
           <div className="nk-number-list">

@@ -72,7 +72,7 @@
   display: none;
 }
 
-.nk-public-section-tabs button {
+.nk-public-section-tabs a {
   flex: 0 0 auto;
   min-height: var(--nk-space-10);
   margin-block: var(--nk-space-1);
@@ -90,15 +90,20 @@
     background-color var(--nk-motion-normal) var(--nk-motion-curve);
 }
 
-.nk-public-section-tabs button:hover {
+.nk-public-section-tabs a:hover {
   color: var(--nk-primary);
   background: var(--nk-surface-2);
 }
 
-.nk-public-section-tabs button.is-active {
+.nk-public-section-tabs a.is-active {
   color: var(--nk-surface);
   border-color: var(--nk-accent-data);
   background: var(--nk-primary);
+}
+
+.nk-public-menu-toggle,
+.nk-public-mobile-menu {
+  display: none;
 }
 
 .nk-public-site main {
@@ -108,3 +113,89 @@
 .nk-public-section {
   scroll-margin-top: calc(var(--nk-space-16) + var(--nk-space-12));
 }
+
+@media (max-width: 1024px) {
+  .nk-public-topbar {
+    min-height: var(--nk-space-14);
+    flex-wrap: nowrap;
+    gap: var(--nk-space-2);
+  }
+
+  .nk-public-logo {
+    height: var(--nk-space-8);
+    max-width: min(42vw, var(--nk-space-40));
+  }
+
+  .nk-public-nav-cta {
+    gap: var(--nk-space-2);
+  }
+
+  .nk-public-section-tabs {
+    display: none;
+  }
+
+  /* Win over generic button display rules only inside the compact top bar. */
+  .nk-public-nav-cta > .nk-public-contact,
+  .nk-public-nav-cta > .nk-public-create-company {
+    display: none;
+    pointer-events: none;
+  }
+
+  .nk-public-nav-cta > .nk-public-menu-toggle {
+    display: inline-flex;
+    flex: 0 0 var(--nk-row-compact);
+  }
+
+  .nk-public-mobile-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--nk-space-2);
+    padding: var(--nk-space-3) var(--nk-page-padding);
+    border-top: var(--nk-stroke-thin) solid var(--nk-line);
+    background: var(--nk-surface);
+  }
+
+  .nk-public-mobile-menu[hidden] {
+    display: none;
+  }
+
+  .nk-public-mobile-menu a:not(.nk-button),
+  .nk-public-mobile-menu a {
+    min-height: var(--nk-row-compact);
+    padding: var(--nk-space-2) var(--nk-space-3);
+    border: var(--nk-stroke-thin) solid var(--nk-line);
+    border-radius: var(--nk-radius-md);
+    background: var(--nk-surface);
+    color: var(--nk-ink);
+    font: var(--nk-font-label);
+    text-align: left;
+  }
+
+  .nk-public-mobile-menu button.is-active {
+    border-color: var(--nk-accent-data);
+    background: var(--nk-primary);
+    color: var(--nk-surface);
+  }
+
+  .nk-public-mobile-menu .nk-button {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .nk-public-topbar {
+    padding-inline: var(--nk-space-3);
+  }
+
+  .nk-public-nav-cta .nk-button-primary {
+    min-width: 0;
+    padding-inline: var(--nk-space-3);
+  }
+
+  .nk-public-mobile-menu {
+    grid-template-columns: 1fr;
+    padding-inline: var(--nk-space-3);
+  }
+}
+
+.nk-public-section-tabs a, .nk-public-mobile-menu a { display: inline-flex; align-items: center; text-decoration: none; }

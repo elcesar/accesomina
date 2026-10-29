@@ -1,3 +1,4 @@
+import { calendarDaysUntil } from './calendar-date.js'
 import { mergeCollections } from './report-collections.js'
 import { documentEvidenceMessage, hasRequiredEvidence } from './worker-document-rules.js'
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
@@ -19,12 +20,7 @@ const itemMatchesRequirement = (item, requirement) => {
   return (!requirement.type || normalize(item?.type) === requirement.type) && requirement.matches.some(match => name.includes(match))
 }
 
-export function daysUntil(value) {
-  if (!value) return null
-  const target = new Date(`${String(value).slice(0, 10)}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+export function daysUntil(value) { return calendarDaysUntil(value) }
 
 export function alertKind(item) {
   const urgency = normalize(item.urgencia || item.estado)
@@ -65,7 +61,7 @@ export function deriveOperationalAlerts(state) {
     })
 
     if (isRestricted(person)) {
-      derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona restringida para operar`, derived: true })
+      derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona no habilitada para operar`, derived: true })
     }
   })
 

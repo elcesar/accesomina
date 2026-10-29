@@ -1,13 +1,16 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
-import { IconCheck, IconDeviceFloppy, IconRefresh } from '@tabler/icons-react'
+import { IconCheck, IconDeviceFloppy, IconRefresh, IconUsers } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { applyTenantBranding } from '../services/theme.js'
+import { setOperationalTimeZone } from '../services/calendar-date.js'
+import { EmailInput } from '../components/ui/EmailInput.jsx'
+import { validateEmail } from '../services/email-validation.js'
 import '../styles/configuracion.css'
-
-const DEFAULT_ACCENT = '#2a2a8c'
 
 const MODULE_OPTIONS = [
   ['trabajadores', 'Personas'],
+  ['minas', 'Clientes'],
   ['turnos', 'Turnos y asistencia'],
   ['epp', 'Protección personal / EPP'],
   ['mantenciones', 'Órdenes de servicio'],
@@ -33,12 +36,15 @@ export default function ConfiguracionPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
+  const [smtpValidationRequested, setSmtpValidationRequested] = useState(false)
   const [settings, setSettings] = useState({
-    branding: { displayName: '', theme: 'light', accent: DEFAULT_ACCENT, logoUrl: '' },
+    branding: { displayName: '', theme: 'light', logoUrl: '' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
-    catalogs: { specialties: [] },
+    catalogs: { specialties: [], operationalTimeZone: 'America/Santiago' },
   })
+  const [users, setUsers] = useState([])
+  const [selectedUserId, setSelectedUserId] = useState('')
   const [integrations, setIntegrations] = useState({
     smtp: { ...emptyIntegration },
     whatsapp: { ...emptyIntegration },
@@ -57,7 +63,6 @@ export default function ConfiguracionPage() {
         branding: {
           displayName: current.branding?.displayName || '',
           theme: normalizeTheme(current.branding?.theme),
-          accent: current.branding?.accent || DEFAULT_ACCENT,
           logoUrl: current.branding?.logoUrl || '',
         },
         modules: current.modules || {},
@@ -65,10 +70,13 @@ export default function ConfiguracionPage() {
           warningDays: Number(current.alerts?.warningDays) || 30,
           criticalDays: Number(current.alerts?.criticalDays) || 7,
         },
-        catalogs: current.catalogs || { specialties: [] },
+        catalogs: { ...(current.catalogs || {}), specialties: current.catalogs?.specialties || [], operationalTimeZone: current.catalogs?.operationalTimeZone || 'America/Santiago' },
       }
       setSettings(nextSettings)
       applyTenantBranding(nextSettings.branding)
+      const accountUsers = await api.get('/users')
+      setUsers(accountUsers)
+      setSelectedUserId(currentId => currentId && accountUsers.some(user => user.id === currentId && !['client_admin', 'domian_admin'].includes(user.role)) ? currentId : (accountUsers.find(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))?.id || ''))
 
       const byProvider = Object.fromEntries((data?.integrations || []).map(item => [item.provider, item]))
       setIntegrations({
@@ -98,6 +106,7 @@ export default function ConfiguracionPage() {
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       const nextModules = result?.modules || settings.modules
       setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
+      setOperationalTimeZone(result?.catalogs?.operationalTimeZone || settings.catalogs?.operationalTimeZone)
       applyTenantBranding(nextBranding)
       window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
       window.dispatchEvent(new CustomEvent('nexo:modules-changed', { detail: { modules: nextModules } }))
@@ -110,10 +119,15 @@ export default function ConfiguracionPage() {
   }
 
   const saveIntegration = async provider => {
+    const current = integrations[provider]
+    if (provider === 'smtp' && validateEmail(current.publicConfig.from || '', { required: false })) {
+      setSmtpValidationRequested(true)
+      setMessage('Revisa el correo remitente antes de guardar la integración.')
+      return
+    }
     setSaving(provider)
     setMessage('')
     try {
-      const current = integrations[provider]
       const payload = { enabled: current.enabled, publicConfig: current.publicConfig, secret: current.secret }
       const result = await api.put(`/settings/integrations/${provider}`, payload)
       setIntegrations(all => ({ ...all, [provider]: { ...all[provider], ...result, publicConfig: result.public_config || result.publicConfig || all[provider].publicConfig, secret: {} } }))
@@ -128,14 +142,39 @@ export default function ConfiguracionPage() {
   const setBranding = (key, value) => {
     setSettings(current => {
       const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
-      if (key === 'theme' || key === 'accent') applyTenantBranding(branding)
+      if (key === 'theme') applyTenantBranding(branding)
       return { ...current, branding }
     })
   }
-  const restoreDefaultAccent = () => setBranding('accent', DEFAULT_ACCENT)
   const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
   const toggleModule = key => setSettings(current => ({ ...current, modules: { ...current.modules, [key]: current.modules?.[key] === false } }))
   const updateIntegration = (provider, section, key, value) => setIntegrations(current => ({ ...current, [provider]: { ...current[provider], [section]: { ...current[provider][section], [key]: value } } }))
+  const selectableUsers = users.filter(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))
+  const selectedUser = selectableUsers.find(user => user.id === selectedUserId)
+  const userModules = selectedUser?.permissions?.modules || {}
+  const userCanSee = key => settings.modules?.[key] !== false && userModules[key] !== false
+  const toggleUserModule = key => {
+    if (!selectedUser || settings.modules?.[key] === false) return
+    setUsers(current => current.map(user => user.id === selectedUser.id ? {
+      ...user,
+      permissions: { ...(user.permissions || {}), modules: { ...(user.permissions?.modules || {}), [key]: !userCanSee(key) } },
+    } : user))
+  }
+  const saveUserViews = async () => {
+    if (!selectedUser) return
+    setSaving('user-views')
+    setMessage('')
+    try {
+      const current = users.find(user => user.id === selectedUser.id) || selectedUser
+      const updated = await api.patch(`/users/${current.id}`, { permissions: current.permissions || { modules: {} } })
+      setUsers(all => all.map(user => user.id === updated.id ? { ...user, ...updated } : user))
+      setMessage(`Vistas guardadas para ${updated.full_name}. Tendrá efecto en su próximo acceso.`)
+    } catch (error) {
+      setMessage(error.message || 'No fue posible guardar las vistas del usuario.')
+    } finally {
+      setSaving('')
+    }
+  }
 
   return (
     <section className="nk-module-page nk-config-page">
@@ -145,8 +184,8 @@ export default function ConfiguracionPage() {
           <p>Parámetros exclusivos de este sitio privado</p>
         </div>
         <div className="nk-config-header-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</button>
-          <button className="nk-button nk-button-primary" onClick={saveSettings} disabled={loading || saving === 'settings'}><IconDeviceFloppy size={16}/> {saving === 'settings' ? 'Guardando…' : 'Guardar configuración'}</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</ActionButton>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveSettings} disabled={loading || saving === 'settings'}><IconDeviceFloppy size={16}/> {saving === 'settings' ? 'Guardando…' : 'Guardar configuración'}</ActionButton>
         </div>
       </header>
 
@@ -158,11 +197,10 @@ export default function ConfiguracionPage() {
           <div className="nk-config-form-grid">
             <label className="nk-config-field full"><span>Nombre visible</span><input className="nk-input" value={settings.branding.displayName} onChange={e => setBranding('displayName', e.target.value)} /></label>
             <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="light">Fondo claro</option><option value="dark">Fondo oscuro</option></select></label>
-            <div className="nk-config-field"><span>Color principal</span><div className="nk-config-color"><input aria-label="Seleccionar color principal" type="color" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /><input aria-label="Código del color principal" className="nk-input" value={settings.branding.accent} onChange={e => setBranding('accent', e.target.value)} /></div><button className="nk-button nk-button-secondary" type="button" onClick={restoreDefaultAccent} disabled={settings.branding.accent.toLowerCase() === DEFAULT_ACCENT}><IconRefresh size={14}/> Volver al color original</button></div>
             <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>
-            <label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
+            <label className="nk-config-field"><span>Zona horaria operacional</span><input className="nk-input" value={settings.catalogs?.operationalTimeZone || 'America/Santiago'} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, operationalTimeZone: e.target.value } }))} placeholder="America/Santiago" /></label><label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
           </div>
         </section>
 
@@ -178,17 +216,32 @@ export default function ConfiguracionPage() {
         </section>
       </div>
 
+      <section className="nk-module-card nk-config-card nk-config-user-views">
+        <header><div><h2><IconUsers size={18}/> Vistas por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora de esta empresa.</p></div></header>
+        <div className="nk-config-user-access">
+          <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={loading || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
+          {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={saving === 'user-views'}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</ActionButton></div>}
+        </div>
+        {selectedUser ? <div className="nk-config-modules nk-config-user-module-list">
+          {MODULE_OPTIONS.map(([key, label]) => {
+            const enabledForCompany = settings.modules?.[key] !== false
+            const enabledForUser = userCanSee(key)
+            return <label className={`nk-config-module ${enabledForCompany ? '' : 'disabled'}`} key={key}><input type="checkbox" checked={enabledForUser} disabled={!enabledForCompany} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany && <small>No está habilitado para la empresa</small>}</label>
+          })}
+        </div> : <p className="nk-config-note">Los administradores conservan siempre acceso completo. Crea primero una cuenta no administradora desde Usuarios y permisos.</p>}
+      </section>
+
       <section className="nk-module-card nk-config-card nk-config-integrations">
         <header><div><h2>Integraciones privadas</h2><p>Las claves se cifran y nunca se muestran nuevamente.</p></div></header>
         <div className="nk-config-integration-grid">
           <article className="nk-config-integration">
             <div className="nk-config-integration-title"><h3>Correo SMTP</h3><span className={integrations.smtp.configured ? 'ready' : ''}>{integrations.smtp.configured ? 'Configurado' : 'Pendiente'}</span></div>
             <label className="nk-config-field"><span>Servidor SMTP</span><input className="nk-input" placeholder="smtp.empresa.cl" value={integrations.smtp.publicConfig.host || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'host', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Correo remitente</span><input className="nk-input" placeholder="acceso@empresa.cl" value={integrations.smtp.publicConfig.from || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'from', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Correo remitente</span><EmailInput id="smtp-from" name="smtp-from" placeholder="acceso@empresa.cl" value={integrations.smtp.publicConfig.from || ''} onChange={value => updateIntegration('smtp', 'publicConfig', 'from', value)} validationRequested={smtpValidationRequested} /></label>
             <label className="nk-config-field"><span>Usuario SMTP</span><input className="nk-input" value={integrations.smtp.publicConfig.user || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'user', e.target.value)} /></label>
             <label className="nk-config-field"><span>Clave SMTP nueva</span><input className="nk-input" type="password" value={integrations.smtp.secret.password || ''} onChange={e => updateIntegration('smtp', 'secret', 'password', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.smtp.enabled} onChange={e => setIntegrations(v => ({ ...v, smtp: { ...v.smtp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <button className="nk-button nk-button-secondary" disabled={saving === 'smtp'} onClick={() => saveIntegration('smtp')}>{saving === 'smtp' ? 'Guardando…' : 'Guardar correo'}</button>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'smtp'} onClick={() => saveIntegration('smtp')}>{saving === 'smtp' ? 'Guardando…' : 'Guardar correo'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
@@ -196,7 +249,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field"><span>Phone Number ID</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
             <label className="nk-config-field"><span>Token WhatsApp nuevo</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.whatsapp.enabled} onChange={e => setIntegrations(v => ({ ...v, whatsapp: { ...v.whatsapp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <button className="nk-button nk-button-secondary" disabled={saving === 'whatsapp'} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</button>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'whatsapp'} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
@@ -204,7 +257,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field"><span>URL proveedor firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
             <label className="nk-config-field"><span>Token firma nuevo</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.signature.enabled} onChange={e => setIntegrations(v => ({ ...v, signature: { ...v.signature, enabled: e.target.checked } }))} /> Integración activa</label>
-            <button className="nk-button nk-button-secondary" disabled={saving === 'signature'} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</button>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'signature'} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
           </article>
         </div>
       </section>

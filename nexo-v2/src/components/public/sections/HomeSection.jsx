@@ -14,7 +14,7 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
   return (
     <section id="inicio" className="nk-hero nk-public-section">
       <div className="nk-hero-copy">
-        <p className="nk-eyebrow">Gestión operativa para empresas de servicios</p>
+        <p className="nk-eyebrow">Control operacional y cumplimiento</p>
         <h1>
           Convierte información dispersa en una <span>operación que avanza.</span>
         </h1>
@@ -45,14 +45,14 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
         </div>
       </div>
 
-      <div className="nk-hero-product" aria-label="Vista real de Nexo Klar">
+      <div className="nk-hero-product" aria-label="Ilustración de Nexo Klar">
         <button
           className="nk-image-button"
           type="button"
           onClick={openPreview}
           aria-label="Ampliar vista del panel de control de Nexo Klar"
         >
-          <img src="/assets/dashboard-demo.png" alt="Panel de control real de Nexo Klar" />
+          <img src="/product-overview.svg" alt="Ilustración del panel de Nexo Klar" />
         </button>
 
         <div className="nk-card-grid nk-hero-product-notes" aria-label="Información del panel">

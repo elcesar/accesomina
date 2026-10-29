@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { PUBLIC_PAGES, publicPageKey } from '../config/public-pages.js'
 import '../styles/landing.css'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
@@ -24,15 +26,15 @@ const publicSections = {
   proposito: PurposeSection,
   'registro-empresa': CustomerAccessSection,
   contacto: ContactSection,
-}
+};
 
 function ProductPreview({ onClose }) {
   return (
-    <div className="nk-lightbox" role="dialog" aria-modal="true" aria-label="Vista ampliada de Nexo Klar" onClick={onClose}>
+    <div className="nk-lightbox" role="dialog" aria-modal="true" aria-label="Ilustración ampliada de Nexo Klar" onClick={onClose}>
       <button type="button" aria-label="Cerrar vista ampliada" onClick={onClose}>×</button>
       <img
-        src="/assets/dashboard-demo.png"
-        alt="Vista ampliada de Nexo Klar"
+        src="/product-overview.svg"
+        alt="Ilustración ampliada de Nexo Klar"
         onClick={event => event.stopPropagation()}
       />
     </div>
@@ -40,7 +42,9 @@ function ProductPreview({ onClose }) {
 }
 
 export default function LandingPage() {
-  const [active, setActive] = useState('inicio')
+  const location = useLocation()
+  const navigate = useNavigate()
+  const active = publicPageKey(location.pathname) || 'inicio'
   const [preview, setPreview] = useState(false)
   const [dialog, setDialog] = useState(null)
 
@@ -50,21 +54,35 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
-    const syncSectionFromHash = () => {
-      const hash = window.location.hash.replace('#', '')
-      setActive(publicSections[hash] ? hash : 'inicio')
-    }
+    const metadata = PUBLIC_PAGES[active] || PUBLIC_PAGES.inicio
+    document.title = `Nexo Klar · ${metadata.title}`
+    document.querySelector('meta[name="description"]')?.setAttribute('content', metadata.description)
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', document.title)
+    document.querySelector('meta[property="og:description"]')?.setAttribute('content', metadata.description)
+    const canonical = `https://nexoklar.com${metadata.path}`
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical)
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', canonical)
+  }, [active])
 
-    syncSectionFromHash()
-    window.addEventListener('hashchange', syncSectionFromHash)
-    return () => window.removeEventListener('hashchange', syncSectionFromHash)
-  }, [])
+  useEffect(() => {
+    if (!preview && !dialog) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [dialog, preview])
+
+  // Preserve shared links from the previous hash navigation.
+  useEffect(() => {
+    const key = location.hash.slice(1)
+    if (PUBLIC_PAGES[key]) navigate(PUBLIC_PAGES[key].path, { replace: true })
+  }, [location.hash, navigate])
 
   const goTo = id => {
-    if (!publicSections[id]) return
-
-    setActive(id)
-    window.history.replaceState(null, '', `#${id}`)
+    if (!PUBLIC_PAGES[id]) return
+    navigate(PUBLIC_PAGES[id].path)
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
@@ -103,8 +121,8 @@ export default function LandingPage() {
       <footer className="nk-public-footer">
         <span>Nexo Klar · Información que conecta</span>
         <div>
-          <button type="button" onClick={() => goTo('inicio')}>Volver al inicio</button>
-          <a href="mailto:contacto@nexoklar.cl">contacto@nexoklar.cl</a>
+          <Link to="/">Volver al inicio</Link>
+          <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
         </div>
       </footer>
 

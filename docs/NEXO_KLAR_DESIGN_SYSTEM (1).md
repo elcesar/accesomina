@@ -1,5 +1,5 @@
 # Nexo Klar — Design System Guide
-**Version 3.3 · Septiembre 2026**
+**Version 3.5 · Octubre 2026**
 
 > **Para desarrolladores humanos y agentes IA (Claude, Codex, Copilot):**
 > Este documento es la referencia de diseño, UX y composición modular de Nexo Klar.
@@ -96,7 +96,58 @@ Componentes compartidos principales:
 
 Máximo una acción primaria visible por contexto principal. Tablas: máximo recomendado de siete columnas sin personalización, acciones a la derecha e información necesaria para decidir antes que detalle exhaustivo.
 
+### Estados semánticos y color
+
+Los estados operacionales deben utilizar exclusivamente los tokens compartidos. El color expresa semántica y no decoración; por ello una página o módulo no puede redefinir localmente colores para estados equivalentes.
+
+Referencia visual oficial:
+
+| Estado | Semántica visual |
+| --- | --- |
+| **Vigente / correcto / habilitado** | turquesa, mediante `--nk-state-ok` y su superficie suave |
+| **Por vencer / atención** | ámbar, mediante `--nk-state-warn*` |
+| **No habilitado / error / bloqueo** | magenta, mediante `--nk-state-error*` |
+| **Sin información / neutro** | grafito, mediante `--nk-state-none*` |
+
+Los valores técnicos concretos pertenecen a `tokens.css`, que es la fuente de verdad. Este documento define su significado; no duplicar hexadecimales en CSS de página.
+
+Los badges deben combinar **texto + tratamiento visual + indicador complementario**. El significado nunca puede depender únicamente del color. Las variantes compartidas `.nk-badge-ok`, `.nk-badge-warn`, `.nk-badge-error` y `.nk-badge-none` se implementan en `components.css`; los módulos deben consumirlas y no recrearlas.
+
+Los colores de estado no deben utilizarse para acciones normales. En particular, **guardar, continuar o completar un alta no es un estado “correcto”**: la acción primaria utiliza la variante corporativa `.nk-button-primary`. Verde/turquesa, ámbar o magenta quedan reservados para comunicar estado, atención o error según corresponda.
+
+Los indicadores de progreso de un flujo (por ejemplo, pasos completados de un asistente) representan navegación/progreso y deben usar la jerarquía de acción/marca definida por el sistema, no el color semántico de estado `ok`, salvo que el componente comunique explícitamente un resultado de validación o estado operacional.
+
 Usar Tabler Icons outline. No usar emojis como iconos funcionales.
+
+---
+
+### ConfirmDialog — confirmación transversal de acciones
+
+**Componente oficial:** `src/components/ui/ConfirmDialog.jsx`. **Estilos oficiales:** `.nk-dialog*` y `.nk-button-danger` en `components.css`. No crear diálogos de confirmación locales cuando este componente cubra el caso.
+
+Usar antes de acciones destructivas o de alto impacto (eliminar evidencias, registros, desvincular recursos o descartar cambios sin guardar cuando corresponda). No mostrar confirmación en acciones reversibles o navegación ordinaria sin motivo.
+
+**Contrato:** `open`, `title`, `description`, `confirmLabel`, `cancelLabel`, `variant="danger" | "default"`, `loading`, `error`, `onConfirm`, `onCancel`. El consumidor conserva el control de la mutación y del cierre; el diálogo nunca borra ni guarda datos por sí mismo. `loading` bloquea confirmación, cancelación y Escape durante la operación; en error debe conservarse abierto y mostrar un mensaje visible.
+
+**Accesibilidad obligatoria:** portal al documento, `role="alertdialog"` para acciones destructivas, título/descripción asociados por ARIA, foco inicial en **Cancelar**, contención de Tab/Shift+Tab, Escape para cancelar cuando no esté procesando y restauración del foco al control de origen al cerrar. Validar teclado, lector de pantalla y pantallas móviles (375/480 px), además de 768/1024 px y escritorio. Si se requiere un flujo más complejo que dos acciones, usar un diálogo especializado y justificarlo.
+
+Ejemplo:
+
+```jsx
+<ConfirmDialog
+  open={Boolean(documentToRemove)}
+  title="Eliminar documento"
+  description={`Se eliminará “${documentToRemove?.name}”. Esta acción no se puede deshacer.`}
+  confirmLabel="Eliminar documento"
+  variant="danger"
+  loading={deleting}
+  error={deleteError}
+  onCancel={() => setDocumentToRemove(null)}
+  onConfirm={eliminarConfirmado}
+/>
+```
+
+**Migración:** las nuevas confirmaciones deben utilizar este componente. Los diálogos existentes se migrarán al intervenir cada módulo, comenzando por el PR #227 (eliminación de evidencias de personas). Evitar cambios masivos sin pruebas.
 
 ---
 
@@ -199,6 +250,33 @@ La transformación a mayúsculas del dominio es visual mediante CSS; el texto fu
 - describir la función de la pantalla en lenguaje de usuario;
 - no exponer nombres de claves, IDs, fuentes JSON, tablas ni detalles técnicos de implementación.
 
+
+#### H1 y acción primaria (CTA)
+
+El H1 y la acción primaria deben comunicar de forma inequívoca el contexto y la operación actual. Este criterio es transversal a todos los módulos.
+
+**H1**
+- En catálogos o listados, usar el nombre de la página definido en el Sidebar: `Clientes`, `Personas`, `Contratos y firmas`, etc.
+- En altas, identificar explícitamente la creación: `Nuevo cliente`, `Nueva persona`, `Nuevo contrato`, `Nueva orden de servicio`.
+- En edición o ficha, usar el nombre de la entidad cuando corresponda o el título funcional definido para esa ficha.
+- En asistentes de varios pasos, el H1 permanece estable durante todo el flujo; el nombre del paso actual se presenta como H2. No reemplazar el H1 en cada paso.
+- Debe existir un único H1 visible por página.
+
+**Acción primaria (CTA)**
+- Debe expresar la acción que ocurrirá y ser coherente con el H1 y el estado de la pantalla.
+- En catálogos, la creación debe estar disponible de forma contextual dentro del módulo aunque exista además un acceso rápido global: `Nuevo cliente`, `Nueva persona`, `Nuevo contrato`, `Nueva orden`.
+- En una alta, preferir una acción específica: `Guardar cliente`, `Guardar persona`, `Guardar contrato`.
+- `Guardar cambios` se reserva para la edición de una entidad existente; no usarlo como CTA final de una alta cuando puede identificarse el objeto creado.
+- Mantener como máximo una acción primaria visible por contexto principal. Acciones como `Actualizar`, cancelar, volver o descargar deben utilizar la jerarquía secundaria correspondiente.
+- Los estados vacíos deben referirse a la misma CTA contextual disponible en la pantalla y no dirigir al usuario a un acceso global si existe una acción local.
+
+**Coherencia obligatoria**
+
+H1, CTA, estado de la pantalla y textos de apoyo deben describir el mismo contexto. Por ejemplo, una pantalla con H1 `Nuevo cliente` no debe terminar con `Guardar cambios`, ni un estado vacío debe indicar “usar el Header” si el módulo ya ofrece `Nuevo cliente`.
+
+Este patrón debe resolverse con los componentes y clases compartidos del encabezado. No crear variantes locales para modificar la jerarquía semántica.
+
+
 #### Estructura JSX de referencia
 
 ```jsx
@@ -229,3 +307,321 @@ Clases oficiales del patrón:
 ```
 
 No crear variantes locales como `*-kicker`, `*-page-title` o `*-module-title` cuando representan este mismo patrón.
+
+
+---
+
+## 5. Validación y errores de formularios
+
+La validación de formularios es un patrón transversal de Nexo Klar. Debe aplicarse de forma consistente en altas, ediciones, asistentes, diálogos y cualquier pantalla que permita modificar información.
+
+### 5.1 Comportamiento obligatorio
+
+Al intentar avanzar o guardar un formulario:
+
+1. validar **todos los campos aplicables simultáneamente**; no detener la validación en el primer error;
+2. mostrar cada mensaje de error **junto al campo que lo provoca**;
+3. identificar visualmente cada control inválido mediante el patrón compartido de error;
+4. marcar el control inválido con `aria-invalid="true"`;
+5. asociar el control con su mensaje mediante `aria-describedby`;
+6. mover el foco al **primer campo inválido** siguiendo el orden natural del formulario;
+7. retirar el estado de error cuando el valor haya sido corregido y vuelva a ser válido;
+8. permitir un mensaje general de resumen únicamente como complemento; nunca debe reemplazar los errores asociados a cada campo.
+
+Los mensajes deben explicar qué dato es inválido y, cuando sea posible, cómo corregirlo. Evitar mensajes genéricos como «Datos inválidos», «Error de validación» o códigos técnicos visibles para el usuario.
+
+### 5.2 Estados visuales
+
+Los estilos de error son transversales y deben definirse en `components.css` utilizando los tokens existentes de estado, especialmente `--err` y sus fondos asociados.
+
+No crear colores de error, bordes, tipografías ni espaciados específicos por página. El CSS local puede resolver únicamente composición o layout.
+
+Estados mínimos del campo:
+
+```text
+Normal       → control sin error
+Error        → control identificado visualmente + mensaje asociado
+Deshabilitado → control no editable con tratamiento visual compartido
+```
+
+El atributo `aria-invalid` no reemplaza el tratamiento visual: comunica el estado a tecnologías de asistencia. Del mismo modo, el color no puede ser el único mecanismo para comunicar un error.
+
+### 5.3 Estructura accesible de referencia
+
+```jsx
+<label className="nk-label" htmlFor="rut">RUT</label>
+<input
+  id="rut"
+  className="nk-input"
+  aria-invalid={Boolean(error)}
+  aria-describedby={error ? 'rut-error' : undefined}
+/>
+{error && (
+  <p id="rut-error" className="nk-field-error" role="alert">
+    El RUT ingresado no es válido.
+  </p>
+)}
+```
+
+El identificador del mensaje debe ser único dentro de la página.
+
+### 5.4 Componentes especializados
+
+Los componentes reutilizables de entrada, por ejemplo `RutInput`, `PhoneInput`, `BirthDateInput` y futuros inputs especializados, deben respetar este mismo contrato de validación y accesibilidad.
+
+La lógica de negocio no debe duplicarse de manera diferente entre pantallas. Cuando una regla sea reutilizable, debe centralizarse en el componente o utilidad correspondiente y mantenerse consistente con la validación del backend.
+
+### 5.5 Errores provenientes del backend
+
+Cuando el backend rechace una operación:
+
+- mapear el código de error al campo correspondiente siempre que sea posible;
+- presentar el mensaje junto al campo afectado;
+- conservar un feedback general solo para errores que no puedan asociarse a un campo concreto;
+- no mostrar al usuario códigos internos, trazas ni mensajes técnicos del servidor.
+
+### 5.6 Responsabilidad por capa
+
+```text
+tokens.css       → colores, tipografía, espaciado y valores visuales compartidos
+components.css   → apariencia reutilizable de campo inválido y mensaje de error
+JSX / componente → aria-invalid, aria-describedby, mensajes y foco
+validación       → determina qué campos son inválidos
+backend          → garantiza las reglas de negocio y devuelve errores identificables
+```
+
+Por tanto, la validación de formularios **no se resuelve solo con CSS**. CSS define su representación visual; el comportamiento, la accesibilidad y la asociación entre errores y campos pertenecen a los componentes y a la lógica de la interfaz.
+
+
+---
+
+### 5.7 EmailInput — componente especializado obligatorio
+
+Toda captura editable de correo electrónico en Nexo Klar debe utilizar un **componente reutilizable `EmailInput`** (a implementar en `nexo-v2/src/components/ui/EmailInput.jsx`), siguiendo el contrato de `RutInput`, `PhoneInput` y `BirthDateInput`. No crear validadores o mensajes de correo particulares en cada página. La migración de pantallas existentes puede realizarse de forma incremental, pero toda pantalla nueva y toda corrección de validación de correo debe utilizar este patrón.
+
+**Contrato funcional y de accesibilidad:**
+
+- Aceptar `value`, `onChange`, `id`, `name`, `required`, `disabled` y propiedades accesibles apropiadas. El campo es **opcional por defecto**; la obligatoriedad depende de la regla del formulario, no del componente.
+- Utilizar `type="email"`, `autocomplete="email"` cuando corresponda, longitud máxima de 254 caracteres y normalización de espacios exteriores al validar/guardar, **sin alterar arbitrariamente el texto durante la escritura**.
+- Centralizar la política de formato y la función de validación en una utilidad compartida de frontend consumida por `EmailInput`; no depender únicamente de la validación HTML del navegador. Un campo opcional vacío es válido; uno obligatorio vacío no lo es.
+- Presentar error contextual junto al campo con identificador estable, `aria-invalid`, `aria-describedby`, label asociado y foco accesible cuando un intento de guardar falle. Evitar mensajes duplicados en el mismo formulario.
+- Usar las clases, tokens y estados visuales definidos en `tokens.css` y `components.css`; **no introducir CSS paralelo ni colores hardcodeados**.
+- Mantener el error de backend `INVALID_WORKER_EMAIL` u otros equivalentes asociados al campo correspondiente, con mensaje funcional en español; nunca anunciar éxito si el servidor rechaza la operación.
+- **Backend como autoridad:** validar nuevamente en servidor. La política frontend/backend debe ser **equivalente y demostrable mediante pruebas compartidas de casos válidos, inválidos y límites**. Si se usan motores distintos (por ejemplo, regex y Zod), no asumir equivalencia: contrastar explícitamente los casos y corregir divergencias.
+- **Compatibilidad histórica:** cuando el servidor guarda un módulo completo, un correo inválido preexistente y sin modificaciones no debe impedir guardar otra entidad válida; todo correo nuevo o modificado sí debe validarse. Esta excepción se decide en servidor comparando contra el estado persistido, nunca con un `previousState` confiado al cliente.
+
+**Criterios mínimos de QA:** correo opcional vacío; correo requerido vacío; formato inválido; subdominio y caracteres permitidos; longitud límite; normalización de espacios; error devuelto por API; foco/lector de pantalla; escritorio y móvil; persistencia y recarga; registros históricos inválidos intactos; pruebas de paridad frontend/backend.
+
+**Precedencia:** si un issue o PR plantea un campo de correo con layout, validación o feedback distinto, implementar `EmailInput` conforme a este documento y registrar la divergencia en el issue. No duplicar reglas en `FichaTrabajadorPage`, Clientes, Usuarios u otros módulos.
+
+## 6. Protección de cambios sin guardar
+
+La protección frente a pérdida accidental de información es un patrón transversal para formularios de alta, edición y asistentes.
+
+- Si el usuario intenta **abandonar el flujo** y existen cambios sin guardar, solicitar confirmación antes de descartar la información.
+- Navegar entre pasos, pestañas o secciones que forman parte del mismo flujo **no se considera abandono** y no debe solicitar confirmación.
+- Si no existen cambios respecto del estado inicial, permitir la salida sin confirmación.
+- Una vez guardada correctamente la información, la navegación posterior no debe presentar una advertencia por esos cambios ya persistidos.
+- Ante cierre, recarga o navegación fuera de la aplicación, usar la protección estándar del navegador cuando existan cambios sin guardar.
+- El mensaje dentro de la aplicación debe indicar claramente que salir descartará la información ingresada.
+
+La implementación específica puede variar según el router o formulario, pero debe conservar este comportamiento funcional en todos los módulos.
+
+
+---
+
+## 7. Responsive y experiencia móvil
+
+El comportamiento responsive es un patrón transversal de Nexo Klar. No debe resolverse como una colección de correcciones aisladas por pantalla: cada módulo debe conservar la jerarquía de información, las acciones críticas y la accesibilidad al reducir el viewport.
+
+### 7.1 Breakpoints oficiales
+
+Los puntos de referencia del Design System son:
+
+```text
+≤ 1024 px  → modo compacto / tablet
+≤ 768 px   → modo móvil estructural
+≤ 480 px   → teléfono compacto
+```
+
+Estos valores son decisiones del sistema y no deben redefinirse arbitrariamente por página. CSS estándar no permite usar custom properties directamente como condición de `@media`; por ello los valores se documentan aquí y se escriben explícitamente en las media queries.
+
+Un componente puede necesitar una adaptación intrínseca adicional por su contenido, pero no debe introducir un nuevo breakpoint global sin actualizar primero este Design System.
+
+### 7.2 Jerarquía de implementación
+
+La responsabilidad responsive sigue la arquitectura visual oficial:
+
+```text
+Design System / tokens
+    ↓
+reglas y componentes globales
+    ↓
+layout
+    ↓
+componente
+    ↓
+página / excepción
+```
+
+- **Design System / tokens:** define breakpoints, espaciados, tamaños y principios compartidos.
+- **`components.css`:** define el comportamiento responsive de componentes reutilizables cuando el patrón es transversal.
+- **CSS de layout:** adapta estructuras como Header, Sidebar, navegación pública, contenedores y composición general.
+- **CSS de componente o módulo:** resuelve únicamente necesidades propias de ese componente.
+- **CSS de página:** es el último nivel. No debe crear un sistema responsive paralelo ni redefinir reglas globales.
+
+No crear un archivo o sistema visual “mobile” independiente. La experiencia móvil es una adaptación del mismo sistema de diseño.
+
+### 7.3 Comportamiento por rango
+
+**Hasta 1024 px · compacto/tablet**
+- la navegación que no cabe debe transformarse en un patrón compacto accesible; no ocultar destinos sin alternativa;
+- Sidebar y estructuras laterales pueden colapsar cuando corresponda;
+- grids deben reducir columnas antes de provocar desbordamiento;
+- acciones principales deben permanecer disponibles.
+
+**Hasta 768 px · móvil estructural**
+- priorizar una columna para formularios y contenido secuencial;
+- permitir que grupos de acciones se reorganicen verticalmente;
+- preservar primero título, contexto, estado y acción principal;
+- tablas deben utilizar una estrategia explícita de adaptación: scroll interno controlado o representación alternativa, según el tipo de información.
+
+**Hasta 480 px · teléfono compacto**
+- reducir padding horizontal utilizando los tokens existentes;
+- evitar controles dependientes de hover;
+- asegurar que navegación, acciones y campos puedan utilizarse sin zoom ni desplazamiento horizontal de la página;
+- las acciones secundarias pueden reorganizarse, pero no desplazar ni ocultar la acción crítica.
+
+### 7.4 Reglas UX obligatorias
+
+En cualquier viewport:
+
+1. no debe existir scroll horizontal de la página como solución de layout;
+2. ninguna función crítica puede desaparecer únicamente por falta de espacio;
+3. el orden visual debe conservar la jerarquía semántica y un orden de foco lógico;
+4. labels de formularios permanecen visibles y asociados a sus controles;
+5. diálogos y paneles deben caber dentro del viewport; si el contenido excede la altura disponible, el scroll debe ocurrir dentro del contenedor apropiado y no dejar acciones críticas inaccesibles;
+6. tablas no deben comprimirse hasta volver ilegible su contenido;
+7. controles interactivos deben mantener un área táctil suficiente y separación que evite activaciones accidentales;
+8. no depender exclusivamente de hover para descubrir información o acciones;
+9. estados, errores y feedback deben seguir visibles y comprensibles;
+10. el cambio de presentación no debe alterar permisos, reglas de negocio ni significado de la información.
+
+### 7.5 Navegación responsive
+
+Cuando una navegación horizontal deje de ser utilizable, debe reemplazarse por una alternativa compacta que contenga los mismos destinos relevantes.
+
+El control que abre/cierra navegación debe:
+- indicar su propósito mediante nombre accesible;
+- exponer `aria-expanded`;
+- asociarse al contenedor mediante `aria-controls`;
+- conservar `aria-current="page"` para la sección activa cuando corresponda;
+- cerrar o actualizar su estado después de una navegación;
+- ser operable mediante teclado.
+
+Ocultar una navegación mediante CSS sin ofrecer una alternativa accesible se considera defecto funcional de UX.
+
+### 7.6 Jerarquía móvil de contenido y acciones
+
+Responsive no significa mostrar todo con el mismo peso en menos espacio. Al reorganizar una pantalla se debe conservar esta prioridad:
+
+```text
+Contexto / dominio
+Título
+Estado o información necesaria para decidir
+Acción primaria
+Contenido principal
+Acciones secundarias
+Detalle complementario
+```
+
+La reducción de viewport puede cambiar disposición, columnas, agrupación y densidad, pero no debe cambiar arbitrariamente la prioridad funcional.
+
+### 7.7 Tratamiento de defectos responsive
+
+Un problema responsive se considera **defecto** cuando una vista soportada:
+- genera overflow horizontal de página;
+- oculta contenido o una acción necesaria;
+- superpone, corta o vuelve ilegible información;
+- obliga a zoom para operar controles normales;
+- rompe el orden de navegación o foco;
+- deja diálogos, formularios, tablas o navegación sin una forma utilizable de acceso;
+- implementa un comportamiento contrario a este estándar.
+
+El lineamiento de corrección es **resolver el defecto en el nivel más alto reutilizable que corresponda**:
+
+```text
+¿Afecta a todo Nexo Klar?       → tokens / components.css
+¿Afecta a una estructura común? → CSS de layout
+¿Afecta a un componente?        → componente compartido
+¿Es realmente exclusivo?        → CSS de página
+```
+
+No corregir un defecto transversal copiando media queries en varias páginas. Si durante la corrección se descubre una regla reusable no contemplada por este documento, primero debe elevarse al Design System y luego implementarse.
+
+### 7.8 Criterio mínimo de aceptación
+
+Toda funcionalidad nueva o corrección visual debe comprobarse al menos en escritorio, 1024 px, 768 px y 375/480 px según corresponda. La validación debe confirmar ausencia de overflow de página, acceso a las acciones críticas, legibilidad, navegación operable, formularios utilizables y comportamiento correcto de diálogos.
+
+Un PR que modifica una estructura responsive debe indicar qué rangos fueron verificados y si el cambio pertenece a componente, layout o excepción de página.
+
+
+---
+
+## 8. Patrón transversal de páginas y estados de error
+
+### 8.1 Alcance y precedencia
+
+Las páginas de error de Nexo Klar constituyen **un patrón de experiencia compartido**, no layouts independientes por código HTTP. La página 404 es la primera aplicación del patrón; las futuras vistas 403, 500 y 503 deben reutilizar la misma estructura visual. También pueden incorporarse sesión expirada, enlace inválido y conectividad, respetando su comportamiento particular.
+
+**Este Design System tiene precedencia gráfica y de UX frente a mockups, capturas o soluciones de layout descritas en issues anteriores.** Si un issue solicita un layout distinto o incompatible, se corrige el problema utilizando el patrón oficial y se deja constancia en el issue de la divergencia y de la solución adoptada. Si se justifica modificar un patrón transversal, primero se propone y revisa el cambio en este documento; no se crean excepciones locales implícitas.
+
+### 8.2 Composición común
+
+Orden visual y semántico de una página de error completa:
+
+1. Logo oficial de Nexo Klar adecuado al fondo, obtenido de `public/brand/`.
+2. Icono contextual Tabler outline, con tratamiento neutro o semántico conforme a tokens (no usar color de estado como decoración).
+3. Código o etiqueta de estado, como `Error 404`, cuando ayude a reconocer el problema.
+4. **Un único H1** en lenguaje claro, que explique qué ocurrió.
+5. Descripción breve y orientada a la recuperación, sin trazas, IDs internos ni datos sensibles.
+6. Máximo **una acción primaria**, con etiqueta explícita, y acciones secundarias opcionales.
+
+La presentación utiliza `--nk-base` como lienzo, `--nk-surface` para el panel cuando corresponda, y tokens canónicos para texto, borde, elevación, tipografía y espaciado. Reutilizar `.nk-button` y sus variantes de `components.css`. El CSS de página resuelve únicamente composición. No introducir colores hexadecimales, fuentes, botones ni tokens nuevos en el CSS específico.
+
+La vista debe ser legible y utilizable en escritorio, 1024 px, 768 px y 375/480 px, sin scroll horizontal. Mantener orden de lectura y foco, contraste y foco visible. Las áreas táctiles deben medir al menos **44 × 44 px**; `--nk-control-min` (40 px) no sustituye a `--nk-touch-min` (44 px).
+
+### 8.3 Reutilización técnica
+
+Implementar una **composición o componente compartido parametrizable** para páginas completas, por ejemplo `ErrorPage`, con propiedades para código/estado, icono, título, descripción y acciones. No copiar una página JSX y un CSS por cada código. Las diferencias de contenido y navegación se configuran por caso, sin introducir lógica de autenticación o permisos dentro del componente puramente visual.
+
+Distinguir tres niveles de presentación:
+- **Página completa:** ruta inexistente, acceso denegado, fallo global o servicio indisponible (404, 403, 500, 503).
+- **Estado de módulo:** carga fallida o servicio parcial indisponible; mostrar el error dentro del módulo y permitir reintento sin reemplazar toda la aplicación.
+- **Error de operación/formulario:** mensaje contextual junto al control o acción, siguiendo la sección 5; no convertir validaciones corrientes en páginas completas.
+
+Reutilizar tokens, semántica, iconografía y jerarquía de acciones entre niveles, pero no forzar el mismo contenedor para todos.
+
+### 8.4 Casos y acciones de referencia
+
+| Caso | H1 orientativo | Acción principal orientativa | Consideraciones |
+| --- | --- | --- | --- |
+| 404 · ruta inexistente | Página no encontrada | Ir al inicio / Ir al panel | Volver atrás opcional; navegación según sesión |
+| 403 · acceso denegado | No tienes acceso a esta sección | Volver al panel | No exponer recursos restringidos ni detalles de permisos |
+| 500 · fallo inesperado | Ocurrió un problema inesperado | Reintentar, cuando sea seguro | Contención de errores de render y recuperación controlada |
+| 503 · indisponibilidad | Servicio temporalmente no disponible | Reintentar | No prometer plazos sin información verificada |
+| Sesión expirada | Tu sesión ha finalizado | Iniciar sesión | Manejar autenticación de manera centralizada |
+| Sin conexión | No pudimos conectar con el servicio | Reintentar | Distinguir fallo de red de error de servidor |
+| Enlace inválido o vencido | Este enlace ya no es válido | Solicitar un nuevo enlace | No revelar existencia de cuentas o tokens |
+
+Los códigos HTTP **no determinan automáticamente** una navegación de página completa: el manejo de API y los errores recuperables deben conservar el contexto del usuario. La acción `Reintentar` solo debe repetir operaciones seguras o diseñadas para ser idempotentes.
+
+### 8.5 Criterios de aceptación
+
+1. Componente/patrón compartido sin duplicación de estructura o estilos para cada código.
+2. Logo, tipografía, superficies, iconos y acciones alineados con tokens y componentes oficiales.
+3. Un H1, explicación comprensible, foco de teclado visible, orden semántico y áreas táctiles ≥ 44 × 44 px.
+4. Navegación coherente para usuarios autenticados y visitantes, sin bucles ni exposición de información protegida.
+5. Pruebas en escritorio y móvil; verificación de reintento, accesibilidad y estados según el caso.
+6. Issues y PRs documentan cualquier diferencia entre evidencia de QA antigua y el layout oficial vigente.
+7. No cerrar issues por el solo hecho de agregar la página: comprobar integración, manejo real del error y recuperación.

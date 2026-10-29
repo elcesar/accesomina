@@ -1,10 +1,36 @@
+import { OPTIONAL_RUT_ERROR } from './rut.js'
+
 const BASE = '/api'
 let csrfToken = null
+
+function publishEvent(name, detail) {
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(name,{detail}))
+}
+// Only explicit user-facing writes publish global success messages.
+// State synchronization and authentication operations must not look like a user save.
+function isMutation(path, method, feedback) {
+  if (feedback === false) return false
+  if (feedback === true) return !['GET', 'HEAD'].includes(method)
+  if (['GET', 'HEAD'].includes(method)) return false
+  const pathname = path.split('?')[0]
+  if (pathname === '/state' || pathname.startsWith('/state/')) return false
+  if (pathname === '/auth' || pathname.startsWith('/auth/')) return false
+  return pathname === '/settings' || /^\/(clients|contracts|workers|users|tenants|projects|orders|documents|incidents|tickets)(\/|$)/.test(pathname)
+}
+function loadFailure(path,method,status){
+  if(method==='GET' && path.split('?')[0]==='/state' && status>=500)publishEvent('nexo:load-failed',{status})
+}
+
 
 const ERROR_MESSAGES = {
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
   ACCOUNT_DISABLED: 'Tu cuenta o empresa no está habilitada para ingresar.',
+  INVALID_INVITATION_REQUEST: 'El enlace de invitación está incompleto. Solicita una invitación nueva al administrador de tu empresa.',
+  INVITATION_INVALID_OR_EXPIRED: 'La invitación venció, ya se utilizó o fue reemplazada. Solicita al administrador de tu empresa que la reenvíe.',
+  INVITATION_ALREADY_ACCEPTED: 'Esta cuenta ya aceptó su invitación. Usa la recuperación de contraseña si necesitas restablecer el acceso.',
+  INVITATION_PASSWORD_MISMATCH: 'Las contraseñas no coinciden. Vuelve a escribir la confirmación.',
+  USER_ALREADY_EXISTS: 'Este correo ya tiene acceso en la empresa. Actualiza la lista de usuarios y reenvía su invitación si está pendiente.',
   MFA_ENROLLMENT_REQUIRED: 'Debes configurar la doble autenticación antes de continuar.',
   MFA_REQUIRED: 'Ingresa el código de tu aplicación autenticadora.',
   MFA_CODE_INVALID: 'El código de doble autenticación no es válido.',
@@ -24,12 +50,26 @@ const ERROR_MESSAGES = {
   LIMIT_FILE_SIZE: 'El archivo supera el tamaño máximo permitido de 25 MB.',
   MODULE_VERSION_CONFLICT: 'La información cambió mientras la estabas editando. Actualizamos los datos; revísalos y vuelve a guardar.',
   INVALID_REFERENCE: 'Uno de los registros relacionados ya no existe o no corresponde. Actualiza la página y revisa las selecciones.',
+  WORKER_NOT_AVAILABLE: 'La persona no está habilitada para recibir una asignación. Habilítala antes de continuar.',
   INVALID_EPP_DELIVERY: 'Completa persona, equipo de protección, cantidad y fecha de entrega antes de guardar.',
   INVALID_EPP_DELIVERY_STATUS: 'La condición o el estado de la entrega de EPP no es válido.',
   DUPLICATE_EPP_DELIVERY: 'Ya existe una entrega de este equipo para la misma persona, fecha y lote.',
+  DUPLICATE_WORKER_DOCUMENT: 'Ya existe un documento con la misma clasificación, referencia y vigencia para esta persona.',
+  DUPLICATE_WORKER_DOCUMENT_ID: 'No fue posible registrar el documento porque coincide con una evidencia existente. Actualiza la página e inténtalo nuevamente.',
   DUPLICATE_WORKER_RUT: 'Ya existe una persona registrada con ese RUT.',
   INVALID_WORKER_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
+  INVALID_WORKER_EMAIL: 'Ingresa un correo electrónico válido o deja el campo vacío.',
   INVALID_WORKER_PHONE: 'El teléfono ingresado no tiene un formato chileno válido.',
+  INVALID_WORKER_BIRTH_DATE: 'La fecha de nacimiento no puede ser futura.',
+  WORKER_UNDERAGE: 'La persona no cumple con la edad mínima permitida. Revisa la fecha de nacimiento ingresada.',
+  WORKER_DOCUMENT_FILE_REQUIRED: 'Adjunta el archivo del documento antes de guardarlo.',
+  WORKER_DOCUMENT_SIDES_REQUIRED: 'Adjunta el anverso y reverso del documento.',
+  WORKER_DOCUMENT_EXPIRY_REQUIRED: 'Ingresa una fecha de vencimiento válida para este documento.',
+  WORKER_DOCUMENT_FILE_UNAVAILABLE: 'El archivo no está disponible para adjuntarlo. Vuelve a cargarlo.',
+  INVALID_OPPORTUNITY_RUT: OPTIONAL_RUT_ERROR,
+  INCOMPLETE_WORKER_DOCUMENT: 'Completa el tipo y nombre de la evidencia antes de guardarla.',
+  WORKER_NOT_FOUND: 'No encontramos a la persona asociada a esta evidencia. Actualiza la ficha e inténtalo nuevamente.',
+  WORKER_DOCUMENT_NOT_FOUND: 'No encontramos la evidencia que deseas eliminar. Actualiza la ficha e inténtalo nuevamente.',
   DUPLICATE_CONTRACT_NUMBER: 'Ya existe un contrato registrado con ese número o código.',
   DUPLICATE_ASSIGNMENT: 'La persona ya está asignada a esa orden de servicio.',
   DUPLICATE_SHIFT: 'La persona ya tiene una jornada registrada para esa fecha y turno.',
@@ -39,6 +79,18 @@ const ERROR_MESSAGES = {
   INVALID_CLIENT_RUT: 'El RUT ingresado no corresponde a un RUT chileno válido.',
   DUPLICATE_CLIENT_RUT: 'Ya existe un cliente registrado con ese RUT.',
   DUPLICATE_CLIENT: 'Ya existe un cliente con el mismo nombre y organización relacionada.',
+  DUPLICATE_ID: 'Ya existe un registro con ese identificador.',
+  DUPLICATE_PROJECT: 'Ya existe una orden de servicio equivalente para ese cliente y fecha.',
+  DUPLICATE_HOTEL: 'Ya existe un alojamiento equivalente registrado.',
+  INVALID_SUBCONTRACTOR_RUT: 'El RUT del subcontratista no es válido.',
+  DUPLICATE_SUBCONTRACTOR_RUT: 'Ya existe un subcontratista registrado con ese RUT.',
+  DUPLICATE_VEHICLE: 'Ya existe un vehículo registrado con esa patente o número de serie.',
+  DUPLICATE_HEALTH_PROTOCOL: 'Ya existe un protocolo de salud equivalente para esta persona.',
+  DUPLICATE_INCIDENT: 'Ya existe un incidente equivalente registrado.',
+  DUPLICATE_WORK_PERMIT: 'Ya existe un permiso de trabajo equivalente para esta orden de servicio.',
+  DUPLICATE_WHATSAPP_GROUP: 'Ya existe un grupo de WhatsApp equivalente.',
+  DUPLICATE_SIGNATURE_REQUEST: 'Ya existe una solicitud de firma activa equivalente.',
+  FIELD_PERMISSION_DENIED: 'No tienes permisos para modificar uno o más de estos datos.',
 
   REGISTRATION_CLOSED: 'El registro de nuevas empresas está temporalmente cerrado. Solicita una invitación a Nexo Klar.',
   INVITE_CODE_INVALID: 'El código de invitación ingresado no es válido.',
@@ -90,7 +142,10 @@ const STATUS_MESSAGES = {
   504: 'La solicitud tardó demasiado en responder. Inténtalo nuevamente.',
 }
 
-export function friendlyApiError(code, status) {
+export function friendlyApiError(code, status, metadata = {}) {
+  if (code === 'WORKER_UNDERAGE' && metadata.minimumAge) {
+    return `La persona no cumple con la edad mínima permitida de ${metadata.minimumAge} años. Revisa la fecha de nacimiento ingresada.`
+  }
   if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
   if (String(code || '').startsWith('DUPLICATE_')) return 'Ya existe un registro equivalente. Revisa los datos ingresados antes de guardar.'
   if (String(code || '').startsWith('INVALID_')) return 'Revisa los datos relacionados y los campos obligatorios antes de guardar.'
@@ -109,33 +164,47 @@ export function getCsrf() {
 
 async function parseError(res) {
   const err = await res.json().catch(() => ({}))
-  const code = err.error
-  const message = friendlyApiError(code, res.status)
+  // API errors historically used `error`; state validation returns `code`.
+  // Preserve both contracts while code is the canonical functional identifier.
+  const code = err.code || err.error || null
+  const metadata = Object.fromEntries(
+    Object.entries(err).filter(([key]) => !['code', 'error', 'message'].includes(key))
+  )
+  const message = friendlyApiError(code, res.status, metadata)
 
   throw Object.assign(new Error(message), {
     status: res.status,
     code,
     technicalMessage: err.message || null,
+    metadata,
+    ...metadata,
   })
 }
 
 async function request(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const { feedback, ...fetchOptions } = options
+  const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers }
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const method=options.method||'GET'
+  const notify = isMutation(path, method, options.feedback)
+  if(notify)publishEvent('nexo:mutation-started')
+  let res
+  try { res = await fetch(`${BASE}${path}`, {
     credentials: 'same-origin',
-    ...options,
+    ...fetchOptions,
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+    body: fetchOptions.body ? JSON.stringify(fetchOptions.body) : undefined,
+  }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
+  if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
-  if (res.status === 204) return null
-  return res.json()
+  const result = res.status===204 ? null : await res.json()
+  if(notify)publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  return result
 }
 
-async function upload(path, file, fields = {}) {
+async function upload(path, file, fields = {}, options = {}) {
   const body = new FormData()
   body.append('file', file)
   Object.entries(fields).forEach(([key, value]) => {
@@ -145,6 +214,8 @@ async function upload(path, file, fields = {}) {
   const headers = {}
   if (csrfToken) headers['x-csrf-token'] = csrfToken
 
+  const notify = isMutation(path, 'POST', options.feedback)
+  if (notify) publishEvent('nexo:mutation-started')
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     credentials: 'same-origin',
@@ -152,14 +223,16 @@ async function upload(path, file, fields = {}) {
     body,
   })
   if (!res.ok) await parseError(res)
-  return res.json()
+  const result = res.status === 204 ? null : await res.json()
+  if (notify) publishEvent('nexo:mutation-completed', { message: 'Archivo cargado correctamente.' })
+  return result
 }
 
 export const api = {
   get: (path) => request(path, { method: 'GET' }),
-  post: (path, body) => request(path, { method: 'POST', body }),
-  put: (path, body) => request(path, { method: 'PUT', body }),
-  patch: (path, body) => request(path, { method: 'PATCH', body }),
-  delete: (path, body) => request(path, { method: 'DELETE', body }),
+  post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
+  put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
+  patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
+  delete: (path, options = {}) => request(path, { ...options, method: 'DELETE' }),
   upload,
 }

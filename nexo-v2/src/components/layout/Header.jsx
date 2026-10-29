@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   IconBell,
@@ -6,6 +7,9 @@ import {
   IconLogout,
   IconTool,
   IconUserPlus,
+  IconMenu2,
+  IconPlus,
+  IconDotsVertical,
 } from '@tabler/icons-react'
 import { useAuth } from '../../services/auth.jsx'
 import { useModuleAccess } from '../../services/module-access.jsx'
@@ -18,14 +22,15 @@ const roleLabel = value => String(value || 'usuario')
   .replace(/\b\w/g, letter => letter.toUpperCase())
 
 const activeModuleForPath = pathname => {
-  if (pathname.startsWith('/app/trabajadores')) return 'personas'
-  if (pathname.startsWith('/app/clientes')) return 'clientes'
+  if (pathname.startsWith('/app/trabajadores')) return 'trabajadores'
+  if (pathname.startsWith('/app/clientes')) return 'minas'
   if (pathname.startsWith('/app/contratos')) return 'contratos'
-  if (pathname.startsWith('/app/servicios')) return 'servicios'
+  if (pathname.startsWith('/app/servicios')) return 'mantenciones'
   return null
 }
 
-export default function Header({ branding = {} }) {
+export default function Header({ branding = {}, menuOpen = false, onToggleMenu, menuButtonRef }) {
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const { session, logout } = useAuth()
@@ -49,6 +54,7 @@ export default function Header({ branding = {} }) {
 
   return (
     <header className="nk-global-header">
+      <button ref={menuButtonRef} className="nk-mobile-menu-toggle" type="button" aria-label={menuOpen ? 'Cerrar navegación' : 'Abrir navegación'} aria-expanded={menuOpen} aria-controls="nk-primary-sidebar" onClick={onToggleMenu}><IconMenu2 size={24} /></button>
       <div className="nk-global-context" aria-label="Contexto de sesión">
         <div className="nk-global-tenant-brand">
           {tenantLogo && (
@@ -67,10 +73,11 @@ export default function Header({ branding = {} }) {
         </span>
       </div>
 
-      <div className="nk-global-actions" aria-label="Acciones globales">
+      <button className="nk-mobile-actions-toggle" type="button" aria-label="Mostrar acciones de creación" aria-expanded={mobileActionsOpen} aria-controls="nk-mobile-create-actions" onClick={() => setMobileActionsOpen(value => !value)}><IconPlus size={22} /></button>
+      <div id="nk-mobile-create-actions" className={`nk-global-actions ${mobileActionsOpen ? 'nk-global-actions-open' : ''}`} aria-label="Acciones globales">
         {canCreateGeneral && isEnabled('trabajadores') && (
           <button
-            className={createClass('personas')}
+            className={createClass('trabajadores')}
             type="button"
             onClick={() => navigate('/app/trabajadores/nuevo')}
           >
@@ -79,9 +86,9 @@ export default function Header({ branding = {} }) {
           </button>
         )}
 
-        {canCreateGeneral && (
+        {canCreateGeneral && isEnabled('minas') && (
           <button
-            className={createClass('clientes')}
+            className={createClass('minas')}
             type="button"
             onClick={() => navigate('/app/clientes/nuevo')}
           >
@@ -103,7 +110,7 @@ export default function Header({ branding = {} }) {
 
         {canCreateCommercial && isEnabled('mantenciones') && (
           <button
-            className={createClass('servicios')}
+            className={createClass('mantenciones')}
             type="button"
             onClick={() => navigate('/app/servicios/nuevo')}
           >
@@ -113,7 +120,7 @@ export default function Header({ branding = {} }) {
         )}
 
         <button
-          className="nk-icon-button"
+          className="nk-icon-button nk-global-alerts"
           type="button"
           onClick={() => navigate('/app/alertas')}
           aria-label="Ir a alertas"

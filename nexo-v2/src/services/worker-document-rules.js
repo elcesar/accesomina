@@ -17,6 +17,23 @@ export const DOCUMENT_TYPE_OPTIONS = [
   { value: 'OTHER', label: 'Otro documento' },
 ]
 
+const ITEM_TYPE_BY_DOCUMENT_TYPE = {
+  IDENTITY_CARD: 'documento',
+  DRIVER_LICENSE: 'documento',
+  CV: 'cv',
+  EMPLOYMENT_CONTRACT: 'contrato',
+  SERVICE_ANNEX: 'contrato',
+  AFP_CERTIFICATE: 'documento',
+  AFC_CERTIFICATE: 'documento',
+  HEALTH_INSURANCE_CERTIFICATE: 'documento',
+  MEDICAL_EXAM: 'examen',
+  ODI_ACKNOWLEDGMENT: 'curso',
+  INTERNAL_REGULATION_ACKNOWLEDGMENT: 'curso',
+  CERTIFICATION: 'certificacion',
+  TRAINING: 'curso',
+  OTHER: 'documento',
+}
+
 const RULES = {
   IDENTITY_CARD: { expiration: 'required', twoSided: true },
   DRIVER_LICENSE: { expiration: 'required', twoSided: true },
@@ -55,22 +72,27 @@ export function documentRule(typeOrCode, name, documentType) {
   return { key: code.toLowerCase().replaceAll('_', '-'), code, ...RULES[code] }
 }
 
+export function workerItemType(documentType, name = '') {
+  return ITEM_TYPE_BY_DOCUMENT_TYPE[resolveDocumentType(documentType, '', name)] || 'documento'
+}
+
 export function hasRequiredEvidence(item) {
   const rule = documentRule(item?.type, item?.name, item?.documentType)
-  if (!rule.twoSided) return true
+
   const files = Array.isArray(item?.files) ? item.files : []
+  if (!rule.twoSided) return Boolean(item?.fileId || files.some(file => file?.fileId))
   const sides = new Set(files.filter(file => file?.fileId && file?.side).map(file => file.side))
-  return sides.has('front') && sides.has('back') && Boolean(item?.vence)
+  return sides.has('front') && sides.has('back')
 }
 
 export function documentEvidenceMessage(item) {
+  if (hasRequiredEvidence(item)) return ''
   const rule = documentRule(item?.type, item?.name, item?.documentType)
-  if (!rule.twoSided || hasRequiredEvidence(item)) return ''
   const files = Array.isArray(item?.files) ? item.files : []
+  if (!rule.twoSided) return 'archivo no disponible'
   const sides = new Set(files.filter(file => file?.fileId && file?.side).map(file => file.side))
   const missing = []
   if (!sides.has('front')) missing.push('anverso')
   if (!sides.has('back')) missing.push('reverso')
-  if (!item?.vence) missing.push('fecha de vencimiento')
   return `Falta ${missing.join(', ')}`
 }

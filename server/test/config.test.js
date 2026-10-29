@@ -12,8 +12,15 @@ const productionEnv = {
   MFA_REQUIRED: 'true',
   FILE_STORAGE: 's3',
   AWS_S3_BUCKET: 'private-accesomina-files',
-  VIRUS_SCAN_API_URL: 'https://scanner.example.com/scan'
-  ,METRICS_TOKEN: 'monitor-4f57c269775f4caaa9156af36b3e'
+  VIRUS_SCAN_API_URL: 'https://scanner.example.com/scan',
+  METRICS_TOKEN: 'monitor-4f57c269775f4caaa9156af36b3e',
+  SMTP_HOST: 'smtp.example.com',
+  SMTP_PORT: '587',
+  SMTP_SECURE: 'false',
+  SMTP_USER: 'nexo-klar-smtp',
+  SMTP_PASS: 'smtp-password-from-secret-manager',
+  EMAIL_FROM: 'Nexo Klar <no-reply@nexoklar.com>',
+  SALES_CONTACT_EMAIL: 'contacto@nexoklar.com',
 };
 
 test('production configuration accepts complete secure infrastructure', () => {
@@ -38,4 +45,23 @@ test('production configuration refuses insecure or incomplete infrastructure', (
 test('development requires only a database connection', () => {
   assert.doesNotThrow(() => validateRuntimeEnvironment({ NODE_ENV: 'development', DATABASE_URL: 'postgres://localhost/accesomina' }));
   assert.throws(() => validateRuntimeEnvironment({ NODE_ENV: 'development' }), /DATABASE_URL/);
+});
+
+test('production refuses incomplete or invalid demo request delivery settings', () => {
+  const invalid = {
+    ...productionEnv,
+    SMTP_PORT: 'not-a-port',
+    SMTP_SECURE: '',
+    SMTP_PASS: '',
+    EMAIL_FROM: 'not-an-email',
+    SALES_CONTACT_EMAIL: 'sales-team',
+  };
+  assert.throws(() => validateRuntimeEnvironment(invalid), error => {
+    assert.match(error.message, /SMTP_PORT/);
+    assert.match(error.message, /SMTP_SECURE/);
+    assert.match(error.message, /SMTP_PASS/);
+    assert.match(error.message, /EMAIL_FROM/);
+    assert.match(error.message, /SALES_CONTACT_EMAIL/);
+    return true;
+  });
 });

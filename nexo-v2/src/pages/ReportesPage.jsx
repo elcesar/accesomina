@@ -1,3 +1,5 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconCategory, IconChartBar, IconDownload, IconFiles, IconRefresh, IconStack2 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -31,7 +33,7 @@ const MODULES = {
   formacion: { label: 'Formación y certificaciones', get: state => workerItems(state, 'curso').concat(workerItems(state, 'formac'), workerItems(state, 'certif')) },
   examenes: { label: 'Exámenes y aptitudes', get: state => workerItems(state, 'examen').concat(workerItems(state, 'aptitud')) },
   salud: { label: 'Salud ocupacional', get: state => rows(state.protocolosSalud) },
-  restricciones: { label: 'Restricciones', get: state => rows(state.restricted) },
+  restricciones: { label: 'No habilitaciones', get: state => rows(state.restricted) },
   credenciales: { label: 'Credenciales', get: state => rows(state.credenciales) },
   clientes: { label: 'Clientes', get: state => mergeReportCollections(state, 'minas', 'clientes') },
   contratos: { label: 'Contratos', get: state => rows(state.contratos) },
@@ -56,7 +58,7 @@ const MODULES = {
   auditoria: { label: 'Auditoría', get: state => rows(state.auditorias) },
   subcontratos: { label: 'Terceros y subcontratos', get: state => rows(state.subcontratos) },
   convenios: { label: 'Convenios', get: state => rows(state.convenios) },
-  personalContratista: { label: 'Personal del contratista', get: state => rows(state.personalContratista) },
+  personalContratista: { label: 'Trabajadores de la empresa colaboradora', get: state => rows(state.personalContratista) },
   habilitaciones: { label: 'Habilitaciones', get: state => rows(state.habilitaciones) },
   evaluaciones: { label: 'Evaluaciones', get: state => rows(state.evaluaciones) },
   alertas: { label: 'Alertas operacionales', get: state => operationalAlerts(state) },
@@ -69,7 +71,7 @@ const CATEGORIES = [
   { id: 'ejecutivos', name: 'Reportes ejecutivos', description: 'Indicadores consolidados de clientes, contratos, órdenes de servicio, personas y alertas.', modules: ['clientes', 'contratos', 'ordenes', 'personas', 'alertas'] },
   { id: 'activos', name: 'Reportes de flota y maquinaria', description: 'Vehículos, maquinaria, inventario, movimientos, bodegas, mantenimiento y préstamos.', modules: ['vehiculos', 'maquinaria', 'inventario', 'movimientos', 'bodegas', 'mantenimiento', 'prestamos'] },
   { id: 'cumplimiento', name: 'Reportes de auditoría y cumplimiento', description: 'Documentación corporativa, habilitación del cliente, incidentes, auditorías, salud, restricciones y alertas.', modules: ['empresaDocs', 'acreditaciones', 'incidentes', 'auditoria', 'salud', 'restricciones', 'alertas'] },
-  { id: 'contratistas', name: 'Reportes de contratistas', description: 'Terceros y subcontratos, convenios, personas colaboradoras, habilitaciones y evaluaciones.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
+  { id: 'terceros', name: 'Reportes de terceros', description: 'Terceros y subcontratos, convenios, trabajadores de empresas colaboradoras, habilitaciones y evaluaciones.', modules: ['subcontratos', 'convenios', 'personalContratista', 'habilitaciones', 'evaluaciones'] },
 ]
 
 const csvEscape = value => `"${String(value ?? '').replaceAll('"', '""')}"`
@@ -89,7 +91,7 @@ function downloadCsv(category, collections, onlyKey) {
   const url = URL.createObjectURL(new Blob(['\ufeff', content], { type: 'text/csv;charset=utf-8' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = `nexo-klar-${onlyKey || category.id}-${new Date().toISOString().slice(0, 10)}.csv`
+  link.download = `nexo-klar-${onlyKey || category.id}-${localDate()}.csv`
   document.body.appendChild(link)
   link.click()
   link.remove()
@@ -126,8 +128,8 @@ export default function ReportesPage() {
           <p>Consulta indicadores y descarga información por categoría, respetando el ownership de cada módulo.</p>
         </div>
         <div className="nk-module-actions">
-          <button className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16} /> Actualizar</button>
-          <button className="nk-button nk-button-primary" onClick={() => downloadCsv(selected, collections)} disabled={loading || total === 0}><IconDownload size={16} /> Descargar categoría</button>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16} /> Actualizar</ActionButton>
+          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={() => downloadCsv(selected, collections)} disabled={loading || total === 0}><IconDownload size={16} /> Descargar categoría</ActionButton>
         </div>
       </header>
 

@@ -143,6 +143,17 @@ Las variables exactas deben tomarse desde `.env.example` y configurarse en AWS. 
 
 No usar datos reales dentro de archivos `.env` subidos al repositorio.
 
+### 5.1 Solicitudes de demostracion
+
+El formulario publico registra cada solicitud y entrega el aviso al equipo comercial por SMTP. Antes de desplegar, configurar estos valores exclusivamente en Secrets Manager o en las variables protegidas del servicio ECS:
+
+- `SMTP_HOST`, `SMTP_PORT` y `SMTP_SECURE` (`true` o `false`).
+- `SMTP_USER` y `SMTP_PASS`.
+- `EMAIL_FROM`, con una direccion remitente valida y autorizada por el proveedor SMTP.
+- `SALES_CONTACT_EMAIL`, destinatario comercial oficial de Nexo Klar. El valor debe ser confirmado por el equipo comercial; no se infiere desde el visitante ni desde la interfaz.
+
+En produccion el servidor no inicia con esta configuracion ausente, parcial o invalida. Asi se evita desplegar un formulario que solo pudiera usar el enlace `mailto:` de contingencia. Las credenciales SMTP no deben almacenarse en Git, imagenes Docker ni archivos `.env` versionados.
+
 ## 6. Separacion por empresa
 
 Para que el sistema sea vendible como plataforma multiempresa:
