@@ -16,14 +16,15 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async ({ preserveSessionOnTransientError = false } = {}) => {
     try {
       const data = await api.get('/auth/me')
       setCsrf(data.csrfToken)
       setSession(data)
       await configureOperationalCalendar(data)
       return data
-    } catch {
+    } catch (error) {
+      if (preserveSessionOnTransientError && (!error.status || error.status >= 500 || error.status === 429)) throw error
       setSession(null)
       return null
     } finally {

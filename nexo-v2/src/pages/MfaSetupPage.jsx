@@ -17,6 +17,9 @@ export default function MfaSetupPage() {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState('')
+  const [sessionConfirmed, setSessionConfirmed] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(false)
+  const [sessionError, setSessionError] = useState('')
 
   useEffect(() => {
     if (session && !session.user?.mustChangePassword && !session.user?.mfaEnrollmentRequired && !recoveryCodes.length) {
@@ -25,11 +28,30 @@ export default function MfaSetupPage() {
   }, [navigate, session, recoveryCodes.length])
 
   const copy = async (value, label) => {
+    setCopied('')
+    setMessage('')
     try {
       await navigator.clipboard.writeText(value)
       setCopied(label)
     } catch {
       setMessage('No fue posible copiar automáticamente. Selecciona y copia el código manualmente.')
+    }
+  }
+
+  const confirmSession = async () => {
+    setCheckingSession(true)
+    setSessionError('')
+    try {
+      const updated = await reload({ preserveSessionOnTransientError: true })
+      if (updated && !updated.user?.mustChangePassword && !updated.user?.mfaEnrollmentRequired && updated.user?.mfaEnabled) {
+        setSessionConfirmed(true)
+      } else if (updated) {
+        setSessionError('La doble autenticación está activada, pero la sesión aún no está actualizada. Guarda tus códigos y reintenta la comprobación.')
+      }
+    } catch {
+      setSessionError('La doble autenticación está activada, pero no pudimos comprobar la sesión. Guarda tus códigos y reintenta la comprobación.')
+    } finally {
+      setCheckingSession(false)
     }
   }
 
@@ -58,7 +80,11 @@ export default function MfaSetupPage() {
     try {
       const result = await api.post('/auth/mfa/enable', { currentPassword, code })
       setRecoveryCodes(result.recoveryCodes || [])
-      await reload()
+      setCurrentPassword('')
+      setCode('')
+      setSecret('')
+      setOtpauthUri('')
+      await confirmSession()
     } catch (error) {
       setMessage(error.code === 'MFA_CODE_INVALID'
         ? 'El código de seis dígitos no es válido. Revisa tu aplicación e inténtalo nuevamente.'
@@ -79,10 +105,16 @@ export default function MfaSetupPage() {
           <div className="nk-mfa-recovery-codes" aria-label="Códigos de recuperación">
             {recoveryCodes.map(item => <code key={item}>{item}</code>)}
           </div>
+          {message && <p className="nk-recovery-error" role="alert">{message}</p>}
           <button className="nk-button nk-button-secondary" type="button" onClick={() => copy(recoveryCodes.join('\n'), 'recuperación')}>
             <IconCopy size={16} />{copied === 'recuperación' ? 'Códigos copiados' : 'Copiar códigos'}
           </button>
-          <button className="nk-button nk-button-primary nk-mfa-continue" type="button" onClick={() => navigate('/app', { replace: true })}>
+          {checkingSession && <p className="nk-recovery-copy" role="status">Comprobando la sesión antes de continuar…</p>}
+          {sessionError && <>
+            <p className="nk-recovery-error" role="alert">{sessionError}</p>
+            <button className="nk-button nk-button-secondary" type="button" disabled={checkingSession} onClick={confirmSession}>Reintentar comprobación</button>
+          </>}
+          <button className="nk-button nk-button-primary nk-mfa-continue" type="button" disabled={!sessionConfirmed || checkingSession} onClick={() => navigate('/app', { replace: true })}>
             Ir al panel
           </button>
         </section>
