@@ -7,7 +7,7 @@
 .nk-users-card-head p{margin:0;color:var(--mut);font-size:var(--text-sm)}
 .nk-users-table-wrap{overflow-x:auto}
 .nk-users-table{width:100%;table-layout:fixed}
-.nk-users-table th:nth-child(1){width:20%}.nk-users-table th:nth-child(2){width:24%}.nk-users-table th:nth-child(3){width:20%}.nk-users-table th:nth-child(4){width:12%}.nk-users-table th:nth-child(5){width:24%}
+.nk-users-table th:nth-child(1){width:17%}.nk-users-table th:nth-child(2){width:22%}.nk-users-table th:nth-child(3){width:16%}.nk-users-table th:nth-child(4){width:10%}.nk-users-table th:nth-child(5){width:18%}.nk-users-table th:nth-child(6){width:17%}
 .nk-users-table td strong{display:block;color:var(--ink)}
 .nk-users-table td small{display:block;margin-top:3px;color:var(--mut);font-size:var(--text-xs)}
 .nk-user-role{min-height:34px;padding-block:0;font-size:var(--text-sm)}
@@ -27,4 +27,4 @@
 .nk-user-dialog label{display:grid;gap:var(--space-1)}
 .nk-user-dialog label>span{color:var(--ink);font-size:var(--text-sm);font-weight:var(--weight-semibold)}
 .nk-user-dialog-actions{display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-1)}
-@media(max-width:900px){.nk-users-summary{grid-template-columns:1fr}.nk-users-card-head{flex-direction:column}.nk-users-table{min-width:900px}}
+@media(max-width:900px){.nk-users-summary{grid-template-columns:1fr}.nk-users-card-head{flex-direction:column}.nk-users-table{min-width:1100px}}

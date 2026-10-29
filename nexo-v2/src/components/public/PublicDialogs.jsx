@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { IconX } from '@tabler/icons-react'
 import { PhoneInput } from '../ui/PhoneInput.jsx'
+import { EmailInput } from '../ui/EmailInput.jsx'
+import { validateEmail } from '../../services/email-validation.js'
+import { isValidChilePhone } from '../../services/chile-phone.js'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -141,7 +144,9 @@ export function DemoRequestDialog({ onClose }) {
     event.preventDefault()
     const nextErrors = {}
     if (!form.nombre.trim()) nextErrors.nombre = 'Ingresa tu nombre.'
-    if (!form.correo.trim()) nextErrors.correo = 'Ingresa tu correo de trabajo.'
+    const emailError = validateEmail(form.correo, { required: true })
+    if (emailError) nextErrors.correo = emailError
+    if (form.telefono && !isValidChilePhone(form.telefono)) nextErrors.telefono = 'Ingresa un teléfono chileno válido.'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setSubmitting(true)
@@ -171,29 +176,39 @@ export function DemoRequestDialog({ onClose }) {
       {submitted ? <div className="nk-public-form" role="status">
         <p className="nk-dialog-copy">Recibimos tu solicitud. El equipo de Nexo Klar te contactará pronto.</p>
         <footer><button className="nk-button nk-button-primary" type="button" onClick={onClose}>Cerrar</button></footer>
-      </div> : <form className="nk-public-form" onSubmit={submit}>
+      </div> : <form className="nk-public-form" noValidate onSubmit={submit}>
         {BASIC_FIELDS.map(([key, label, placeholder]) => (
           <label key={key}>
             {label}{(key === 'nombre' || key === 'correo') ? ' (obligatorio)' : ''}
             {key === 'telefono' ? (
               <PhoneInput
+                error={errors.telefono}
                 value={form.telefono}
                 onChange={value => updateField('telefono', value)}
+              />
+            ) : key === 'correo' ? (
+              <EmailInput
+                id={`demo-${key}`}
+                required
+                value={form.correo}
+                error={errors.correo}
+                onChange={value => updateField('correo', value)}
+                placeholder={placeholder}
               />
             ) : (
               <input
                 id={`demo-${key}`}
-                required={key === 'nombre' || key === 'correo'}
-                aria-required={key === 'nombre' || key === 'correo' || undefined}
+                required={key === 'nombre'}
+                aria-required={key === 'nombre' || undefined}
                 aria-invalid={Boolean(errors[key]) || undefined}
                 aria-describedby={errors[key] ? `demo-${key}-error` : undefined}
-                type={key === 'correo' ? 'email' : 'text'}
+                type="text"
                 value={form[key]}
                 onChange={event => updateField(key, event.target.value)}
                 placeholder={placeholder}
               />
             )}
-            {errors[key] && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
+            {errors[key] && !['correo', 'telefono'].includes(key) && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
           </label>
         ))}
 

@@ -1,3 +1,4 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { IconAlertTriangle, IconPaperclip, IconRefresh, IconUser } from '@tabler/icons-react'
@@ -128,7 +129,7 @@ export default function AlertasPage() {
   }
 
   return <section className="nk-alerts-page">
-<header className="nk-module-header"><div><h1>Alertas</h1><p>Prioriza vencimientos, no habilitaciones y pendientes derivados de la información operacional y abre el contexto donde deben resolverse.</p></div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
+<header className="nk-module-header"><div><h1>Alertas</h1><p>Prioriza vencimientos, no habilitaciones y pendientes derivados de la información operacional y abre el contexto donde deben resolverse.</p></div><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</ActionButton></header>
 
     <div className="nk-alert-summary">{Object.entries(CATEGORY).map(([key, [label, copy]]) => <button key={key} type="button" aria-pressed={filter === key} className={filter === key ? 'active' : ''} onClick={() => selectFilter(key)}><b>{loading ? '…' : counts[key]}</b><span>{label}</span><small>{copy}</small></button>)}</div>
     {status && <div className="nk-control-feedback"><span>{status}</span><button className="nk-button nk-button-quiet" type="button" onClick={() => setStatus('')}>Cerrar</button></div>}

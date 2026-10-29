@@ -19,10 +19,10 @@ export default function MfaSetupPage() {
   const [copied, setCopied] = useState('')
 
   useEffect(() => {
-    if (session && !session.user?.mustChangePassword && !session.user?.mfaEnrollmentRequired) {
+    if (session && !session.user?.mustChangePassword && !session.user?.mfaEnrollmentRequired && !recoveryCodes.length) {
       navigate('/app', { replace: true })
     }
-  }, [navigate, session])
+  }, [navigate, session, recoveryCodes.length])
 
   const copy = async (value, label) => {
     try {

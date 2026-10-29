@@ -1,14 +1,16 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, workerRegimenMatches } from '../config/worker-catalogs.js'
 import '../styles/turnos.css'
 
-const REGIMENES = ['5x2', '4x3', '7x7', '10x10', '14x14', 'Otro tipo de turno']
-const TURNOS = ['día', 'noche', 'ambos']
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
 
-const hoy = () => new Date().toISOString().slice(0, 10)
+const hoy = () => localDate()
 
 function initials(nombre) {
   if (!nombre) return '?'
@@ -98,12 +100,12 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
           </Field>
           <Field label="Régimen">
             <select className="nk-select" value={form.regimen} onChange={e => set('regimen', e.target.value)}>
-              {REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}
+              {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Turno">
             <select className="nk-select" value={form.turno} onChange={e => set('turno', e.target.value)}>
-              {TURNOS.map(t => <option key={t} value={t}>{t}</option>)}
+              {WORKER_ASSIGNMENT_SHIFTS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Fecha">
@@ -128,9 +130,9 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
         {error && <p className="nk-form-error">{error}</p>}
         <div className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
+          <ActionButton disabledReason="Tu perfil no permite realizar esta acción. Solicita ayuda al administrador de tu empresa." className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
             {saving ? 'Guardando…' : 'Guardar jornada'}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -184,7 +186,7 @@ export default function TurnosPage() {
   const jornadasFiltradas = useMemo(() => {
     let list = [...turnos]
     if (filtMant) list = list.filter(t => t.mantId === filtMant)
-    if (filtRegimen) list = list.filter(t => t.regimen === filtRegimen)
+    if (filtRegimen) list = list.filter(t => workerRegimenMatches(t.regimen, filtRegimen))
     if (filtTurno) list = list.filter(t => t.turno === filtTurno)
     if (filtMina) {
       const mantsCliente = mantenciones.filter(m => m.minaId === filtMina).map(m => m.id)
@@ -236,9 +238,9 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason="Acción no disponible." className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
-        </button>
+        </ActionButton>
       </header>
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">
@@ -295,8 +297,8 @@ export default function TurnosPage() {
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
               <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
               <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{TURNOS.filter(t => t !== 'ambos').map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
@@ -323,7 +325,7 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
                         <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>

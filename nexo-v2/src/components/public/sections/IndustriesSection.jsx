@@ -53,7 +53,7 @@ export default function IndustriesSection() {
         <div className="nk-industry-heading">
           <div>
             <p className="nk-eyebrow">Adaptable a tu industria</p>
-            <h2>Se adapta a la forma en que trabaja tu empresa.</h2>
+            <h1>Se adapta a la forma en que trabaja tu empresa.</h1>
           </div>
           <p className="nk-lead">
             Una misma base de información para coordinar personas, recursos, documentación, turnos y servicios en terreno, adaptada a la realidad de cada industria.

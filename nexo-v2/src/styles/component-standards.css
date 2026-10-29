@@ -45,3 +45,6 @@
 .nk-opportunity-table .nk-row-actions .nk-button {
   width: 100%;
 }
+
+.nk-disabled-action-help { display: block; color: var(--nk-ink-2); font-size: 13px; max-width: 32rem; }
+.nk-operation-feedback { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 16px; margin:12px 0; border:1px solid var(--nk-state-ok); background:var(--nk-state-ok-soft); color:var(--nk-ink); border-radius:8px; }

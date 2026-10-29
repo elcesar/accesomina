@@ -1,3 +1,7 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { includesSearch } from '../services/search.js'
+import { calendarDaysUntil } from '../services/calendar-date.js'
+import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBuilding, IconExternalLink, IconFile, IconRefresh, IconSearch, IconUpload, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -36,12 +40,7 @@ const REQUIREMENTS = [
 
 const asRows = value => Array.isArray(value) ? value : []
 
-function daysUntil(date) {
-  if (!date) return null
-  const target = new Date(`${date}T23:59:59`)
-  if (Number.isNaN(target.getTime())) return null
-  return Math.ceil((target - new Date()) / 86400000)
-}
+function daysUntil(date) { return calendarDaysUntil(date) }
 
 function statusFor(doc) {
   const requirement = REQUIREMENTS.find(item => item.id === doc.reqId) || doc
@@ -71,7 +70,7 @@ function normalizeDocs(current) {
       cloudUrl: '',
       notes: '',
       src: requirement.src,
-      created: new Date().toISOString().slice(0, 10),
+      created: localDate(),
       documents: [],
     }
   })
@@ -116,7 +115,7 @@ export default function CumplimientoCorporativoPage() {
     const term = query.trim().toLowerCase()
     return docs.filter(doc => {
       const status = statusFor(doc)
-      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => String(value || '').toLowerCase().includes(term))
+      const matchesText = !term || [doc.name, doc.src, doc.notes].some(value => includesSearch(String(value || ''), term))
       const matchesArea = !areaFilter || doc.area === areaFilter
       const matchesStatus = !statusFilter || (statusFilter === 'ok' ? status.key === 'ok' : statusFilter === 'faltante' ? status.key === 'faltante' : ['vencido', 'critico', 'proximo'].includes(status.key))
       return matchesText && matchesArea && matchesStatus
@@ -186,7 +185,7 @@ export default function CumplimientoCorporativoPage() {
         fileType: uploaded.content_type || file.type,
         fileSize: uploaded.byte_size || file.size,
         cloudUrl: '',
-        created: new Date().toISOString().slice(0, 10),
+        created: localDate(),
       }
       const persisted = await persistDoc(documentId, patch)
       if (!persisted) await api.delete(`/files/${encodeURIComponent(uploaded.id)}`).catch(() => {})
@@ -209,7 +208,7 @@ export default function CumplimientoCorporativoPage() {
     <div className="nk-compliance-page">
       <header className="nk-compliance-header">
         <div><h1>Documentación de la empresa</h1><p>Documentación legal, laboral, previsional y preventiva de la empresa.</p></div>
-        <button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</button>
+        <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15} /> Actualizar</ActionButton>
       </header>
 
       {error && <div className="nk-compliance-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
