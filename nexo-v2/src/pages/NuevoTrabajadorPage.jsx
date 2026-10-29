@@ -45,7 +45,7 @@ const INITIAL = {
   mantId:'',
   afp:'', salud:'',
   eppCasco:'Talla única', eppCamisa:'', eppPantalon:'', eppCalzado:'',
-  eppGuante:'', eppArnes:'', eppRespirador:'',
+  eppGuante:'', eppArnes:'', eppFitTest:false,
 }
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
@@ -247,6 +247,7 @@ function StepEPP({ data, onChange }) {
           {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
         </FSelect>
       </Field>)}
+      <Field label="Fit Test"><label><input type="checkbox" checked={Boolean(data.eppFitTest)} onChange={event => onChange('eppFitTest', event.target.checked)} /> Fit Test aprobado</label></Field>
     </div>
   )
 }
@@ -260,7 +261,7 @@ function StepResumen({ data, mantenciones }) {
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
-    ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Respirador / fit test', data.eppRespirador],
+    ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Fit Test', data.eppFitTest ? 'Aprobado' : 'No aprobado'],
   ].filter(([, value]) => value)
 
   return (
@@ -388,7 +389,7 @@ export default function NuevoTrabajadorPage() {
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
         disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
-        epp: { casco: data.eppCasco || 'Talla única', camisa: data.eppCamisa || undefined, pantalon: data.eppPantalon || undefined, calzado: data.eppCalzado || undefined, guante: data.eppGuante || undefined, arnes: data.eppArnes || undefined, respirador: data.eppRespirador || undefined },
+        epp: { casco: data.eppCasco || 'Talla única', camisa: data.eppCamisa || undefined, pantalon: data.eppPantalon || undefined, calzado: data.eppCalzado || undefined, guante: data.eppGuante || undefined, arnes: data.eppArnes || undefined, fitTest: Boolean(data.eppFitTest) },
         bloqueado: false, mineras: [], workerItems: [], creado: localDate(),
       }
 

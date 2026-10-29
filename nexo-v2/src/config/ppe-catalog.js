@@ -5,7 +5,6 @@ export const PPE_SIZE_FIELDS = [
   { key: 'calzado', draftKey: 'eppCalzado', label: 'Calzado de seguridad', sizes: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'] },
   { key: 'guante', draftKey: 'eppGuante', label: 'Guante', sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
   { key: 'arnes', draftKey: 'eppArnes', label: 'Arnés', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
-  { key: 'respirador', draftKey: 'eppRespirador', label: 'Respirador / fit test', sizes: ['S', 'M', 'L', 'No aplica'] },
 ]
 
 export function normalizeWorkerEpp(epp = {}) {
@@ -17,7 +16,7 @@ export function normalizeWorkerEpp(epp = {}) {
     calzado: epp.calzado ?? epp.zapato ?? '',
     guante: epp.guante ?? '',
     arnes: epp.arnes ?? '',
-    respirador: epp.respirador ?? epp.fitTest ?? '',
+    fitTest: epp.fitTest === true || epp.fitTest === 'aprobado' || epp.fitTest === 'fit test aprobado' || (epp.fitTest == null && /aprobado/i.test(String(epp.respirador ?? ''))),
   }
 }
 

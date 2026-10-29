@@ -382,6 +382,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries }) {
         {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
       </select></Field>
     })}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
+    <CardSection title="Fit Test" subtitle="Verificación de ajuste de protección respiratoria."><label><input type="checkbox" checked={Boolean(epp.fitTest)} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, 'fitTest', event.target.checked))} /> Fit Test aprobado</label><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
     <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Fecha</th><th>EPP</th><th>Talla</th><th>Marca / certificación</th><th>Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{formatChileDate(d.deliveredAt || '—')}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{formatChileDate(d.replaceAt || 'Según inspección')}</td></tr>)}</tbody></table></div>}</CardSection>
   </>
 }

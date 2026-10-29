@@ -17,6 +17,7 @@ test('EPP keeps historical aliases and all previously visible fields', () => {
   assert.equal(epp.calzado, '42')
   assert.equal(epp.guante, 'M')
   assert.equal(epp.arnes, 'L')
+  assert.equal(epp.fitTest, true)
   assert.equal(epp.respirador, 'fit test aprobado')
 })
 
@@ -26,4 +27,10 @@ test('updating one EPP field preserves optional and historical data', () => {
   assert.equal(next.guante, 'M')
   assert.equal(next.arnes, 'L')
   assert.equal(next.calzado, '43')
+})
+
+test('Fit Test is a checkbox outside the size catalog', () => {
+  assert.equal(PPE_SIZE_FIELDS.some(field => field.key === 'respirador'), false)
+  assert.equal(normalizeWorkerEpp({}).fitTest, false)
+  assert.equal(updateWorkerEpp({}, 'fitTest', true).fitTest, true)
 })
