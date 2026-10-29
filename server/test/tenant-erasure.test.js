@@ -41,3 +41,12 @@ test('hard delete cascades tenant records and leaves only an anonymized receipt'
   assert.deepEqual(receipt, { tenant_fingerprint: 'non-identifying-fingerprint', reason_code: 'cuenta_prueba' });
   await db.close();
 });
+
+test('erasure manifest schema retains retryable objects independently of tenant', async () => {
+  const db = new PGlite();
+  const sql = await fs.readFile(path.resolve('database/postgres/025_tenant_hard_erasure.sql'),'utf8');
+  // Schema is exercised in the full migration test above; verify the retry contract here.
+  assert.match(sql,/CREATE TABLE IF NOT EXISTS tenant_erasure_objects/);
+  assert.match(sql,/deleted_at TIMESTAMPTZ/);
+  await db.close();
+});

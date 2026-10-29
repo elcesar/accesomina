@@ -34,7 +34,49 @@ tenantsRouter.patch('/:id/tickets/:ticketId',async(req,res)=>{const status=text(
 
 tenantsRouter.post('/:id/export-backup',async(req,res)=>{const tenant=await tenantOr404(req.params.id,res);if(!tenant)return;const backup=await withTenant(req.params.id,async client=>{const [state,settings,modules,profile]=await Promise.all([client.query('SELECT state,updated_at FROM tenant_state WHERE tenant_id=$1',[req.params.id]),client.query('SELECT branding,modules,alerts,catalogs,updated_at FROM tenant_settings WHERE tenant_id=$1',[req.params.id]),client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1 ORDER BY module_key',[req.params.id]),client.query('SELECT * FROM tenant_commercial_profiles WHERE tenant_id=$1',[req.params.id])]);await appendAudit(client,{tenantId:req.params.id,userId:req.auth.userId,entityType:'tenant_backup',entityId:req.params.id,action:'tenant.backup_exported',newValue:{at:new Date().toISOString()}});return {format:'nexo-klar-tenant-backup-v1',exportedAt:new Date().toISOString(),tenant:{id:tenant.id,companyName:tenant.company_name,rut:tenant.rut},state:state.rows[0]?.state||{},settings:settings.rows[0]||{},modules:modules.rows,commercialProfile:profile.rows[0]||{}};});res.json(backup);});
 
-tenantsRouter.delete('/:id/data',async(req,res)=>{const client=await pool.connect();try{await client.query('BEGIN');const tenant=(await client.query('SELECT id,tenant_code,company_name,rut,status,is_domian_admin FROM tenants WHERE id=$1 FOR UPDATE',[req.params.id])).rows[0];if(!tenant){await client.query('ROLLBACK');return res.status(404).json({error:'TENANT_NOT_FOUND'});}if(tenant.is_domian_admin){await client.query('ROLLBACK');return res.status(409).json({error:'DOMIAN_ACCOUNT_PROTECTED'});}if(tenant.status!=='suspended'){await client.query('ROLLBACK');return res.status(409).json({error:'TENANT_MUST_BE_SUSPENDED',message:'Suspende la cuenta antes de eliminar definitivamente sus datos.'});}if(!ERASURE_REASONS.has(text(req.body?.reasonCode))||!validErasureConfirmation(req.body?.confirmation,tenant)){await client.query('ROLLBACK');return res.status(400).json({error:'TENANT_ERASURE_CONFIRMATION_REQUIRED',message:'Confirma la eliminación con la frase indicada y selecciona un motivo.'});}const files=(await client.query(`SELECT storage_key,storage_provider FROM file_objects WHERE tenant_id=$1 UNION SELECT s3_key,NULL FROM worker_documents WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,NULL FROM occupational_exams WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,NULL FROM courses WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,NULL FROM worker_items WHERE tenant_id=$1 AND s3_key IS NOT NULL`,[tenant.id])).rows;const filesErased=await eraseTenantFiles(files);await client.query('SELECT hard_delete_tenant($1,$2,$3,$4)',[tenant.id,req.auth.userId,text(req.body.reasonCode),tenantFingerprint(tenant)]);await client.query('COMMIT');res.json({erased:true,filesErased,message:'La cuenta y todos sus datos fueron eliminados definitivamente.'});}catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}finally{client.release();}});
+// Commit database erasure and a durable object manifest atomically. Physical cleanup is retryable.
+async function cleanupErasureObjects(fingerprint) {
+  const rows=(await query('SELECT id,storage_key,storage_provider FROM tenant_erasure_objects WHERE tenant_fingerprint=$1 AND deleted_at IS NULL ORDER BY id',[fingerprint])).rows;
+  let removed=0;
+  for(const file of rows) {
+    try {
+      await eraseTenantFiles([file]);
+      await query('UPDATE tenant_erasure_objects SET deleted_at=now(),last_error=NULL WHERE id=$1',[file.id]);
+      removed++;
+    } catch(error) {
+      await query('UPDATE tenant_erasure_objects SET last_error=$2 WHERE id=$1',[file.id,String(error?.code || 'STORAGE_DELETE_FAILED').slice(0,200)]);
+    }
+  }
+  return {filesErased:removed,filesPending:rows.length-removed};
+}
+tenantsRouter.delete('/:id/data',async(req,res)=>{
+  const client=await pool.connect();
+  let fingerprint;
+  try {
+    await client.query('BEGIN');
+    const tenant=(await client.query('SELECT id,tenant_code,company_name,rut,status,is_domian_admin FROM tenants WHERE id=$1 FOR UPDATE',[req.params.id])).rows[0];
+    if(!tenant){await client.query('ROLLBACK');return res.status(404).json({error:'TENANT_NOT_FOUND'});}
+    if(tenant.is_domian_admin){await client.query('ROLLBACK');return res.status(409).json({error:'DOMIAN_ACCOUNT_PROTECTED'});}
+    if(tenant.status!=='suspended'){await client.query('ROLLBACK');return res.status(409).json({error:'TENANT_MUST_BE_SUSPENDED'});}
+    if(!ERASURE_REASONS.has(text(req.body?.reasonCode))||!validErasureConfirmation(req.body?.confirmation,tenant)){await client.query('ROLLBACK');return res.status(400).json({error:'TENANT_ERASURE_CONFIRMATION_REQUIRED'});}
+    fingerprint=tenantFingerprint(tenant);
+    const files=(await client.query(`SELECT storage_key,storage_provider FROM file_objects WHERE tenant_id=$1 UNION SELECT s3_key,'s3' FROM worker_documents WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,'s3' FROM occupational_exams WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,'s3' FROM courses WHERE tenant_id=$1 AND s3_key IS NOT NULL UNION SELECT s3_key,'s3' FROM worker_items WHERE tenant_id=$1 AND s3_key IS NOT NULL`,[tenant.id])).rows;
+    for(const file of files) if(file.storage_key) await client.query('INSERT INTO tenant_erasure_objects(tenant_fingerprint,storage_provider,storage_key) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[fingerprint,file.storage_provider || 'local',file.storage_key]);
+    await client.query('SELECT hard_delete_tenant($1,$2,$3,$4)',[tenant.id,req.auth.userId,text(req.body.reasonCode),fingerprint]);
+    await client.query('COMMIT');
+  }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}finally{client.release();}
+  const result=await cleanupErasureObjects(fingerprint);
+  return res.status(result.filesPending?202:200).json({erased:true,...result,cleanupPending:result.filesPending>0,erasureId:fingerprint,message:result.filesPending?'Cuenta eliminada; limpieza de archivos pendiente.':'Cuenta y archivos eliminados.'});
+});
+// Restricted recovery operation for failed S3/local cleanup, using the receipt identifier.
+tenantsRouter.post('/erasure-cleanup/:fingerprint',async(req,res)=>{
+  const fingerprint=text(req.params.fingerprint);
+  if(!/^[a-f0-9]{64}$/.test(fingerprint)) return res.status(400).json({error:'INVALID_ERASURE_ID'});
+  const receipt=(await query('SELECT 1 FROM tenant_erasure_log WHERE tenant_fingerprint=$1',[fingerprint])).rows[0];
+  if(!receipt) return res.status(404).json({error:'ERASURE_NOT_FOUND'});
+  const result=await cleanupErasureObjects(fingerprint);
+  return res.status(result.filesPending?202:200).json({...result,cleanupPending:result.filesPending>0});
+});
 
 tenantsRouter.delete('/:id',async(req,res)=>{const before=await tenantOr404(req.params.id,res);if(!before)return;if(before.is_domian_admin)return res.status(409).json({error:'DOMIAN_ACCOUNT_PROTECTED'});const row=(await query("UPDATE tenants SET status='deleted',updated_at=now() WHERE id=$1 RETURNING id,company_name,status,updated_at",[req.params.id])).rows[0];await query('UPDATE user_sessions SET revoked_at=now() WHERE tenant_id=$1',[req.params.id]);await withTenant(req.params.id,client=>appendAudit(client,{tenantId:req.params.id,userId:req.auth.userId,entityType:'tenant',entityId:req.params.id,action:'tenant.deleted',oldValue:before,newValue:row}));res.json(row);});
 

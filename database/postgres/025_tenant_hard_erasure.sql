@@ -20,10 +20,22 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION hard_delete_tenant(target_tenant_id UUID, actor_user_id UUID, deletion_reason TEXT, deletion_fingerprint TEXT)
 RETURNS VOID AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM tenants WHERE id = target_tenant_id AND is_domian_admin = false) THEN RAISE EXCEPTION 'Tenant cannot be erased'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM tenants WHERE id = target_tenant_id AND is_domian_admin = false AND status = 'suspended') THEN RAISE EXCEPTION 'Only suspended non-platform tenants can be erased'; END IF;
   PERFORM set_config('nexo.tenant_erasure', 'approved', true);
   DELETE FROM audit_log WHERE tenant_id = target_tenant_id;
   DELETE FROM tenants WHERE id = target_tenant_id;
   INSERT INTO tenant_erasure_log (tenant_fingerprint, requested_by, reason_code) VALUES (deletion_fingerprint, actor_user_id, deletion_reason);
 END;
 $$ LANGUAGE plpgsql;
+
+-- Durable cleanup manifest survives tenant deletion and enables safe retries.
+CREATE TABLE IF NOT EXISTS tenant_erasure_objects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_fingerprint TEXT NOT NULL,
+  storage_provider TEXT NOT NULL,
+  storage_key TEXT NOT NULL,
+  deleted_at TIMESTAMPTZ,
+  last_error TEXT,
+  UNIQUE (tenant_fingerprint, storage_provider, storage_key)
+);
+CREATE INDEX IF NOT EXISTS idx_tenant_erasure_objects_pending ON tenant_erasure_objects(tenant_fingerprint) WHERE deleted_at IS NULL;
