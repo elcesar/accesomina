@@ -7,6 +7,7 @@ import '../styles/password-recovery.css'
 const PASSWORD_HELP = 'Usa entre 12 y 128 caracteres, con una mayúscula, una minúscula y un número.'
 const validPassword = value => value.length >= 12 && value.length <= 128 && /[a-z]/.test(value) && /[A-Z]/.test(value) && /\d/.test(value)
 const invalidInvitation = error => ['INVALID_INVITATION_REQUEST', 'INVITATION_INVALID_OR_EXPIRED', 'INVITATION_ALREADY_ACCEPTED'].includes(error?.code)
+const UNAVAILABLE_MESSAGE = 'Este enlace está incompleto, venció, ya se utilizó o fue reemplazado.'
 
 export default function AcceptInvitationPage() {
   const { session, loading: sessionLoading, logout } = useAuth()
@@ -19,16 +20,18 @@ export default function AcceptInvitationPage() {
   const [form, setForm] = useState({ newPassword: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
   const [message, setMessage] = useState('')
+  const [accessError, setAccessError] = useState('')
   const [saving, setSaving] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const running = useRef(false)
-  const leavingRequest = useRef(false), accessButtonRef = useRef(null)
+  const leavingRequest = useRef(false)
   const passwordRef = useRef(null), confirmationRef = useRef(null)
 
   useEffect(() => {
     let active = true
     setInvitation(null)
     setMessage('')
+    setAccessError('')
     setErrors({})
     setForm({ newPassword: '', confirmPassword: '' })
     if (!token || !tenant) { setPhase('invalid'); return undefined }
@@ -37,7 +40,7 @@ export default function AcceptInvitationPage() {
       if (active) { setInvitation(data); setPhase('ready') }
     }).catch(error => {
       if (!active) return
-      setMessage(error.message || 'No fue posible comprobar la invitación. Inténtalo nuevamente.')
+      setMessage(invalidInvitation(error) ? UNAVAILABLE_MESSAGE : error.message || 'No fue posible comprobar la invitación. Inténtalo nuevamente.')
       setPhase(invalidInvitation(error) || error.code === 'ACCOUNT_DISABLED' ? 'invalid' : 'error')
     })
     return () => { active = false }
@@ -65,11 +68,14 @@ export default function AcceptInvitationPage() {
       if (invalidInvitation(error) || error.code === 'ACCOUNT_DISABLED') {
         setForm({ newPassword: '', confirmPassword: '' })
         setPhase('invalid')
-        setMessage(error.message)
+        setMessage(invalidInvitation(error) ? UNAVAILABLE_MESSAGE : error.message)
       } else if (error.code === 'WEAK_PASSWORD') {
         setErrors({ newPassword: PASSWORD_HELP }); requestAnimationFrame(() => passwordRef.current?.focus())
       } else if (error.code === 'INVITATION_PASSWORD_MISMATCH') {
         setErrors({ confirmPassword: 'Las contraseñas no coinciden. Vuelve a escribir la confirmación.' }); requestAnimationFrame(() => confirmationRef.current?.focus())
+      } else if (!error.status || error.status >= 500) {
+        setForm({ newPassword: '', confirmPassword: '' })
+        setPhase('uncertain')
       } else setMessage(error.message || 'No fue posible guardar la contraseña. Inténtalo nuevamente.')
     } finally { running.current = false; setSaving(false) }
   }
@@ -80,22 +86,35 @@ export default function AcceptInvitationPage() {
     setMessage('')
   }
 
-  async function goToAccess() {
+  async function goToAccess(destination, button) {
     if (leavingRequest.current) return
     leavingRequest.current = true
     setLeaving(true)
-    setMessage('')
+    setAccessError('')
     try {
       await logout({ requireSuccess: true })
-      navigate('/login', { replace: true })
+      navigate(destination, { replace: true })
     } catch {
-      setMessage('No pudimos cerrar la sesión actual. Sigue abierta. Inténtalo nuevamente para ir a Acceso con tu cuenta invitada.')
-      requestAnimationFrame(() => accessButtonRef.current?.focus())
+      setAccessError('No pudimos cerrar la sesión actual. Sigue abierta. Inténtalo nuevamente para continuar con tu cuenta invitada.')
+      requestAnimationFrame(() => button?.focus())
     } finally {
       leavingRequest.current = false
       setLeaving(false)
     }
   }
+
+  const accessActions = (includeRecovery = false) => <>
+    {session && <p className="nk-recovery-copy">Hay otra sesión abierta en este navegador. Elige cerrar la sesión actual para continuar con tu cuenta invitada; también se cerrará en las demás pestañas.</p>}
+    {accessError && <p className="nk-recovery-error" role="alert">{accessError}</p>}
+    <div className="nk-recovery-form nk-invitation-actions">
+      {session || sessionLoading
+        ? <button className="nk-button nk-button-primary" type="button" disabled={sessionLoading || leaving} onClick={event => goToAccess('/login', event.currentTarget)}>{leaving ? 'Cerrando sesión…' : 'Cerrar sesión actual e ir a Acceso'}</button>
+        : <Link className="nk-button nk-button-primary" to="/login">Ir a Acceso</Link>}
+      {includeRecovery && (session || sessionLoading
+        ? <button className="nk-button nk-button-secondary" type="button" disabled={sessionLoading || leaving} onClick={event => goToAccess('/recuperar-contrasena', event.currentTarget)}>Cerrar sesión actual y recuperar contraseña</button>
+        : <Link className="nk-button nk-button-secondary" to="/recuperar-contrasena">Recuperar contraseña</Link>)}
+    </div>
+  </>
 
   return <main className="nk-recovery-page">
     <section className="nk-recovery-card" aria-busy={phase === 'loading' || saving}>
@@ -103,9 +122,9 @@ export default function AcceptInvitationPage() {
       {phase === 'loading' && <><h1>Comprobando invitación</h1><p className="nk-recovery-copy" role="status">Espera mientras verificamos tu enlace de acceso.</p></>}
       {phase === 'invalid' && <>
         <h1>Invitación no disponible</h1>
-        <p className="nk-recovery-error" role="alert">{message || 'Este enlace está incompleto, venció o ya fue utilizado.'}</p>
-        <p className="nk-recovery-copy">Solicita al administrador de tu empresa que reenvíe la invitación desde Usuarios y permisos. Usa el enlace del correo más reciente.</p>
-        <Link className="nk-link" to="/login">Ir a Acceso</Link>
+        <p className="nk-recovery-error" role="alert">{message || UNAVAILABLE_MESSAGE}</p>
+        <p className="nk-recovery-copy">Si ya creaste tu contraseña, puedes ingresar o recuperarla. Si todavía no pudiste crearla, solicita al administrador que reenvíe la invitación desde Usuarios y permisos y usa el enlace más reciente.</p>
+        {accessActions(true)}
       </>}
       {phase === 'error' && <>
         <h1>No pudimos comprobar la invitación</h1>
@@ -117,11 +136,15 @@ export default function AcceptInvitationPage() {
         <p className="nk-recovery-message" role="status">Ahora puedes iniciar sesión con tu correo, el RUT de tu empresa y la contraseña que acabas de crear.</p>
         <p className="nk-recovery-copy">{invitation?.companyName} · RUT {invitation?.companyRut}<br />{invitation?.email}</p>
         <p className="nk-recovery-copy">Al ingresar, completa la verificación adicional que corresponda.</p>
-        {session && <p className="nk-recovery-copy">Hay otra sesión abierta en este navegador. La siguiente acción la cerrará también en las demás pestañas para que puedas ingresar con tu cuenta invitada.</p>}
-        {message && <p className="nk-recovery-error" role="alert">{message}</p>}
-        {session || sessionLoading
-          ? <button ref={accessButtonRef} className="nk-button nk-button-primary" type="button" disabled={sessionLoading || leaving} onClick={goToAccess}>{leaving ? 'Cerrando sesión…' : 'Cerrar sesión actual e ir a Acceso'}</button>
-          : <Link className="nk-button nk-button-primary" to="/login">Ir a Acceso</Link>}
+        {accessActions()}
+      </>}
+      {phase === 'uncertain' && <>
+        <h1>No pudimos confirmar el guardado</h1>
+        <p className="nk-recovery-error" role="alert">No pudimos confirmar si la contraseña quedó guardada.</p>
+        <p className="nk-recovery-copy">Intenta ingresar con el RUT de tu empresa, tu correo y la contraseña que elegiste. Si no puedes entrar, usa Recuperar contraseña.</p>
+        <p className="nk-recovery-copy">{invitation?.companyName} · RUT {invitation?.companyRut}<br />{invitation?.email}</p>
+        {accessActions(true)}
+        <p className="nk-recovery-actions"><button className="nk-button nk-button-secondary" type="button" disabled={leaving} onClick={() => setRetry(current => current + 1)}>Comprobar enlace</button></p>
       </>}
       {phase === 'ready' && <>
         <h1>Crea tu contraseña de acceso</h1>

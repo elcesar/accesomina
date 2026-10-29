@@ -40,7 +40,7 @@ async function adminBackend(page, { createStatus = 'sent', initial = [], role = 
   }
 }
 
-async function publicBackend(page, { invalid = false, verifyFailure = false, acceptFailures = [], existingSession = false, logoutFailures = [] } = {}) {
+async function publicBackend(page, { invalid = false, verifyFailure = false, acceptFailures = [], existingSession = false, logoutFailures = [], lostAcceptResponse = false } = {}) {
   let accepted = false, failVerify = verifyFailure ? 2 : 0, pausedAccept = null, sessionActive = existingSession
   const verifies = [], accepts = [], logins = [], logouts = []
   await page.route('**/api/**', async route => {
@@ -72,6 +72,7 @@ async function publicBackend(page, { invalid = false, verifyFailure = false, acc
       if (failure) return json({ error: failure }, failure === 'QA_UNAVAILABLE' ? 503 : 400)
       if (accepted) return json({ error: 'INVITATION_INVALID_OR_EXPIRED' }, 400)
       accepted = true
+      if (lostAcceptResponse) { lostAcceptResponse = false; return route.abort('failed') }
       return route.fulfill({ status: 204 })
     }
     if (path === '/api/auth/login') { logins.push(req.postDataJSON()); return json({ error: 'QA_LOGIN_NOT_EXPECTED' }, 400) }
@@ -119,6 +120,40 @@ for (const width of [1440, 375]) {
       await page.reload()
       await expect(page.locator('tbody tr')).toHaveCount(1)
       await expect(page.locator('tbody')).toContainText('Enviada')
+    })
+
+    test('Nombre vacío, espacios y nombres cortos muestran un error asociado y el foco antes de crear', async ({ page }) => {
+      const api = await adminBackend(page)
+      await page.goto('/app/usuarios')
+      const dialog = await createForm(page), name = dialog.getByLabel('Nombre', { exact: true })
+      for (const value of ['', '   ', ' A ', ' AB ']) {
+        await name.fill(value)
+        await dialog.getByRole('button', { name: 'Crear acceso', exact: true }).click()
+        await expect(dialog.getByRole('alert')).toContainText('entre 3 y 160 caracteres')
+        await expect(name).toHaveAttribute('aria-invalid', 'true')
+        await expect(name).toHaveAttribute('aria-describedby', 'create-user-name-error')
+        await expect(name).toBeFocused()
+        expect(api.created).toHaveLength(0)
+      }
+      await name.fill('  Ana  ')
+      await expect(name).toHaveAttribute('aria-invalid', 'false')
+      await dialog.getByRole('button', { name: 'Crear acceso', exact: true }).click()
+      await expect(dialog).toBeHidden()
+      expect(api.created).toHaveLength(1)
+      expect(api.created[0].fullName).toBe('Ana')
+    })
+
+    test('Nombre acepta el máximo de 160 caracteres y limita la entrada sin cambiar el contrato', async ({ page }) => {
+      const api = await adminBackend(page)
+      await page.goto('/app/usuarios')
+      const dialog = await createForm(page), name = dialog.getByLabel('Nombre', { exact: true })
+      await expect(name).toHaveAttribute('maxlength', '160')
+      await name.fill('A'.repeat(161))
+      await expect(name).toHaveValue('A'.repeat(160))
+      await dialog.getByRole('button', { name: 'Crear acceso', exact: true }).click()
+      await expect(dialog).toBeHidden()
+      expect(api.created).toHaveLength(1)
+      expect(api.created[0].fullName).toHaveLength(160)
     })
 
     test('un fallo de entrega conserva la cuenta y permite reenviar y reintentar sin duplicarla', async ({ page }) => {
@@ -260,7 +295,9 @@ for (const width of [1440, 375]) {
       await page.goto(requestUrl)
       await expect(page.getByRole('heading', { name: 'Invitación no disponible' })).toBeVisible()
       await expect(page.getByRole('alert')).toContainText('venció')
-      await expect(page.getByText('Solicita al administrador de tu empresa que reenvíe la invitación desde Usuarios y permisos. Usa el enlace del correo más reciente.', { exact: true })).toBeVisible()
+      await expect(page.getByText('Si ya creaste tu contraseña, puedes ingresar o recuperarla.', { exact: false })).toContainText('Si todavía no pudiste crearla, solicita al administrador')
+      await expect(page.getByRole('link', { name: 'Ir a Acceso', exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Recuperar contraseña', exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Guardar contraseña' })).toHaveCount(0)
       expect(api.accepts).toHaveLength(0)
     })
@@ -282,10 +319,78 @@ for (const width of [1440, 375]) {
       await page.getByRole('button', { name: 'Reintentar' }).click()
       await fillPasswords(page)
       await page.getByRole('button', { name: 'Guardar contraseña' }).click()
-      await expect(page.getByRole('alert')).toContainText('Inténtalo nuevamente')
+      await expect(page.getByRole('heading', { name: 'No pudimos confirmar el guardado' })).toBeVisible()
+      await expect(page.getByRole('alert')).toContainText('No pudimos confirmar si la contraseña quedó guardada')
+      expect(api.accepts).toHaveLength(1)
+      await page.getByRole('button', { name: 'Comprobar enlace', exact: true }).click()
+      await fillPasswords(page)
+      expect(api.accepts).toHaveLength(1)
       await page.getByRole('button', { name: 'Guardar contraseña' }).click()
       await expect(page.getByRole('heading', { name: 'Tu contraseña está lista' })).toBeVisible()
       expect(api.accepts).toHaveLength(2)
+      expect(api.logins).toHaveLength(0)
+    })
+
+    test('una respuesta perdida tras aceptar muestra incertidumbre y acceso o recuperación sin repetir el guardado', async ({ page }) => {
+      const api = await publicBackend(page, { lostAcceptResponse: true })
+      await page.goto(requestUrl)
+      await fillPasswords(page)
+      await page.getByRole('button', { name: 'Guardar contraseña', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'No pudimos confirmar el guardado' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Tu contraseña está lista' })).toHaveCount(0)
+      await expect(page.getByRole('alert')).toContainText('No pudimos confirmar si la contraseña quedó guardada')
+      await expect(page.getByText('Intenta ingresar con el RUT de tu empresa, tu correo y la contraseña que elegiste.', { exact: false })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Ir a Acceso', exact: true })).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Recuperar contraseña', exact: true })).toBeVisible()
+      await expect(page.getByLabel('Nueva contraseña', { exact: true })).toHaveCount(0)
+      expect(api.accepts).toHaveLength(1)
+      expect(api.logins).toHaveLength(0)
+      expect(api.logouts).toHaveLength(0)
+      await page.getByRole('button', { name: 'Comprobar enlace', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'Invitación no disponible' })).toBeVisible()
+      await expect(page.getByText('Si ya creaste tu contraseña, puedes ingresar o recuperarla.', { exact: false })).toBeVisible()
+      expect(api.accepts).toHaveLength(1)
+      await page.getByRole('link', { name: 'Recuperar contraseña', exact: true }).click()
+      await expect(page).toHaveURL(/\/recuperar-contrasena$/)
+      expect(api.logins).toHaveLength(0)
+    })
+
+    test('la recuperación tras un resultado incierto conserva otra sesión hasta cerrar explícitamente y reintenta el cierre fallido', async ({ page }) => {
+      const api = await publicBackend(page, { lostAcceptResponse: true, existingSession: true, logoutFailures: [503] })
+      await page.goto(requestUrl)
+      await fillPasswords(page)
+      await page.getByRole('button', { name: 'Guardar contraseña', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'No pudimos confirmar el guardado' })).toBeVisible()
+      expect(api.logouts).toHaveLength(0)
+      const recovery = page.getByRole('button', { name: 'Cerrar sesión actual y recuperar contraseña', exact: true })
+      await recovery.click()
+      await expect(page.getByRole('alert').filter({ hasText: 'No pudimos cerrar la sesión actual' })).toBeVisible()
+      await expect(page).toHaveURL(/\/aceptar-invitacion\?/)
+      await expect(recovery).toBeFocused()
+      await expect(recovery).toBeEnabled()
+      expect(api.logouts).toHaveLength(1)
+      await recovery.click()
+      await expect(page).toHaveURL(/\/recuperar-contrasena$/)
+      expect(api.logouts).toHaveLength(2)
+      expect(api.accepts).toHaveLength(1)
+      expect(api.logins).toHaveLength(0)
+    })
+
+    test('un enlace usado o vencido permite ir al acceso sólo después del cierre explícito de otra sesión', async ({ page }) => {
+      const api = await publicBackend(page, { invalid: true, existingSession: true, logoutFailures: [503] })
+      await page.goto(requestUrl)
+      await expect(page.getByRole('heading', { name: 'Invitación no disponible' })).toBeVisible()
+      expect(api.logouts).toHaveLength(0)
+      const access = page.getByRole('button', { name: 'Cerrar sesión actual e ir a Acceso', exact: true })
+      await access.click()
+      await expect(page.getByRole('alert').filter({ hasText: 'No pudimos cerrar la sesión actual' })).toBeVisible()
+      await expect(page).toHaveURL(/\/aceptar-invitacion\?/)
+      await expect(access).toBeFocused()
+      await access.click()
+      await expect(page).toHaveURL(/\/login$/)
+      await expect(page.getByRole('button', { name: 'Ingresar', exact: true })).toBeVisible()
+      expect(api.logouts).toHaveLength(2)
+      expect(api.accepts).toHaveLength(0)
       expect(api.logins).toHaveLength(0)
     })
 
