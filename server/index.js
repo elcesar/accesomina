@@ -10,6 +10,7 @@ import { authenticate, errorHandler, requireCsrf, requireMfa, requireOrigin } fr
 import { authRouter } from './routes/auth.js';
 import { stateRouter } from './routes/state.js';
 import { usersRouter } from './routes/users.js';
+import { invitationsRouter } from './routes/invitations.js';
 import { filesRouter } from './routes/files.js';
 import { integrationsRouter } from './routes/integrations.js';
 import { auditRouter } from './routes/audit.js';
@@ -45,6 +46,7 @@ app.get('/api/ready',async(req,res)=>{const result=await evaluateReadiness(confi
 app.get('/api/metrics',async(req,res)=>{if(!config.metricsToken||req.get('authorization')!==`Bearer ${config.metricsToken}`)return res.status(401).end();const [tenants,sessions]=await Promise.all([query("SELECT id FROM tenants WHERE status='active'"),query('SELECT count(*)::int total FROM user_sessions WHERE revoked_at IS NULL AND expires_at>now()')]);let failedJobs=0,errors=0;for(const tenant of tenants.rows){const counts=await withTenant(tenant.id,client=>Promise.all([client.query("SELECT count(*)::int total FROM notification_jobs WHERE tenant_id=$1 AND status='failed'",[tenant.id]),client.query("SELECT count(*)::int total FROM operational_events WHERE tenant_id=$1 AND severity IN ('error','critical') AND resolved_at IS NULL",[tenant.id])]));failedJobs+=counts[0].rows[0].total;errors+=counts[1].rows[0].total;}res.type('text/plain').send(`nexo_klar_up 1\nnexo_klar_active_tenants ${tenants.rows.length}\nnexo_klar_active_sessions ${sessions.rows[0].total}\nnexo_klar_failed_jobs ${failedJobs}\nnexo_klar_unresolved_errors ${errors}\n`);});
 
 app.use('/api/auth', authRouter);
+app.use('/api/auth/invitations', invitationsRouter);
 app.use('/api', contactRouter);
 app.use('/api', authenticate, requireCsrf, requireMfa);
 app.use('/api/state', stateRouter);

@@ -7,6 +7,7 @@ import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotp
 import { appendAudit } from '../audit.js';
 import { authenticate, clearSessionCookie, requireCsrf, setSessionCookie } from '../middleware.js';
 import { PASSWORD_RESET_GENERIC_MESSAGE, createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation, logPasswordResetOperationalEvent, recordPasswordResetDelivery, validatePasswordResetRequest } from '../password-reset.js';
+import { completeUserInvitation } from '../user-invitations.js';
 
 export const authRouter = Router();
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
@@ -156,6 +157,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
   const credentials = await hashPassword(newPassword);
   const changed = await withTenant(tenantId, async client => {
+    await client.query('SELECT id FROM app_users WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[reset.user_id,tenantId]);
     const used = (await client.query(
       'UPDATE password_reset_tokens SET used_at=now() WHERE id=$1 AND tenant_id=$2 AND used_at IS NULL AND expires_at>now() RETURNING id',
       [reset.id, tenantId],
@@ -166,6 +168,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
       'UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,failed_login_count=0,locked_until=NULL,updated_at=now() WHERE id=$3 AND tenant_id=$4',
       [credentials.hash, credentials.salt, reset.user_id, tenantId],
     );
+    await completeUserInvitation(client,tenantId,reset.user_id);
     await client.query(
       'UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND tenant_id=$2 AND revoked_at IS NULL',
       [reset.user_id, tenantId],
@@ -195,6 +198,21 @@ authRouter.post('/mfa/enable',authenticate,requireCsrf,async(req,res)=>{const {c
 
 authRouter.post('/mfa/disable',authenticate,requireCsrf,async(req,res)=>{const {currentPassword,code}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt,mfa_secret_encrypted,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(!user.mfa_enabled)return res.status(409).json({error:'MFA_NOT_ENABLED'});const secret=decryptJson(user.mfa_secret_encrypted).secret;if(!verifyTotp(secret,code))return res.status(400).json({error:'MFA_CODE_INVALID'});await withTenant(req.auth.tenantId,async client=>{await client.query('UPDATE app_users SET mfa_enabled=false,mfa_secret_encrypted=NULL,mfa_pending_secret_encrypted=NULL,mfa_recovery_code_hashes=\'[]\'::jsonb,mfa_enrolled_at=NULL,updated_at=now() WHERE id=$1',[req.auth.userId]);await client.query('UPDATE user_sessions SET mfa_verified=false WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.mfa_disabled'});});res.status(204).end();});
 
-authRouter.post('/change-password',authenticate,requireCsrf,async(req,res)=>{const {currentPassword,newPassword}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(!validatePassword(newPassword))return res.status(400).json({error:'WEAK_PASSWORD'});const credentials=await hashPassword(newPassword);await withTenant(req.auth.tenantId,async client=>{await client.query('UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,updated_at=now() WHERE id=$3',[credentials.hash,credentials.salt,req.auth.userId]);await client.query('UPDATE user_sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.password_changed'});});res.status(204).end();});
+authRouter.post('/change-password',authenticate,requireCsrf,async(req,res)=>{
+  const {currentPassword,newPassword}=req.body||{};
+  const rejected=await withTenant(req.auth.tenantId,async client=>{
+    const user=(await client.query('SELECT password_hash,password_salt FROM app_users WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[req.auth.userId,req.auth.tenantId])).rows[0];
+    if(!user?.password_hash||typeof currentPassword!=='string'||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return {status:401,error:'INVALID_CREDENTIALS'};
+    if(!validatePassword(newPassword))return {status:400,error:'WEAK_PASSWORD'};
+    const credentials=await hashPassword(newPassword);
+    await client.query('UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,updated_at=now() WHERE id=$3 AND tenant_id=$4',[credentials.hash,credentials.salt,req.auth.userId,req.auth.tenantId]);
+    await completeUserInvitation(client,req.auth.tenantId,req.auth.userId);
+    await client.query('UPDATE user_sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.password_changed'});
+    return null;
+  });
+  if(rejected)return res.status(rejected.status).json({error:rejected.error});
+  res.status(204).end();
+});
 
 authRouter.post('/logout',authenticate,requireCsrf,async(req,res)=>{await query('UPDATE user_sessions SET revoked_at=now() WHERE id=$1',[req.auth.sessionId]);clearSessionCookie(res);res.status(204).end();});

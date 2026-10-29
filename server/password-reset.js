@@ -52,6 +52,7 @@ export async function createPasswordReset({ tenantId, user, requestedBy = null, 
   const expiresAt = new Date(Date.now() + 30 * 60_000);
 
   await withTenant(tenantId, async client => {
+    await client.query('SELECT id FROM app_users WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[user.id,tenantId]);
     await client.query(
       'UPDATE password_reset_tokens SET used_at=now() WHERE tenant_id=$1 AND user_id=$2 AND used_at IS NULL',
       [tenantId, user.id],
