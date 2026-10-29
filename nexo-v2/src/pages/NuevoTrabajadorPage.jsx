@@ -20,6 +20,7 @@ import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import { WORKER_REGIMENS, WORKER_SPECIALTIES } from '../config/worker-catalogs.js'
+import { PPE_SIZE_FIELDS } from '../config/ppe-catalog.js'
 import '../styles/nuevo-trabajador.css'
 
 const TIPOS = [
@@ -43,7 +44,8 @@ const INITIAL = {
   cargo:'', rol:'', especialidad:'',
   mantId:'',
   afp:'', salud:'',
-  eppCasco:'Talla única', eppPolera:'', eppPantalon:'', eppZapato:'',
+  eppCasco:'Talla única', eppCamisa:'', eppPantalon:'', eppCalzado:'',
+  eppGuante:'', eppArnes:'', eppFitTest:false,
 }
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
@@ -236,14 +238,16 @@ function StepSalud({ data, onChange }) {
 }
 
 function StepEPP({ data, onChange }) {
-  const fields = [
-    ['eppCasco', 'Casco', 'Talla única'], ['eppPolera', 'Polera / Camisa', 'Ej.: L'],
-    ['eppPantalon', 'Pantalón', 'Ej.: 44'], ['eppZapato', 'Zapato de seguridad', 'Ej.: 42'],
-  ]
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra tallas de referencia para la entrega de EPP. Deben confirmarse antes de la primera entrega.</p>
-      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}>{key === 'eppCasco' ? <FInput value="Talla única" disabled aria-label="Casco talla única" /> : <FInput value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} />}</Field>)}
+      {PPE_SIZE_FIELDS.map(field => <Field key={field.key} label={field.label}>
+        <FSelect value={data[field.draftKey] ?? ''} disabled={field.fixed} onChange={event => onChange(field.draftKey, event.target.value)}>
+          {!field.fixed && <option value="">Seleccionar talla</option>}
+          {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
+        </FSelect>
+      </Field>)}
+      <Field label="Fit Test"><label><input type="checkbox" checked={Boolean(data.eppFitTest)} onChange={event => onChange('eppFitTest', event.target.checked)} /> Fit Test aprobado</label></Field>
     </div>
   )
 }
@@ -256,7 +260,8 @@ function StepResumen({ data, mantenciones }) {
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
-    ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
+    ['Casco', data.eppCasco], ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
+    ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Fit Test', data.eppFitTest ? 'Aprobado' : 'No aprobado'],
   ].filter(([, value]) => value)
 
   return (
@@ -384,7 +389,7 @@ export default function NuevoTrabajadorPage() {
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
         disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
-        epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
+        epp: { casco: data.eppCasco || 'Talla única', camisa: data.eppCamisa || undefined, pantalon: data.eppPantalon || undefined, calzado: data.eppCalzado || undefined, guante: data.eppGuante || undefined, arnes: data.eppArnes || undefined, fitTest: Boolean(data.eppFitTest) },
         bloqueado: false, mineras: [], workerItems: [], creado: localDate(),
       }
 
