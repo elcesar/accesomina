@@ -399,6 +399,8 @@ export default function FichaTrabajadorPage() {
   const navigate = useNavigate()
   const [stateData, setStateData] = useState(null)
   const [worker, setWorker] = useState(null)
+  const [workerRevision, setWorkerRevision] = useState(null)
+  const originalProfileRef = useRef(null)
   const [assignments, setAssignments] = useState([])
   const [tab, setTab] = useState('datos')
   const [saving, setSaving] = useState(false)
@@ -415,12 +417,25 @@ export default function FichaTrabajadorPage() {
     setOk(null)
   }, [tab])
 
-  useEffect(() => { api.get('/state').then(r => {
-    const s = r?.state || r; setStateData(s); const found = (s?.trabajadores || []).find(w => w.id === id); if (!found) return
+  useEffect(() => {
+    let active = true
+    setWorkerRevision(null)
+    originalProfileRef.current = null
+    setWorker(null)
+    Promise.all([
+      api.get('/state?modules=minas,contratos,mantenciones,asignaciones,hotelAsig,hoteles,restricted,eppDeliveries'),
+      api.get(`/state/records/trabajadores/${encodeURIComponent(id)}`),
+    ]).then(([r, profile]) => {
+    if (!active) return
+    setWorkerRevision(profile.revision)
+    const s = r?.state || r; setStateData(s); const found = profile.record; if (!found) return
+    originalProfileRef.current = found
     const workerAssignments = (s?.asignaciones || []).filter(a => a.trabId === id)
     const hotelAssignments = (s?.hotelAsig || []).filter(h => h.trabId === id).map(h => ({ ...h, hotelNombre: (s?.hoteles || []).find(ho => ho.id === h.hotelId)?.nombre, mantNombre: (s?.mantenciones || []).find(m => m.id === h.mantId)?.nombre }))
     setWorker({ ...found, _asignaciones: workerAssignments, _hotelAsig: hotelAssignments }); setAssignments(s?.asignaciones || [])
-  }).catch(e => setError(e.message || 'Error al cargar la ficha')) }, [id])
+  }).catch(e => { if (active) setError(e.message || 'Error al cargar la ficha') })
+    return () => { active = false }
+  }, [id])
 
   function onChange(field, value) {
     if (field === 'email') setEmailError(null)
@@ -431,7 +446,19 @@ export default function FichaTrabajadorPage() {
     setTab('datos')
     requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
   }
-  async function persistWorker(nextWorker, reason) { const r = await api.get('/state'); const s = r?.state || r; const version = r?.moduleVersions?.trabajadores ?? 0; const { _asignaciones, _hotelAsig, ...clean } = nextWorker; const list = (s?.trabajadores || []).map(item => item.id === id ? clean : item); await api.put('/state/modules', { reason, changes: { trabajadores: { version, data: list } } }); setWorker(nextWorker) }
+  async function persistWorker(nextWorker, reason) {
+    if (!workerRevision || !originalProfileRef.current) throw new Error('La ficha aún no está lista para guardar. Recárgala e inténtalo nuevamente.')
+    const fields = ['nombre', 'rut', 'nacimiento', 'tel', 'email', 'region', 'ciudad', 'cargo', 'rol', 'especialidad', 'afp', 'salud', 'epp']
+    const original = originalProfileRef.current
+    const patch = Object.fromEntries(fields
+      .filter(key => nextWorker[key] !== undefined && JSON.stringify(nextWorker[key]) !== JSON.stringify(original[key]))
+      .map(key => [key, nextWorker[key]]))
+    if (!Object.keys(patch).length) return
+    const result = await api.patch(`/state/records/trabajadores/${encodeURIComponent(id)}`, { patch, revision: workerRevision, reason })
+    setWorkerRevision(result.revision)
+    originalProfileRef.current = result.record
+    setWorker(current => ({ ...current, ...result.record, _asignaciones: current?._asignaciones, _hotelAsig: current?._hotelAsig }))
+  }
   async function handleSave() {
     setError(null)
     setOk(null)
