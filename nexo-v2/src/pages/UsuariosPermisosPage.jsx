@@ -57,11 +57,13 @@ export default function UsuariosPermisosPage() {
   const [busy, setBusy] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [draft, setDraft] = useState({ fullName: '', email: '', role: 'consulta' })
+  const [nameError, setNameError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [createError, setCreateError] = useState('')
   const [createNeedsRefresh, setCreateNeedsRefresh] = useState(false)
   const creating = useRef(false)
   const createDialogRef = useRef(null)
+  const nameInputRef = useRef(null)
   const admin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
 
   const load = async () => {
@@ -101,18 +103,27 @@ export default function UsuariosPermisosPage() {
   const createUser = async event => {
     event.preventDefault()
     if (creating.current || createNeedsRefresh || !admin) return
+    const fullName = draft.fullName.trim()
+    const nextNameError = fullName.length < 3 || fullName.length > 160 ? 'Ingresa un nombre de entre 3 y 160 caracteres, sin contar los espacios al inicio o al final.' : ''
     const nextEmailError = validateEmail(draft.email, { required: true })
+    setNameError(nextNameError)
     setEmailError(nextEmailError || '')
-    if (!draft.fullName.trim() || nextEmailError) return
+    setCreateError('')
+    if (nextNameError || nextEmailError) {
+      if (nextNameError) nameInputRef.current?.focus()
+      else document.getElementById('create-user-email')?.focus()
+      return
+    }
     creating.current = true
     setBusy('create')
     setMessage('')
     setCreateError('')
     try {
-      const result = await api.post('/users', draft, { feedback: false })
+      const result = await api.post('/users', { ...draft, fullName }, { feedback: false })
       setUsers(current => [...current.filter(user => user.id !== result.user.id), { ...result.user, invitation: result.invitation }])
       setShowCreate(false)
       setDraft({ fullName: '', email: '', role: 'consulta' })
+      setNameError('')
       setEmailError('')
       setMessageTone(result?.invitation?.status === 'failed' ? 'alert' : 'status')
       setMessage(invitationResultMessage(result, true))
@@ -179,7 +190,7 @@ export default function UsuariosPermisosPage() {
           <h1>Usuarios y permisos</h1>
           <p>{session?.tenant?.name || 'Empresa'} · datos independientes de otros clientes</p>
         </div>
-        {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setCreateError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
+        {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setCreateError(''); setNameError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
       </header>
 
       {message && <p className="nk-form-message" role={messageTone}>{message}</p>}
@@ -243,8 +254,8 @@ export default function UsuariosPermisosPage() {
         <div className="nk-user-dialog-backdrop" role="presentation" onMouseDown={() => { if (!creating.current) setShowCreate(false) }}>
           <section ref={createDialogRef} className="nk-user-dialog" role="dialog" aria-modal="true" aria-labelledby="nk-user-create-title" aria-busy={busy === 'create'} onMouseDown={event => event.stopPropagation()}>
             <header><div><h2 id="nk-user-create-title">Dar acceso</h2><p>La persona recibirá un enlace por correo para crear su contraseña. El enlace es válido por 24 horas.</p></div><button type="button" className="nk-user-dialog-close" disabled={busy === 'create'} onClick={() => setShowCreate(false)} aria-label="Cerrar"><IconX size={18}/></button></header>
-            <form onSubmit={createUser}>
-              <label><span>Nombre</span><input className="nk-input" minLength={3} disabled={busy === 'create'} value={draft.fullName} onChange={e => setDraft({ ...draft, fullName: e.target.value })} required /></label>
+            <form noValidate onSubmit={createUser}>
+              <div className="nk-field"><label className="nk-label" htmlFor="create-user-name">Nombre</label><input ref={nameInputRef} id="create-user-name" className="nk-input" minLength={3} maxLength={160} disabled={busy === 'create'} value={draft.fullName} onChange={e => { setDraft({ ...draft, fullName: e.target.value }); setNameError('') }} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'create-user-name-error' : undefined} required />{nameError && <p id="create-user-name-error" className="nk-field-error" role="alert">{nameError}</p>}</div>
               <div className="nk-field"><label className="nk-label" htmlFor="create-user-email">Correo de acceso</label><EmailInput id="create-user-email" required disabled={busy === 'create'} value={draft.email} error={emailError} onChange={value => { setDraft({ ...draft, email: value }); setEmailError('') }} placeholder="persona@empresa.cl" /></div>
               <div className="nk-field"><label className="nk-label" htmlFor="create-user-role">Permiso</label><select id="create-user-role" className="nk-input" disabled={busy === 'create'} value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}</select></div>
               {createError && <p className="nk-field-error" role="alert">{createError}</p>}
