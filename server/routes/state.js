@@ -7,6 +7,8 @@ import { assertModuleAccess } from '../module-access.js';
 import { enforceStateScope, removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS } from '../../shared/opportunity-domain.js';
 import { assertWorkerDocumentFileReferences, changedWorkerDocuments } from '../worker-document-evidence.js';
+import { lockSubscriptionForWrite } from '../subscription-access.js';
+import { assertSubscriptionWorkerCapacity } from '../subscriptions.js';
 
 export const stateRouter = Router();
 const editors = allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
@@ -118,6 +120,11 @@ stateRouter.get('/', async (req, res) => {
   if(requested)requested.forEach(key=>assertModuleAccess(req.auth,key));
   let rows = await withTenant(req.auth.tenantId,async client=>{await ensureModules(client,req.auth.tenantId,req.auth.userId);return (await client.query('SELECT module_key,data,version,updated_at FROM tenant_module_state WHERE tenant_id=$1'+(requested?' AND module_key=ANY($2::text[])':'')+' ORDER BY module_key',requested?[req.auth.tenantId,requested]:[req.auth.tenantId])).rows;});
   rows=rows.filter(row=>{try{assertModuleAccess(req.auth,row.module_key);return true;}catch{return false;}});
+  if(req.subscriptionServicesOnly){
+    const opportunityKeys=['prospectos','oportunidades','opportunities'];
+    rows=rows.filter(row=>['minas','contratos','mantenciones'].includes(row.module_key)||(req.subscriptionServicesOnly.includes('oportunidades')&&opportunityKeys.includes(row.module_key)));
+    rows=rows.map(row=>['minas','contratos','mantenciones'].includes(row.module_key)?{...row,data:(Array.isArray(row.data)?row.data:[]).map(({id,nombre,numero,minaId,contratoId})=>({id,nombre,numero,minaId,contratoId}))}:row);
+  }
   const state=normalizeTenantState(rowsToState(rows));
   res.json({state,moduleVersions:rowsToVersions(rows),updated_at:rows.reduce((v,r)=>!v||r.updated_at>v?r.updated_at:v,null)});
 });
@@ -141,10 +148,12 @@ stateRouter.patch('/records/trabajadores/:workerId',editors,async(req,res)=>{
  assertModuleAccess(req.auth,'trabajadores');
  try{
  const result=await withTenant(req.auth.tenantId,async client=>{
+  const subscriptionTenant=await lockSubscriptionForWrite(client,req.auth);
   await ensureModules(client,req.auth.tenantId,req.auth.userId);
   const workers=(await client.query("SELECT data FROM tenant_module_state WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE",[req.auth.tenantId])).rows[0]?.data||[];
   const result=patchWorkerProfile(workers,String(req.params.workerId),req.body?.patch,req.body?.revision);
   enforceStateScope(req.auth.role,{trabajadores:workers},{trabajadores:result.records});
+  if(subscriptionTenant)await assertSubscriptionWorkerCapacity(client,req.auth.tenantId,workers,result.records);
   await client.query("UPDATE tenant_module_state SET data=$2::jsonb,version=version+1,updated_by=$3,updated_at=now() WHERE tenant_id=$1 AND module_key='trabajadores'",[req.auth.tenantId,JSON.stringify(result.records),req.auth.userId]);
   await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'worker',entityId:req.params.workerId,action:'worker.profile_updated',oldValue:{revision:req.body.revision},newValue:{revision:result.revision,fields:Object.keys(req.body.patch),reason:String(req.body.reason||'Perfil actualizado').slice(0,240)}});
   return {record:result.record,revision:result.revision};
@@ -158,6 +167,7 @@ stateRouter.post('/workers/:workerId/documents',editors,async(req,res)=>{
   assertModuleAccess(req.auth,'trabajadores');
   const workerId=String(req.params.workerId||'');
   const result=await withTenant(req.auth.tenantId,async client=>{
+    await lockSubscriptionForWrite(client,req.auth);
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     const row=(await client.query(`SELECT data,version FROM tenant_module_state
       WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE`,[req.auth.tenantId])).rows[0];
@@ -220,6 +230,7 @@ stateRouter.delete('/workers/:workerId/documents/:documentId',editors,async(req,
   assertModuleAccess(req.auth,'trabajadores');
   const workerId=String(req.params.workerId||''),documentId=String(req.params.documentId||'');
   const result=await withTenant(req.auth.tenantId,async client=>{
+    await lockSubscriptionForWrite(client,req.auth);
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     const row=(await client.query(`SELECT data,version FROM tenant_module_state
       WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE`,[req.auth.tenantId])).rows[0];
@@ -267,6 +278,7 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
     return res.status(400).json({error:'OPPORTUNITY_VERSION_SET_REQUIRED'});
   }
   const result=await withTenant(req.auth.tenantId,async client=>{
+    const subscriptionTenant=await lockSubscriptionForWrite(client,req.auth,{modules:requestedKeys});
     await ensureModules(client,req.auth.tenantId,req.auth.userId);
     await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
       SELECT $1,key,'null'::jsonb,0,$3 FROM unnest($2::text[]) key
@@ -296,6 +308,7 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
       Object.fromEntries(requestedKeys.map(k=>[k,current[k]])),
       Object.fromEntries(requestedKeys.map(k=>[k,clean[k]]))
     );
+    if(subscriptionTenant && requestedKeys.includes('trabajadores'))await assertSubscriptionWorkerCapacity(client,req.auth.tenantId,current.trabajadores,clean.trabajadores);
     const output={};
     for(const key of keys){
       const previous=current[key];

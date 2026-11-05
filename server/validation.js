@@ -24,7 +24,8 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   companyName: z.string().trim().min(3).max(160), rut: z.string().min(8).max(20),
   adminName: z.string().trim().min(3).max(160), email: emailSchema,
-  phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
+  phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200),
+  acceptedTerms: z.literal(true), termsVersion: z.literal('2026-11-05'),
 });
 
 const workerEmailSchema = z.string().trim().max(254).email();

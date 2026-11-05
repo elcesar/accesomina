@@ -14,6 +14,8 @@ import {
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
+import { lockSubscriptionForWrite } from '../subscription-access.js';
+import { assertSubscriptionWorkerCapacity } from '../subscriptions.js';
 
 export const dataTransferRouter=Router();
 export const BACKUP_FORMAT='nexo-klar-backup';
@@ -87,6 +89,7 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     importModules[def.module]={rawRows:parsed.data,definition:def};
   }
   const result=await withTenant(req.auth.tenantId,async client=>{
+    const subscriptionTenant=await lockSubscriptionForWrite(client,req.auth,{modules:type==='backup'?undefined:Object.keys(importModules)});
     const rows=await moduleRows(client,req.auth.tenantId,true),state=aggregate(rows),before={};
     if(type!=='backup'){
       const entry=importModules[definitions[type].module],mapped=entry.rawRows.map(r=>entry.definition.map(r,state));
@@ -117,6 +120,7 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
     }
 const clean = validateTenantState(next, { previousState: state });
+if(subscriptionTenant && Object.hasOwn(importModules,'trabajadores'))await assertSubscriptionWorkerCapacity(client,req.auth.tenantId,state.trabajadores,clean.trabajadores);
 
 if (Object.hasOwn(importModules, 'trabajadores')) {
   await assertWorkerDocumentFileReferences(

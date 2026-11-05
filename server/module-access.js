@@ -1,3 +1,5 @@
+import { separateServiceEnabled, separateServiceForModule, separateServiceForEntity } from './subscription-entitlements.js';
+
 const ENTITY_MODULES = new Map([
   ['worker', 'trabajadores'], ['person', 'trabajadores'], ['persona', 'trabajadores'],
   ['worker_document', 'trabajadores'], ['worker_health', 'trabajadores'], ['health_protocol', 'trabajadores'],
@@ -18,6 +20,8 @@ export function moduleForEntityType(entityType) {
 }
 
 export function canAccessModule(auth, moduleKey) {
+  const service=separateServiceForModule(moduleKey);
+  if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
   return Boolean(moduleKey) && (ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false)
 }
 
@@ -30,6 +34,8 @@ export function assertModuleAccess(auth, moduleKey) {
 // Unknown types are denied to non-administrators rather than silently bypassing
 // module permissions. Administrators retain their explicit full-tenant access.
 export function canAccessEntityType(auth, entityType) {
+  const service=separateServiceForEntity(entityType);
+  if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
   return ADMIN_ROLES.has(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
 }
 
