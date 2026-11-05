@@ -1,0 +1,80 @@
+.nk-plans-section, .nk-subscription-page, .nk-subscription-admin { min-width: 0; }
+.nk-plans-section { display: grid; gap: 2.5rem; }
+.nk-plans-hero { max-width: 54rem; }
+.nk-plans-hero h1 { margin-block: .5rem 1rem; }
+.nk-plans-hero > p:last-child { color: var(--mut); }
+.nk-plan-actions, .nk-subscription-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1rem; }
+.nk-plan-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; align-items: stretch; scroll-margin-top: 8rem; }
+.nk-plan-tile { min-width: 0; padding: 1.25rem; border: 1px solid var(--line); border-radius: var(--nk-radius-card, 12px); background: var(--surf); display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+.nk-plan-tile.is-recommended { border-color: var(--pri); }
+.nk-plan-tile h2 { font-size: 1.25rem; margin: .25rem 0; }
+.nk-plan-tile p { margin: .35rem 0; }
+.nk-plan-tile ul { padding-left: 1.2rem; margin-block: .5rem 1rem; color: var(--mut); font-size: .875rem; line-height: 1.65; flex: 1; }
+.nk-plan-tile .nk-button { width: 100%; white-space: normal; text-align: center; }
+.nk-plan-price { font-size: 1.65rem; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.nk-plan-price small { display: block; font-size: .8rem; font-weight: 400; color: var(--mut); line-height: 1.5; }
+.nk-plan-comparison, .nk-plan-recommender, .nk-plan-request, .nk-plan-faq { padding: 1.5rem; border: 1px solid var(--line); background: var(--surf); border-radius: var(--nk-radius-card, 12px); min-width: 0; }
+.nk-plan-request { scroll-margin-top: 8rem; }
+.nk-plan-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-block: 1.25rem; }
+.nk-plan-module-grid details, .nk-plan-faq details, .nk-plan-terms, .nk-subscription-details { padding: 1rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); }
+.nk-plan-faq details + details, .nk-subscription-details { margin-block: .75rem; }
+.nk-plan-module-grid summary, .nk-plan-faq summary, .nk-plan-terms summary, .nk-subscription-details > summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.nk-plan-separate { margin-top: 1rem; padding: 1.25rem; background: var(--surf-2); border-radius: var(--nk-radius-control, 8px); }
+.nk-plan-recommender form { max-width: 40rem; }
+.nk-plan-recommender .nk-plan-actions .nk-input { width: 12rem; max-width: 100%; }
+.nk-plan-recommendation { margin-top: 1rem; padding: 1rem; background: var(--pri-light); border-radius: var(--nk-radius-control, 8px); }
+.nk-subscription-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 1rem; }
+.nk-subscription-form-grid .nk-field { min-width: 0; display: flex; flex-direction: column; gap: .35rem; }
+.nk-subscription-form-grid input, .nk-subscription-form-grid select, .nk-subscription-form-grid textarea { max-width: 100%; }
+.nk-plan-consent { display: flex; align-items: flex-start; gap: .65rem; font-size: .9rem; margin-block: 1rem; }
+.nk-plan-consent input { margin-top: .25rem; flex: 0 0 auto; width: 1rem; height: 1rem; accent-color: var(--pri); }
+.nk-plan-total { padding: .8rem 1rem; background: var(--surf-2); border-radius: var(--nk-radius-control, 8px); margin-block: 1rem; }
+.nk-subscription-error { color: var(--state-error); background: var(--state-error-bg); }
+.nk-subscription-status { display: inline-flex; align-items: center; border-radius: var(--nk-radius-control, 8px); padding: .3rem .6rem; background: var(--pri-light); color: var(--pri); font-size: .8rem; font-weight: 600; }
+.nk-subscription-status-suspended, .nk-subscription-status-expired { color: var(--state-error); background: var(--state-error-bg); }
+.nk-subscription-status-grace_period { color: var(--state-warn-ink); background: var(--state-warn-bg); }
+.nk-subscription-status-active { color: var(--state-ok); background: var(--state-ok-bg); }
+.nk-subscription-card { margin-bottom: 1.25rem; padding: 1.25rem; }
+.nk-subscription-card > header, .nk-subscription-overview > header, .nk-subscription-company-header, .nk-subscription-lead > header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.nk-subscription-card h2, .nk-subscription-overview h2 { margin-top: 0; }
+.nk-subscription-page, .nk-subscription-admin { display: grid; gap: 1.25rem; }
+.nk-subscription-page > .nk-module-card, .nk-subscription-admin > .nk-module-card { padding: 1.5rem; min-width: 0; }
+.nk-capacity-meter { margin-block: 1rem; }
+.nk-capacity-meter > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; }
+.nk-capacity-meter progress { display: block; width: 100%; height: .8rem; margin-top: .6rem; accent-color: var(--pri); }
+.nk-capacity-warning progress { accent-color: var(--state-warn); }
+.nk-capacity-critical progress, .nk-capacity-full progress { accent-color: var(--state-error); }
+.nk-capacity-meter p { color: var(--mut); margin-block: .5rem; font-size: .9rem; }
+.nk-subscription-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-block: 1.5rem; }
+.nk-subscription-facts div { min-width: 0; }
+.nk-subscription-facts dt { color: var(--mut); font-size: .8rem; margin-bottom: .3rem; }
+.nk-subscription-facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.nk-subscription-packages { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); padding: 1rem; margin-block: 1rem; min-width: 0; }
+.nk-subscription-packages legend { font-weight: 600; padding-inline: .35rem; }
+.nk-subscription-packages label { display: grid; gap: .5rem; min-width: 0; }
+.nk-subscription-packages small { color: var(--mut); }
+.nk-subscription-services { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.nk-subscription-services article { padding: 1rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); }
+.nk-subscription-request-list { display: grid; gap: .75rem; }
+.nk-subscription-request-list article { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); padding: 1rem; }
+.nk-subscription-request-list small { color: var(--mut); }
+.nk-subscription-editor { margin-block: 1rem; padding: 1.25rem; background: var(--surf-2); border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); min-width: 0; }
+.nk-subscription-editor .nk-field { display: flex; flex-direction: column; gap: .35rem; }
+.nk-subscription-company-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .65rem; margin-top: 1rem; max-height: 24rem; overflow: auto; padding: .15rem; }
+.nk-subscription-company { display: grid; gap: .4rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); background: var(--surf); text-align: left; color: var(--ink); padding: .8rem 1rem; cursor: pointer; }
+.nk-subscription-company.is-selected { border-color: var(--pri); background: var(--pri-light); }
+.nk-subscription-company span { color: var(--mut); font-size: .8rem; }
+.nk-commercial-documents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-block: 1.25rem; }
+.nk-commercial-documents fieldset, .nk-subscription-service-editor { padding: 1rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); min-width: 0; }
+.nk-commercial-documents legend, .nk-subscription-service-editor legend { font-weight: 600; }
+.nk-commercial-documents input[type='file'] { max-width: 100%; font-size: .8rem; }
+.nk-commercial-documents .nk-field { margin-bottom: .75rem; }
+.nk-subscription-lead { padding-block: 1rem; border-bottom: 1px solid var(--line); }
+.nk-subscription-lead:last-child { border-bottom: none; }
+.nk-free-notice { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); margin: auto; padding: 1.5rem; color: var(--ink); background: var(--surf); border: 1px solid var(--line); }
+.nk-free-notice::backdrop { background: var(--nk-overlay, rgb(0 0 0 / .45)); }
+.nk-free-notice .nk-dialog-footer { flex-wrap: wrap; }
+.nk-subscription-admin .nk-table small { display: block; color: var(--mut); margin-top: .3rem; }
+@media (max-width: 1250px) { .nk-plan-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .nk-plan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .nk-commercial-documents { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .nk-plan-grid, .nk-plan-module-grid, .nk-subscription-form-grid, .nk-subscription-services { grid-template-columns: 1fr; } .nk-plan-comparison, .nk-plan-recommender, .nk-plan-request, .nk-plan-faq, .nk-subscription-page > .nk-module-card, .nk-subscription-admin > .nk-module-card { padding: 1rem; } .nk-plan-actions > .nk-button, .nk-subscription-tabs > .nk-button { flex: 1 1 auto; white-space: normal; } .nk-plan-price { font-size: 1.6rem; } .nk-plan-recommender .nk-plan-actions .nk-input { width: 100%; } .nk-subscription-facts { grid-template-columns: 1fr; } .nk-subscription-editor { padding: .8rem; } .nk-free-notice { padding: 1rem; } }

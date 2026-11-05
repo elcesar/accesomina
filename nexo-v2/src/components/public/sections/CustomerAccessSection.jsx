@@ -4,6 +4,8 @@ import { api } from '../../../services/api.js'
 import { formatRut, isValidRut } from '../../../services/rut.js'
 import { RutInput } from '../../ui/RutInput.jsx'
 import { PhoneInput } from '../../ui/PhoneInput.jsx'
+import { EmailInput } from '../../ui/EmailInput.jsx'
+import { InformationDialog } from '../PublicDialogs.jsx'
 import { validateEmail } from '../../../services/email-validation.js'
 import { isValidChilePhone } from '../../../services/chile-phone.js'
 
@@ -16,6 +18,7 @@ const initialRegistration = {
   emailConfirmation: '',
   password: '',
   inviteCode: '',
+  acceptedTerms: false,
 }
 
 const registrationErrorMessages = {
@@ -31,9 +34,12 @@ export function CustomerAccessPanel() {
   const [registration, setRegistration] = useState(initialRegistration)
   const [fieldErrors, setFieldErrors] = useState({})
   const [showInvite, setShowInvite] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
+  const [freePlan, setFreePlan] = useState(null)
 
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
+    api.get('/plans').then(data => setFreePlan(data.plans?.find(plan => plan.code === 'FREE') || null)).catch(() => {})
   }, [])
 
   const update = key => event => {
@@ -52,6 +58,7 @@ export function CustomerAccessPanel() {
     if (registration.email.trim().toLowerCase() !== registration.emailConfirmation.trim().toLowerCase()) errors.emailConfirmation = 'Los correos no coinciden.'
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{12,}$/.test(registration.password)) errors.password = registrationErrorMessages.WEAK_PASSWORD
     if (!registration.inviteCode.trim()) errors.inviteCode = 'Ingresa el código de invitación.'
+    if (!registration.acceptedTerms) errors.acceptedTerms = 'Acepta los términos y la política de privacidad para continuar.'
     return errors
   }
 
@@ -77,6 +84,8 @@ export function CustomerAccessPanel() {
         phone: registration.phone,
         password: registration.password,
         inviteCode: registration.inviteCode,
+        acceptedTerms: registration.acceptedTerms,
+        termsVersion: config.registrationTermsVersion || '2026-11-05',
       })
 
       setMessage(result.message || 'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.')
@@ -115,7 +124,9 @@ export function CustomerAccessPanel() {
 
       <form className="nk-access-form" noValidate onSubmit={submitRegistration} onBlur={event => {
         const key = event.target.name
-        if (key) setFieldErrors(current => ({ ...current, [key]: validate()[key] || '' }))
+        // Keep a server-rejected invitation visible until its value changes.
+        // Clearing it on blur would move the reveal button before pointer-up.
+        if (key) setFieldErrors(current => ({ ...current, [key]: key === 'inviteCode' && current.inviteCode ? current.inviteCode : validate()[key] || '' }))
       }} aria-busy={busy}>
         <label>
           Nombre empresa (obligatorio)
@@ -180,38 +191,12 @@ export function CustomerAccessPanel() {
 
         <label>
           Correo administrador (obligatorio)
-          <input
-            required
-            type="email"
-            id="registration-email"
-            name="email"
-            aria-invalid={Boolean(fieldErrors.email)}
-            aria-describedby={fieldErrors.email ? "registration-email-error" : undefined}
-            value={registration.email}
-            onChange={update('email')}
-            placeholder="admin@empresa.cl"
-            autoComplete="email"
-          />
-          {fieldErrors.email && <span id="registration-email-error" className="nk-field-error" role="alert">{fieldErrors.email}</span>}
+          <EmailInput required id="registration-email" name="email" value={registration.email} onChange={value => { setRegistration(current => ({ ...current, email: value })); setFieldErrors(current => ({ ...current, email: '' })) }} error={fieldErrors.email} placeholder="admin@empresa.cl" autoComplete="email" />
         </label>
 
         <label>
           Confirma el correo administrador (obligatorio)
-          <input
-            required
-            type="email"
-            id="registration-emailConfirmation"
-            name="emailConfirmation"
-            aria-invalid={Boolean(fieldErrors.emailConfirmation)}
-            aria-describedby={fieldErrors.emailConfirmation ? "registration-emailConfirmation-error" : undefined}
-            value={registration.emailConfirmation}
-            onChange={update('emailConfirmation')}
-            onPaste={event => event.preventDefault()}
-            onDrop={event => event.preventDefault()}
-            placeholder="Escribe nuevamente el correo"
-            autoComplete="off"
-          />
-          {fieldErrors.emailConfirmation && <span id="registration-emailConfirmation-error" className="nk-field-error" role="alert">{fieldErrors.emailConfirmation}</span>}
+          <EmailInput required id="registration-emailConfirmation" name="emailConfirmation" value={registration.emailConfirmation} onChange={value => { setRegistration(current => ({ ...current, emailConfirmation: value })); setFieldErrors(current => ({ ...current, emailConfirmation: '' })) }} error={fieldErrors.emailConfirmation} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} placeholder="Escribe nuevamente el correo" autoComplete="off" />
         </label>
 
         <div className="nk-access-form-row">
@@ -251,6 +236,11 @@ export function CustomerAccessPanel() {
           </label>
         </div>
 
+        {freePlan && <p className="nk-access-note">Plan {freePlan.name}: hasta {freePlan.workerLimit} trabajadores durante {freePlan.trialMonths} meses calendario. La gratuidad comienza con la primera activación aprobada de la empresa. No requiere tarjeta.</p>}
+        <button type="button" className="nk-button nk-button-quiet" onClick={() => setShowTerms(true)}>Leer términos y privacidad</button>
+        <label className="nk-plan-consent"><input id="registration-acceptedTerms" name="acceptedTerms" type="checkbox" checked={registration.acceptedTerms} onChange={event => { setRegistration(current => ({ ...current, acceptedTerms: event.target.checked })); setFieldErrors(current => ({ ...current, acceptedTerms: '' })) }} aria-invalid={Boolean(fieldErrors.acceptedTerms)} aria-describedby={fieldErrors.acceptedTerms ? 'registration-acceptedTerms-error' : undefined} /><span>He leído y acepto los términos y la política de privacidad.</span></label>
+        {fieldErrors.acceptedTerms && <span id="registration-acceptedTerms-error" className="nk-field-error" role="alert">{fieldErrors.acceptedTerms}</span>}
+
         <button type="button" className="nk-button nk-button-quiet" onClick={() => setShowInvite(value => !value)} aria-pressed={showInvite} aria-controls="registration-inviteCode">{showInvite ? 'Ocultar código' : 'Mostrar código de invitación'}</button>
         {!config.registrationEnabled && <p className="nk-access-note" role="status">El registro está cerrado temporalmente. Solicita una invitación a <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>.</p>}
         <button
@@ -267,6 +257,7 @@ export function CustomerAccessPanel() {
         </p>
       </form>
 
+      {showTerms && <InformationDialog kind="terms" onClose={() => setShowTerms(false)} />}
       {message && (
         <p className={`nk-form-message ${messageType === 'approval' ? 'nk-access-approval-message' : ''}`} role={messageType === 'alert' ? 'alert' : 'status'} aria-live="polite">
           {message}

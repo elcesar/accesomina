@@ -11,17 +11,32 @@ import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
 import { useAuth } from '../../services/auth.jsx'
+import { SubscriptionProvider, useSubscription } from '../../services/subscription.jsx'
+import { FreePlanNotice } from '../ui/SubscriptionComponents.jsx'
 import '../../styles/layout/app-layout.css'
 
 function ModuleOutlet() {
   const { pathname } = useLocation()
   const { loading, isEnabled } = useModuleAccess()
   const { session } = useAuth()
+  const { summary } = useSubscription()
   const moduleKey = moduleForPath(pathname)
   const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
+  if (pathname === '/app/administracion-planes' && !isNexoAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="La administración de planes requiere un permiso global." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
+  const separateCode = pathname.startsWith('/app/libro-obra') ? 'libroObra' : pathname.startsWith('/app/oportunidades') ? 'oportunidades' : null
+  const separateService = separateCode && summary?.separateServices?.[separateCode]
+  const separateAllowed = separateService?.enabled && (!separateService.endsAt || Date.parse(separateService.endsAt) > Date.now())
+  if (summary?.managed && separateCode && !separateAllowed && !isNexoAdmin) {
+    return <ErrorPage as="section" title="Este servicio requiere contratación independiente" description="Libro de Obra y Gestor de Oportunidades tienen condiciones propias. Consulta a tu administrador para habilitar el servicio." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app/mi-plan">Ver mi plan</Link>} />
+  }
+  if (summary?.managed && summary.canOperate === false && pathname !== '/app/mi-plan' && !pathname.startsWith('/app/administracion-') && !separateAllowed) {
+    return <section className="nk-module-page"><header className="nk-module-header"><div><h1>{summary.contract ? 'Tu plan requiere renovación' : 'Tu plan está pendiente de activación'}</h1><p>Tu información permanece registrada. Gestiona la contratación o renovación desde Mi plan.</p></div></header><Link className="nk-button nk-button-primary" to="/app/mi-plan">Ir a Mi plan</Link></section>
+  }
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
   }
@@ -34,7 +49,7 @@ function ModuleOutlet() {
   return <Outlet />
 }
 
-export default function AppLayout() {
+function AppLayoutContent() {
   const { pathname } = useLocation()
   const { session } = useAuth()
   const domain = pageDomain(pathname)
@@ -124,9 +139,12 @@ export default function AppLayout() {
           <main className="nk-app-main" data-page-domain={domain || undefined}>
             {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
             <OperationFeedback><ModuleOutlet /></OperationFeedback>
+            <FreePlanNotice />
           </main>
         </div>
       </div>
     </ModuleAccessProvider>
   )
 }
+
+export default function AppLayout() { return <SubscriptionProvider><AppLayoutContent /></SubscriptionProvider> }

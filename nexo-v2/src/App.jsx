@@ -60,6 +60,8 @@ import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
+import MiPlanPage from './pages/MiPlanPage.jsx'
+import AdministracionPlanesPage from './pages/AdministracionPlanesPage.jsx'
 
 function ProtectedRoute({ children, allowPasswordChange = false, allowMfaEnrollment = false }) {
   const { session, loading } = useAuth()
@@ -120,6 +122,9 @@ const router = createBrowserRouter(createRoutesFromElements(
           <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaEnrollment><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
+            <Route path="mi-plan" element={<MiPlanPage />} />
+            <Route path="mi-suscripcion" element={<Navigate to="/app/mi-plan" replace />} />
+            <Route path="administracion-planes" element={<AdministracionPlanesPage />} />
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="reclutamiento" element={<GestionPersonalProyectoPage />} />
             <Route path="operaciones" element={<CentroOperativoPage />} />
