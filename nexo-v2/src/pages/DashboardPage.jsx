@@ -1,4 +1,5 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { SubscriptionCard } from '../components/ui/SubscriptionComponents.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconAlertTriangle, IconArrowRight, IconClipboardCheck, IconRefresh, IconShield, IconUsers } from '@tabler/icons-react'
@@ -108,6 +109,7 @@ export default function DashboardPage() {
   }[role] || { title: 'Control de la empresa', copy: 'Revisa brechas y prioridades operativas.', action: 'Ver centro operativo', to: '/app/operaciones' }
 
   return <section className="nk-dashboard">
+    <SubscriptionCard compact />
     <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p>{updatedAt && <small className="nk-dashboard-updated">Actualizado a las {updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small>}</div><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</ActionButton></header>
     {error && <div className="nk-control-feedback"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
     <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas no habilitadas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>

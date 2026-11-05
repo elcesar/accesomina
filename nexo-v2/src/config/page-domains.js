@@ -46,7 +46,7 @@ const PAGE_DOMAINS = [
   },
   {
     label: 'Gestión y Administración',
-    prefixes: ['/app/reportes', '/app/transferencia', '/app/usuarios', '/app/bitacora', '/app/privacidad', '/app/configuracion'],
+    prefixes: ['/app/reportes', '/app/transferencia', '/app/usuarios', '/app/bitacora', '/app/privacidad', '/app/configuracion', '/app/mi-plan', '/app/administracion-planes'],
   },
 ]
 

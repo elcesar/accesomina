@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
 import { useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
+import { useSubscription } from '../../services/subscription.jsx'
 import {
   IconLayoutDashboard, IconBell, IconBook, IconServer,
   IconUsers, IconClipboardList, IconClock, IconShield, IconSchool,
@@ -121,6 +122,7 @@ const NAV = [
       { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
       { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
       { to: '/app/privacidad', label: 'Privacidad y datos', icon: IconShieldLock },
+      { to: '/app/mi-plan', label: 'Mi plan Nexo Klar', icon: IconPackage },
     ],
   },
 ]
@@ -130,6 +132,7 @@ const NEXO_ADMIN_NAV = {
   label: 'Administración Nexo Klar',
   items: [
     { to: '/app/administracion-clientes', label: 'Administración de clientes', icon: IconBuildingCommunity },
+    { to: '/app/administracion-planes', label: 'Planes y suscripciones', icon: IconPackage },
   ],
 }
 
@@ -193,6 +196,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation()
   const navRef = useRef(null)
   const { session } = useAuth()
+  const { summary } = useSubscription()
   const { loading, isEnabled } = useModuleAccess()
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
@@ -237,7 +241,14 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
       <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal" onClick={event => { if (event.target.closest('a')) onClose() }}>
         {!loading && NAV.map(group => {
-          const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
+          const items = group.items.filter(item => {
+            if (item.to === '/app/mi-plan') return true
+            if (summary?.managed && ['/app/libro-obra', '/app/oportunidades'].includes(item.to)) {
+              const service = summary.separateServices?.[item.to === '/app/libro-obra' ? 'libroObra' : 'oportunidades']
+              if (!service?.enabled || (service.endsAt && Date.parse(service.endsAt) <= Date.now())) return false
+            }
+            return isEnabled(moduleForPath(item.to))
+          })
           return items.length ? <NavGroup
             key={group.key}
             group={{ ...group, items }}
