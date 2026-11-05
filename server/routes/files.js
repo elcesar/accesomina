@@ -9,8 +9,26 @@ import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
 import { assertEntityTypeAccess } from '../module-access.js';
+import { assertSubscriptionFileAccess, separateServiceForEntity } from '../subscription-entitlements.js';
+import { lockSubscriptionForWrite } from '../subscription-access.js';
+import { lockSubscriptionTenant } from '../subscriptions.js';
 
 export const filesRouter = Router();
+// This capability is set only by the verified global subscription route. It is
+// deliberately unavailable through request bodies, headers or the general API.
+export const subscriptionDocumentsContext = Symbol('subscriptionDocumentsContext');
+function commercialDocumentsRequest(req) {
+  return req.auth?.role === 'domian_admin' && req[subscriptionDocumentsContext]?.tenantId === req.auth.tenantId;
+}
+async function lockFileWrite(client,req,entityType) {
+  if(commercialDocumentsRequest(req)) {
+    const tenant=await lockSubscriptionTenant(client,req.auth.tenantId);
+    if(tenant.is_domian_admin)throw Object.assign(new Error('La administración global no recibe documentos comerciales empresariales.'),{status:409,code:'SUBSCRIPTION_PLATFORM_PROTECTED'});
+    return;
+  }
+  const service=separateServiceForEntity(entityType);
+  await lockSubscriptionForWrite(client,req.auth,{modules:service?[service==='libroObra'?'libroObra':'prospectos']:undefined});
+}
 const allowedMime=/^(application\/pdf|image\/(jpeg|png)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)))$/;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 }, fileFilter: (req,file,cb) => {
   if(allowedMime.test(file.mimetype))return cb(null,true);
@@ -55,9 +73,13 @@ filesRouter.get('/status', allowRoles('domian_admin','client_admin','rrhh','prev
 filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), requireFileInfrastructure, upload.single('file'), async (req,res) => {
   if(!req.file)return res.status(400).json({error:'FILE_REQUIRED'});
   const entityType=String(req.body.entityType||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,50),entityId=String(req.body.entityId||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,100);
+  const commercial=commercialDocumentsRequest(req);
+  if(commercial&&entityType!=='subscription_document')return res.status(400).json({error:'SUBSCRIPTION_DOCUMENT_TYPE_REQUIRED'});
   assertEntityTypeAccess(req.auth,entityType);
-  const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${sha}`;
+  if(!commercial)assertSubscriptionFileAccess(req.auth,entityType,{write:true});
+  const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${commercial?'commercial/':''}${sha}`;
   const row=await withTenant(req.auth.tenantId,async client=>{
+    await lockFileWrite(client,req,entityType);
     // Serialize uploads of identical content, including restoration of soft-deleted objects.
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[storageKey]);
     const existing=(await client.query(`SELECT id,original_name,content_type,byte_size,malware_status,created_at,deleted_at
@@ -94,9 +116,11 @@ filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencio
 
 filesRouter.get('/:id', async (req,res) => {
   const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT * FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId]));const file=result.rows[0];
-  if(!file)return res.status(404).json({error:'FILE_NOT_FOUND'});assertEntityTypeAccess(req.auth,file.entity_type);if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
+  if(!file)return res.status(404).json({error:'FILE_NOT_FOUND'});
+  if(commercialDocumentsRequest(req)&&file.entity_type!=='subscription_document')return res.status(404).json({error:'FILE_NOT_FOUND'});
+  assertEntityTypeAccess(req.auth,file.entity_type);if(!commercialDocumentsRequest(req))assertSubscriptionFileAccess(req.auth,file.entity_type);if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
   res.set({'Content-Type':file.content_type,'Content-Disposition':`attachment; filename="${safeName(file.original_name)}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
   if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));object.Body.pipe(res);}else res.sendFile(path.join(config.uploadDir,file.storage_key));
 });
 
-filesRouter.delete('/:id',allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'),async(req,res)=>{const row=await withTenant(req.auth.tenantId,async client=>{const existing=(await client.query('SELECT id,original_name,entity_type FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId])).rows[0];if(!existing)return null;assertEntityTypeAccess(req.auth,existing.entity_type);const result=await client.query('UPDATE file_objects SET deleted_at=now() WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL RETURNING id,original_name',[req.params.id,req.auth.tenantId]);if(result.rows[0])await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:req.params.id,action:'file.deleted',oldValue:result.rows[0]});return result.rows[0];});if(!row)return res.status(404).json({error:'FILE_NOT_FOUND'});res.status(204).end();});
+filesRouter.delete('/:id',allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'),async(req,res)=>{const row=await withTenant(req.auth.tenantId,async client=>{if(typeof req.auth.subscriptionManaged==='boolean')await lockSubscriptionTenant(client,req.auth.tenantId);const existing=(await client.query('SELECT id,original_name,entity_type FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId])).rows[0];if(!existing)return null;assertEntityTypeAccess(req.auth,existing.entity_type);assertSubscriptionFileAccess(req.auth,existing.entity_type,{write:true});const service=separateServiceForEntity(existing.entity_type);await lockSubscriptionForWrite(client,req.auth,{modules:service?[service==='libroObra'?'libroObra':'prospectos']:undefined});const result=await client.query('UPDATE file_objects SET deleted_at=now() WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL RETURNING id,original_name',[req.params.id,req.auth.tenantId]);if(result.rows[0])await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:req.params.id,action:'file.deleted',oldValue:result.rows[0]});return result.rows[0];});if(!row)return res.status(404).json({error:'FILE_NOT_FOUND'});res.status(204).end();});

@@ -23,6 +23,8 @@ import { workBooksRouter } from './routes/work-books.js';
 import { contactRouter } from './routes/contact.js';
 import { startJobRunner } from './jobs.js';
 import { evaluateReadiness } from './readiness.js';
+import { publicPlansRouter, subscriptionRouter } from './routes/subscriptions.js';
+import { subscriptionAccess } from './subscription-access.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -48,7 +50,10 @@ app.get('/api/metrics',async(req,res)=>{if(!config.metricsToken||req.get('author
 app.use('/api/auth', authRouter);
 app.use('/api/auth/invitations', invitationsRouter);
 app.use('/api', contactRouter);
+app.use('/api', publicPlansRouter);
 app.use('/api', authenticate, requireCsrf, requireMfa);
+app.use('/api', subscriptionRouter);
+app.use('/api', subscriptionAccess());
 app.use('/api/state', stateRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/files', filesRouter);
