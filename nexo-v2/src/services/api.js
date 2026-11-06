@@ -183,7 +183,7 @@ async function parseError(res) {
 }
 
 async function request(path, options = {}) {
-  const { feedback, ...fetchOptions } = options
+  const { feedback, loadFeedback = true, ...fetchOptions } = options
   const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers }
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
@@ -197,8 +197,8 @@ async function request(path, options = {}) {
     ...fetchOptions,
     headers,
     body: fetchOptions.body ? JSON.stringify(fetchOptions.body) : undefined,
-  }) } catch(error) { loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
-  if(!res.ok)loadFailure(path,method,res.status)
+  }) } catch(error) { if(loadFeedback)loadFailure(path,method,503); throw Object.assign(new Error('No pudimos conectar con el servicio. Revisa tu conexión e inténtalo nuevamente.'),{code:'NETWORK_ERROR',cause:error}) }
+  if(!res.ok && loadFeedback)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
   const result = res.status===204 ? null : await res.json()
   if(notify)publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
@@ -230,7 +230,7 @@ async function upload(path, file, fields = {}, options = {}) {
 }
 
 export const api = {
-  get: (path) => request(path, { method: 'GET' }),
+  get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
   post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
   put: (path, body, options = {}) => request(path, { ...options, method: 'PUT', body }),
   patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),
