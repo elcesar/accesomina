@@ -1,0 +1,53 @@
+name: Turnos regression
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/pages/TurnosPage.jsx'
+      - 'nexo-v2/src/components/ui/ActionButton.jsx'
+      - 'nexo-v2/src/components/ui/OperationFeedback.jsx'
+      - 'nexo-v2/src/services/api.js'
+      - 'nexo-v2/e2e/turnos-feedback.spec.js'
+      - 'nexo-v2/e2e/qa-feedback-errors.spec.js'
+      - '.github/workflows/turnos-regression.yml'
+  push:
+    branches: ['codex/turnos-motivos-316']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  interface:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://qa:qa@127.0.0.1:5432/nexo_qa
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+        working-directory: .
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+        working-directory: .
+      - run: npm install --ignore-scripts --no-package-lock
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Turnos permissions, progress, confirmation and recovery
+        run: npx playwright test e2e/turnos-feedback.spec.js e2e/qa-feedback-errors.spec.js e2e/opportunity-transfer.spec.js e2e/prospect-rut.spec.js e2e/health-protocol.spec.js e2e/first-access-sequence.spec.js --workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: turnos-regression-browser-report
+          path: nexo-v2/playwright-report
+          retention-days: 7

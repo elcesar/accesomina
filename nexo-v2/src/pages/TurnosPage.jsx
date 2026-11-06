@@ -1,14 +1,21 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { cloneElement, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { useAuth } from '../services/auth.jsx'
 import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, workerRegimenMatches } from '../config/worker-catalogs.js'
 import '../styles/turnos.css'
 
 const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
+// Match stateRouter editors and enforceStateScope: acreditacion cannot write turnos.
+const SCHEDULE_ROLES = new Set(['domian_admin', 'client_admin', 'rrhh', 'prevencion'])
+const PERMISSION_REASON = 'Tu perfil no permite programar jornadas. Solicita ayuda al administrador de tu empresa.'
+const SAVING_REASON = 'Se está guardando la jornada. Espera a que termine la operación.'
+const RECOVERING_REASON = 'Se están actualizando las jornadas después de un conflicto. Espera a que termine la consulta.'
+const CONFLICT_BLOCKED_REASON = 'No fue posible actualizar las jornadas. Actualiza los datos antes de volver a guardar; tu formulario se conserva.'
 
 const hoy = () => localDate()
 
@@ -50,15 +57,16 @@ function KPI({ value, label, tone = '' }) {
 }
 
 function Field({ label, children, wide = false }) {
+  const id = useId()
   return (
     <div className={`nk-field ${wide ? 'nk-turnos-modal-wide' : ''}`}>
-      <label className="nk-label">{label}</label>
-      {children}
+      <label className="nk-label" htmlFor={id}>{label}</label>
+      {cloneElement(children, { id })}
     </div>
   )
 }
 
-function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, onClose }) {
+function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, recovering, conflictBlocked, error, onSave, onClose, onRefresh }) {
   const [form, setForm] = useState({
     trabId: trabajadores[0]?.id || '',
     mantId: mantenciones[0]?.id || '',
@@ -72,66 +80,76 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
   })
 
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }))
-  const canSave = form.trabId && form.mantId && form.fecha
+  const missingFields = [!form.trabId && 'persona', !form.mantId && 'orden de servicio', !form.fecha && 'fecha'].filter(Boolean)
+  const canSave = canSchedule && !conflictBlocked && !recovering && missingFields.length === 0
+  const busy = saving || recovering
+  const busyReason = recovering ? RECOVERING_REASON : SAVING_REASON
+  const disabledReason = !canSchedule ? PERMISSION_REASON : busy ? busyReason : conflictBlocked ? CONFLICT_BLOCKED_REASON : `Completa ${missingFields.join(', ')} antes de guardar la jornada.`
+  const close = () => { if (!busy) onClose() }
 
   return (
-    <div className="nk-dialog-backdrop" role="presentation" onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className="nk-dialog" role="dialog" aria-modal="true" aria-labelledby="nuevo-turno-title">
+    <div className="nk-dialog-backdrop" role="presentation" onMouseDown={e => e.target === e.currentTarget && close()}>
+      <div className="nk-dialog" role="dialog" aria-modal="true" aria-labelledby="nuevo-turno-title" aria-busy={busy}>
         <div className="nk-dialog-header">
           <div>
             <h2 id="nuevo-turno-title" className="nk-dialog-title">Programar jornada</h2>
             <p className="nk-card-description">Registra la jornada de una persona dentro de su proyecto o servicio.</p>
           </div>
-          <button className="nk-icon-button nk-turnos-close" type="button" onClick={onClose} aria-label="Cerrar">
+          <button className="nk-icon-button nk-turnos-close" type="button" onClick={close} disabled={busy} aria-describedby={busy ? 'turno-saving-status' : undefined} title={busy ? busyReason : undefined} aria-label="Cerrar">
             <IconX size={18} />
           </button>
         </div>
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} onChange={e => set('trabId', e.target.value)}>
+            <select className="nk-select" value={form.trabId} disabled={saving || !canSchedule} onChange={e => set('trabId', e.target.value)}>
+              <option value="">Selecciona una persona</option>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} onChange={e => set('mantId', e.target.value)}>
+            <select className="nk-select" value={form.mantId} disabled={saving || !canSchedule} onChange={e => set('mantId', e.target.value)}>
+              <option value="">Selecciona una orden de servicio</option>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </Field>
           <Field label="Régimen">
-            <select className="nk-select" value={form.regimen} onChange={e => set('regimen', e.target.value)}>
+            <select className="nk-select" value={form.regimen} disabled={saving || !canSchedule} onChange={e => set('regimen', e.target.value)}>
               {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Turno">
-            <select className="nk-select" value={form.turno} onChange={e => set('turno', e.target.value)}>
+            <select className="nk-select" value={form.turno} disabled={saving || !canSchedule} onChange={e => set('turno', e.target.value)}>
               {WORKER_ASSIGNMENT_SHIFTS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Fecha">
-            <input className="nk-input" type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+            <input className="nk-input" type="date" value={form.fecha} disabled={saving || !canSchedule} onChange={e => set('fecha', e.target.value)} />
           </Field>
           <Field label="Asistencia">
-            <select className="nk-select" value={form.asistencia} onChange={e => set('asistencia', e.target.value)}>
+            <select className="nk-select" value={form.asistencia} disabled={saving || !canSchedule} onChange={e => set('asistencia', e.target.value)}>
               {ASISTENCIAS.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </Field>
           <Field label="Ingreso">
-            <input className="nk-input" type="time" value={form.ingreso} onChange={e => set('ingreso', e.target.value)} />
+            <input className="nk-input" type="time" value={form.ingreso} disabled={saving || !canSchedule} onChange={e => set('ingreso', e.target.value)} />
           </Field>
           <Field label="Salida">
-            <input className="nk-input" type="time" value={form.salida} onChange={e => set('salida', e.target.value)} />
+            <input className="nk-input" type="time" value={form.salida} disabled={saving || !canSchedule} onChange={e => set('salida', e.target.value)} />
           </Field>
           <Field label="HH reales" wide>
-            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} onChange={e => set('hh', e.target.value)} />
+            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} disabled={saving || !canSchedule} onChange={e => set('hh', e.target.value)} />
           </Field>
         </div>
 
-        {error && <p className="nk-form-error">{error}</p>}
+        {error && <p className="nk-form-error" role="alert">{error}</p>}
+        {busy && <p id="turno-saving-status" className="nk-field-help" role="status">{busyReason}</p>}
+        {conflictBlocked && !busy && <p className="nk-field-help">Conserva esta ventana abierta y utiliza “Actualizar jornadas” para recuperar los datos sin perder el formulario. Si necesitas recargar toda la página, copia antes lo ingresado.</p>}
         <div className="nk-dialog-footer">
-          <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <ActionButton disabledReason="Tu perfil no permite realizar esta acción. Solicita ayuda al administrador de tu empresa." className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
-            {saving ? 'Guardando…' : 'Guardar jornada'}
+          <button className="nk-button nk-button-secondary" type="button" onClick={close} disabled={busy} title={busy ? busyReason : undefined} aria-describedby={busy ? 'turno-saving-status' : undefined}>Cancelar</button>
+          {conflictBlocked && <ActionButton className="nk-button nk-button-secondary" type="button" disabled={busy} disabledReason={busyReason} onClick={onRefresh}>Actualizar jornadas</ActionButton>}
+          <ActionButton disabledReason={busy ? undefined : disabledReason} aria-describedby={busy ? 'turno-saving-status' : undefined} className="nk-button nk-button-primary" type="button" disabled={!canSave || busy} onClick={() => { if (canSave && !busy) onSave(form) }}>
+            {recovering ? 'Actualizando…' : saving ? 'Guardando…' : 'Guardar jornada'}
           </ActionButton>
         </div>
       </div>
@@ -141,6 +159,13 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
 
 export default function TurnosPage() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const { session } = useAuth()
+  const canSchedule = SCHEDULE_ROLES.has(session?.user?.role)
+  const savingRef = useRef(false)
+  const mountedRef = useRef(true)
+  const readVersionRef = useRef(0)
+  const recoveryRef = useRef(false)
   const [state, setState] = useState(null)
   const [moduleVersions, setModuleVersions] = useState({})
   const [loading, setLoading] = useState(true)
@@ -148,20 +173,77 @@ export default function TurnosPage() {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [recovering, setRecovering] = useState(false)
+  const [conflictBlocked, setConflictBlocked] = useState(false)
   const [filtMant, setFiltMant] = useState('')
   const [filtRegimen, setFiltRegimen] = useState('')
   const [filtTurno, setFiltTurno] = useState('')
   const [filtMina, setFiltMina] = useState('')
 
-  useEffect(() => {
-    api.get('/state')
+  const load = () => {
+    const readVersion = ++readVersionRef.current
+    setLoading(true)
+    setLoadError('')
+    return api.get('/state')
       .then(response => {
+        if (!mountedRef.current || readVersion !== readVersionRef.current) return
         setState(response?.state || response)
         setModuleVersions(response?.moduleVersions || {})
+        setConflictBlocked(false)
+        window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', { detail: { result: response, sourcePath: pathname } }))
       })
-      .catch(error => console.error('No fue posible cargar turnos', error))
-      .finally(() => setLoading(false))
+      .catch(error => {
+        if (!mountedRef.current || readVersion !== readVersionRef.current) return
+        setLoadError('No fue posible cargar las personas y órdenes de servicio. Usa “Volver a intentar” antes de programar.')
+        // HTTP 5xx already publishes this event in api.js; include network failures.
+        if (!error.status || error.status < 500) window.dispatchEvent(new CustomEvent('nexo:load-failed', { detail: { status: 503 } }))
+      })
+      .finally(() => { if (mountedRef.current && readVersion === readVersionRef.current) setLoading(false) })
+  }
+  useEffect(() => {
+    mountedRef.current = true
+    load()
+    const onRetry = event => {
+      const response = event.detail?.result
+      if (!response || (event.detail.sourcePath && event.detail.sourcePath !== pathname)) return
+      setState(response.state || response)
+      setModuleVersions(response.moduleVersions || {})
+      setLoadError('')
+      setConflictBlocked(false)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', onRetry)
+    return () => { mountedRef.current = false; readVersionRef.current++; window.removeEventListener('nexo:state-retry-succeeded', onRetry) }
   }, [])
+
+  const refreshConflict = async () => {
+    if (recoveryRef.current) return false
+    recoveryRef.current = true
+    setRecovering(true)
+    const readVersion = ++readVersionRef.current
+    try {
+      const response = await api.get('/state')
+      if (!mountedRef.current || readVersion !== readVersionRef.current) return false
+      if (!response?.state || !Number.isSafeInteger(response.moduleVersions?.turnos) || !Array.isArray(response.state.turnos)) throw new Error('Invalid refreshed shift state')
+      setState(response.state)
+      setModuleVersions(response.moduleVersions)
+      setConflictBlocked(false)
+      setLoadError('')
+      setSaveError('Las jornadas y su versión se actualizaron. Tu formulario se conserva. Revisa los datos y pulsa “Guardar jornada” para confirmar nuevamente; todavía no se ha registrado tu jornada.')
+      window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', { detail: { result: response, sourcePath: pathname } }))
+      return true
+    } catch {
+      if (mountedRef.current && readVersion === readVersionRef.current) {
+        setConflictBlocked(true)
+        setSaveError(CONFLICT_BLOCKED_REASON)
+        setLoadError(CONFLICT_BLOCKED_REASON)
+      }
+      return false
+    } finally {
+      recoveryRef.current = false
+      if (mountedRef.current) setRecovering(false)
+    }
+  }
 
   const trabajadores = state?.trabajadores || []
   const trabajadoresProgramables = trabajadores.filter(trabajador => !isRestricted(trabajador))
@@ -169,6 +251,10 @@ export default function TurnosPage() {
   const minas = state?.minas || []
   const turnos = state?.turnos || []
   const asignaciones = state?.asignaciones || []
+  const programDisabledReason = !canSchedule ? PERMISSION_REASON : recovering ? RECOVERING_REASON : saving ? SAVING_REASON : conflictBlocked ? CONFLICT_BLOCKED_REASON : loadError || (!trabajadoresProgramables.length && !mantenciones.length
+    ? 'Necesitas una persona habilitada y una orden de servicio para programar un turno.'
+    : !trabajadoresProgramables.length ? 'Necesitas una persona habilitada para programar un turno.'
+      : !mantenciones.length ? 'Necesitas una orden de servicio para programar un turno.' : '')
 
   const cobertura = useMemo(() => {
     const activas = mantenciones.filter(m => m.estado !== 'cerrada')
@@ -202,11 +288,18 @@ export default function TurnosPage() {
   const mantNombre = id => mantenciones.find(m => m.id === id)?.nombre || id
 
   const handleSave = async form => {
+    if (savingRef.current || recoveryRef.current || conflictBlocked) return
+    if (!canSchedule) { setSaveError(PERMISSION_REASON); return }
     const trabajador = trabajadores.find(item => String(item.id) === String(form.trabId))
-    if (isRestricted(trabajador)) {
-      window.alert('La persona no está habilitada y no puede programarse en un turno.')
+    if (!trabajador || !mantenciones.some(item => String(item.id) === String(form.mantId)) || !form.fecha) {
+      setSaveError('Completa la persona, la orden de servicio y la fecha antes de guardar la jornada.')
       return
     }
+    if (isRestricted(trabajador)) {
+      setSaveError('La persona no está habilitada y no puede programarse en un turno.')
+      return
+    }
+    savingRef.current = true
     setSaving(true)
     setSaveError('')
     try {
@@ -215,14 +308,18 @@ export default function TurnosPage() {
       const result = await api.put('/state/modules', {
         changes: { turnos: { version: Number(moduleVersions.turnos || 0), data: nuevosTurnos } },
         reason: 'Nueva jornada registrada',
-      })
+      }, { feedback: true })
       setState(current => ({ ...current, turnos: nuevosTurnos }))
       setModuleVersions(current => ({ ...current, ...result.moduleVersions }))
       setShowModal(false)
     } catch (error) {
       console.error('No fue posible guardar la jornada', error)
-      setSaveError(error.message || 'No fue posible guardar la jornada.')
+      if (error.code === 'MODULE_VERSION_CONFLICT') {
+        setConflictBlocked(true)
+        await refreshConflict()
+      } else setSaveError(error.message || 'No fue posible guardar la jornada.')
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -238,10 +335,11 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <ActionButton disabledReason="Acción no disponible." className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason={programDisabledReason} className="nk-button nk-button-primary" type="button" onClick={() => { if (!programDisabledReason) { setSaveError(''); setShowModal(true) } }} disabled={Boolean(programDisabledReason)}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
         </ActionButton>
       </header>
+      {loadError && <div className="nk-form-message" role="alert"><p id="turnos-load-error">{recovering ? RECOVERING_REASON : loadError}</p><button className="nk-button nk-button-secondary" type="button" onClick={() => showModal && conflictBlocked ? refreshConflict() : load()} disabled={recovering} title={recovering ? RECOVERING_REASON : undefined} aria-describedby={recovering ? 'turnos-load-error' : undefined}>Reintentar carga</button></div>}
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">
         <button className={`nk-tab ${tab === 'cobertura' ? 'active' : ''}`} type="button" role="tab" aria-selected={tab === 'cobertura'} onClick={() => setTab('cobertura')}>Cobertura diaria</button>
@@ -338,7 +436,7 @@ export default function TurnosPage() {
         )}
       </div>
 
-      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} saving={saving} error={saveError} onSave={handleSave} onClose={() => { setSaveError(''); setShowModal(false) }} />}
+      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} canSchedule={canSchedule} saving={saving} recovering={recovering} conflictBlocked={conflictBlocked} error={saveError} onSave={handleSave} onRefresh={refreshConflict} onClose={() => { if (!savingRef.current && !recoveryRef.current) { setSaveError(''); setShowModal(false) } }} />}
     </div>
   )
 }
