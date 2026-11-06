@@ -106,7 +106,9 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
         importModules={prospectos:canonicalizeOpportunityState({prospectos:nextRows}).prospectos,oportunidades:[],opportunities:[]};
       }else{
         // A restored backup also crosses the canonicalization boundary.
-        const canonical=canonicalizeOpportunityState({...state,...importModules});
+        // Its opportunity collections replace the destination's logical store;
+        // aliases absent from the backup must not resurrect destination records.
+        const canonical=canonicalizeOpportunityState(importModules);
         importModules={...importModules,prospectos:canonical.prospectos,oportunidades:[],opportunities:[]};
       }
     }
@@ -114,7 +116,11 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     const next={...state};
     for(const[key,value]of Object.entries(importModules)){
       before[key]=state[key];
-      next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
+      // Opportunity canonicalization already composed the final collection and
+      // empty aliases. Appending a second time duplicates canonical IDs and
+      // preserves historical aliases that this transaction is retiring.
+      const finalOpportunityCollection=importsOpportunities&&OPPORTUNITY_COLLECTIONS.includes(key);
+      next[key]=mode==='append'&&Array.isArray(value)&&!finalOpportunityCollection?[...(state[key]||[]),...value]:value;
     }
 const clean = validateTenantState(next, { previousState: state });
 
