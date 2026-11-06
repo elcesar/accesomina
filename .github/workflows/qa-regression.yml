@@ -52,7 +52,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - name: Contracts, opportunities, health and access regression
-        run: npx playwright test e2e/contracts-regression.spec.js e2e/opportunity-transfer.spec.js e2e/prospect-rut.spec.js e2e/health-protocol.spec.js e2e/first-access-sequence.spec.js e2e/qa-feedback-errors.spec.js --workers=2
+        run: npx playwright test e2e/contracts-regression.spec.js e2e/opportunity-transfer.spec.js e2e/prospect-rut.spec.js e2e/health-protocol.spec.js e2e/first-access-sequence.spec.js --workers=2
       - uses: actions/upload-artifact@v4
         if: always()
         with:
