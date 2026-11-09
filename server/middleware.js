@@ -22,11 +22,12 @@ export async function authenticate(req, res, next) {
       WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at>now()`, [sha256(raw)]);
     const session = sessionResult.rows[0];
     if (!session) { clearSessionCookie(res); return res.status(401).json({ error: 'SESSION_INVALID' }); }
-    const identity = await withTenant(session.tenant_id, client => client.query(`SELECT u.id,u.tenant_id,u.email,u.full_name,u.role,u.active,u.permissions,t.company_name,t.rut,t.status
+    const identity = await withTenant(session.tenant_id, client => client.query(`SELECT u.id,u.tenant_id,u.email,u.full_name,u.role,u.active,u.permissions,t.company_name,t.rut,t.status,t.subscription_managed,t.subscription_services
       FROM app_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.id=$1 AND u.tenant_id=$2`, [session.user_id, session.tenant_id]));
     const user = identity.rows[0];
     if (!user?.active || user.status !== 'active') { clearSessionCookie(res); return res.status(403).json({ error: 'ACCOUNT_DISABLED' }); }
-    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, mfaVerified:session.mfa_verified===true, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, companyName: user.company_name, rut: user.rut };
+    req.auth = { sessionId: session.id, csrfToken: session.csrf_token, mfaVerified:session.mfa_verified===true, tenantId: user.tenant_id, userId: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, companyName: user.company_name, rut: user.rut, subscriptionManaged:user.subscription_managed===true };
+    req.auth.subscriptionServices=user.subscription_services||{};
     query('UPDATE user_sessions SET last_seen_at=now() WHERE id=$1', [session.id]).catch(() => {});
     next();
   } catch (error) { next(error); }
@@ -57,5 +58,7 @@ export function errorHandler(error, req, res, next) {
   const status = Number(error.status || (error.name === 'ZodError' ? 400 : error.code === '23505' ? 409 : error.code === 'LIMIT_FILE_SIZE' ? 413 : 500));
   console.error(JSON.stringify({at:new Date().toISOString(),service:config.serviceName,event:'http.error',requestId:req.requestId||null,method:req.method,path:req.path,status,message:String(error.message||error).slice(0,1000),code:error.code||null,tenantId:req.auth?.tenantId||null,userId:req.auth?.userId||null}));
   if(status>=500&&req.auth?.tenantId)withTenant(req.auth.tenantId,client=>client.query(`INSERT INTO operational_events(tenant_id,source,severity,event_type,message,context) VALUES($1,'api','error',$2,$3,$4::jsonb)`,[req.auth.tenantId,'request.failed',String(error.message||'Unexpected server error').slice(0,1000),JSON.stringify({method:req.method,path:req.path,code:error.code||null,userId:req.auth.userId})])).catch(()=>{});
-  res.status(status).json({ error: error.code || 'SERVER_ERROR', message: status < 500 ? error.message : 'Unexpected server error' });
+  const details = status < 500 && /^SUBSCRIPTION_/.test(error.code || '') && error.details && typeof error.details === 'object'
+    ? Object.fromEntries(Object.entries(error.details).filter(([key]) => ['used','limit','available','requested','planCode','state'].includes(key))) : {};
+  res.status(status).json({ error: error.code || 'SERVER_ERROR', message: status < 500 ? error.message : 'Unexpected server error', ...details });
 }
