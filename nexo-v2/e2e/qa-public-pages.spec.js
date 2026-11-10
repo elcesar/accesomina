@@ -26,10 +26,11 @@ test('invalid registration reports all fields and makes invitation errors action
   await page.goto('/crear-empresa')
   await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
   await expect(page.locator('#registration-companyName')).toBeFocused()
-  await expect(page.locator('[aria-invalid=true]')).toHaveCount(6)
+  await expect(page.locator('[aria-invalid=true]')).toHaveCount(7)
   for (const [id, value] of Object.entries({ companyName: 'Empresa QA', rut: '11.111.111-1', adminName: 'Persona QA', email: 'qa@example.com', emailConfirmation: 'qa@example.com', password: 'PasswordQA1234', inviteCode: 'incorrecto' })) {
     await page.locator(`#registration-${id}`).fill(value)
   }
+  await page.locator('#registration-acceptedTerms').check()
   await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
   await expect(page.locator('#registration-inviteCode')).toBeFocused()
   await expect(page.locator('#registration-inviteCode')).toHaveAttribute('aria-invalid', 'true')
@@ -78,6 +79,7 @@ test('registration clears corrected field errors and can be resubmitted', async 
     await field.fill(value)
     await field.press('Tab')
   }
+  await page.locator('#registration-acceptedTerms').check()
 
   for (const id of Object.keys(values)) {
     await expect(page.locator(`#registration-${id}`)).toHaveAttribute('aria-invalid', 'false')

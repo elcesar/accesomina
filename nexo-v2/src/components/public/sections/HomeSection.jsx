@@ -33,6 +33,7 @@ export default function HomeSection({ openDemo, openPreview, onNavigate }) {
           >
             Ver cómo funciona
           </button>
+          <button className="nk-button nk-button-quiet" type="button" onClick={() => onNavigate?.('planes')}>Ver planes y precios</button>
         </div>
 
         <div className="nk-card-grid nk-hero-points" aria-label="Principales beneficios">

@@ -14,6 +14,7 @@ import PurposeSection from '../components/public/sections/PurposeSection.jsx'
 import CustomerAccessSection from '../components/public/sections/CustomerAccessSection.jsx'
 import ContactSection from '../components/public/sections/ContactSection.jsx'
 import { DemoRequestDialog } from '../components/public/PublicDialogs.jsx'
+import PlansSection from '../components/public/sections/PlansSection.jsx'
 
 const publicSections = {
   inicio: HomeSection,
@@ -26,6 +27,7 @@ const publicSections = {
   proposito: PurposeSection,
   'registro-empresa': CustomerAccessSection,
   contacto: ContactSection,
+  planes: PlansSection,
 };
 
 function ProductPreview({ onClose }) {
@@ -122,6 +124,7 @@ export default function LandingPage() {
         <span>Nexo Klar · Información que conecta</span>
         <div>
           <Link to="/">Volver al inicio</Link>
+          <Link to="/planes">Planes y precios</Link>
           <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
         </div>
       </footer>

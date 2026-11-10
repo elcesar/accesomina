@@ -8,6 +8,7 @@ export const PUBLIC_PAGES = {
   implementacion: { path: '/implementacion', title: 'Implementación y privacidad', description: 'Configura tu empresa, prioriza la carga de información y conoce cómo se protege tu espacio privado.' },
   proposito: { path: '/proposito', title: 'Propósito', description: 'Información confiable, conectada y accesible para tomar mejores decisiones.' },
   contacto: { path: '/contacto', title: 'Contacto', description: 'Escribe a contacto@nexoklar.com o solicita una demostración para tu empresa.' },
+  planes: { path: '/planes', title: 'Planes y precios', description: 'Compara Free, La Unión, Purranque, Frutillar y Puerto Octay. Planes mensuales y capacidad para tu empresa.' },
   'registro-empresa': { path: '/crear-empresa', title: 'Crear empresa', description: 'Registra tu empresa y su administrador con una invitación de Nexo Klar.' },
 }
 export function publicPageKey(pathname) {
