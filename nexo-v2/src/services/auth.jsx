@@ -36,6 +36,7 @@ export function AuthProvider({ children }) {
 
   const login = async ({ rut, email, password, mfaCode }) => {
     const data = await api.post('/auth/login', { rut, email, password, mfaCode })
+    try { sessionStorage.setItem('nexo:login-instance', globalThis.crypto?.randomUUID?.() || String(Date.now())) } catch {}
     setCsrf(data.csrfToken)
     setSession(data)
     await configureOperationalCalendar(data)
@@ -49,6 +50,7 @@ export function AuthProvider({ children }) {
       if (requireSuccess && error.status !== 401) throw error
     }
     setCsrf(null)
+    try { sessionStorage.removeItem('nexo:login-instance') } catch {}
     setSession(null)
   }
 
