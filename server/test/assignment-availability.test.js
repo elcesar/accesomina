@@ -17,11 +17,12 @@ function stateFor(workerPatch = {}, restrictions = []) {
   }
 }
 
-test('append validation rejects an operational assignment for a restricted worker', () => {
+test('append fallback cannot bypass strict rejection of a restricted worker assignment', () => {
   const current = stateFor({ bloqueado: true, disponibilidad: 'bloqueado' })
   const proposed = { ...structuredClone(current), asignaciones: [assignment] }
+  assert.equal(validateAppendChanges(current, proposed, ['asignaciones']), false)
   assert.throws(
-    () => validateAppendChanges(current, proposed, ['asignaciones']),
+    () => validateTenantState(proposed, { previousState: current }),
     error => error?.status === 409 && error?.code === 'WORKER_NOT_AVAILABLE',
   )
 })
@@ -36,10 +37,12 @@ test('strict validation also rejects a direct operational assignment for an acti
 })
 
 test('retired assignments and enabled workers remain valid', () => {
-  const current = stateFor()
+  const current = stateFor({ bloqueado: true, disponibilidad: 'bloqueado' })
   const proposed = { ...structuredClone(current), asignaciones: [{ ...assignment, estado: 'retirado' }] }
-  assert.equal(validateAppendChanges(current, proposed, ['asignaciones']), true)
-  assert.doesNotThrow(() => validateTenantState({ ...current, asignaciones: [assignment] }))
+  assert.equal(validateAppendChanges(current, proposed, ['asignaciones']), false)
+  assert.doesNotThrow(() => validateTenantState(proposed, { previousState: current }))
+  const enabled = stateFor()
+  assert.doesNotThrow(() => validateTenantState({ ...enabled, asignaciones: [assignment] }, { previousState: enabled }))
 })
 
 
@@ -50,18 +53,18 @@ test('historical operational assignments do not block unrelated saves after a la
   proposed.trabajadores[0].especialidad = 'Mecánica'
   proposed.restricted = [{ id: 'later-restriction', workerId: worker.id, activa: true, estado: 'vigente' }]
 
-  assert.doesNotThrow(() => validateTenantState(proposed, previous))
+  assert.doesNotThrow(() => validateTenantState(proposed, { previousState: previous }))
 })
 
 test('a new operational assignment and a transition to operational remain blocked for restricted workers', () => {
   const previous = stateFor({}, [{ id: 'restriction', workerId: worker.id, activa: true, estado: 'vigente' }])
   const newAssignment = { ...structuredClone(previous), asignaciones: [assignment] }
-  assert.throws(() => validateTenantState(newAssignment, previous), error => error?.code === 'WORKER_NOT_AVAILABLE')
+  assert.throws(() => validateTenantState(newAssignment, { previousState: previous }), error => error?.code === 'WORKER_NOT_AVAILABLE')
 
   const inactive = { ...assignment, estado: 'retirado' }
   const priorInactive = { ...structuredClone(previous), asignaciones: [inactive] }
   const transitioned = { ...structuredClone(priorInactive), asignaciones: [assignment] }
-  assert.throws(() => validateTenantState(transitioned, priorInactive), error => error?.code === 'WORKER_NOT_AVAILABLE')
+  assert.throws(() => validateTenantState(transitioned, { previousState: priorInactive }), error => error?.code === 'WORKER_NOT_AVAILABLE')
 })
 
 test('operational day and restrictions use the Santiago calendar day across UTC and DST boundaries', () => {
