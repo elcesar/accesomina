@@ -19,7 +19,7 @@ const passwordResetLimiter = rateLimit({
   message: { message: 'Espera unos minutos antes de solicitar otro enlace.' },
 });
 
-authRouter.get('/config',(req,res)=>res.json({registrationEnabled:config.registrationEnabled,mfaRequired:config.mfaRequired}));
+authRouter.get('/config',(req,res)=>res.json({registrationEnabled:config.registrationEnabled,mfaRequired:config.mfaRequired,registrationTermsVersion:'2026-11-05'}));
 
 authRouter.post('/register', limiter, async (req, res) => {
   if(!config.registrationEnabled)return res.status(403).json({error:'REGISTRATION_CLOSED',message:'El registro público está cerrado. Solicite una invitación a Nexo Klar.'});
@@ -31,8 +31,8 @@ authRouter.post('/register', limiter, async (req, res) => {
   const client = await (await import('../db.js')).pool.connect();
   try {
     await client.query('BEGIN');
-    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone,status)
-      VALUES ($1,$2,$3,$4,$5,'pending') RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
+    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone,status,subscription_managed)
+      VALUES ($1,$2,$3,$4,$5,'pending',true) RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
     const tenant = tenantResult.rows[0];
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenant.id]);
     const userResult = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt)
@@ -42,6 +42,9 @@ authRouter.post('/register', limiter, async (req, res) => {
     await client.query('INSERT INTO tenant_state (tenant_id,state,updated_by) VALUES ($1,$2::jsonb,$3)', [tenant.id, JSON.stringify(initialState), user.id]);
     await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) e",[tenant.id,JSON.stringify(initialState),user.id]);
     await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,theme:'light',accent:'#2a2a8c'}),user.id]);
+    await client.query(`INSERT INTO privacy_consents(tenant_id,subject_ref,subject_name,purpose,notice_version,status,source,evidence,granted_at,created_by)
+      VALUES($1,$2,$3,'Registro de empresa y condiciones informadas del plan Free',$4,'otorgado','registro_publico',$5::jsonb,now(),$6)`,
+      [tenant.id,user.id,body.adminName,body.termsVersion,JSON.stringify({acceptedTerms:true,noticeVersion:body.termsVersion,channel:'public_registration'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
     res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.' });

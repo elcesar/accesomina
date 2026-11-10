@@ -1,0 +1,55 @@
+name: Subscription backend QA
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'database/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/subscriptions-qa.yml'
+  push:
+    branches: ['codex/planes-suscripciones-backend']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  subscription-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: disposable-qa-only
+          POSTGRES_DB: subscription_qa
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U qa -d subscription_qa"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://qa:disposable-qa-only@127.0.0.1:5432/subscription_qa
+      SUBSCRIPTION_POSTGRES_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Apply all migrations to disposable PostgreSQL
+        run: node server/scripts/migrate.js
+      - name: Subscription domain, HTTP, quota routes, notifications and permissions
+        run: >-
+          node --test --test-concurrency=2
+          server/test/subscription*.test.js
+          server/test/migrations.test.js
+          server/test/authorization.test.js
+          server/test/multi-tenant.test.js
+          server/test/module-access.test.js
+          server/test/files-route-order.test.js
+          server/test/data-transfer.test.js
