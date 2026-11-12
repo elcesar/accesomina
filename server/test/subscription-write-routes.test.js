@@ -102,11 +102,13 @@ async function delegatedDocument(auth, { file = pdfFile(), type = 'subscription_
   const req = { auth: globalAuth, params: { id: auth.tenantId, ...(downloadId ? { fileId: downloadId } : {}) },
     body: { entityType: type, entityId: 'qa-commercial-document' }, file: downloadId ? undefined : file,
     method: downloadId ? 'GET' : 'POST', headers: {}, url: '/', originalUrl: '/', baseUrl: '' };
-  const globalGuard = subscriptionRouter.stack.find(layer => layer.handle.name === 'requireGlobal').handle;
+  const globalGuard = subscriptionRouter.stack.find(layer => layer.handle.name === 'requireSubscriptionAdmin').handle;
   let allowed = false;
   await globalGuard(req, res, error => { if (error) res.fail(error); else allowed = true; });
   if (!allowed) return res.completed;
   const routePath = downloadId ? '/subscriptions/admin/companies/:id/documents/:fileId' : '/subscriptions/admin/companies/:id/documents';
+  const handlers=route(subscriptionRouter,routePath,downloadId?'get':'post').stack;
+  if(handlers.length>1){allowed=false;await handlers[0].handle(req,res,error=>{if(error)res.fail(error);else allowed=true;});if(!allowed)return res.completed;}
   route(subscriptionRouter, routePath, downloadId ? 'get' : 'post').stack.at(-1).handle(req, res, error => res.fail(error || new Error('Document delegation did not finish')));
   return res.completed;
 }

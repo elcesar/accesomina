@@ -37,7 +37,7 @@ async function setWorkers(n){await db.query("UPDATE tenant_module_state SET data
 async function free(now=NOW){return tx(client=>activateFreeSubscription(client,{tenantId:TENANT,userId:ADMIN,now}));}
 async function documents(tenantId=TENANT){
  const result={};
- for(const name of ['quote','purchaseOrder','invoice']){const file=(await db.query("INSERT INTO file_objects(tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status) VALUES($1,$2,'subscription_document','qa','qa.pdf','application/pdf',5,'local',$3,'qa','clean') RETURNING id",[tenantId,tenantId===TENANT?ADMIN:null,`qa/subscription/${++sequence}`])).rows[0];result[name]={number:`QA-${name}-${sequence}`,fileId:file.id,...(name==='quote'?{acceptedAt:NOW.toISOString()}:{})};}
+ for(const name of ['quote','purchaseOrder','invoice']){const file=(await db.query("INSERT INTO file_objects(tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status) VALUES($1,$2,'subscription_document','qa','qa.pdf','application/pdf',5,'local',$3,'qa','clean') RETURNING id",[tenantId,tenantId===TENANT?ADMIN:null,`qa/subscription/${++sequence}`])).rows[0];result[name]={number:`QA-${name}-${sequence}`,fileId:file.id,netAmount:1000,issuedAt:'2026-08-31',status:name==='quote'?'ACCEPTED':'ISSUED',responsible:'Responsable QA',observations:'Documento ficticio',...(name==='quote'?{acceptedAt:NOW.toISOString()}:{})};}
  return result;
 }
 async function request(input={}){return tx(client=>createSubscriptionRequest(client,{tenantId:TENANT,userId:ADMIN,input:{type:'INITIAL',planCode:'LA_UNION',reason:'Solicitud QA',idempotencyKey:`request-qa-${++sequence}`,...input},now:NOW}));}

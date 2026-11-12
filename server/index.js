@@ -24,6 +24,7 @@ import { contactRouter } from './routes/contact.js';
 import { startJobRunner } from './jobs.js';
 import { evaluateReadiness } from './readiness.js';
 import { publicPlansRouter, subscriptionRouter } from './routes/subscriptions.js';
+import { subscriptionGovernanceRouter } from './routes/subscription-governance.js';
 import { subscriptionAccess } from './subscription-access.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,6 +53,7 @@ app.use('/api/auth/invitations', invitationsRouter);
 app.use('/api', contactRouter);
 app.use('/api', publicPlansRouter);
 app.use('/api', authenticate, requireCsrf, requireMfa);
+app.use('/api', subscriptionGovernanceRouter);
 app.use('/api', subscriptionRouter);
 app.use('/api', subscriptionAccess());
 app.use('/api/state', stateRouter);
