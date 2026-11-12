@@ -16,26 +16,38 @@ async function mockPeople(page) {
       { id: 'retired-assignment', trabId: 'other-person', mantId: 'qa-order', estado: 'retirado' },
     ],
   }
+  const recordReads = []
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname
     const json = body => route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) })
     if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin', nombre: 'Administrador QA' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' } })
     if (path === '/api/settings') return json({ settings: {} })
     if (path === '/api/state') return json({ state, moduleVersions: { trabajadores: 1 } })
+    if (path.startsWith('/api/state/records/trabajadores/') && route.request().method() === 'GET') {
+      const id = decodeURIComponent(path.split('/').at(-1))
+      const record = state.trabajadores.find(worker => worker.id === id)
+      recordReads.push(id)
+      return record ? json({ record, revision: `qa-revision-${id}` }) : route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'WORKER_NOT_FOUND' }) })
+    }
     return json({})
   })
   await page.goto('/app/trabajadores')
   await expect(page.locator('.nk-people-row')).toHaveCount(3)
+  return { recordReads }
 }
 
 test('lista y ficha muestran la misma disponibilidad y el filtro Asignado incluye la persona', async ({ page }) => {
-  await mockPeople(page)
+  const { recordReads } = await mockPeople(page)
   const row = page.locator('.nk-people-row').filter({ hasText: 'QA Ronda 02 Persona Ficticia' })
   await expect(row.locator('.nk-badge').filter({ hasText: /^Asignado$/ })).toBeVisible()
   await page.getByLabel('Filtrar por disponibilidad').selectOption('asignado')
   await expect(page.locator('.nk-people-row')).toHaveCount(1)
   await row.getByRole('button', { name: 'Ficha', exact: true }).click()
+  await expect(page).toHaveURL(/\/app\/trabajadores\/qa-person$/)
+  await expect(page.getByRole('heading', { name: 'QA Ronda 02 Persona Ficticia', exact: true })).toBeVisible()
   await expect(page.getByText('Disponibilidad: Asignado', { exact: true })).toBeVisible()
+  expect(recordReads.length).toBeGreaterThan(0)
+  expect([...new Set(recordReads)]).toEqual(['qa-person'])
 })
 
 test('el filtro Cliente y el contexto consideran la asignación activa sin incluir las retiradas', async ({ page }) => {

@@ -3,6 +3,13 @@ const state={trabajadores:[{id:'qa-person',nombre:'José Peña QA',rut:'11.111.1
 test.beforeEach(async({page})=>{
  await page.route('**/api/**',route=>{
  const path=new URL(route.request().url()).pathname
+ // Worker profiles now load through the scoped record API, independently of
+ // the collection returned by /state. Keep the fixture's response contract.
+ if(route.request().method()==='GET'&&path.startsWith('/api/state/records/trabajadores/')){
+ const id=decodeURIComponent(path.slice('/api/state/records/trabajadores/'.length))
+ const record=state.trabajadores.find(worker=>worker.id===id)
+ return route.fulfill({status:record?200:404,json:record?{record,revision:'qa-profile-revision-1'}:{error:'WORKER_NOT_FOUND'}})
+ }
  return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:{}})
  })
 })
@@ -23,6 +30,7 @@ test('underage validation has one associated error, and leaving through global a
 })
 test('person document form has one type selector and no redundant classification',async({page})=>{
  await page.goto('/app/trabajadores/qa-person')
+ await expect(page.getByRole('heading',{name:'José Peña QA',exact:true})).toBeVisible()
  await page.getByRole('button',{name:'Documentos y aptitudes',exact:true}).click()
  await expect(page.getByRole('combobox',{name:'Tipo',exact:true})).toHaveCount(1)
  await expect(page.getByText('Clasificación documental',{exact:true})).toHaveCount(0)
