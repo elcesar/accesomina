@@ -29,7 +29,7 @@ async function mockWorker(page, rejectSave = false) {
       expect(body.revision).toBe(revisionOf(id))
       expect(body.patch).toBeTruthy()
       expect(body).not.toHaveProperty('changes')
-      if (rejectSave && writes.length === 1) return json({ error: 'INVALID_WORKER_EMAIL', field: 'email' }, 409)
+      if (rejectSave === 'always' || rejectSave && writes.length === 1) return json({ error: 'INVALID_WORKER_EMAIL', field: 'email' }, 409)
       const record = { ...worker, ...body.patch }
       state.trabajadores = state.trabajadores.map(item => item.id === id ? record : item)
       revisions.set(id, revisions.get(id) + 1)
@@ -43,6 +43,26 @@ async function mockWorker(page, rejectSave = false) {
 }
 
 for (const width of [1440, 375]) {
+  test(`rechazos sucesivos desde EPP recuperan el foco y conservan los datos a ${width}px`, async ({ page, context }) => {
+    await page.setViewportSize({ width, height: 900 })
+    const protocol = await context.newCDPSession(page)
+    await protocol.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+    const { state, writes } = await mockWorker(page, 'always')
+    const email = page.getByLabel('Correo electrónico', { exact: true })
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await email.fill(`pendiente-${attempt}@example.com`)
+      await page.getByRole('button', { name: 'Operación y EPP', exact: true }).click()
+      await page.locator('.nk-person-card').filter({ has: page.getByRole('heading', { name: 'Tallas y medidas', exact: true }) }).getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+      await expect(page.locator('#worker-email-error')).toHaveText('Ingresa un correo electrónico válido.')
+      await expect(email).toBeFocused()
+      await expect(email).toHaveValue(`pendiente-${attempt}@example.com`)
+      await expect(email).toHaveAttribute('aria-invalid', 'true')
+      await expect(page.getByText('Cambios guardados correctamente', { exact: true })).toHaveCount(0)
+      expect(writes).toHaveLength(attempt + 1)
+      expect(state.trabajadores[0].email).toBe('original@example.com')
+    }
+  })
+
   test(`correo inválido bloquea el guardado y señala el campo a ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     const { state, writes } = await mockWorker(page)
@@ -85,6 +105,12 @@ test('la validación del correo también protege el guardado desde EPP', async (
   await page.locator('.nk-person-card').filter({ has: page.getByRole('heading', { name: 'Tallas y medidas', exact: true }) }).getByRole('button', { name: 'Guardar cambios', exact: true }).click()
   await expect(page.locator('#worker-email-error')).toBeVisible()
   await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeFocused()
+  expect(writes).toHaveLength(0)
+  // Repeating the identical invalid value must focus it again after the user
+  // moves focus to Save, even when the tab and error text do not change.
+  await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeFocused()
+  await expect(page.locator('#worker-email-error')).toBeVisible()
   expect(writes).toHaveLength(0)
 })
 
