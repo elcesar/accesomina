@@ -39,7 +39,7 @@ jobs:
           e2e/app.spec.js e2e/people-list-regression.spec.js
           e2e/qa-worker-form.spec.js e2e/transversal-confirmations.spec.js
           e2e/worker-email-regression.spec.js e2e/worker-evidence-required.spec.js
-          --workers=2
+          --workers=2 --fail-on-flaky-tests
       - uses: actions/upload-artifact@v4
         if: always()
         with:
