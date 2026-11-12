@@ -196,7 +196,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation()
   const navRef = useRef(null)
   const { session } = useAuth()
-  const { summary } = useSubscription()
+  const { summary, administration } = useSubscription()
   const { loading, isEnabled } = useModuleAccess()
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
@@ -258,9 +258,9 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           /> : null
         })}
 
-        {isNexoAdmin && (
+        {(isNexoAdmin || administration?.capabilities?.includes('read')) && (
           <NavGroup
-            group={NEXO_ADMIN_NAV}
+            group={{ ...NEXO_ADMIN_NAV, items: NEXO_ADMIN_NAV.items.filter(item => isNexoAdmin || item.to === '/app/administracion-planes') }}
             badges={badges}
             pathname={pathname}
             defaultOpen

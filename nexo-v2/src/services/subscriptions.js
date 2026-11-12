@@ -11,6 +11,15 @@ export const requestKey = () => globalThis.crypto?.randomUUID?.() || `request-${
 export const isCompanyAdministrator = session => ['client_admin', 'domian_admin'].includes(session?.user?.role)
 export function errorMessage(error) {
   const messages = {
+    SUBSCRIPTION_DOCUMENT_METADATA: 'Completa monto neto, fecha de emisión, estado y responsable del documento comercial.',
+    SUBSCRIPTION_DOCUMENT_NOT_CURRENT: 'Los documentos en borrador o anulados no permiten activar la contratación.',
+    SUBSCRIPTION_DOCUMENT_DATE: 'Revisa la fecha de emisión: debe ser anterior o igual a la aceptación y no estar en el futuro.',
+    SUBSCRIPTION_DOCUMENT_UNAVAILABLE: 'El archivo comercial ya no está disponible en esta empresa. Adjunta el documento vigente.',
+    SUBSCRIPTION_DOCUMENTS_INVALID: 'Revisa los datos de cotización, orden de compra y factura.',
+    SUBSCRIPTION_SELF_APPROVAL_DENIED: 'La aprobación requiere otra persona autorizada. Quien creó la solicitud no puede aprobarla.',
+    SUBSCRIPTION_DOCUMENT_INVALID: 'Revisa los datos y el archivo privado del documento comercial.',
+    SUBSCRIPTION_DOCUMENT_METADATA_REQUIRED: 'Completa monto neto, fecha de emisión, estado y responsable del documento.',
+    SUBSCRIPTION_CAPABILITY_DENIED: 'Tu perfil no permite realizar esta acción comercial.',
     WORKER_CAPACITY_EXCEEDED: 'Has alcanzado la capacidad de trabajadores. Solicita un plan o paquete con mayor capacidad.',
     SUBSCRIPTION_CAPACITY_EXCEEDED: 'La capacidad solicitada es menor que la dotación actual. Ajusta la solicitud y vuelve a intentarlo.',
     CAPACITY_EXCEEDED: 'La dotación supera la capacidad solicitada. Revisa el plan y los paquetes.',
