@@ -29,7 +29,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run build
       - name: Desktop, mobile, registration and first access
-        run: pnpm exec playwright test e2e/subscription-plans.spec.js e2e/qa-public-pages.spec.js e2e/first-access-sequence.spec.js --workers=2
+        run: pnpm exec playwright test e2e/subscription-plans.spec.js e2e/subscription-catalog.spec.js e2e/subscription-access-journeys.spec.js e2e/subscription-governance.spec.js e2e/qa-public-pages.spec.js e2e/first-access-sequence.spec.js --workers=2
       - uses: actions/upload-artifact@v4
         if: always()
         with:
