@@ -72,6 +72,53 @@ test('metadatos y precio publicados aparecen en público y privado sin alterar e
   await expect(page.locator('.nk-subscription-overview')).toContainText('Descripción vigente de Purranque'); expect(state.summary.contract.monthlyNetPrice).toBe(2000)
 })
 
+test('publicar otro precio del mismo plan conserva el precio contratado en Mi plan y el panel', async ({ page }) => {
+  const state = await fixture(page, { summary: summaryFixture('PURRANQUE') })
+  await page.goto('/app')
+  await expect(page.locator('.nk-subscription-card')).toContainText('Purranque')
+  await expect(page.locator('.nk-subscription-card')).toContainText('2.000')
+
+  await openEditor(page, 'Purranque')
+  await page.getByLabel('Precio mensual neto CLP', { exact: true }).fill('2750')
+  await publish(page)
+  const publication = state.calls.find(item => item.path === '/api/subscriptions/admin/catalog' && item.method === 'POST')
+  expect(publication.payload).toMatchObject({ code: 'PURRANQUE', versionId: 'PURRANQUE-1', monthlyPrice: 2750, action: 'publish' })
+
+  await page.goto('/planes')
+  const publicCard = page.locator('[data-plan-code=PURRANQUE]')
+  await expect(publicCard.locator('.nk-plan-price')).toContainText('2.750')
+  await expect(publicCard.locator('.nk-plan-price')).not.toContainText('2.000')
+  await publicCard.getByRole('button', { name: 'Solicitar Purranque', exact: true }).click()
+  await expect(page.locator('.nk-plan-request .nk-plan-total')).toContainText('2.750')
+
+  await page.goto('/app/mi-plan?tipo=RENEWAL')
+  await expect(page.locator('#subscription-request-plan')).toHaveValue('PURRANQUE')
+  await expect(page.locator('.nk-plan-total')).toContainText('2.750')
+  const contracted = page.locator('.nk-subscription-overview')
+  await expect(contracted.getByRole('heading', { name: 'Purranque', exact: true })).toBeVisible()
+  await expect(contracted).toContainText('2.000')
+  await expect(contracted).not.toContainText('2.750')
+
+  await page.goto('/app')
+  await expect(page.locator('.nk-subscription-card')).toContainText('2.000')
+  await expect(page.locator('.nk-subscription-card')).not.toContainText('2.750')
+  expect(state.calls.filter(item => item.method === 'POST' && ['/api/subscription/requests', '/api/commercial-requests'].includes(item.path))).toHaveLength(0)
+})
+
+test('la FAQ describe reglas vigentes al publicar un paquete que no permite acumularse', async ({ page }) => {
+  const state = await fixture(page)
+  await openEditor(page, 'Paquete 100')
+  await page.getByLabel('Permitir acumular paquetes', { exact: true }).uncheck()
+  await publish(page)
+  expect(state.catalog.packages.find(item => item.code === 'EXTRA_100')).toMatchObject({ stackable: false, versionId: 'EXTRA_100-2' })
+
+  await page.goto('/planes')
+  const answer = page.locator('.nk-plan-faq details').filter({ has: page.getByText('¿Cómo amplío Puerto Octay?', { exact: true }) })
+  await answer.locator('summary').click()
+  await expect(answer).toContainText('según sus reglas vigentes de combinación y repetición')
+  await expect(answer).not.toContainText('paquetes acumulables')
+})
+
 test('validación accesible del catálogo muestra todos los campos inválidos y enfoca el primero', async ({ page }) => {
   const state = await fixture(page); await openEditor(page, 'Free')
   for (const [label, value] of [['Nombre público', ''], ['Precio mensual neto CLP', '1'], ['Duración gratuita (meses calendario)', '0'], ['Texto del botón de solicitud', '']]) await page.getByLabel(label, { exact: true }).fill(value)
@@ -111,6 +158,22 @@ test('paquetes usan cantidad real configurable, permiten 120 unidades y rechazan
 for (const width of [375, 1440]) test(`comparación y catálogo caben a ${width}px`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 1000 }); await fixture(page); await page.goto('/planes')
   await expect(page.locator('.nk-plan-comparison-table')).toBeVisible(); await expect(page.getByRole('region', { name: 'Comparación de planes vigentes' })).toHaveAttribute('tabindex', '0')
+  await page.evaluate(() => document.fonts.ready)
+  const headings = await page.locator('[data-plan-code]').evaluateAll(tiles => tiles.map(tile => {
+    const bounds = tile.getBoundingClientRect(), style = getComputedStyle(tile), heading = tile.querySelector('h2')
+    const range = document.createRange(); range.selectNodeContents(heading)
+    const text = range.getBoundingClientRect()
+    return { name: heading.textContent, left: text.left, right: text.right, top: text.top, bottom: text.bottom,
+      innerLeft: bounds.left + parseFloat(style.borderLeftWidth), innerRight: bounds.right - parseFloat(style.borderRightWidth),
+      innerTop: bounds.top + parseFloat(style.borderTopWidth), innerBottom: bounds.bottom - parseFloat(style.borderBottomWidth) }
+  }))
+  expect(headings).toHaveLength(5)
+  for (const heading of headings) {
+    expect(heading.left, `${heading.name}: título dentro del borde izquierdo a ${width}px`).toBeGreaterThanOrEqual(heading.innerLeft - 1)
+    expect(heading.right, `${heading.name}: título dentro del borde derecho a ${width}px`).toBeLessThanOrEqual(heading.innerRight + 1)
+    expect(heading.top, `${heading.name}: título dentro del borde superior a ${width}px`).toBeGreaterThanOrEqual(heading.innerTop - 1)
+    expect(heading.bottom, `${heading.name}: título dentro del borde inferior a ${width}px`).toBeLessThanOrEqual(heading.innerBottom + 1)
+  }
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.screenshot({ path: testInfo.outputPath(`planes-catalogo-${width}.png`), fullPage: true })
   await openEditor(page, 'Purranque'); await expect(page.getByLabel('Beneficios públicos', { exact: true })).toBeVisible(); await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

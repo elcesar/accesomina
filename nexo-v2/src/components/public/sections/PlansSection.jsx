@@ -113,7 +113,7 @@ export default function PlansSection() {
       ['¿Pierdo información al cambiar de plan?', 'No. El cambio conserva personas, documentos, relaciones e historial.'],
       ['¿Puedo bajar de plan?', 'Puedes solicitarlo. Nexo Klar valida la dotación, revisa las condiciones y ejecuta el cambio autorizado.'],
       ['¿Qué pasa si alcanzo mi límite?', 'Puedes seguir corrigiendo tus registros; para registrar nuevos trabajadores necesitas un plan con mayor capacidad o paquetes de Puerto Octay.'],
-      ['¿Cómo amplío Puerto Octay?', 'Solicita paquetes acumulables del catálogo. Se registran con su vigencia y composición.'],
+      ['¿Cómo amplío Puerto Octay?', 'Solicita paquetes del catálogo según sus reglas vigentes de combinación y repetición. Se registran con su vigencia y composición.'],
       ['¿Cómo contrato y renuevo?', 'Mediante solicitud, cotización, aceptación, orden de compra, factura y activación autorizada. La renovación mensual es manual.'],
     ].map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</section>
     {showTerms && <InformationDialog kind="terms" onClose={() => setShowTerms(false)} />}
