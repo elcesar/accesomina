@@ -28,6 +28,7 @@ async function fixture(page, { role = null, summary = fixtureSummary(), stalePri
     const json = (body, status = 200) => route.fulfill({ status, json: body })
     if (path === '/api/auth/me') return role ? json({ user: { id: 'user-qa', name: 'Persona QA', email: 'persona@ejemplo.test', role, permissions: { modules: {} } }, tenant: { id: 'company-qa', name: company.name }, csrfToken: 'qa-csrf' }) : json({ error: 'AUTH_REQUIRED' }, 401)
     if (path === '/api/auth/config') return json({ registrationEnabled: false, registrationTermsVersion: '2026-11-05' })
+    if (path === '/api/subscriptions/admin/access') return role === 'domian_admin' ? json({ profile: 'SUPER_ADMIN', capabilities: ['read', 'catalog.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage', 'operators.manage', 'policies.manage'] }) : json({ error: 'FORBIDDEN' }, 403)
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
     if (path === '/api/plans') return json(state.catalog)
@@ -183,6 +184,10 @@ test('administración publica versión sin reescribir contrato y valida document
   expect(state.calls.filter(item => item.method === 'PATCH')).toHaveLength(0)
   for (const kind of ['quote', 'purchaseOrder', 'invoice']) {
     await page.locator(`#request-request-qa-${kind}-number`).fill(`${kind}-QA-001`)
+    await page.locator(`#request-request-qa-${kind}-netAmount`).fill('1000')
+    await page.locator(`#request-request-qa-${kind}-issuedAt`).fill('2026-11-05')
+    await page.locator(`#request-request-qa-${kind}-status`).selectOption(kind === 'quote' ? 'ACCEPTED' : 'ISSUED')
+    await page.locator(`#request-request-qa-${kind}-responsible`).fill('Responsable QA')
     await page.locator(`#request-request-qa-${kind}-file`).setInputFiles({ name: 'Documento QA.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\nDocumento ficticio QA') })
     await expect.poll(() => state.uploads).toBe(['quote', 'purchaseOrder', 'invoice'].indexOf(kind) + 1)
   }

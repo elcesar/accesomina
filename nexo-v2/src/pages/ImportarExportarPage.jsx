@@ -2,6 +2,7 @@ import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useMemo, useState } from 'react'
 import { IconDatabaseExport, IconDatabaseImport, IconDownload, IconUpload } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { useSubscription } from '../services/subscription.jsx'
 import '../styles/data-transfer.css'
 
 const TYPES = [
@@ -29,6 +30,7 @@ function download(path) {
 }
 
 export default function ImportarExportarPage() {
+  const { summary } = useSubscription()
   const [exportType, setExportType] = useState('backup')
   const [importType, setImportType] = useState('trabajadores')
   const [file, setFile] = useState(null)
@@ -38,6 +40,10 @@ export default function ImportarExportarPage() {
 
   const selectedImport = useMemo(() => TYPES.find(item => item.id === importType) || TYPES[0], [importType])
   const backupImport = importType === 'backup'
+  const separateService = importType === 'oportunidades' && summary?.separateServices?.oportunidades
+  const separateAllowed = separateService?.enabled && (!separateService.endsAt || Date.parse(separateService.endsAt) > Date.now())
+  const importBlocked = summary?.managed && summary.canOperate === false && !separateAllowed
+  const blockedReason = 'Tu plan está suspendido o pendiente de activación. Puedes exportar tu información y gestionar el plan antes de importar.'
 
   const exportData = () => {
     setMessage('')
@@ -45,6 +51,7 @@ export default function ImportarExportarPage() {
   }
 
   const importData = async () => {
+    if (sending || importBlocked) { if (importBlocked) setMessage(blockedReason); return }
     if (!file) {
       setMessage(`Selecciona un archivo ${backupImport ? 'JSON' : 'CSV'} antes de importar.`)
       return
@@ -64,7 +71,11 @@ export default function ImportarExportarPage() {
       }
       setFile(null)
     } catch (error) {
-      setMessage(error?.message || 'No fue posible importar el archivo.')
+      if (error?.code === 'SUBSCRIPTION_WORKER_LIMIT') {
+        const detail = error.metadata || error
+        const additional = Math.max(0, Number(detail.requested || 0) - Number(detail.used || 0))
+        setMessage(`Tu plan permite registrar hasta ${Number(detail.available || 0)} trabajadores adicionales. Esta carga requiere ${additional} nuevos cupos. No se guardó ningún registro de la carga. Revisa tu plan antes de volver a importar.`)
+      } else setMessage(error?.message || 'No fue posible importar el archivo.')
     } finally {
       setSending(false)
     }
@@ -80,6 +91,8 @@ export default function ImportarExportarPage() {
       </header>
 
       {message && <p className="nk-form-message">{message}</p>}
+      {summary?.managed && summary.capacity && <p>{summary.capacity.used} de {summary.capacity.total} trabajadores registrados; {summary.capacity.available} cupos disponibles.</p>}
+      {importBlocked && <p role="status">{blockedReason}</p>}
 
       <div className="nk-transfer-grid">
         <section className="nk-module-card nk-transfer-panel">
@@ -122,7 +135,7 @@ export default function ImportarExportarPage() {
             <div className="nk-transfer-form-grid">
               <label className="nk-transfer-field">
                 <span>Tipo de archivo</span>
-                <select className="nk-input" value={importType} onChange={event => { setImportType(event.target.value); setFile(null); setMessage('') }}>
+                <select className="nk-input" value={importType} disabled={sending} onChange={event => { setImportType(event.target.value); setFile(null); setMessage('') }}>
                   {TYPES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                   <option value="backup">Respaldo completo</option>
                 </select>
@@ -130,7 +143,7 @@ export default function ImportarExportarPage() {
 
               <label className="nk-transfer-field">
                 <span>Acción</span>
-                <select className="nk-input" value={backupImport ? 'replace' : mode} disabled={backupImport} onChange={event => setMode(event.target.value)}>
+                <select className="nk-input" value={backupImport ? 'replace' : mode} disabled={backupImport || sending || importBlocked} onChange={event => setMode(event.target.value)}>
                   <option value="append">Agregar registros</option>
                   <option value="replace">Reemplazar módulo</option>
                 </select>
@@ -142,6 +155,7 @@ export default function ImportarExportarPage() {
               <input
                 key={`${importType}-${file ? file.name : 'empty'}`}
                 type="file"
+                disabled={sending || importBlocked}
                 accept={backupImport ? '.json,application/json' : '.csv,text/csv'}
                 onChange={event => setFile(event.target.files?.[0] || null)}
               />
@@ -154,7 +168,7 @@ export default function ImportarExportarPage() {
                   <IconDownload size={16}/> Descargar plantilla
                 </button>
               )}
-              <ActionButton disabledReason="Selecciona un archivo antes de continuar." className="nk-button nk-button-primary" disabled={sending || !file} onClick={importData}>
+              <ActionButton disabledReason={importBlocked ? blockedReason : sending ? 'Espera mientras se procesa la importación.' : 'Selecciona un archivo antes de continuar.'} className="nk-button nk-button-primary" disabled={sending || !file || importBlocked} onClick={importData}>
                 <IconUpload size={16}/>{sending ? 'Procesando…' : backupImport ? 'Restaurar respaldo' : 'Validar e importar'}
               </ActionButton>
             </div>

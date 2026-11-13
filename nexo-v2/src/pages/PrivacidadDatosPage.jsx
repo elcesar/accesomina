@@ -2,6 +2,7 @@ import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconAlertTriangle, IconClipboardList, IconPlus, IconRefresh, IconShieldCheck, IconUserQuestion, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { useSubscription } from '../services/subscription.jsx'
 import '../styles/privacy-data.css'
 
 const REQUEST_LABELS = {
@@ -58,6 +59,11 @@ function Dialog({ title, subtitle, children, onClose }) {
 }
 
 export default function PrivacidadDatosPage() {
+  const { summary } = useSubscription()
+  const commercialReadOnly = summary?.managed && summary.canOperate === false
+  const readOnlyReason = 'Tu plan está suspendido o pendiente de activación. Puedes consultar los registros de privacidad; gestiona el plan antes de modificarlos.'
+  const canWrite = () => { if (commercialReadOnly) { setMessage(readOnlyReason); return false } return true }
+  const openDialog = value => { if (canWrite()) setDialog(value) }
   const [data, setData] = useState(EMPTY)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
@@ -87,7 +93,7 @@ export default function PrivacidadDatosPage() {
   }), [data])
 
   const submitActivity = async event => {
-    event.preventDefault(); const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
+    event.preventDefault(); if (!canWrite()) return; const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
     try {
       await api.post('/privacy/activities', {
         name: f.get('name'), purpose: f.get('purpose'), legalBasis: f.get('legalBasis'), dataCategories: toList(f.get('dataCategories')),
@@ -99,7 +105,7 @@ export default function PrivacidadDatosPage() {
   }
 
   const submitRequest = async event => {
-    event.preventDefault(); const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
+    event.preventDefault(); if (!canWrite()) return; const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
     try {
       const dueAt = f.get('dueAt') ? new Date(`${f.get('dueAt')}T23:59:59`).toISOString() : undefined
       await api.post('/privacy/requests', { requestType: f.get('requestType'), subjectName: f.get('subjectName'), subjectEmail: f.get('subjectEmail'), subjectRut: f.get('subjectRut'), details: f.get('details'), ...(dueAt ? { dueAt } : {}) })
@@ -108,7 +114,7 @@ export default function PrivacidadDatosPage() {
   }
 
   const submitConsent = async event => {
-    event.preventDefault(); const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
+    event.preventDefault(); if (!canWrite()) return; const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
     try {
       await api.post('/privacy/consents', { subjectRef: f.get('subjectRef'), subjectName: f.get('subjectName'), purpose: f.get('purpose'), noticeVersion: f.get('noticeVersion'), status: f.get('status'), source: f.get('source'), evidence: {} })
       setDialog(null); setMessage('Consentimiento registrado.'); await load()
@@ -116,7 +122,7 @@ export default function PrivacidadDatosPage() {
   }
 
   const submitIncident = async event => {
-    event.preventDefault(); const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
+    event.preventDefault(); if (!canWrite()) return; const f = new FormData(event.currentTarget); setSaving(true); setMessage('')
     try {
       await api.post('/privacy/incidents', { title: f.get('title'), severity: f.get('severity'), description: f.get('description'), detectedAt: new Date(f.get('detectedAt')).toISOString(), affectedSubjects: Number(f.get('affectedSubjects') || 0), dataCategories: toList(f.get('dataCategories')), containmentActions: f.get('containmentActions') })
       setDialog(null); setMessage('Incidente de privacidad registrado.'); await load()
@@ -124,13 +130,13 @@ export default function PrivacidadDatosPage() {
   }
 
   const updateRequest = async (item, status) => {
-    if (status === item.status) return
+    if (!canWrite() || status === item.status) return
     try { await api.patch(`/privacy/requests/${item.id}`, { status, responseNotes: item.response_notes || '' }); await load() }
     catch (error) { setMessage(error?.message || 'No fue posible actualizar la solicitud.') }
   }
 
   const updateIncident = async (item, status) => {
-    if (status === item.status) return
+    if (!canWrite() || status === item.status) return
     try { await api.patch(`/privacy/incidents/${item.id}`, { status, containmentActions: item.containment_actions || '', agencyNotifiedAt: item.agency_notified_at || null, subjectsNotifiedAt: item.subjects_notified_at || null }); await load() }
     catch (error) { setMessage(error?.message || 'No fue posible actualizar el incidente.') }
   }
@@ -143,6 +149,7 @@ export default function PrivacidadDatosPage() {
       </header>
 
       {message && <p className="nk-form-message">{message}</p>}
+      {commercialReadOnly && <p role="status">{readOnlyReason}</p>}
 
       <div className="nk-privacy-kpis">
         <article className="nk-dashboard-metric"><IconClipboardList size={22}/><div><b>{kpis.activities}</b><span>Actividades de tratamiento</span></div></article>
@@ -152,20 +159,20 @@ export default function PrivacidadDatosPage() {
       </div>
 
       <section className="nk-privacy-block">
-        <div className="nk-privacy-section-head"><h2>Registro de actividades de tratamiento</h2><button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('activity')}><IconPlus size={16}/> Actividad</button></div>
+        <div className="nk-privacy-section-head"><h2>Registro de actividades de tratamiento</h2><ActionButton className="nk-button nk-button-primary" type="button" disabled={commercialReadOnly} disabledReason={readOnlyReason} onClick={() => openDialog('activity')}><IconPlus size={16}/> Actividad</ActionButton></div>
         <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table"><thead><tr><th>Actividad</th><th>Finalidad</th><th>Base legal</th><th>Conservación</th><th>Riesgo</th></tr></thead><tbody>{data.activities.length ? data.activities.map(item => <tr key={item.id}><td><strong>{item.name}</strong><small>{listValue(item.data_categories) || 'Sin categorías informadas'}</small></td><td>{item.purpose}</td><td>{item.legal_basis}</td><td>{item.retention_days ? `${item.retention_days} días` : '—'}</td><td><StatusBadge value={item.risk_level}/></td></tr>) : <tr><td colSpan="5" className="nk-privacy-empty">Sin actividades registradas.</td></tr>}</tbody></table></div></div>
       </section>
 
       <section className="nk-privacy-block">
-        <div className="nk-privacy-section-head"><h2>Solicitudes de titulares</h2><button className="nk-button nk-button-primary" type="button" onClick={() => setDialog('request')}><IconPlus size={16}/> Solicitud</button></div>
-        <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table"><thead><tr><th>Titular</th><th>Solicitud</th><th>Ingreso</th><th>Vencimiento</th><th>Estado</th></tr></thead><tbody>{data.requests.length ? data.requests.map(item => <tr key={item.id}><td><strong>{item.subject_name}</strong><small>{item.subject_email}</small></td><td>{REQUEST_LABELS[item.request_type] || item.request_type}</td><td>{dateText(item.created_at)}</td><td>{dateText(item.due_at)}</td><td><select className="nk-input nk-privacy-status-select" value={item.status || 'recibida'} onChange={event => updateRequest(item, event.target.value)}><option value="recibida">Recibida</option><option value="verificacion">Verificación</option><option value="en_proceso">En proceso</option><option value="respondida">Respondida</option><option value="rechazada">Rechazada</option><option value="cerrada">Cerrada</option></select></td></tr>) : <tr><td colSpan="5" className="nk-privacy-empty">Sin solicitudes registradas.</td></tr>}</tbody></table></div></div>
+        <div className="nk-privacy-section-head"><h2>Solicitudes de titulares</h2><ActionButton className="nk-button nk-button-primary" type="button" disabled={commercialReadOnly} disabledReason={readOnlyReason} onClick={() => openDialog('request')}><IconPlus size={16}/> Solicitud</ActionButton></div>
+        <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table"><thead><tr><th>Titular</th><th>Solicitud</th><th>Ingreso</th><th>Vencimiento</th><th>Estado</th></tr></thead><tbody>{data.requests.length ? data.requests.map(item => <tr key={item.id}><td><strong>{item.subject_name}</strong><small>{item.subject_email}</small></td><td>{REQUEST_LABELS[item.request_type] || item.request_type}</td><td>{dateText(item.created_at)}</td><td>{dateText(item.due_at)}</td><td><select disabled={commercialReadOnly} aria-label={`Estado de ${item.subject_name || item.title}`} className="nk-input nk-privacy-status-select" value={item.status || 'recibida'} onChange={event => updateRequest(item, event.target.value)}><option value="recibida">Recibida</option><option value="verificacion">Verificación</option><option value="en_proceso">En proceso</option><option value="respondida">Respondida</option><option value="rechazada">Rechazada</option><option value="cerrada">Cerrada</option></select></td></tr>) : <tr><td colSpan="5" className="nk-privacy-empty">Sin solicitudes registradas.</td></tr>}</tbody></table></div></div>
       </section>
 
       <section className="nk-privacy-block">
-        <div className="nk-privacy-section-head"><h2>Consentimientos e incidentes</h2><div className="nk-privacy-actions"><button className="nk-button nk-button-secondary" type="button" onClick={() => setDialog('consent')}><IconPlus size={16}/> Consentimiento</button><button className="nk-button nk-button-danger" type="button" onClick={() => setDialog('incident')}><IconPlus size={16}/> Incidente</button></div></div>
+        <div className="nk-privacy-section-head"><h2>Consentimientos e incidentes</h2><div className="nk-privacy-actions"><ActionButton className="nk-button nk-button-secondary" type="button" disabled={commercialReadOnly} disabledReason={readOnlyReason} onClick={() => openDialog('consent')}><IconPlus size={16}/> Consentimiento</ActionButton><ActionButton className="nk-button nk-button-danger" type="button" disabled={commercialReadOnly} disabledReason={readOnlyReason} onClick={() => openDialog('incident')}><IconPlus size={16}/> Incidente</ActionButton></div></div>
         <div className="nk-privacy-dual">
           <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-subhead"><h3>Consentimientos</h3><span>{data.consents.length} registros</span></div><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table compact"><thead><tr><th>Titular</th><th>Finalidad</th><th>Estado</th></tr></thead><tbody>{data.consents.length ? data.consents.map(item => <tr key={item.id}><td><strong>{item.subject_name}</strong><small>{item.subject_ref}</small></td><td>{item.purpose}</td><td><StatusBadge value={item.status}/></td></tr>) : <tr><td colSpan="3" className="nk-privacy-empty">Sin consentimientos registrados.</td></tr>}</tbody></table></div></div>
-          <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-subhead"><h3>Incidentes</h3><span>{data.incidents.length} registros</span></div><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table compact"><thead><tr><th>Incidente</th><th>Severidad</th><th>Estado</th></tr></thead><tbody>{data.incidents.length ? data.incidents.map(item => <tr key={item.id}><td><strong>{item.title}</strong><small>{dateText(item.detected_at)} · {item.affected_subjects || 0} afectados</small></td><td><StatusBadge value={item.severity} danger={['alta','critica'].includes(item.severity)}/></td><td><select className="nk-input nk-privacy-status-select" value={item.status || 'abierto'} onChange={event => updateIncident(item, event.target.value)}><option value="abierto">Abierto</option><option value="contenido">Contenido</option><option value="investigacion">Investigación</option><option value="notificado">Notificado</option><option value="cerrado">Cerrado</option></select></td></tr>) : <tr><td colSpan="3" className="nk-privacy-empty">Sin incidentes registrados.</td></tr>}</tbody></table></div></div>
+          <div className="nk-module-card nk-privacy-card"><div className="nk-privacy-subhead"><h3>Incidentes</h3><span>{data.incidents.length} registros</span></div><div className="nk-privacy-table-wrap"><table className="nk-table nk-privacy-table compact"><thead><tr><th>Incidente</th><th>Severidad</th><th>Estado</th></tr></thead><tbody>{data.incidents.length ? data.incidents.map(item => <tr key={item.id}><td><strong>{item.title}</strong><small>{dateText(item.detected_at)} · {item.affected_subjects || 0} afectados</small></td><td><StatusBadge value={item.severity} danger={['alta','critica'].includes(item.severity)}/></td><td><select disabled={commercialReadOnly} aria-label={`Estado de ${item.subject_name || item.title}`} className="nk-input nk-privacy-status-select" value={item.status || 'abierto'} onChange={event => updateIncident(item, event.target.value)}><option value="abierto">Abierto</option><option value="contenido">Contenido</option><option value="investigacion">Investigación</option><option value="notificado">Notificado</option><option value="cerrado">Cerrado</option></select></td></tr>) : <tr><td colSpan="3" className="nk-privacy-empty">Sin incidentes registrados.</td></tr>}</tbody></table></div></div>
         </div>
       </section>
 
