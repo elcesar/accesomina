@@ -7,6 +7,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {mock} from 'node:test';
 import {pool,withTenant} from '../db.js';
 import {publicPlansRouter,subscriptionRouter} from '../routes/subscriptions.js';
+import {subscriptionGovernanceRouter} from '../routes/subscription-governance.js';
 import {activateFreeSubscription,withSubscriptionAdmin} from '../subscriptions.js';
 
 export const QA_IDS={tenant:'11111111-1111-4111-8111-111111111111',legacy:'22222222-2222-4222-8222-222222222222',global:'33333333-3333-4333-8333-333333333333',admin:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reader:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',super:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',legacyAdmin:'dddddddd-dddd-4ddd-8ddd-dddddddddddd'};
@@ -41,9 +42,9 @@ export async function createSubscriptionQaApp({port=0}={}) {
  app.get('/api/settings',(req,res)=>res.json({settings:{branding:{displayName:req.auth.companyName},catalogs:{operationalTimeZone:'America/Santiago'},modules:{}}}));
  app.get('/api/state',(req,res)=>res.json({state:{...state,empresa:{nombre:req.auth.companyName,rut:req.auth.rut}},version:1,versions:{trabajadores:1}}));
  app.get('/api/workers',(req,res)=>res.json([]));
- app.use('/api',publicPlansRouter);app.use('/api',subscriptionRouter);
+ app.use('/api',publicPlansRouter);app.use('/api',subscriptionGovernanceRouter);app.use('/api',subscriptionRouter);
  app.use((error,req,res,next)=>{if(res.headersSent)return next(error);res.status(error.status||(error.name==='ZodError'?400:500)).json({error:error.code||(error.name==='ZodError'?'VALIDATION_ERROR':'SERVER_ERROR'),message:error.message,details:error.details});});
- const server=await new Promise((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
+ const server=await new Promise((resolve,reject)=>{const s=app.listen(port,'127.0.0.1',error=>error?reject(error):resolve(s));s.once('error',reject);});
  const base=`http://127.0.0.1:${server.address().port}`;
  return{app,server,db,base,accounts,async close(){await new Promise(resolve=>server.close(resolve));connectMock.mock.restore();queryMock.mock.restore();await db.close();}};
 }

@@ -61,3 +61,17 @@ Para rollback, restaurar la task definition con el digest anterior y la versión
 Publicar en dos PR: primero servidor/migración; después de que César actualice ECS y se verifique la versión 7.8.0, integrar el PR de interfaz. El servidor nuevo exige consentimiento explícito en el registro público: completar ambos pasos dentro de la misma ventana de liberación para que el formulario anterior no permanezca publicado contra esa validación nueva. No inferir consentimiento de un cliente anterior. Las empresas existentes continúan fuera de la gestión nueva hasta una contratación explícita.
 
 Si un RUT ya consumió Free y su cuenta se vuelve a crear, la aprobación conserva el acceso a Mi plan para contratar un plan pagado; no reinicia la gratuidad ni permite operar sin contrato.
+
+## Ampliación de parametrización y perfiles internos
+
+La continuación de #329 del 12 de noviembre parte de main 2748adf, después de integrar #330/#331. Aplica **028_subscription_catalog_parameters.sql** y **029_subscription_governance.sql** después de 027, mediante el migrador habitual. Son extensiones aditivas; no renumerar ni reescribir 027, ni convertir empresas existentes.028 añade metadatos públicos y ocupación al solicitar;029 mantiene perfiles internos y políticas versionadas con RLS. Confirmar migraciones y CI sobre el SHA exacto antes de liberar.
+
+Los textos, beneficios, CTA, orden, actividad y tamaño de paquetes nuevos se publican como versiones. Los contratos y las propuestas comerciales ya aceptadas conservan sus snapshots; editar o retirar una oferta sólo afecta selecciones nuevas. Para una empresa sin contrato, Free se ofrece sólo si el catálogo está activo y el beneficio no fue consumido. Nunca ampliar un trial existente por cambiar la duración del catálogo.
+
+Desde «Planes y suscripciones → Permisos y políticas», sólo la administración global verificada puede asignar perfiles a usuarios existentes de la empresa global Nexo Klar. **Comercial** gestiona solicitudes y documentos; **Operaciones** ejecuta acuerdos autorizados y licencias. Los perfiles no convierten a un usuario en administrador global de clientes y se verifican en BD en cada petición, incluida revocación. Una solicitud requiere aprobador distinto del solicitante. No crear usuarios ni contraseñas ficticias en producción como parte de una migración.
+
+Cancelación y retención se registran como políticas versionadas. Un borrador permite valores sin definir. Aprobar exige valores y referencia explícitos, y registra la decisión; **no cancela contratos ni elimina datos por sí mismo**. No interpretar una retención nullable como cero días ni aplicar 90 días heredados como decisión aprobada. `automaticDeletion` permanece false.
+
+Publicar primero el PR del servidor y confirmar su SHA en ECS; después publicar el PR dependiente de interfaz. Aunque el frontend se compile, no exponerlo antes de que existan los nuevos endpoints. César revisa los PR y actualiza el servicio AWS, conforme al proceso confirmado. Un rollback conserva 028/029 y sus registros; volver a una interfaz/servidor anteriores requiere registrar el tratamiento de versiones, permisos y contratos ya activados, sin borrar tablas.
+
+Comprobación pública del 12 de noviembre: `/api/health` informó 7.8.0/ee627c6, `/api/ready` informó ready y el catálogo devolvió los cinco planes y valores iniciales. Esto acredita únicamente salud y catálogo del alcance inicial desplegado, no la publicación de esta ampliación ni QA funcional productiva.

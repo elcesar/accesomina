@@ -17,11 +17,17 @@ export const filesRouter = Router();
 // This capability is set only by the verified global subscription route. It is
 // deliberately unavailable through request bodies, headers or the general API.
 export const subscriptionDocumentsContext = Symbol('subscriptionDocumentsContext');
-function commercialDocumentsRequest(req) {
-  return req.auth?.role === 'domian_admin' && req[subscriptionDocumentsContext]?.tenantId === req.auth.tenantId;
+function commercialDocumentsRequest(req, capability = 'read') {
+  const context=req[subscriptionDocumentsContext];
+  return context?.tenantId === req.auth?.tenantId && Array.isArray(context?.capabilities) && context.capabilities.includes(capability);
+}
+const ordinaryFileEditors=allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion');
+function fileEditors(req,res,next) {
+  if(commercialDocumentsRequest(req,'requests.documents'))return next();
+  return ordinaryFileEditors(req,res,next);
 }
 async function lockFileWrite(client,req,entityType) {
-  if(commercialDocumentsRequest(req)) {
+  if(commercialDocumentsRequest(req,'requests.documents')) {
     const tenant=await lockSubscriptionTenant(client,req.auth.tenantId);
     if(tenant.is_domian_admin)throw Object.assign(new Error('La administración global no recibe documentos comerciales empresariales.'),{status:409,code:'SUBSCRIPTION_PLATFORM_PROTECTED'});
     return;
@@ -70,13 +76,12 @@ filesRouter.get('/status', allowRoles('domian_admin','client_admin','rrhh','prev
   res.status(status.ready ? 200 : 503).json(status);
 });
 
-filesRouter.post('/', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), requireFileInfrastructure, upload.single('file'), async (req,res) => {
+filesRouter.post('/', fileEditors, requireFileInfrastructure, upload.single('file'), async (req,res) => {
   if(!req.file)return res.status(400).json({error:'FILE_REQUIRED'});
   const entityType=String(req.body.entityType||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,50),entityId=String(req.body.entityId||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,100);
-  const commercial=commercialDocumentsRequest(req);
+  const commercial=commercialDocumentsRequest(req,'requests.documents');
   if(commercial&&entityType!=='subscription_document')return res.status(400).json({error:'SUBSCRIPTION_DOCUMENT_TYPE_REQUIRED'});
-  assertEntityTypeAccess(req.auth,entityType);
-  if(!commercial)assertSubscriptionFileAccess(req.auth,entityType,{write:true});
+  if(!commercial){assertEntityTypeAccess(req.auth,entityType);assertSubscriptionFileAccess(req.auth,entityType,{write:true});}
   const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${commercial?'commercial/':''}${sha}`;
   const row=await withTenant(req.auth.tenantId,async client=>{
     await lockFileWrite(client,req,entityType);
@@ -118,7 +123,7 @@ filesRouter.get('/:id', async (req,res) => {
   const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT * FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId]));const file=result.rows[0];
   if(!file)return res.status(404).json({error:'FILE_NOT_FOUND'});
   if(commercialDocumentsRequest(req)&&file.entity_type!=='subscription_document')return res.status(404).json({error:'FILE_NOT_FOUND'});
-  assertEntityTypeAccess(req.auth,file.entity_type);if(!commercialDocumentsRequest(req))assertSubscriptionFileAccess(req.auth,file.entity_type);if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
+  if(!commercialDocumentsRequest(req)){assertEntityTypeAccess(req.auth,file.entity_type);assertSubscriptionFileAccess(req.auth,file.entity_type);}if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
   res.set({'Content-Type':file.content_type,'Content-Disposition':`attachment; filename="${safeName(file.original_name)}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
   if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));object.Body.pipe(res);}else res.sendFile(path.join(config.uploadDir,file.storage_key));
 });
