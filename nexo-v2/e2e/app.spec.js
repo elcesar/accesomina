@@ -29,8 +29,12 @@ async function mockApi(page, { session = clientAdmin, signedIn = true } = {}) {
 test('la navegación pública muestra una sección distinta por opción', async ({ page }) => {
   await mockApi(page, { signedIn: false }); await page.goto('/')
   await expect(page.getByRole('heading', { name: /Convierte información dispersa/i })).toBeVisible()
-  await page.getByRole('button', { name: 'Plataforma' }).click(); await expect(page.getByRole('heading', { name: /De la oportunidad al servicio cerrado/i })).toBeVisible()
-  await page.getByRole('button', { name: 'Propósito' }).click(); await expect(page.locator('[data-public-page="proposito"]')).toBeVisible(); await expect(page.getByRole('heading', { name: /Creemos que las mejores decisiones nacen de información confiable/i })).toBeVisible()
+  const platform = page.getByRole('link', { name: 'Plataforma', exact: true })
+  await expect(platform).toHaveAttribute('href', '/plataforma'); await platform.click()
+  await expect(page).toHaveURL(/\/plataforma$/); await expect(page.getByRole('heading', { name: /De la oportunidad al servicio cerrado/i })).toBeVisible()
+  const purpose = page.getByRole('link', { name: 'Propósito', exact: true })
+  await expect(purpose).toHaveAttribute('href', '/proposito'); await purpose.click()
+  await expect(page).toHaveURL(/\/proposito$/); await expect(page.locator('[data-public-page="proposito"]')).toBeVisible(); await expect(page.getByRole('heading', { name: /Creemos que las mejores decisiones nacen de información confiable/i })).toBeVisible()
 })
 
 test('un cliente puede iniciar sesión y llegar al panel de control', async ({ page }) => {
