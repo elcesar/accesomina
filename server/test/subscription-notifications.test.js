@@ -23,6 +23,27 @@ test('SMTP acceptance is validated for the intended recipient and carries a stab
   assert.equal(messages[0].messageId, messages[1].messageId);
 });
 
+for (const planCode of ['FREE', 'LA_UNION']) {
+  test(`email ${planCode} describes the permitted continuation without billing or automatic activation`, async () => {
+    const messages = [];
+    const result = await deliverSubscriptionReminder({ reminder: { ...reminder, plan_code: planCode }, smtpConfig: SMTP,
+      createTransport: () => ({ sendMail: async message => { messages.push(message); return { accepted: [message.to], messageId: message.messageId }; } }) });
+    assert.equal(result.delivered, true);
+    assert.equal(messages.length, 1);
+    const message = messages[0].text;
+    if (planCode === 'FREE') {
+      assert.match(message, /solicitar la contratación de un plan pagado/);
+      assert.doesNotMatch(message, /renovación|renovar/i);
+    } else {
+      assert.match(message, /solicitar la renovación manual/);
+      assert.doesNotMatch(message, /contratación de un plan pagado/);
+    }
+    assert.match(message, /Este aviso no genera cobros ni cambia tu plan/);
+    assert.match(message, /activación.*requiere la confirmación administrativa/);
+    assert.match(message, /\/app\/mi-plan/);
+  });
+}
+
 test('SMTP missing, failures and timeouts retain only safe categories and never secrets', async () => {
   let transports = 0;
   const missing = await deliverSubscriptionReminder({ reminder, smtpConfig: { ...SMTP, host: '' }, createTransport: () => { transports++; } });
@@ -78,16 +99,16 @@ function transactions(db, trace = []) {
   };
 }
 
-async function fixture(db, { endsAt = '2026-11-30T13:00:00Z', managed = true } = {}) {
+async function fixture(db, { endsAt = '2026-11-30T13:00:00Z', managed = true, planCode = 'LA_UNION' } = {}) {
   const tenantId = randomUUID(), adminId = randomUUID(), subscriptionId = randomUUID(), periodId = randomUUID();
   await db.query("INSERT INTO tenants(id,tenant_code,company_name,rut,admin_email,status,subscription_managed) VALUES($1,$2,'Empresa QA',$2,'admin@example.test','active',$3)", [tenantId, `qa-${tenantId}`, managed]);
   await db.query("INSERT INTO app_users(id,tenant_id,email,full_name,role) VALUES($1,$2,'admin@example.test','Admin QA','client_admin')", [adminId, tenantId]);
   await db.query("INSERT INTO app_users(tenant_id,email,full_name,role) VALUES($1,'reader@example.test','Consulta QA','consulta')", [tenantId]);
-  const plan = (await db.query("SELECT id FROM subscription_plan_versions WHERE code='LA_UNION' AND state='PUBLISHED'")).rows[0];
+  const plan = (await db.query("SELECT id FROM subscription_plan_versions WHERE code=$1 AND state='PUBLISHED'", [planCode])).rows[0];
   await db.query(`INSERT INTO subscription_contracts(id,tenant_id,plan_version_id,plan_code,snapshot,starts_at,ends_at,grace_ends_at,anchor_day)
-    VALUES($1,$2,$3,'LA_UNION','{}',$4::timestamptz-interval '6 months',$4,$4::timestamptz+interval '30 days',30)`, [subscriptionId, tenantId, plan.id, endsAt]);
+    VALUES($1,$2,$3,$4,'{}',$5::timestamptz-interval '6 months',$5,CASE WHEN $4='FREE' THEN $5::timestamptz ELSE $5::timestamptz+interval '30 days' END,30)`, [subscriptionId, tenantId, plan.id, planCode, endsAt]);
   await db.query(`INSERT INTO subscription_periods(id,tenant_id,subscription_id,snapshot,starts_at,ends_at,grace_ends_at)
-    VALUES($1,$2,$3,'{}',$4::timestamptz-interval '6 months',$4,$4::timestamptz+interval '30 days')`, [periodId, tenantId, subscriptionId, endsAt]);
+    VALUES($1,$2,$3,'{}',$4::timestamptz-interval '6 months',$4,CASE WHEN $5::text='FREE' THEN $4::timestamptz ELSE $4::timestamptz+interval '30 days' END)`, [periodId, tenantId, subscriptionId, endsAt, planCode]);
   await db.query('UPDATE subscription_contracts SET current_period_id=$2 WHERE id=$1', [subscriptionId, periodId]);
   return { tenantId, subscriptionId, periodId, adminId };
 }
@@ -97,6 +118,27 @@ const rowsFor = async (db, tenantId) => (await db.query('SELECT * FROM subscript
 test('durable notifications preserve transaction, period, role and delivery guarantees', async t => {
   const db = await database();
   try {
+    for (const planCode of ['FREE', 'LA_UNION']) {
+      await t.test(`published ${planCode} panel notices describe the permitted continuation without activating or billing`, async () => {
+        const f = await fixture(db, { planCode }), tx = transactions(db);
+        await tx(f.tenantId, client => scheduleSubscriptionNotifications(client, { ...f, now: new Date('2026-10-01T13:00:00Z') }));
+        await db.query("UPDATE subscription_notifications SET status='sent',sent_at='2026-11-23T13:00:00Z' WHERE tenant_id=$1 AND days_before=7 AND channel='IN_APP'", [f.tenantId]);
+        const notices = await tx(f.tenantId, client => listSubscriptionNotifications(client, { tenantId: f.tenantId, userId: f.adminId }));
+        assert.equal(notices.length, 1);
+        assert.equal(notices[0].planCode, planCode);
+        const message = notices[0].message;
+        if (planCode === 'FREE') {
+          assert.match(message, /solicitar la contratación de un plan pagado/);
+          assert.doesNotMatch(message, /renovación|renovar/i);
+        } else {
+          assert.match(message, /solicitar la renovación manual/);
+          assert.doesNotMatch(message, /contratación de un plan pagado/);
+        }
+        assert.match(message, /Este aviso no genera cobros ni cambia tu plan/);
+        assert.match(message, /activación.*requiere la confirmación administrativa/);
+      });
+    }
+
     await t.test('only future calendar thresholds are scheduled, once per channel and active admin', async () => {
       const f = await fixture(db, { endsAt: '2026-09-15T13:00:00Z' }), tx = transactions(db);
       const now = new Date('2026-08-20T14:00:00Z');
