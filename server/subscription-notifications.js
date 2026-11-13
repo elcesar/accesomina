@@ -10,6 +10,12 @@ const ADMIN_ROLES = ['client_admin', 'domian_admin'];
 const LEASE_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
 
+function reminderContinuation(planCode) {
+  return planCode === 'FREE'
+    ? { action: 'solicitar la contratación de un plan pagado', confirmation: 'Si ya solicitaste la contratación, la activación del plan pagado requiere la confirmación administrativa correspondiente.' }
+    : { action: 'solicitar la renovación manual', confirmation: 'Si ya solicitaste la renovación, su activación requiere la confirmación administrativa correspondiente.' };
+}
+
 // This function must be called within the same transaction as activation or
 // renewal. Nothing here performs external delivery; rollback discards the outbox.
 export async function scheduleSubscriptionNotifications(client, { tenantId, subscriptionId, periodId, now = new Date() }) {
@@ -54,8 +60,9 @@ export async function listSubscriptionNotifications(client, { tenantId, userId }
   const iso = value => value ? new Date(value).toISOString() : null;
   return rows.map(row => {
     const endDate = new Intl.DateTimeFormat('es-CL', { timeZone: row.timezone, dateStyle: 'long' }).format(new Date(row.ends_at));
+    const continuation = reminderContinuation(row.plan_code);
     return { id: row.id, subject: `Tu suscripción vence en ${row.days_before} días`,
-      message: `La suscripción ${row.plan_name || row.plan_code} vence el ${endDate}. Gestiona la renovación manual desde Mi plan.`,
+      message: `La suscripción ${row.plan_name || row.plan_code} vence el ${endDate}. Ingresa a Mi plan para ${continuation.action}. Este aviso no genera cobros ni cambia tu plan. ${continuation.confirmation}`,
       threshold: row.days_before, daysBefore: row.days_before, channel: 'IN_APP', status: 'sent',
       scheduledAt: iso(row.scheduled_at), sentAt: iso(row.sent_at), readAt: iso(row.read_at), createdAt: iso(row.created_at),
       periodEndsAt: iso(row.ends_at), planCode: row.plan_code, timezone: row.timezone };
@@ -79,6 +86,7 @@ export async function deliverSubscriptionReminder({ reminder, smtpConfig = confi
   let timer, transport;
   try {
     const endDate = new Intl.DateTimeFormat('es-CL', { timeZone: reminder.timezone || 'America/Santiago', dateStyle: 'long' }).format(new Date(reminder.period_ends_at));
+    const continuation = reminderContinuation(reminder.plan_code);
     const recipient = String(reminder.current_recipient_email || reminder.recipient_email).trim();
     transport = createTransport({ host: smtpConfig.host, port: Number(smtpConfig.port), secure: smtpConfig.secure === true,
       auth: smtpConfig.user ? { user: smtpConfig.user, pass: smtpConfig.pass } : undefined,
@@ -92,7 +100,7 @@ export async function deliverSubscriptionReminder({ reminder, smtpConfig = confi
       // Stable across retries; SMTP acceptance is not an exactly-once guarantee.
       messageId: `<subscription-${reminder.id}@nexoklar.com>`,
       subject: `Nexo Klar: tu suscripción vence en ${reminder.days_before} días`,
-      text: `Hola,\n\nLa suscripción ${reminder.plan_code} de ${reminder.company_name} vence el ${endDate}.\nFaltan ${reminder.days_before} días para finalizar el período vigente.\n\nIngresa a Mi suscripción para revisar tus condiciones y solicitar la renovación manual:\n${config.origin}/app/mi-plan\n\nEste aviso no genera cobros ni cambia tu plan. Si ya solicitaste la renovación, su activación requiere la confirmación administrativa correspondiente.`
+      text: `Hola,\n\nLa suscripción ${reminder.plan_code} de ${reminder.company_name} vence el ${endDate}.\nFaltan ${reminder.days_before} días para finalizar el período vigente.\n\nIngresa a Mi plan para revisar tus condiciones y ${continuation.action}:\n${config.origin}/app/mi-plan\n\nEste aviso no genera cobros ni cambia tu plan. ${continuation.confirmation}`
     })]);
     if (!Array.isArray(result?.accepted) || !result.accepted.some(value => String(value).trim().toLowerCase() === recipient.toLowerCase())) return { delivered: false, reason: 'DELIVERY_FAILED' };
     return { delivered: true, providerReference: String(result.messageId || '').slice(0, 250) || null };
