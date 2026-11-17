@@ -20,8 +20,8 @@ jobs:
       run:
         working-directory: nexo-v2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
@@ -30,7 +30,7 @@ jobs:
       - run: pnpm run build
       - name: Desktop, mobile, registration and first access
         run: pnpm exec playwright test e2e/subscription-plans.spec.js e2e/subscription-catalog.spec.js e2e/subscription-access-journeys.spec.js e2e/subscription-governance.spec.js e2e/qa-public-pages.spec.js e2e/first-access-sequence.spec.js --workers=2
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: subscription-interface-report
