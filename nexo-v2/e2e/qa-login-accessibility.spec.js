@@ -38,10 +38,12 @@ for (const width of [390, 1440]) {
 test('el acceso conserva etiquetas asociadas y avisa un RUT inválido al salir del campo', async ({ page }) => {
   await page.goto('/login')
 
-  const rut = page.getByLabel(/RUT empresa/)
-  await expect(rut).toHaveAttribute('id', 'login-rut')
-  await expect(page.getByLabel(/Correo/)).toHaveAttribute('id', 'login-email')
-  await expect(page.getByLabel(/Contraseña/)).toHaveAttribute('id', 'login-password')
+  const rut = page.locator('#login-rut')
+  const email = page.locator('#login-email')
+  const password = page.locator('#login-password')
+  await expect(rut).toHaveAccessibleName(/RUT empresa/)
+  await expect(email).toHaveAccessibleName(/Correo/)
+  await expect(password).toHaveAccessibleName(/Contraseña/)
 
   await rut.fill('11.111.111-2')
   await rut.blur()
