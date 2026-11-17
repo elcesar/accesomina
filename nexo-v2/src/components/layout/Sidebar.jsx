@@ -216,6 +216,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       activeLink.scrollIntoView({
         block: 'nearest',
+        inline: 'nearest',
         behavior: reduceMotion ? 'auto' : 'smooth',
       })
     })
