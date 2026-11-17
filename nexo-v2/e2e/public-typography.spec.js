@@ -39,6 +39,10 @@ for (const width of [1440, 375]) {
     expect(headerBox?.x).toBeGreaterThan(0)
     expect(headerBox?.x).toBeGreaterThanOrEqual(Math.min(16, gridBox?.x || 0))
 
+    for (const cell of await page.locator('.nk-plan-comparison-table th').all()) {
+      const fontSize = await cell.evaluate(element => parseFloat(getComputedStyle(element).fontSize))
+      expect(fontSize).toBeGreaterThanOrEqual(13)
+    }
     const access = page.getByRole('link', { name: 'Acceso', exact: true })
     const accessBox = await access.boundingBox()
     expect(accessBox?.height).toBeGreaterThanOrEqual(44)

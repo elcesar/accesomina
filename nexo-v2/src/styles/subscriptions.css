@@ -15,10 +15,10 @@
 .nk-plan-tile.is-recommended { border-color: var(--pri); }
 .nk-plans-section .nk-plan-tile h2 { font-size: var(--text-xl, 1.25rem); line-height: 1.3; margin: .25rem 0; overflow-wrap: anywhere; }
 .nk-plan-tile p { margin: .35rem 0; overflow-wrap: anywhere; }
-.nk-plan-tile ul { padding-left: 1.2rem; margin-block: .5rem 1rem; color: var(--mut); font-size: .875rem; line-height: 1.65; flex: 1; }
+.nk-plan-tile ul { padding-left: 1.2rem; margin-block: .5rem 1rem; color: var(--mut); font-size: var(--nk-text-base); line-height: 1.65; flex: 1; }
 .nk-plan-tile .nk-button { width: 100%; white-space: normal; text-align: center; }
 .nk-plan-price { font-size: 1.65rem; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
-.nk-plan-price small { display: block; font-size: .8rem; font-weight: 400; color: var(--mut); line-height: 1.5; }
+.nk-plan-price small { display: block; font-size: var(--nk-text-base); font-weight: 400; color: var(--mut); line-height: 1.5; }
 .nk-plan-comparison, .nk-plan-recommender, .nk-plan-request, .nk-plan-faq { padding: 1.5rem; border: 1px solid var(--line); background: var(--surf); border-radius: var(--nk-radius-card, 12px); min-width: 0; }
 .nk-plan-request { scroll-margin-top: 8rem; }
 .nk-plan-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-block: 1.25rem; }
@@ -94,6 +94,8 @@
 .nk-plan-comparison-scroll { max-width: 100%; overflow-x: auto; margin-block: 1.5rem; border: 1px solid var(--line); border-radius: var(--nk-radius-control, 8px); }
 .nk-plan-comparison-table { min-width: 54rem; width: 100%; }
 .nk-plan-comparison-table caption { text-align: left; padding: 1rem; font-weight: 600; color: var(--ink); }
+.nk-plan-comparison .nk-plan-comparison-table th { font: 600 var(--nk-text-base)/var(--nk-leading-snug) var(--nk-family-ui); }
+.nk-plan-comparison .nk-plan-comparison-table td { font-size: var(--nk-text-base); }
 .nk-plan-comparison-table th, .nk-plan-comparison-table td { vertical-align: top; min-width: 9rem; white-space: normal; }
 .nk-plan-comparison-table th:first-child { min-width: 11rem; }
 .nk-plan-comparison-table p { margin-top: 0; }
