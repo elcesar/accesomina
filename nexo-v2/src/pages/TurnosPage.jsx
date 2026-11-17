@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
@@ -261,8 +262,8 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
+                <AccessibleTable caption="Cobertura de turnos por servicio" className="nk-table">
+                  <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
                       <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><span className="nk-empty-description">No hay proyectos o servicios abiertos para calcular cobertura.</span></div></td></tr>
@@ -280,7 +281,7 @@ export default function TurnosPage() {
                       )
                     })}
                   </tbody>
-                </table>
+                </AccessibleTable>
               </div>
             </div>
           </>
@@ -304,8 +305,8 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
+                <AccessibleTable caption="Registro de jornadas y asistencia" className="nk-table">
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
                       <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
@@ -332,7 +333,7 @@ export default function TurnosPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </AccessibleTable>
               </div>
             </div>
           </>

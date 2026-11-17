@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
@@ -237,8 +238,8 @@ export default function CumplimientoCorporativoPage() {
       <section className="nk-card nk-compliance-table-card">
         {loading ? <div className="nk-empty nk-compliance-empty"><IconFile size={30} /><p className="nk-empty-title">Cargando documentación…</p></div> : (
           <div className="nk-table-wrapper">
-            <table className="nk-table nk-compliance-table">
-              <thead><tr><th>Documento</th><th>Área</th><th>Estado</th><th>Vence</th><th>Respaldo</th><th>Observación</th></tr></thead>
+            <AccessibleTable caption="Cumplimiento corporativo" className="nk-table nk-compliance-table">
+              <thead><tr><th scope="col">Documento</th><th scope="col">Área</th><th scope="col">Estado</th><th scope="col">Vence</th><th scope="col">Respaldo</th><th scope="col">Observación</th></tr></thead>
               <tbody>{filtered.map(doc => {
                 const status = statusFor(doc)
                 const requirement = REQUIREMENTS.find(item => item.id === doc.reqId)
@@ -261,7 +262,7 @@ export default function CumplimientoCorporativoPage() {
                   </tr>
                 )
               })}</tbody>
-            </table>
+            </AccessibleTable>
           </div>
         )}
       </section>

@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { localDate, localDateTime, operationalDate, operationalDateTime, operationalDateTimeToUtc, operationalTimeZone } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
 import { IconBook, IconFileDescription, IconPlus, IconRefresh, IconSearch, IconSignature as IconFileSignature, IconX } from '@tabler/icons-react'
@@ -179,8 +180,8 @@ export default function LibroObraPage() {
         <header><div><h2>Registro formal</h2><p>{filteredEntries.length} de {entries.length} anotaciones visibles</p></div></header>
         {loading ? <p className="nk-book-empty">Cargando anotaciones…</p> : filteredEntries.length ? (
           <div className="nk-book-table-wrap">
-            <table className="nk-book-table">
-              <thead><tr><th>Folio</th><th>Anotación</th><th>Fecha</th><th>Cliente / orden</th><th>Asunto</th><th>Responsable</th><th>Estado</th></tr></thead>
+            <AccessibleTable caption="Registros del libro de obra" className="nk-book-table">
+              <thead><tr><th scope="col">Folio</th><th scope="col">Anotación</th><th scope="col">Fecha</th><th scope="col">Cliente / orden</th><th scope="col">Asunto</th><th scope="col">Responsable</th><th scope="col">Estado</th></tr></thead>
               <tbody>{filteredEntries.map(row => (
                 <tr key={row.id} onClick={() => openEntry(row)}>
                   <td><strong>{row.folio || '—'}</strong></td>
@@ -192,7 +193,7 @@ export default function LibroObraPage() {
                   <td><span className={`nk-book-status ${normalize(row.status)}`}>{String(row.status || 'borrador').replaceAll('_', ' ')}</span></td>
                 </tr>
               ))}</tbody>
-            </table>
+            </AccessibleTable>
           </div>
         ) : <p className="nk-book-empty">No hay anotaciones que coincidan con los filtros seleccionados.</p>}
       </section>

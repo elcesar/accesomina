@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -448,15 +449,15 @@ export default function SaludOcupacionalPage() {
           </div>
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
+            <AccessibleTable caption="Protocolos de salud ocupacional" className="nk-table">
               <thead>
                 <tr>
-                  <th>Persona</th>
-                  <th>Protocolo</th>
-                  <th>Riesgo / exposición</th>
-                  <th>Responsable</th>
-                  <th>Estado</th>
-                  <th>Evidencia</th>
+                  <th scope="col">Persona</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Riesgo / exposición</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Evidencia</th>
                 </tr>
               </thead>
               <tbody>
@@ -490,7 +491,7 @@ export default function SaludOcupacionalPage() {
                   )
                 })}
               </tbody>
-            </table>
+            </AccessibleTable>
           </div>
         )}
       </section>

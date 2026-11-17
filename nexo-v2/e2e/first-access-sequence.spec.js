@@ -1,7 +1,19 @@
 import { test, expect } from '@playwright/test'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const password = 'ClaveFicticiaQA123'
 const roles = ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']
+const appRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
+
+function jsxFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) return jsxFiles(path)
+    return entry.name.endsWith('.jsx') ? [path] : []
+  })
+}
 
 async function mockFirstAccess(page, { role = 'consulta', change = true, mfa = true, signedIn = true, sessionFailures = [] } = {}) {
   const user = {
@@ -61,6 +73,40 @@ async function mockFirstAccess(page, { role = 'consulta', change = true, mfa = t
   })
   return { calls, user }
 }
+
+test('el inventario privado de tablas mantiene captions y scopes en la fuente', () => {
+  const sourceFiles = [
+    ...jsxFiles(join(appRoot, 'src/pages')),
+    ...jsxFiles(join(appRoot, 'src/components/inventory')),
+    join(appRoot, 'src/components/ui/SubscriptionComponents.jsx'),
+  ]
+  const source = sourceFiles.map(file => ({ file, content: readFileSync(file, 'utf8') }))
+  const tables = source.flatMap(({ file, content }) => (content.match(/<(?:AccessibleTable|table)\b[^>]*>/g) || []).map(tag => ({ file, tag })))
+  const missingCaptions = tables.filter(({ tag }) => tag.startsWith('<AccessibleTable') && !/\bcaption=(?:"[^"]+"|'[^']+'|\{[^}]+\})/.test(tag))
+  const nativeTables = tables.filter(({ tag }) => tag.startsWith('<table'))
+  const headersWithoutScope = source.flatMap(({ file, content }) => (content.match(/<th\b(?![^>]*\bscope\s*=)[^>]*>/g) || []).map(tag => ({ file, tag })))
+
+  // 61 migrated private tables plus two already semantic native tables.
+  expect(tables).toHaveLength(63)
+  expect(missingCaptions).toEqual([])
+  expect(nativeTables).toHaveLength(2)
+  expect(headersWithoutScope).toEqual([])
+  for (const { file, content } of source) {
+    if (!content.includes('<table')) continue
+    expect(content).toMatch(/<table\b[^>]*>\s*<caption\b/)
+    expect(file).toMatch(/(AdministracionPlanesPage|SubscriptionComponents)\.jsx$/)
+  }
+})
+
+test('Turnos publica un caption y encabezados con scope para navegación asistida', async ({ page }) => {
+  await mockFirstAccess(page, { role: 'client_admin', change: false, mfa: false })
+  await page.goto('/app/turnos')
+
+  const table = page.locator('table').first()
+  await expect(table.locator('caption')).toHaveText('Registro de jornadas y asistencia')
+  await expect(table.locator('thead th')).toHaveCount(8)
+  expect(await table.locator('thead th').evaluateAll(headers => headers.map(header => header.getAttribute('scope')))).toEqual(Array(8).fill('col'))
+})
 
 async function changePassword(page, current = password) {
   await page.getByLabel('Contraseña actual', { exact: true }).fill(current)
