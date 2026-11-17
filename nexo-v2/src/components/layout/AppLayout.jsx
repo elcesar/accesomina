@@ -44,7 +44,10 @@ function ModuleOutlet() {
     const freeEnded = summary.contract?.planCode === 'FREE'
     return <section className="nk-module-page"><header className="nk-module-header"><div><h1>{freeEnded ? 'Tu período gratuito de Nexo Klar ha finalizado' : summary.contract ? 'Tu plan requiere renovación' : 'Tu plan está pendiente de activación'}</h1><p>Tu información permanece registrada. Gestiona la contratación o renovación desde Mi plan.</p></div></header>{freeEnded && <Link className="nk-button nk-button-primary" to="/planes">Ver planes</Link>} <Link className="nk-button nk-button-secondary" to="/app/mi-plan">Ir a Mi plan</Link></section>
   }
-  const restrictedAdministration = ['configuracion', 'usuarios', 'bitacora', 'privacidad', 'transferencia', 'administracion-clientes'].includes(moduleKey)
+  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
+  const restrictedAdministration = ['configuracion', 'usuarios', 'bitacora', 'privacidad', 'transferencia'].includes(moduleKey)
   if (moduleKey && !isEnabled(moduleKey) && restrictedAdministration) {
     return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
@@ -53,9 +56,6 @@ function ModuleOutlet() {
   }
   if ((['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) || pathname === '/app/transferencia') && !isCompanyAdmin) {
     return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
-  }
-  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
-    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
   if (readOnly) return <>
     <p id="nk-read-only-notice" className="nk-read-only-notice" role="status">Modo de solo lectura: puedes consultar la información disponible, pero no crear, modificar, importar ni eliminar registros.</p>
