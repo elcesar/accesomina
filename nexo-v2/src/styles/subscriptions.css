@@ -1,5 +1,11 @@
 .nk-plans-section, .nk-subscription-page, .nk-subscription-admin { min-width: 0; }
 .nk-plans-section { display: grid; gap: 2.5rem; }
+/* PlansSection renders its header directly, unlike the other public sections
+   whose direct div child receives the shared content constraint. */
+.nk-plans-section > .nk-plans-hero {
+  width: min(calc(100% - (2 * var(--nk-page-padding))), var(--nk-content-max-width));
+  margin-inline: auto;
+}
 .nk-plans-hero { max-width: 54rem; }
 .nk-plans-hero h1 { margin-block: .5rem 1rem; }
 .nk-plans-hero > p:last-child { color: var(--mut); }
@@ -37,7 +43,11 @@
 .nk-subscription-card { margin-bottom: 1.25rem; padding: 1.25rem; }
 .nk-subscription-card > header, .nk-subscription-overview > header, .nk-subscription-company-header, .nk-subscription-lead > header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .nk-subscription-card h2, .nk-subscription-overview h2 { margin-top: 0; }
-.nk-subscription-page, .nk-subscription-admin { display: grid; gap: 1.25rem; }
+.nk-subscription-page, .nk-subscription-admin {
+  display: grid;
+  gap: 1.25rem;
+  padding: var(--nk-space-1) var(--nk-page-padding) var(--nk-space-6);
+}
 .nk-subscription-page > .nk-module-card, .nk-subscription-admin > .nk-module-card { padding: 1.5rem; min-width: 0; }
 .nk-capacity-meter { margin-block: 1rem; }
 .nk-capacity-meter > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; }
