@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconRefresh } from '@tabler/icons-react'
@@ -108,14 +109,14 @@ export default function BitacoraCambiosPage() {
         </header>
 
         <div className="nk-audit-table-wrap">
-          <table className="nk-audit-table">
+          <AccessibleTable caption="Bitácora de cambios" className="nk-audit-table">
             <thead>
               <tr>
-                <th>Fecha y hora</th>
-                <th>Usuario</th>
-                <th>Evento</th>
-                <th>Entidad</th>
-                <th>Detalle</th>
+                <th scope="col">Fecha y hora</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Evento</th>
+                <th scope="col">Entidad</th>
+                <th scope="col">Detalle</th>
               </tr>
             </thead>
             <tbody>
@@ -139,7 +140,7 @@ export default function BitacoraCambiosPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </AccessibleTable>
         </div>
         {!loading && hasMore && <footer className="nk-audit-card-footer"><button className="nk-button nk-button-secondary" type="button" onClick={() => loadAudit(true)}>Cargar más eventos</button></footer>}
       </section>

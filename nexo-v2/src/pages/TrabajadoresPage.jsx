@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
@@ -427,16 +428,16 @@ export default function TrabajadoresPage() {
 
       <main className="nk-people-content">
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-people-table">
+          <AccessibleTable caption="Personas trabajadoras" className="nk-table nk-people-table">
             <thead>
               <tr>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
-                <th>Tipo</th>
-                <th>Contexto operacional</th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
-                <th aria-label="Acciones" />
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Contexto operacional</th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
+                <th scope="col" aria-label="Acciones" />
               </tr>
             </thead>
 
@@ -499,7 +500,7 @@ export default function TrabajadoresPage() {
                 )
               })}
             </tbody>
-          </table>
+          </AccessibleTable>
         </div>
       </main>
     </div>

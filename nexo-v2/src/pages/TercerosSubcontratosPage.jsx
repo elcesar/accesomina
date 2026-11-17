@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
@@ -248,8 +249,8 @@ export default function TercerosSubcontratosPage() {
           <div className="nk-empty nk-third-empty"><IconBuildingFactory2 size={30} /><p className="nk-empty-title">Sin terceros para mostrar</p><p className="nk-empty-description">Ajusta los filtros o registra una empresa colaboradora.</p></div>
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
-              <thead><tr><th>Empresa</th><th>Contrato</th><th>Servicio</th><th>Responsable</th><th>Vencimientos</th><th>Dotación</th><th>Estado</th><th /></tr></thead>
+            <AccessibleTable caption="Terceros y subcontratos" className="nk-table">
+              <thead><tr><th scope="col">Empresa</th><th scope="col">Contrato</th><th scope="col">Servicio</th><th scope="col">Responsable</th><th scope="col">Vencimientos</th><th scope="col">Dotación</th><th scope="col">Estado</th><th scope="col" aria-label="Acciones" /></tr></thead>
               <tbody>{filtered.map(item => (
                 <tr key={item.id}>
                   <td><button className="nk-third-link nk-third-company" type="button" onClick={() => openDetail(item.id)} aria-label={`Abrir ficha de ${item.razon || item.nombre || 'empresa colaboradora'}`}><strong>{item.razon || item.nombre}</strong><span>{item.rut || 'Sin RUT'}</span></button></td>
@@ -269,7 +270,7 @@ export default function TercerosSubcontratosPage() {
                   <td />
                 </tr>
               ))}</tbody>
-            </table>
+            </AccessibleTable>
           </div>
         )}
       </section>

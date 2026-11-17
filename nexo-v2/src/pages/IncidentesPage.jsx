@@ -1,3 +1,4 @@
+import AccessibleTable from '../components/ui/AccessibleTable.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { includesSearch } from '../services/search.js'
@@ -188,8 +189,8 @@ export default function IncidentesPage() {
       </section>
 
       <section className="nk-card nk-incidents-table-card">
-        <div className="nk-table-wrapper"><table className="nk-table nk-incidents-table">
-          <thead><tr><th>Evento</th><th>Orden de servicio</th><th>Prioridad</th><th>Acción y plazo</th><th>Estado</th><th></th></tr></thead>
+        <div className="nk-table-wrapper"><AccessibleTable caption="Incidentes registrados" className="nk-table nk-incidents-table">
+          <thead><tr><th scope="col">Evento</th><th scope="col">Orden de servicio</th><th scope="col">Prioridad</th><th scope="col">Acción y plazo</th><th scope="col">Estado</th><th scope="col"></th></tr></thead>
           <tbody>{loading ? <tr><td colSpan="6">Cargando eventos…</td></tr> : filtered.length ? filtered.map(item => {
             const order = orderMap.get(String(item.mantId)); const priority = priorityOf(item)
             return <tr key={item.id}>
@@ -201,7 +202,7 @@ export default function IncidentesPage() {
               <td><button className="nk-button nk-button-secondary nk-button-sm" type="button" onClick={() => openIncident(item)}>Abrir seguimiento</button></td>
             </tr>
           }) : <tr><td colSpan="6" className="nk-incidents-empty">Sin eventos registrados.</td></tr>}</tbody>
-        </table></div>
+        </AccessibleTable></div>
       </section>
 
       {editorOpen && <section className="nk-card nk-incident-editor">
