@@ -35,8 +35,8 @@ jobs:
       DATABASE_URL: postgres://qa:disposable-qa-only@127.0.0.1:5432/subscription_qa
       SUBSCRIPTION_POSTGRES_TESTS: '1'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
