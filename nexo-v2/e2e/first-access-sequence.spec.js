@@ -230,3 +230,23 @@ for (const width of [1440, 375]) {
     })
   })
 }
+
+test('el perfil Solo lectura no recibe escrituras aunque una página no tenga validación propia', async ({ page }) => {
+  await mockFirstAccess(page, { role: 'consulta', change: false, mfa: false })
+  await page.goto('/app/bodegas')
+  await expect(page.getByText('Modo de solo lectura: puedes consultar la información disponible, pero no crear, modificar, importar ni eliminar registros.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Crear bodega' })).toBeDisabled()
+})
+
+test('RRHH no recibe navegación ni ruta de administración o transferencia', async ({ page }) => {
+  await mockFirstAccess(page, { role: 'rrhh', change: false, mfa: false })
+  await page.goto('/app')
+  await page.getByRole('button', { name: 'Reportes y datos' }).click()
+  await expect(page.locator('a[href="/app/reportes"]')).toHaveCount(1)
+  await expect(page.locator('a[href="/app/transferencia"]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Gestión y Administración' }).click()
+  await expect(page.locator('a[href="/app/configuracion"]')).toHaveCount(0)
+  await expect(page.locator('a[href="/app/usuarios"]')).toHaveCount(0)
+  await page.goto('/app/bodegas')
+  await expect(page.getByRole('alert')).toContainText('Módulo no habilitado')
+})
