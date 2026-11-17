@@ -25,7 +25,7 @@ for (const width of [375, 768, 1440]) {
       const card = cards.nth(index)
       await expect(card.locator('h3')).toHaveText(title)
       await expect(card.locator('p')).toHaveText(description)
-      await expect(card.locator('> b, > span')).toHaveCount(0)
+      await expect(card.locator(':scope > b, :scope > span')).toHaveCount(0)
 
       const layout = await card.evaluate(element => {
         const heading = element.querySelector('h3')
