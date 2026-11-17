@@ -105,25 +105,27 @@ for (const width of [1440, 1024]) {
   })
 }
 
-test('el cajón móvil conserva navegación y acciones sin desborde lateral', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await mockPortal(page)
-  await page.goto('/app')
+for (const width of [390, 360]) {
+  test(`el cajón móvil conserva navegación y acciones sin desborde lateral a ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 })
+    await mockPortal(page)
+    await page.goto('/app')
 
-  await page.getByRole('button', { name: 'Abrir navegación', exact: true }).click()
-  const sidebar = page.locator('#nk-primary-sidebar')
-  await expect(sidebar).toBeVisible()
-  await openLongNavigationGroup(page, sidebar)
-  await expectNoHorizontalOverflow(page, sidebar)
+    await page.getByRole('button', { name: 'Abrir navegación', exact: true }).click()
+    const sidebar = page.locator('#nk-primary-sidebar')
+    await expect(sidebar).toBeVisible()
+    await openLongNavigationGroup(page, sidebar)
+    await expectNoHorizontalOverflow(page, sidebar)
 
-  await page.getByRole('button', { name: 'Mostrar acciones de creación', exact: true }).click()
-  const visibleActions = page.locator('.nk-global-actions-open .nk-global-create')
-  await expect(visibleActions).toHaveCount(4)
-  const actionMetrics = await visibleActions.evaluateAll(buttons => buttons.map(button => ({
-    clientWidth: button.clientWidth,
-    scrollWidth: button.scrollWidth,
-  })))
-  expect(actionMetrics.every(item => item.scrollWidth <= item.clientWidth)).toBe(true)
-  await expect(page.getByRole('button', { name: 'Abrir navegación', exact: true })).toHaveCSS('min-height', '44px')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-})
+    await page.getByRole('button', { name: 'Mostrar acciones de creación', exact: true }).click()
+    const visibleActions = page.locator('.nk-global-actions-open .nk-global-create')
+    await expect(visibleActions).toHaveCount(4)
+    const actionMetrics = await visibleActions.evaluateAll(buttons => buttons.map(button => ({
+      clientWidth: button.clientWidth,
+      scrollWidth: button.scrollWidth,
+    })))
+    expect(actionMetrics.every(item => item.scrollWidth <= item.clientWidth)).toBe(true)
+    await expect(page.getByRole('button', { name: 'Abrir navegación', exact: true })).toHaveCSS('min-height', '44px')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+  })
+}
