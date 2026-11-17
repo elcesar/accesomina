@@ -15,36 +15,13 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
+import { workerComplianceSummary } from '../services/worker-document-status.js'
 import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
-function diasHasta(fecha) { return calendarDaysUntil(fecha) }
-
-const REQUIRED_ITEMS = [
-  { type: 'documento', name: 'Cédula de identidad' },
-  { type: 'contrato', name: 'Contrato de trabajo' },
-  { type: 'documento', name: 'Certificado AFP' },
-  { type: 'documento', name: 'Certificado Fonasa/Isapre' },
-  { type: 'examen', name: 'Examen preocupacional' },
-  { type: 'curso', name: 'ODI / Derecho a Saber' },
-  { type: 'curso', name: 'Reglamento Interno' },
-]
-
 function acreditacionPct(persona) {
-  const items = persona.workerItems || []
-  if (!items.length) return 0
-
-  const ok = REQUIRED_ITEMS.filter(req => (
-    items.some(item => (
-      item.type === req.type &&
-      item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
-      item.estado !== 'rechazado' &&
-      (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
-    ))
-  )).length
-
-  return Math.round((ok / REQUIRED_ITEMS.length) * 100)
+  return workerComplianceSummary(persona).percentage
 }
 
 function nextExpiry(persona) {
