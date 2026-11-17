@@ -66,8 +66,17 @@ async function expectNoHorizontalOverflow(page, sidebar) {
 async function openLongNavigationGroup(page, sidebar) {
   const group = sidebar.getByRole('button', { name: 'Activos, Equipos e Inventario', exact: true })
   await expect(group).toBeVisible()
-  if (await group.getAttribute('aria-expanded') !== 'true') await group.click()
-  await expect(sidebar.getByRole('link', { name: 'Inventario de equipos de protección personal', exact: true })).toBeVisible()
+  if (await group.getAttribute('aria-expanded') !== 'true') {
+    await group.focus()
+    await expect(group).toBeFocused()
+    await page.keyboard.press('Space')
+    await expect(group).toHaveAttribute('aria-expanded', 'true')
+  }
+
+  const longLink = sidebar.getByRole('link', { name: 'Inventario de equipos de protección personal', exact: true })
+  await expect(longLink).toBeVisible()
+  await longLink.focus()
+  await expect(longLink).toBeFocused()
 }
 
 for (const width of [1440, 1024]) {
