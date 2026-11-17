@@ -6,6 +6,23 @@ Aplicar `database/postgres/024_user_invitations.sql` mediante el proceso de migr
 
 La bienvenida usa la configuración SMTP global del backend (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`) y `APP_ORIGIN` para el enlace. La configuración de Comunicaciones por empresa no sustituye esta configuración de acceso. No guardar credenciales en el repositorio ni en evidencias de QA.
 
+## Entregabilidad antes de producción
+
+Una aceptación SMTP no prueba que un proveedor como Microsoft 365 o Gmail deposite el mensaje en la bandeja de entrada. Antes de liberar, el equipo de infraestructura debe publicar y alinear la autenticación del dominio exacto de `EMAIL_FROM`:
+
+- SPF que autorice al proveedor SMTP que entrega las invitaciones;
+- DKIM activo en ese proveedor, con su selector publicado en `EMAIL_DKIM_SELECTOR`;
+- DMARC para el mismo dominio, inicialmente monitorizado y endurecido según la política de correo;
+- remitente y dominio de retorno alineados con la identidad verificada del proveedor.
+
+La comprobación versionada no envía correo ni revela secretos. En la tarea de despliegue que ya tiene los secretos configurados, ejecutar:
+
+```bash
+npm run email:auth:check
+```
+
+El comando falla si no encuentra SPF, DMARC o el registro DKIM indicado. Un resultado exitoso confirma la presencia pública de registros, no su reputación ni la entrega final; después se debe enviar una invitación QA a buzones autorizados de Microsoft 365 y Gmail y revisar bandeja de entrada y spam.
+
 ## Flujo y contrato
 
 - `POST /api/users`: sólo administradores. Crea el usuario y una invitación pendiente en una transacción; después intenta la entrega. Responde `201 { user, invitation }` incluso cuando SMTP falla, para que la cuenta persistida no se cree nuevamente. Un correo duplicado en la misma empresa responde `409 USER_ALREADY_EXISTS`.
@@ -31,4 +48,4 @@ Los clientes API existentes todavía pueden suministrar el `password` opcional a
 
 El restablecimiento administrativo anterior mantiene su contrato con contraseña temporal y queda fuera de este cambio. La recuperación pública conserva sus respuestas genéricas y su plazo de 30 minutos. Registrar una Persona en el módulo operacional sigue siendo una operación distinta de dar acceso a un usuario; no crea accesos automáticamente.
 
-Antes de liberar: ejecutar migración y pruebas en un entorno aislado, comprobar recepción con una casilla QA autorizada, probar enlace vencido/reenviado/usado, aislamiento por empresa, fallos SMTP, cambio personal y recuperación. No publicar enlaces activos, credenciales ni datos reales en capturas o issues.
+Antes de liberar: ejecutar migración y pruebas en un entorno aislado, ejecutar `npm run email:auth:check` con la configuración productiva, comprobar recepción con una casilla QA autorizada de Microsoft 365 y otra de Gmail, probar enlace vencido/reenviado/usado, aislamiento por empresa, fallos SMTP, cambio personal y recuperación. No publicar enlaces activos, credenciales ni datos reales en capturas o issues.

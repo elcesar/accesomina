@@ -11,6 +11,7 @@
     "start": "node server/index.js",
     "migrate": "node server/scripts/migrate.js",
     "seed:admin": "node server/scripts/seed-admin.js",
+    "email:auth:check": "node server/scripts/check-email-domain-auth.js",
     "test": "node --test server/test/*.test.js",
     "check": "node --check server/index.js && node --check public/cloud-client.js && node --test server/test/*.test.js"
   },
