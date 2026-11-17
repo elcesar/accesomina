@@ -21,6 +21,16 @@ test('underage validation has one associated error, and leaving through global a
  await page.getByRole('button',{name:'Salir y descartar'}).click()
  await expect(page).toHaveURL(/\/app\/clientes\/nuevo$/)
 })
+test('invalid worker RUT is reported on blur before advancing and does not move the viewport', async ({ page }) => {
+ await page.goto('/app/trabajadores/nuevo')
+ const rut = page.locator('#worker-rut')
+ await rut.fill('11.111.111-2')
+ await rut.press('Tab')
+ await expect(page.getByText('El RUT ingresado no es válido. Revisa sus números y dígito verificador.', { exact: true })).toHaveCount(1)
+ await expect(rut).toHaveAttribute('aria-invalid', 'true')
+ expect(await page.evaluate(() => window.scrollY)).toBe(0)
+ await expect(page.getByRole('button', { name: 'Siguiente' })).toBeVisible()
+})
 test('person document form has one type selector and no redundant classification',async({page})=>{
  await page.goto('/app/trabajadores/qa-person')
  await page.getByRole('button',{name:'Documentos y aptitudes',exact:true}).click()

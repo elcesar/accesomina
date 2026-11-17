@@ -142,7 +142,7 @@ function Stepper({ current }) {
   )
 }
 
-function StepIdentidad({ data, onChange, errors }) {
+function StepIdentidad({ data, onChange, onRutBlur, errors }) {
   const comunas = comunasDeRegion(data.region)
   const updateRegion = event => {
     onChange('region', event.target.value)
@@ -154,7 +154,7 @@ function StepIdentidad({ data, onChange, errors }) {
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
       <Field label="RUT" required fieldId="worker-rut" error={errors.rut}>
-        <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
+        <RutInput value={data.rut} onChange={value => onChange('rut', value)} onBlur={onRutBlur} required />
       </Field>
       <Field label="Fecha de nacimiento" fieldId="worker-birth-date" error={errors.nacimiento}>
         <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
@@ -307,11 +307,6 @@ export default function NuevoTrabajadorPage() {
   const mantenciones = stateData?.mantenciones || []
   const existingWorkers = stateData?.trabajadores || []
 
-  const duplicateRut = useMemo(() => {
-    const rut = normalizeRut(data.rut)
-    return rut && existingWorkers.some(worker => normalizeRut(worker.rut) === rut)
-  }, [data.rut, existingWorkers])
-
   function onChange(field, value) {
     setData(current => ({ ...current, [field]: value }))
     setError(null)
@@ -323,13 +318,30 @@ export default function NuevoTrabajadorPage() {
     })
   }
 
+  function rutValidationError(value) {
+    if (!String(value || '').trim()) return 'Ingresa el RUT de la persona.'
+    if (!isValidRut(value)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
+    if (existingWorkers.some(worker => normalizeRut(worker.rut) === normalizeRut(value))) return 'Ya existe una persona registrada con este RUT.'
+    return ''
+  }
+
+  function validateRutOnBlur(event) {
+    const error = rutValidationError(event.currentTarget.value)
+    setFieldErrors(current => {
+      if (!error && !current.rut) return current
+      const next = { ...current }
+      if (error) next.rut = error
+      else delete next.rut
+      return next
+    })
+  }
+
   function validationErrors() {
     const errors = {}
     if (step === 0) {
       if (!data.nombre.trim()) errors.nombre = 'Ingresa el nombre completo de la persona.'
-      if (!data.rut.trim()) errors.rut = 'Ingresa el RUT de la persona.'
-      else if (!isValidRut(data.rut)) errors.rut = 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
-      else if (duplicateRut) errors.rut = 'Ya existe una persona registrada con este RUT.'
+      const rutError = rutValidationError(data.rut)
+      if (rutError) errors.rut = rutError
       const birthError = birthDateError(data.nacimiento)
       if (birthError) errors.nacimiento = birthError
       if (data.tel && !isValidChilePhone(data.tel)) errors.tel = 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
@@ -414,7 +426,7 @@ export default function NuevoTrabajadorPage() {
   }
 
   const stepContent = [
-    <StepIdentidad key="identidad" data={data} onChange={onChange} errors={fieldErrors} />,
+    <StepIdentidad key="identidad" data={data} onChange={onChange} onRutBlur={validateRutOnBlur} errors={fieldErrors} />,
     <StepVinculacion key="vinculacion" data={data} onChange={onChange} mantenciones={mantenciones} errors={fieldErrors} />,
     <StepSalud key="salud" data={data} onChange={onChange} />,
     <StepEPP key="epp" data={data} onChange={onChange} />,
