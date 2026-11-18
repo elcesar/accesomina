@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { IconExternalLink, IconPaperclip, IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { helmetCompliance, helmetComplianceBadgeClass } from '../services/helmet-compliance.js'
+import { workerClientIds } from '../services/worker-list.js'
 import '../styles/habilitacion-cliente.css'
 
 const STATES=['pendiente','enviado','observado','corregido','rechazado','aprobado','pase_emitido']
@@ -20,16 +21,16 @@ export default function HabilitacionClientePage(){
   async function load(){setLoading(true);setError('');try{setResponse(await api.get('/state'))}catch(e){setError(e.message||'No fue posible cargar los requisitos del cliente.')}finally{setLoading(false)}}
   useEffect(()=>{load()},[])
   const state=response?.state||response||{}, versions=response?.moduleVersions||{}
-  const clients=rows(state.minas).length?rows(state.minas):rows(state.clientes), workers=rows(state.trabajadores), vehicles=rows(state.vehiculos), orders=rows(state.mantenciones).length?rows(state.mantenciones):rows(state.proyectos), records=rows(state.acreditacionesMandante)
+  const clients=rows(state.minas).length?rows(state.minas):rows(state.clientes), workers=rows(state.trabajadores), vehicles=rows(state.vehiculos), orders=rows(state.mantenciones).length?rows(state.mantenciones):rows(state.proyectos), assignments=rows(state.asignaciones), records=rows(state.acreditacionesMandante)
   const clientsMap=useMemo(()=>new Map(clients.map(c=>[String(c.id),c])),[clients])
   const derived=useMemo(()=>{
     const out=[]
     clients.forEach(c=>out.push({tipo:'empresa',id:'empresa',minaId:String(c.id),nombre:state.empresa?.nombre||state.empresa?.name||'Empresa',detalle:state.empresa?.rut||''}))
-    workers.forEach(w=>{const mids=rows(w.mineras);mids.forEach(mid=>out.push({tipo:'trabajador',id:String(w.id),minaId:String(mid),nombre:w.nombre||w.name||'Persona',detalle:w.rut||w.especialidad||'',helmet:helmetCompliance(w,state,{context:{minaId:String(mid)}})}))})
+    workers.forEach(w=>{const mids=workerClientIds(w,assignments,orders);mids.forEach(mid=>out.push({tipo:'trabajador',id:String(w.id),minaId:String(mid),nombre:w.nombre||w.name||'Persona',detalle:w.rut||w.especialidad||'',helmet:helmetCompliance(w,state,{context:{minaId:String(mid)}})}))})
     vehicles.forEach(v=>{const mids=rows(v.minaIds);mids.forEach(mid=>out.push({tipo:'vehiculo',id:String(v.id),minaId:String(mid),nombre:v.nombre||v.patente||v.serie||'Vehículo/equipo',detalle:v.patente||v.serie||v.tipo||''}))})
     orders.forEach(o=>{if(o.minaId)out.push({tipo:'proyecto',id:String(o.id),minaId:String(o.minaId),nombre:o.codigo||o.nombre||o.name||'Orden de servicio',detalle:o.descripcion||o.estado||''})})
     return out.map(x=>({ ...x, rec:records.find(r=>r.id===accId(x.tipo,x.id,x.minaId)|| (r.tipo===x.tipo&&String(r.refId||r.objetoId||r.entidadId)===x.id&&String(r.minaId)===x.minaId)) || {id:accId(x.tipo,x.id,x.minaId),tipo:x.tipo,refId:x.id,minaId:x.minaId,estado:'pendiente',responsable:'',plazo:'',observacion:'',evidenceName:'',evidenceUrl:''}}))
-  },[clients,workers,vehicles,orders,records,state])
+  },[clients,workers,vehicles,orders,assignments,records,state])
   const filtered=derived.filter(r=>(!clientFilter||r.minaId===clientFilter)&&(!typeFilter||r.tipo===typeFilter)&&(!statusFilter||r.rec.estado===statusFilter))
   const approved=filtered.filter(r=>['aprobado','pase_emitido'].includes(r.rec.estado)).length, pct=filtered.length?Math.round(approved/filtered.length*100):0
 
