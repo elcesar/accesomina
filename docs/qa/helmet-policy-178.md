@@ -17,6 +17,14 @@
 - La pantalla Personas y la ruta general `/state/modules` exigen la decisión Sí/No para toda persona nueva; un ID nuevo que omite casco se rechaza. Los registros históricos existentes continúan legibles. Sólo la importación/restauración administrada marca un casco ausente como `unknown + legacyImport` mediante una autorización interna de servidor: queda pendiente/advisorio, nunca se interpreta como “No requerido”, y el mismo marcador enviado directamente por `/modules` se rechaza.
 - Inventario y entrega registran el casco físico (color, talla, clase, marca/modelo, norma/certificación, lote/serie y vencimiento), que se ve también en el historial de la ficha. Una entrega no cambia el requisito de la persona.
 
+
+## Contexto confiable y compatibilidad de integraciones
+
+- El servidor resuelve el contexto efectivo desde asociaciones activas y clientes permitidos ya persistidos. Los identificadores enviados por formularios o integraciones (mantId, orderId, projectId, minaId, clientId) son solicitudes: se comparan entre sí y se rechazan si discrepan, no existen o quedan fuera de alcance.
+- Al crear una persona, una asociación de cliente u OS incluida en la misma escritura sólo participa después de validar cliente, OS y contrato; sin asociación persistida se usa explícitamente la política base de empresa. Si hay más de un cliente u OS aplicable se exige selección.
+- El servidor materializa el contexto validado y el snapshot de política. No conserva campos superiores no confiables de la persona ni snapshots de entrega proporcionados por el cliente.
+- Una entrega histórica sin color permanece legible; cambiar su persona, artículo, contexto u otros datos físicos exige completar color y etiqueta. Inventario legado sin color permite sólo mantenimiento inocuo de stock/ubicación/conteo; cambiar identidad, clasificación o contexto exige completar la trazabilidad.
+- Las superficies de ficha, Personas, Protección EPP, alertas, KPI y Habilitación derivan el mismo contexto. Habilitación incluye asociaciones operativas y, al mostrar un cliente, no mezcla la OS de otro cliente.
 ## Autorización y alertas
 
 - La edición de catálogo/políticas está disponible en la interfaz sólo para Prevención o administración; el servidor aplica el mismo límite de módulos.
