@@ -105,8 +105,11 @@ function requestedHelmetContext(worker, requestedContext = null) {
     const selector = selectorObject(value, source);
     if (selector) selectors.push(selector);
   };
-  add(worker?.epp?.helmet?.resolvedContext, 'helmet.resolvedContext');
-  add(worker?.epp?.helmetContext, 'epp.helmetContext');
+  // A freshly supplied selector intentionally supersedes the last
+  // server-materialized one; both are still validated against trusted scope.
+  const explicitEppContext = selectorObject(worker?.epp?.helmetContext, 'epp.helmetContext');
+  if (explicitEppContext) selectors.push(explicitEppContext);
+  else add(worker?.epp?.helmet?.resolvedContext, 'helmet.resolvedContext');
   add({
     mantId: worker?.mantId,
     orderId: worker?.orderId,
@@ -351,10 +354,15 @@ function validateWorkerHelmet(worker, state, previousWorker, {
 
   const policy = resolveHelmetPolicy(state, context);
   const color = helmetColorForCode(state, helmet.colorCode);
+  const previousContext = canonicalContext(
+    previousHelmet.resolvedContext || previousWorker?.epp?.helmetContext || previousHelmet.policySnapshot,
+  );
   const keepingHistoricalColor = previousWorker
     && previousHelmet.colorCode === helmet.colorCode
     && previousHelmet.colorLabel === helmet.colorLabel
-    && previousHelmet.applicability === HELMET_APPLICABILITY.REQUIRED;
+    && previousHelmet.applicability === HELMET_APPLICABILITY.REQUIRED
+    && previousContext?.mantId === canonicalContext(context)?.mantId
+    && previousContext?.minaId === canonicalContext(context)?.minaId;
   if (policy.requireColor && !helmet.colorCode) helmetConflict('El color de casco es obligatorio para esta política.', 'HELMET_COLOR_REQUIRED');
   if (policy.requireSize && !helmet.size) helmetConflict('La talla de casco es obligatoria para esta política.', 'HELMET_SIZE_REQUIRED');
   if (policy.requireModelClass && !helmet.modelClass) helmetConflict('La clase o modelo de casco es obligatorio para esta política.', 'HELMET_MODEL_CLASS_REQUIRED');
