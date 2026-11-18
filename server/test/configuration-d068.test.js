@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { pool, withTenant } from '../db.js'
 import { settingsRouter, settingsUpdateAuthorization } from '../routes/settings.js'
 import { filesRouter } from '../routes/files.js'
-import { assertModuleAccess, canAccessEntityType, canAccessModule } from '../module-access.js'
+import { assertEntityTypeAccess, assertModuleAccess, canAccessEntityType, canAccessModule } from '../module-access.js'
 import { stateRouter } from '../routes/state.js'
 import { accessibleBrandText, brandCssVariables } from '../../nexo-v2/src/services/theme.js'
 import { config } from '../config.js'
@@ -172,6 +172,7 @@ test('direct settings API gives module authority only to the tenant client admin
     assert.throws(() => assertModuleAccess(administrator, alias), error => error.code === 'MODULE_PERMISSION_DENIED')
   }
   assert.equal(canAccessEntityType(administrator, 'work_book_entry'), false)
+  assert.throws(() => assertEntityTypeAccess(administrator, 'work_book_entry'), error => error.code === 'MODULE_PERMISSION_DENIED')
   const stateWrite = stateRouter.stack.find(layer => layer.route?.path === '/modules' && layer.route.methods.put).route.stack.at(-1).handle
   let propagated
   await stateWrite({ auth: administrator, body: { changes: { workBookEntries: { version: 0, data: [] } } } }, {}, error => { propagated = error })
