@@ -76,6 +76,57 @@ function validateHelmetConfiguration(state) {
   state.helmetPolicies = policies;
 }
 
+function selectorText(value) {
+  return String(value || '').trim();
+}
+
+function selectorObject(value, source) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    helmetConflict('El contexto de casco no es válido.', 'INVALID_HELMET_CONTEXT');
+  }
+  const mantValues = ['mantId', 'orderId', 'projectId']
+    .map(key => selectorText(value[key])).filter(Boolean);
+  const minaValues = ['minaId', 'clientId']
+    .map(key => selectorText(value[key])).filter(Boolean);
+  if (new Set(mantValues).size > 1 || new Set(minaValues).size > 1) {
+    helmetConflict('Los identificadores del contexto de casco son contradictorios.', 'INVALID_HELMET_CONTEXT');
+  }
+  const mantId = mantValues[0] || '';
+  const minaId = minaValues[0] || '';
+  return mantId || minaId ? { source, mantId, minaId } : null;
+}
+
+// Every selector is a request, never authority. An empty selector cannot hide a
+// second non-empty one, and aliases must agree before policy resolution.
+function requestedHelmetContext(worker, requestedContext = null) {
+  const selectors = [];
+  const add = (value, source) => {
+    const selector = selectorObject(value, source);
+    if (selector) selectors.push(selector);
+  };
+  add(worker?.epp?.helmet?.resolvedContext, 'helmet.resolvedContext');
+  add(worker?.epp?.helmetContext, 'epp.helmetContext');
+  add({
+    mantId: worker?.mantId,
+    orderId: worker?.orderId,
+    projectId: worker?.projectId,
+    minaId: worker?.minaId,
+    clientId: worker?.clientId,
+  }, 'worker');
+  add(requestedContext, 'requested');
+  const mantIds = new Set(selectors.map(item => item.mantId).filter(Boolean));
+  const minaIds = new Set(selectors.map(item => item.minaId).filter(Boolean));
+  if (mantIds.size > 1 || minaIds.size > 1) {
+    helmetConflict('Los contextos de casco enviados no coinciden.', 'INVALID_HELMET_CONTEXT');
+  }
+  return {
+    hasSelector: selectors.length > 0,
+    mantId: [...mantIds][0] || '',
+    minaId: [...minaIds][0] || '',
+  };
+}
+
 function workerHelmetIsHistorical(worker, previousWorker) {
   if (!previousWorker) return false;
   return sameHelmetRequirement(
@@ -96,18 +147,34 @@ function referenceProject(referenceState, mantId) {
   return collection(referenceState, 'mantenciones')
     .find(project => String(project?.id || '') === String(mantId || ''));
 }
-function knownHelmetMineIds(worker, referenceState, assignments = activeHelmetAssignments(worker, referenceState), {
-  includeWorkerClients = true,
-} = {}) {
-  return new Set([
-    ...(includeWorkerClients && Array.isArray(worker?.mineras) ? worker.mineras : []),
-    ...assignments.map(assignment => referenceProject(referenceState, assignment?.mantId)?.minaId),
-  ].map(value => String(value || '').trim()).filter(Boolean));
+function knownMine(referenceState, minaId) {
+  return collection(referenceState, 'minas')
+    .some(mine => String(mine?.id || '') === String(minaId || ''));
+}
+function candidateWorkerMineIds(worker, state) {
+  const ids = new Set((Array.isArray(worker?.mineras) ? worker.mineras : [])
+    .map(value => selectorText(value)).filter(Boolean));
+  for (const minaId of ids) {
+    if (!knownMine(state, minaId)) {
+      helmetConflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
+    }
+  }
+  return ids;
+}
+function assignmentMineIds(assignments, referenceState) {
+  const mineIds = new Set();
+  for (const assignment of assignments) {
+    const project = referenceProject(referenceState, assignment?.mantId);
+    if (project?.minaId && knownMine(referenceState, project.minaId)) {
+      mineIds.add(String(project.minaId));
+    }
+  }
+  return mineIds;
 }
 function validateCandidateHelmetAssignments(assignments, candidateState) {
   for (const assignment of assignments) {
     const project = referenceProject(candidateState, assignment?.mantId);
-    if (!project || !collection(candidateState, 'minas').some(mine => String(mine?.id || '') === String(project.minaId || ''))) {
+    if (!project || !project.minaId || !knownMine(candidateState, project.minaId)) {
       helmetConflict('La asignación candidata no tiene una orden y cliente válidos.', 'INVALID_HELMET_CONTEXT');
     }
     const contractId = project.contratoId || project.contractId;
@@ -122,34 +189,27 @@ function validateCandidateHelmetAssignments(assignments, candidateState) {
 function contextFingerprint(worker) {
   return JSON.stringify({
     helmetContext: worker?.epp?.helmetContext || null,
+    resolvedContext: worker?.epp?.helmet?.resolvedContext || null,
     mantId: worker?.mantId || '',
+    orderId: worker?.orderId || '',
+    projectId: worker?.projectId || '',
     minaId: worker?.minaId || '',
+    clientId: worker?.clientId || '',
     mineras: Array.isArray(worker?.mineras) ? worker.mineras.map(value => String(value || '')).sort() : [],
   });
 }
 function historicalHelmetContext(snapshot, referenceState) {
-  const snapshotMantId = String(snapshot?.mantId || '').trim();
+  const snapshotMantId = selectorText(snapshot?.mantId);
   const project = referenceProject(referenceState, snapshotMantId);
   return {
     mantId: project ? snapshotMantId : '',
-    minaId: String(project?.minaId || snapshot?.minaId || '').trim(),
+    minaId: selectorText(project?.minaId || snapshot?.minaId),
   };
 }
-function rawHelmetContext(worker, requestedContext) {
-  if (requestedContext && typeof requestedContext === 'object' && !Array.isArray(requestedContext)) {
-    return { source: 'delivery', value: requestedContext };
-  }
-  if (requestedContext != null) return { source: 'delivery', value: requestedContext };
-  if (worker?.epp && Object.hasOwn(worker.epp, 'helmetContext')) {
-    return { source: 'helmetContext', value: worker.epp.helmetContext };
-  }
-  if (worker?.mantId || worker?.minaId) {
-    return { source: 'worker-fields', value: { mantId: worker.mantId, minaId: worker.minaId } };
-  }
-  return null;
-}
-// Central authoritative resolver. Existing workers read their persisted scope;
-// only new workers use proposed, subsequently validated assignments/client data.
+
+// The only authoritative policy resolver. Existing records derive scope from
+// persisted assignments and clients; a new record can use an association only
+// when it is part of this same validated state transition.
 function resolveTrustedHelmetContext(worker, state, {
   previousWorker = null,
   previousState = null,
@@ -162,42 +222,44 @@ function resolveTrustedHelmetContext(worker, state, {
   const scopeWorker = previousWorker || worker;
   if (allowHistorical) return historicalHelmetContext(historicalSnapshot, referenceState);
 
-  const raw = rawHelmetContext(worker, requestedContext);
+  const requested = requestedHelmetContext(worker, requestedContext);
   const assignments = activeHelmetAssignments(scopeWorker, referenceState);
-  // A new worker may use an assignment created in the same atomic write only
-  // after its OS/client/contract relationship has been validated server-side.
-  if (!existingWorker) validateCandidateHelmetAssignments(assignments, state);
-  const knownMineIds = knownHelmetMineIds(scopeWorker, referenceState, assignments, {
-    // Raw worker client fields are not a trusted policy selector at creation.
-    includeWorkerClients: existingWorker,
-  });
-  if (raw) {
-    if (!raw.value || typeof raw.value !== 'object' || Array.isArray(raw.value)) {
-      helmetConflict('El contexto de casco no es válido.', 'INVALID_HELMET_CONTEXT');
+  let knownMineIds;
+  if (existingWorker) {
+    knownMineIds = new Set([
+      ...(Array.isArray(scopeWorker?.mineras) ? scopeWorker.mineras : []).map(selectorText).filter(minaId => knownMine(referenceState, minaId)),
+      ...assignmentMineIds(assignments, referenceState),
+    ]);
+  } else {
+    // Candidate links are authoritative only because validation and persistence
+    // happen in the same server transaction.
+    validateCandidateHelmetAssignments(assignments, state);
+    knownMineIds = new Set([
+      ...candidateWorkerMineIds(scopeWorker, state),
+      ...assignmentMineIds(assignments, state),
+    ]);
+  }
+
+  if (requested.mantId) {
+    const project = referenceProject(referenceState, requested.mantId);
+    if (!project || !project.minaId || !knownMine(referenceState, project.minaId)) {
+      helmetConflict('La orden seleccionada para casco no existe.', 'INVALID_HELMET_CONTEXT');
     }
-    const mantId = String(raw.value.mantId || raw.value.orderId || '').trim();
-    const minaId = String(raw.value.minaId || raw.value.clientId || '').trim();
-    if (mantId) {
-      const project = referenceProject(referenceState, mantId);
-      if (!project) helmetConflict('La orden seleccionada para casco no existe.', 'INVALID_HELMET_CONTEXT');
-      if (assignments.length && !assignments.some(assignment => String(assignment?.mantId || '') === mantId)) {
-        helmetConflict('La orden seleccionada para casco no pertenece a la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
-      }
-      if (minaId && String(project.minaId || '') !== minaId) {
-        helmetConflict('El cliente del contexto de casco no coincide con la orden.', 'INVALID_HELMET_CONTEXT');
-      }
-      if (!knownMineIds.has(String(project.minaId || ''))) {
-        helmetConflict('El contexto de casco no pertenece al cliente de la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
-      }
-      return { mantId, minaId: String(project.minaId || '') };
+    const projectMineId = String(project.minaId);
+    if (requested.minaId && projectMineId !== requested.minaId) {
+      helmetConflict('El cliente del contexto de casco no coincide con la orden.', 'INVALID_HELMET_CONTEXT');
     }
-    if (minaId) {
-      if (!collection(referenceState, 'minas').some(mine => String(mine?.id || '') === minaId)
-        || !knownMineIds.has(minaId)) {
-        helmetConflict('El cliente seleccionado para casco no pertenece a la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
-      }
-      return { mantId: '', minaId };
+    const assigned = assignments.some(assignment => String(assignment?.mantId || '') === requested.mantId);
+    if (!assigned && !knownMineIds.has(projectMineId)) {
+      helmetConflict('La orden seleccionada para casco no pertenece al alcance de la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
     }
+    return { mantId: requested.mantId, minaId: projectMineId };
+  }
+  if (requested.minaId) {
+    if (!knownMine(referenceState, requested.minaId) || !knownMineIds.has(requested.minaId)) {
+      helmetConflict('El cliente seleccionado para casco no pertenece al alcance de la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
+    }
+    return { mantId: '', minaId: requested.minaId };
   }
   if (assignments.length > 1) {
     helmetConflict('Selecciona la orden de servicio aplicable antes de guardar el requisito de casco.', 'HELMET_POLICY_CONTEXT_REQUIRED');
@@ -211,19 +273,22 @@ function resolveTrustedHelmetContext(worker, state, {
   }
   return { mantId: '', minaId: [...knownMineIds][0] || '' };
 }
+
+function canonicalContext(context = {}) {
+  const mantId = selectorText(context.mantId);
+  const minaId = selectorText(context.minaId);
+  return mantId || minaId ? { mantId, minaId } : undefined;
+}
+function clearUntrustedWorkerContext(worker) {
+  for (const key of ['mantId', 'orderId', 'projectId', 'minaId', 'clientId']) delete worker[key];
+}
 function deliveryHelmetContext(delivery, state, previousDelivery, previousWorker, previousState, historical) {
-  const worker = collection(state, 'trabajadores')
-    .find(row => String(row?.id || '') === String(delivery?.workerId || delivery?.trabId || ''));
-  const hasRequestedContext = Boolean(
-    String(delivery?.mantId || delivery?.orderId || '').trim()
-    || String(delivery?.minaId || delivery?.clientId || '').trim()
-  );
+  const workerId = String(delivery?.workerId || delivery?.trabId || '');
+  const worker = collection(state, 'trabajadores').find(row => String(row?.id || '') === workerId);
   return resolveTrustedHelmetContext(worker, state, {
     previousWorker,
     previousState,
-    requestedContext: hasRequestedContext
-      ? { mantId: delivery?.mantId || delivery?.orderId, minaId: delivery?.minaId || delivery?.clientId }
-      : null,
+    requestedContext: delivery,
     allowHistorical: historical,
     historicalSnapshot: previousDelivery?.helmetSnapshot,
   });
@@ -237,45 +302,59 @@ function validateWorkerHelmet(worker, state, previousWorker, {
   const epp = worker?.epp;
   const hasExplicitHelmet = Boolean(epp && typeof epp === 'object' && Object.hasOwn(epp, 'helmet'));
   const hadExplicitHelmet = Boolean(previousWorker?.epp && typeof previousWorker.epp === 'object' && Object.hasOwn(previousWorker.epp, 'helmet'));
-  // A new worker written through operational state must make the Yes/No
-  // decision. Only the trusted data-transfer path can materialize an explicit
-  // pending legacy import; an arbitrary /modules payload cannot opt into it.
   const unchangedHistorical = workerHelmetIsHistorical(worker, previousWorker);
+  if (unchangedHistorical) return;
+
   const resolverOptions = {
     previousWorker,
     previousState,
-    allowHistorical: unchangedHistorical,
     historicalSnapshot: normalizeHelmetRequirement(previousWorker?.epp).policySnapshot,
   };
   if (!hasExplicitHelmet) {
-    if (rawHelmetContext(worker, null)) resolveTrustedHelmetContext(worker, state, resolverOptions);
+    const requested = requestedHelmetContext(worker);
+    if (requested.hasSelector) resolveTrustedHelmetContext(worker, state, resolverOptions);
     if (hadExplicitHelmet || (requireDecisionForNew && !previousWorker)) {
       helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
     }
     return;
   }
+
   const helmet = normalizeHelmetRequirement(epp);
   const previousHelmet = normalizeHelmetRequirement(previousWorker?.epp);
   const context = resolveTrustedHelmetContext(worker, state, resolverOptions);
   if (helmet.applicability === HELMET_APPLICABILITY.UNKNOWN) {
-    // Only server-owned data-transfer may retain an imported pending decision.
-    // It can never overwrite a previously explicit helmet decision.
-    if (unchangedHistorical || (allowLegacyImport && !hadExplicitHelmet && helmet.legacyImport === true)) return;
+    if (allowLegacyImport && !hadExplicitHelmet && helmet.legacyImport === true) {
+      clearUntrustedWorkerContext(worker);
+      const { helmetContext, ...safeEpp } = epp;
+      worker.epp = { ...safeEpp, casco: safeEpp.casco || '', helmet: { applicability: HELMET_APPLICABILITY.UNKNOWN, legacyImport: true } };
+      return;
+    }
     helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
   }
+
+  const { helmetContext, ...safeEpp } = epp;
+  clearUntrustedWorkerContext(worker);
   if (helmet.applicability === HELMET_APPLICABILITY.NOT_REQUIRED) {
     if (helmet.colorCode || helmet.colorLabel || helmet.size || helmet.modelClass) {
       helmetConflict('Una persona sin casco requerido no puede tener color, talla o clase de casco.', 'INVALID_HELMET_NOT_REQUIRED');
     }
-    worker.epp = { ...epp, casco: '', helmet: { ...helmet, policySnapshot: undefined } };
+    worker.epp = {
+      ...safeEpp,
+      casco: '',
+      helmet: {
+        applicability: HELMET_APPLICABILITY.NOT_REQUIRED,
+        reason: helmet.reason,
+      },
+    };
     return;
   }
 
   const policy = resolveHelmetPolicy(state, context);
   const color = helmetColorForCode(state, helmet.colorCode);
-  const keepingHistoricalColor = unchangedHistorical
+  const keepingHistoricalColor = previousWorker
     && previousHelmet.colorCode === helmet.colorCode
-    && previousHelmet.colorLabel === helmet.colorLabel;
+    && previousHelmet.colorLabel === helmet.colorLabel
+    && previousHelmet.applicability === HELMET_APPLICABILITY.REQUIRED;
   if (policy.requireColor && !helmet.colorCode) helmetConflict('El color de casco es obligatorio para esta política.', 'HELMET_COLOR_REQUIRED');
   if (policy.requireSize && !helmet.size) helmetConflict('La talla de casco es obligatoria para esta política.', 'HELMET_SIZE_REQUIRED');
   if (policy.requireModelClass && !helmet.modelClass) helmetConflict('La clase o modelo de casco es obligatorio para esta política.', 'HELMET_MODEL_CLASS_REQUIRED');
@@ -289,18 +368,56 @@ function validateWorkerHelmet(worker, state, previousWorker, {
       helmetConflict('La etiqueta del color de casco no coincide con el catálogo vigente.', 'INVALID_HELMET_COLOR');
     }
   }
-  const snapshot = unchangedHistorical && helmet.policySnapshot
-    ? helmet.policySnapshot
-    : helmetPolicySnapshot(policy, color || { code: helmet.colorCode, label: helmet.colorLabel }, context);
+  const { legacySize, ...storedHelmet } = helmet;
+  const canonical = canonicalContext(context);
   worker.epp = {
-    ...epp,
+    ...safeEpp,
+    ...(canonical ? { helmetContext: canonical } : {}),
     casco: helmet.size || '',
-    helmet: { ...helmet, policySnapshot: snapshot },
+    helmet: {
+      ...storedHelmet,
+      resolvedContext: canonical,
+      policySnapshot: helmetPolicySnapshot(policy, color || { code: helmet.colorCode, label: helmet.colorLabel }, context),
+    },
   };
 }
 
 function deliveryIsHistorical(delivery, previousDelivery) {
   return Boolean(previousDelivery && JSON.stringify(previousDelivery) === JSON.stringify(delivery));
+}
+function legacyDeliverySignature(delivery = {}) {
+  return JSON.stringify({
+    workerId: String(delivery.workerId || delivery.trabId || ''),
+    inventoryId: String(delivery.inventoryId || delivery.itemId || ''),
+    itemId: String(delivery.itemId || delivery.inventoryId || ''),
+    itemName: String(delivery.itemName || delivery.nombre || delivery.epp || ''),
+    category: String(delivery.category || delivery.type || ''),
+    qty: Number(delivery.qty ?? delivery.quantity ?? delivery.cantidad ?? 0),
+    size: String(delivery.size || 'Sin talla registrada'),
+    helmetClass: String(delivery.helmetClass || ''),
+    helmetExpiryDate: String(delivery.helmetExpiryDate || delivery.expiryDate || ''),
+    brandModel: String(delivery.brandModel || ''),
+    certification: String(delivery.certification || ''),
+    lotSerial: String(delivery.lotSerial || ''),
+    condition: String(delivery.condition || 'no_registrada'),
+    deliveryStatus: String(delivery.deliveryStatus || 'no_registrado'),
+    deliveredAt: String(delivery.deliveredAt || ''),
+    replaceAt: String(delivery.replaceAt || ''),
+    mantId: String(delivery.mantId || ''),
+    orderId: String(delivery.orderId || ''),
+    projectId: String(delivery.projectId || ''),
+    minaId: String(delivery.minaId || ''),
+    clientId: String(delivery.clientId || ''),
+    helmetSnapshot: delivery.helmetSnapshot || null,
+  });
+}
+function legacyDeliveryUnchanged(delivery, previousDelivery) {
+  return Boolean(previousDelivery
+    && !selectorText(previousDelivery.helmetColorCode || previousDelivery.colorCode)
+    && !selectorText(previousDelivery.helmetColorLabel || previousDelivery.colorLabel)
+    && !selectorText(delivery.helmetColorCode || delivery.colorCode)
+    && !selectorText(delivery.helmetColorLabel || delivery.colorLabel)
+    && legacyDeliverySignature(delivery) === legacyDeliverySignature(previousDelivery));
 }
 
 function validateHelmetDelivery(delivery, state, previousDelivery, previousWorker, previousState) {
@@ -308,16 +425,14 @@ function validateHelmetDelivery(delivery, state, previousDelivery, previousWorke
     String(item?.id || '') === String(delivery?.inventoryId || '')
     || String(item?.id || '') === String(delivery?.itemId || '')
   ));
-  if (!isHelmetItem(delivery) && !isHelmetItem(inventoryItem)) return;
+  const isHelmet = isHelmetItem(delivery) || isHelmetItem(inventoryItem)
+    || isHelmetItem(previousDelivery) || Boolean(previousDelivery?.helmetSnapshot);
+  if (!isHelmet) return;
   const historical = deliveryIsHistorical(delivery, previousDelivery);
-  const code = String(delivery.helmetColorCode || delivery.colorCode || '').trim().toLowerCase();
-  const label = String(delivery.helmetColorLabel || delivery.colorLabel || '').trim();
+  const code = selectorText(delivery.helmetColorCode || delivery.colorCode).toLowerCase();
+  const label = selectorText(delivery.helmetColorLabel || delivery.colorLabel);
   if (!code || !label) {
-    const legacyPhysicalSnapshot = previousDelivery
-      && !String(previousDelivery.helmetColorCode || previousDelivery.colorCode || '').trim()
-      && !String(previousDelivery.helmetColorLabel || previousDelivery.colorLabel || '').trim()
-      && !code && !label;
-    if (historical || legacyPhysicalSnapshot) return;
+    if (historical || legacyDeliveryUnchanged(delivery, previousDelivery)) return;
     helmetConflict('La entrega de casco requiere el color físico del artículo.', 'HELMET_DELIVERY_COLOR_REQUIRED');
   }
   const context = deliveryHelmetContext(delivery, state, previousDelivery, previousWorker, previousState, historical);
@@ -333,23 +448,36 @@ function validateHelmetDelivery(delivery, state, previousDelivery, previousWorke
   if (color && color.label !== label && !sameHistoricalLabel) helmetConflict('La etiqueta histórica del color de casco no coincide.', 'INVALID_HELMET_COLOR');
   delivery.helmetColorCode = code;
   delivery.helmetColorLabel = label;
-  delivery.helmetSnapshot = delivery.helmetSnapshot || helmetPolicySnapshot(policy, color || { code, label }, context);
+  // The delivery snapshot is server materialized. A caller cannot supply a
+  // different context or policy as an authoritative historical record.
+  delivery.helmetSnapshot = helmetPolicySnapshot(policy, color || { code, label }, context);
+}
+
+function legacyInventoryHarmlessChange(item, previousItem) {
+  if (!previousItem
+    || selectorText(previousItem.helmetColorCode || previousItem.colorCode)
+    || selectorText(previousItem.helmetColorLabel || previousItem.colorLabel)
+    || selectorText(item.helmetColorCode || item.colorCode)
+    || selectorText(item.helmetColorLabel || item.colorLabel)) return false;
+  const protectedFields = [
+    'name', 'nombre', 'itemName', 'epp', 'category', 'type',
+    'mantId', 'orderId', 'projectId', 'minaId', 'clientId',
+    'helmetClass', 'brandModel', 'certification', 'lotSerial', 'helmetExpiryDate', 'expiryDate',
+  ];
+  return protectedFields.every(key => JSON.stringify(item?.[key] ?? null) === JSON.stringify(previousItem?.[key] ?? null));
 }
 
 function validateHelmetInventoryItem(item, state, previousItem) {
-  if (!isHelmetItem(item)) return;
+  const isHelmet = isHelmetItem(item) || isHelmetItem(previousItem);
+  if (!isHelmet) return;
   const historical = previousItem && JSON.stringify(previousItem) === JSON.stringify(item);
-  const code = String(item.helmetColorCode || item.colorCode || '').trim().toLowerCase();
-  const label = String(item.helmetColorLabel || item.colorLabel || '').trim();
+  const code = selectorText(item.helmetColorCode || item.colorCode).toLowerCase();
+  const label = selectorText(item.helmetColorLabel || item.colorLabel);
   if (!code || !label) {
-    // State normalization can add stock/location fields before this validator
-    // receives an unchanged legacy item. A persisted no-colour item remains
-    // readable until someone completes its physical helmet snapshot.
-    const legacyPhysicalSnapshot = previousItem
-      && !String(previousItem.helmetColorCode || previousItem.colorCode || '').trim()
-      && !String(previousItem.helmetColorLabel || previousItem.colorLabel || '').trim()
-      && !code && !label;
-    if (historical || legacyPhysicalSnapshot) return;
+    // Legacy physical records remain usable for stock/location maintenance,
+    // but identity, classification and policy context cannot be rewritten
+    // until the physical colour snapshot is completed.
+    if (historical || legacyInventoryHarmlessChange(item, previousItem)) return;
     helmetConflict('El casco de inventario requiere color físico y etiqueta histórica.', 'HELMET_INVENTORY_COLOR_REQUIRED');
   }
   const color = helmetColorForCode(state, code);
