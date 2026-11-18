@@ -26,5 +26,5 @@
 ## Cobertura automatizada
 
 - Normalización de legados, Sí/No, color/talla obligatorios, precedencia OS/cliente/tenant, colores históricos, entrega física y PATCH de ficha.
-- Validación de escritura de módulos mediante `validateTenantState` y su fallback append-only; no se declara como prueba HTTP de `PUT /api/state/modules`.
+- Validación de escritura de módulos mediante `validateTenantState` y su fallback append-only, más regresión HTTP real de `PUT /api/state/modules`: una persona nueva sin decisión devuelve `HELMET_APPLICABILITY_REQUIRED` sin persistir cambios. CSV y restauración verifican la excepción de migración confiable que guarda `unknown + legacyImport` como pendiente.
 - Inventario de casco, alertas derivadas, aporte al KPI de acreditación, nombre plural de casco, entrega desde inventario genérico y contexto multi-OS.
