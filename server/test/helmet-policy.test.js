@@ -159,3 +159,20 @@ test('an explicit active-color restriction never falls back to every active colo
   assert.equal(policy.hasColorRestriction, true);
   assert.deepEqual(policy.allowedColorCodes, []);
 });
+
+
+test('multiple active orders require an explicit helmet context instead of reusing a snapshot', () => {
+  const state = baseState();
+  state.mantenciones.push({ id: 'os2', minaId: 'm1', contratoId: 'c1', nombre: 'OS 2' });
+  state.asignaciones = [
+    { id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' },
+    { id: 'a2', trabId: 'w1', mantId: 'os2', estado: 'confirmado' },
+  ];
+  const worker = { ...state.trabajadores[0], epp: requiredHelmet({ policySnapshot: { mantId: 'os1', minaId: 'm1' } }) };
+  assert.equal(helmetContextFromWorker(worker, state).multipleActiveOrders, true);
+  assert.equal(helmetContextFromWorker(worker, state).mantId, '');
+  assert.throws(() => validateTenantState({ ...state, trabajadores: [worker] }, { previousState: state }), error => error.code === 'HELMET_POLICY_CONTEXT_REQUIRED');
+
+  worker.epp.helmetContext = { mantId: 'os2', minaId: 'm1' };
+  assert.doesNotThrow(() => validateTenantState({ ...state, trabajadores: [worker] }, { previousState: state }));
+});
