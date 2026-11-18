@@ -127,7 +127,7 @@ test('ambiguous active policies in the same scope are rejected', () => {
 test('plural helmet labels and a referenced inventory helmet are not bypassed', () => {
   assert.equal(isHelmetItem('Cascos de seguridad'), true);
   const state = baseState();
-  state.inventoryItems = [{ id: 'i-helmet', name: 'Cascos de seguridad', category: 'epp', stock: 1 }];
+  state.inventoryItems = [{ id: 'i-helmet', name: 'Cascos de seguridad', category: 'epp', stock: 1, helmetColorCode: 'azul', helmetColorLabel: 'Azul' }];
   state.eppDeliveries = [{
     id: 'd-generic', workerId: 'w1', mantId: 'os1', inventoryId: 'i-helmet',
     itemId: 'i-helmet', itemName: 'EPP genérico', qty: 1,
