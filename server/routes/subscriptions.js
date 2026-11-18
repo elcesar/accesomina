@@ -27,8 +27,14 @@ const recommendLimiter=rateLimit({windowMs:60000,limit:60,standardHeaders:true,l
 // Keep the unapproved catalogue inaccessible without an authenticated session.
 const PUBLIC_COMMERCIAL_OFFERS_APPROVED = false;
 const publicOfferUnavailable = (req,res) => res.status(404).json({error:'PUBLIC_PLANS_NOT_AVAILABLE'});
-publicPlansRouter.get('/plans',publicOfferUnavailable);
-publicPlansRouter.post('/plans/recommend',publicOfferUnavailable);
+const requireApprovedPublicOffers = (req,res,next) => PUBLIC_COMMERCIAL_OFFERS_APPROVED ? next() : publicOfferUnavailable(req,res);
+publicPlansRouter.get('/plans',requireApprovedPublicOffers,wrap(async(req,res)=>{
+ res.set('Cache-Control','no-store');res.json(await getPublicSubscriptionCatalog());
+}));
+publicPlansRouter.post('/plans/recommend',requireApprovedPublicOffers,recommendLimiter,wrap(async(req,res)=>{
+ const input=z.object({workers:z.number().int().min(1).max(1000000),freeEligible:z.boolean().optional()}).strict().parse(req.body);
+ res.json(publicSubscriptionRecommendation(await getSubscriptionCatalog(),input));
+}));
 
 const commercialSchema=z.object({companyName:z.string().trim().min(3).max(160),rut:z.string().trim().max(20),tradeName:z.string().trim().max(160).optional(),region:z.string().trim().max(100).optional(),commune:z.string().trim().max(100).optional(),
  contactName:z.string().trim().min(2).max(120),contactLastName:z.string().trim().min(2).max(120),position:z.string().trim().max(120).optional(),email:z.string().trim().email().max(254),phone:z.string().trim().min(1).max(32),
