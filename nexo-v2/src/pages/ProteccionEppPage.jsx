@@ -59,7 +59,8 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, state, onClose
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const selectedWorker = workers.find(item => item.id === form.workerId)
-  const helmet = isHelmetItem(form.itemName)
+  const selectedInventory = inventory.find(item => String(item?.id || '') === String(form.inventoryId || ''))
+  const helmet = isHelmetItem(form.itemName) || isHelmetItem(selectedInventory)
   const helmetConfig = helmetOptions(state || {}, { mantId: form.orderId, epp: {} })
   const helmetColors = helmetConfig.colors
 
