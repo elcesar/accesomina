@@ -12,10 +12,11 @@ const baseState=()=>({
 });
 
 test('new EPP delivery uses the canonical server contract',()=>{
-  const delivery=buildEppDelivery({workerId:'w1',orderId:'p1',itemName:'Casco de seguridad',quantity:1,condition:'nuevo',deliveredAt:'2026-09-24'},{id:'e1',createdAt:'2026-09-24T12:00:00.000Z'});
+  const delivery=buildEppDelivery({workerId:'w1',orderId:'p1',itemName:'Casco de seguridad',quantity:1,helmetColorCode:'azul',helmetColorLabel:'Azul',condition:'nuevo',deliveredAt:'2026-09-24'},{id:'e1',createdAt:'2026-09-24T12:00:00.000Z'});
   assert.equal(delivery.itemId,'manual:casco-de-seguridad');
   assert.equal(delivery.qty,1);
   assert.equal(delivery.mantId,'p1');
+  assert.equal(delivery.helmetColorLabel,'Azul');
   assert.doesNotThrow(()=>validateTenantState({...baseState(),eppDeliveries:[delivery]}));
 });
 
