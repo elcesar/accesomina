@@ -55,11 +55,11 @@ if(process.env.SUBSCRIPTIONS_FIXTURE_SERVER!=='1'){
  let apiSequence=0;
  async function api(path,{account='admin',method='GET',body,ip}={}){const response=await fetch(`${fixture.base}/api${path}`,{method,headers:{'x-qa-account':account,'x-forwarded-for':ip||`192.0.2.${++apiSequence%250+1}`,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});return{status:response.status,body:await response.json()};}
  async function catalog(){return(await api('/plans')).body;}
- async function publicInput(extra={}){const c=await catalog(),plan=c.plans.find(p=>p.code==='LA_UNION');return {companyName:'Empresa QA Publica',rut:'13.848.379-7',contactName:'Persona',contactLastName:'Ficticia',email:'public@example.test',phone:'+56912345678',workers:20,planCode:'LA_UNION',packages:[],versionId:plan.versionId,displayedMonthlyNetPrice:plan.monthlyPrice,acceptedTerms:true,termsVersion:'2026-11-05',comments:'Sólo QA',idempotencyKey:`http-${crypto.randomUUID()}`,...extra};}
+ async function publicInput(extra={}){const c=await catalog(),plan=c.plans.find(p=>p.code==='LA_UNION');return {companyName:'Empresa QA Publica',rut:'13.848.379-7',contactName:'Persona',contactLastName:'Ficticia',email:'public@example.test',phone:'+56912345678',workers:20,planCode:'LA_UNION',packages:[],versionId:plan.versionId,...(Number.isInteger(plan.monthlyPrice)?{displayedMonthlyNetPrice:plan.monthlyPrice}:{}),acceptedTerms:true,termsVersion:'2026-11-05',comments:'Sólo QA',idempotencyKey:`http-${crypto.randomUUID()}`,...extra};}
 
  test('HTTP public catalogue and recommendation use the real seeded backend and reject caller-provided capacity',async()=>{
-  const c=await catalog();assert.equal(c.plans.length,5);assert.equal(c.plans[0].trialMonths,6);
-  const r=await api('/plans/recommend',{method:'POST',body:{workers:850}});assert.equal(r.status,200);assert.equal(r.body.packages[0].code,'EXTRA_200');
+  const c=await catalog();assert.equal(c.plans.length,5);assert.equal(c.plans[0].trialMonths,6);assert.equal(c.plans.find(plan=>plan.code==='FREE').monthlyPrice,0);assert.equal(c.plans.find(plan=>plan.code==='LA_UNION').monthlyPrice,null);assert.equal(c.plans.find(plan=>plan.code==='LA_UNION').priceVisibility,'QUOTE');assert.equal(c.packages[0].monthlyPrice,null);
+  const r=await api('/plans/recommend',{method:'POST',body:{workers:850}});assert.equal(r.status,200);assert.equal(r.body.packages[0].code,'EXTRA_200');assert.equal(r.body.monthlyNetPrice,null);assert.equal(r.body.priceVisibility,'QUOTE');
   const forged=await api('/plans/recommend',{method:'POST',body:{workers:850,currentCapacity:1000000}});assert.equal(forged.status,400);
  });
  test('HTTP requests require administrator and strict body prevents directly assigning limits, dates or approval',async()=>{
@@ -87,7 +87,7 @@ if(process.env.SUBSCRIPTIONS_FIXTURE_SERVER!=='1'){
  test('HTTP commercial leads can be reviewed and linked to a matching company exactly once',async()=>{
   // Reset test limiter because prior cases intentionally exercised its anti-abuse ceiling.
   const c=await catalog(),plan=c.plans.find(p=>p.code==='PURRANQUE');
-  const input=await publicInput({planCode:'PURRANQUE',workers:100,versionId:plan.versionId,displayedMonthlyNetPrice:plan.monthlyPrice});
+  const input=await publicInput({planCode:'PURRANQUE',workers:100,versionId:plan.versionId});
   // Store a lead through the same persisted shape if the public limiter has already
   // rejected this test IP; a separate limiter test verifies HTTP rejection below.
   const stored=await withSubscriptionAdmin(async client=>(await client.query(`INSERT INTO subscription_commercial_requests(company_name,rut,contact_name,contact_last_name,contact_email,phone,workers_quantity,requested_plan_code,proposal,terms_version,idempotency_key,payload_hash)
