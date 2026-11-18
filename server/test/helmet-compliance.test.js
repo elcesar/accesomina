@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { helmetCompliance } from '../../nexo-v2/src/services/helmet-compliance.js'
+import { helmetCompliance, helmetComplianceContribution } from '../../nexo-v2/src/services/helmet-compliance.js'
 import { deriveOperationalAlerts } from '../../nexo-v2/src/services/operational-alerts.js'
 
 const worker = (epp = {}) => ({ id: 'w1', nombre: 'Persona QA', mineras: ['m1'], epp })
@@ -21,6 +21,15 @@ test('helmet compliance leaves legacy helmet size pending instead of inferring a
 test('helmet compliance respects no-required and complete decisions', () => {
   assert.equal(helmetCompliance(worker({ helmet: { applicability: 'not_required', reason: 'Administrativo' } }), state).status, 'not_required')
   assert.equal(helmetCompliance(worker({ casco: 'M', helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' } }), state).status, 'complete')
+})
+
+test('helmet KPI contribution is neutral only when the helmet is explicitly not required', () => {
+  const pending = helmetCompliance(worker({ casco: 'Talla única' }), state)
+  const notRequired = helmetCompliance(worker({ helmet: { applicability: 'not_required' } }), state)
+  const complete = helmetCompliance(worker({ casco: 'M', helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' } }), state)
+  assert.deepEqual(helmetComplianceContribution(pending), { required: 1, completed: 0 })
+  assert.deepEqual(helmetComplianceContribution(notRequired), { required: 0, completed: 0 })
+  assert.deepEqual(helmetComplianceContribution(complete), { required: 1, completed: 1 })
 })
 
 test('operational alerts expose helmet incompleteness as an advisory warning only', () => {
