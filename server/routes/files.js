@@ -3,7 +3,7 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
@@ -42,9 +42,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
   return cb(error);
 } });
 const s3 = new S3Client({ region: config.aws.region });
-const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
+export const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
 
-function storageReadiness() {
+export function storageReadiness() {
   if (config.fileStorage === 's3' && !config.aws.bucket) return { ready:false, code:'STORAGE_NOT_CONFIGURED' };
   if (config.env === 'production' && !config.virusScan.url && config.virusScan.enabled) return { ready:false, code:'VIRUS_SCAN_REQUIRED' };
   return { ready:true, provider:config.fileStorage, scan:config.virusScan.url ? 'configured' : 'disabled' };
@@ -56,20 +56,21 @@ function requireFileInfrastructure(req, res, next) {
   next();
 }
 
-async function scanFile(file) {
+export async function scanFile(file) {
   if (!config.virusScan.url) {
   if(config.env==='production' && config.virusScan.enabled)throw Object.assign(new Error('Virus scanning must be configured before accepting files'),{status:503,code:'VIRUS_SCAN_REQUIRED'});return 'clean';}
   const body = new FormData(); body.append('file', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
   const response = await fetch(config.virusScan.url, { method:'POST', headers: config.virusScan.token ? { authorization:`Bearer ${config.virusScan.token}` } : {}, body });
   if (!response.ok) throw Object.assign(new Error('Virus scanning service unavailable'),{status:503,code:'VIRUS_SCAN_UNAVAILABLE'}); const result = await response.json(); return result.clean === true ? 'clean' : 'blocked';
 }
-async function storeFile(storageKey, file) {
+export async function storeFile(storageKey, file) {
   if (config.fileStorage === 's3') {
     if (!config.aws.bucket) throw Object.assign(new Error('AWS_S3_BUCKET is required'), { status: 503, code:'STORAGE_NOT_CONFIGURED' });
     await s3.send(new PutObjectCommand({ Bucket:config.aws.bucket,Key:storageKey,Body:file.buffer,ContentType:file.mimetype,ServerSideEncryption:'AES256',Metadata:{originalname:safeName(file.originalname)} }));
   } else { const target=path.join(config.uploadDir,storageKey);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,file.buffer,{mode:0o600}); }
 }
 export async function readStoredFile(file){if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return Buffer.from(await object.Body.transformToByteArray());}return fs.readFile(path.join(config.uploadDir,file.storage_key));}
+export async function removeStoredFile(file){if(!file?.storage_key)return;if(file.storage_provider==='s3'){if(!config.aws.bucket)return;await s3.send(new DeleteObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return;}await fs.rm(path.join(config.uploadDir,file.storage_key),{force:true});}
 
 filesRouter.get('/status', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), (req,res) => {
   const status=storageReadiness();
