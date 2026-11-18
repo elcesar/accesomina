@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { PUBLIC_PAGES, publicPageKey } from '../config/public-pages.js'
+import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED, publicPageKey } from '../config/public-pages.js'
 import '../styles/landing.css'
 import PublicNavigation from '../components/public/PublicNavigation.jsx'
 import HomeSection from '../components/public/sections/HomeSection.jsx'
@@ -79,11 +79,11 @@ export default function LandingPage() {
   // Preserve shared links from the previous hash navigation.
   useEffect(() => {
     const key = location.hash.slice(1)
-    if (PUBLIC_PAGES[key]) navigate(PUBLIC_PAGES[key].path, { replace: true })
+    if (PUBLIC_PAGES[key] && (PUBLIC_PLANS_APPROVED || key !== 'planes')) navigate(PUBLIC_PAGES[key].path, { replace: true })
   }, [location.hash, navigate])
 
   const goTo = id => {
-    if (!PUBLIC_PAGES[id]) return
+    if (!PUBLIC_PAGES[id] || (!PUBLIC_PLANS_APPROVED && id === 'planes')) return
     navigate(PUBLIC_PAGES[id].path)
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
@@ -124,7 +124,7 @@ export default function LandingPage() {
         <span>Nexo Klar · Información que conecta</span>
         <div>
           <Link to="/">Volver al inicio</Link>
-          <Link to="/planes">Planes y precios</Link>
+          {PUBLIC_PLANS_APPROVED && <Link to="/planes">Planes y precios</Link>}
           <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a>
         </div>
       </footer>
