@@ -31,6 +31,7 @@ function baseState() {
     ],
     mantenciones: [
       { id: 'os1', minaId: 'm1', contratoId: 'c1', nombre: 'OS uno' },
+      { id: 'os1-alt', minaId: 'm1', contratoId: 'c1', nombre: 'OS uno alternativa' },
       { id: 'os2', minaId: 'm2', contratoId: 'c2', nombre: 'OS dos' },
     ],
     trabajadores: [{
@@ -70,6 +71,13 @@ test('helmet context contract rejects conflicting and forged selector sources', 
       name: 'explicit selector outside persisted scope is rejected',
       mutate: state => {
         state.trabajadores[0].epp.helmetContext = { mantId: 'os2', minaId: 'm2' };
+      },
+      code: 'HELMET_CONTEXT_OUT_OF_SCOPE',
+    },
+    {
+      name: 'a client link cannot select an unassigned OS of that same client',
+      mutate: state => {
+        state.trabajadores[0].epp.helmetContext = { mantId: 'os1-alt', minaId: 'm1' };
       },
       code: 'HELMET_CONTEXT_OUT_OF_SCOPE',
     },
@@ -115,6 +123,16 @@ test('new workers resolve only validated atomic client and OS associations', () 
   })));
   assert.throws(
     () => validateTenantState(outOfScope, { previousState: osPrevious }),
+    error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
+  );
+
+  const clientOnlyOs = clone(osPrevious);
+  clientOnlyOs.trabajadores.push(newWorker('w2', {
+    ...helmet({ colorCode: 'verde', colorLabel: 'Verde' }),
+    helmetContext: { mantId: 'os1-alt', minaId: 'm1' },
+  }, { mineras: ['m1'] }));
+  assert.throws(
+    () => validateTenantState(clientOnlyOs, { previousState: osPrevious }),
     error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
   );
 
