@@ -244,19 +244,19 @@ function StepSalud({ data, onChange }) {
   )
 }
 
-function StepEPP({ data, onChange, helmetPolicy, helmetColors }) {
+function StepEPP({ data, onChange, helmetPolicy, helmetColors, errors = {} }) {
   const required = data.helmetApplicability === HELMET_APPLICABILITY.REQUIRED
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra la aplicabilidad de casco y las tallas de referencia. La regla vigente la define la empresa, el cliente o la orden de servicio; no se infiere por cargo.</p>
-      <Field label="¿Casco requerido?">
-        <div role="radiogroup" aria-label="¿Casco requerido?">
+      <Field label="¿Casco requerido?" fieldId="helmet-applicability" error={errors.helmetApplicability}>
+        <div>
           <label><input type="radio" name="helmet-applicability" checked={required} onChange={() => onChange('helmetApplicability', HELMET_APPLICABILITY.REQUIRED)} /> Sí</label>
           <label><input type="radio" name="helmet-applicability" checked={data.helmetApplicability === HELMET_APPLICABILITY.NOT_REQUIRED} onChange={() => onChange('helmetApplicability', HELMET_APPLICABILITY.NOT_REQUIRED)} /> No</label>
         </div>
       </Field>
       {required && <>
-        <Field label="Color de casco">
+        <Field label="Color de casco" fieldId="helmet-color" error={errors.helmetColorCode}>
           <FSelect value={data.helmetColorCode} onChange={event => {
             const color = helmetColors.find(item => item.code === event.target.value)
             onChange('helmetColorCode', event.target.value)
@@ -266,13 +266,13 @@ function StepEPP({ data, onChange, helmetPolicy, helmetColors }) {
             {helmetColors.map(color => <option key={color.code} value={color.code}>{color.label}</option>)}
           </FSelect>
         </Field>
-        <Field label="Talla de casco">
+        <Field label="Talla de casco" fieldId="helmet-size" error={errors.eppCasco}>
           <FSelect value={data.eppCasco} onChange={event => onChange('eppCasco', event.target.value)}>
             <option value="">Seleccionar talla</option>
             {PPE_SIZE_FIELDS.find(field => field.key === 'casco').sizes.map(size => <option key={size} value={size}>{size}</option>)}
           </FSelect>
         </Field>
-        {helmetPolicy.requireModelClass && <Field label="Clase o modelo de casco"><input className="nk-input" value={data.helmetModelClass} onChange={event => onChange('helmetModelClass', event.target.value)} /></Field>}
+        {helmetPolicy.requireModelClass && <Field label="Clase o modelo de casco" fieldId="helmet-model" error={errors.helmetModelClass}><input className="nk-input" value={data.helmetModelClass} onChange={event => onChange('helmetModelClass', event.target.value)} /></Field>}
       </>}
       {data.helmetApplicability === HELMET_APPLICABILITY.NOT_REQUIRED && <Field label="Motivo (opcional)"><input className="nk-input" value={data.helmetReason} onChange={event => onChange('helmetReason', event.target.value)} placeholder="Ej.: función administrativa" /></Field>}
       {PPE_SIZE_FIELDS.filter(field => !field.helmet).map(field => <Field key={field.key} label={field.label}>
@@ -294,7 +294,10 @@ function StepResumen({ data, mantenciones }) {
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
-    ['Casco', data.eppCasco], ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
+    ['Casco requerido', data.helmetApplicability === HELMET_APPLICABILITY.REQUIRED ? 'Sí' : data.helmetApplicability === HELMET_APPLICABILITY.NOT_REQUIRED ? 'No' : 'Pendiente'],
+    ...(data.helmetApplicability === HELMET_APPLICABILITY.REQUIRED ? [['Color de casco', data.helmetColorLabel], ['Talla de casco', data.eppCasco], ['Clase o modelo', data.helmetModelClass]] : []),
+    ...(data.helmetApplicability === HELMET_APPLICABILITY.NOT_REQUIRED ? [['Motivo sin casco', data.helmetReason]] : []),
+    ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
     ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Fit Test', data.eppFitTest ? 'Aprobado' : 'No aprobado'],
   ].filter(([, value]) => value)
 
@@ -474,7 +477,7 @@ export default function NuevoTrabajadorPage() {
     <StepIdentidad key="identidad" data={data} onChange={onChange} errors={fieldErrors} />,
     <StepVinculacion key="vinculacion" data={data} onChange={onChange} mantenciones={mantenciones} errors={fieldErrors} />,
     <StepSalud key="salud" data={data} onChange={onChange} />,
-    <StepEPP key="epp" data={data} onChange={onChange} helmetPolicy={helmetPolicy} helmetColors={helmetColors} />,
+    <StepEPP key="epp" data={data} onChange={onChange} helmetPolicy={helmetPolicy} helmetColors={helmetColors} errors={fieldErrors} />,
     <StepResumen key="resumen" data={data} mantenciones={mantenciones} />,
   ]
 
