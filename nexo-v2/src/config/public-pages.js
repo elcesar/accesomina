@@ -1,3 +1,6 @@
+// Public commercial offers remain hidden until the commercial committee approves publication.
+export const PUBLIC_PLANS_APPROVED = false
+
 export const PUBLIC_PAGES = {
   inicio: { path: '/', title: 'Control operacional y cumplimiento', description: 'Nexo Klar conecta personas, contratos, documentos y recursos para controlar la operación y el cumplimiento.' },
   solucion: { path: '/plataforma', title: 'Plataforma', description: 'Conecta la oportunidad, el contrato y la ejecución del servicio con información operacional trazable.' },
