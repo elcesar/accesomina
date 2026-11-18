@@ -250,7 +250,7 @@ function StepEPP({ data, onChange, helmetPolicy, helmetColors, errors = {} }) {
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra la aplicabilidad de casco y las tallas de referencia. La regla vigente la define la empresa, el cliente o la orden de servicio; no se infiere por cargo.</p>
       <Field label="¿Casco requerido?" fieldId="helmet-applicability" error={errors.helmetApplicability}>
-        <div>
+        <div id="helmet-applicability">
           <label><input type="radio" name="helmet-applicability" checked={required} onChange={() => onChange('helmetApplicability', HELMET_APPLICABILITY.REQUIRED)} /> Sí</label>
           <label><input type="radio" name="helmet-applicability" checked={data.helmetApplicability === HELMET_APPLICABILITY.NOT_REQUIRED} onChange={() => onChange('helmetApplicability', HELMET_APPLICABILITY.NOT_REQUIRED)} /> No</label>
         </div>
