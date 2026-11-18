@@ -217,7 +217,9 @@ test('delivery context rejects a foreign OS and legacy identity rewrites', () =>
   }];
   assert.throws(
     () => validateTenantState(foreign),
-    error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
+    // The foreign delivery conflicts with the persisted worker OS. Rejecting the
+    // contradictory selector is stronger than resolving the supplied OS as scope.
+    error => error.code === 'INVALID_HELMET_CONTEXT',
   );
 
   const previous = baseState();
