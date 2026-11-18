@@ -4,7 +4,7 @@
 
 - No existe una relación automática entre color y cargo.
 - El catálogo de colores pertenece al tenant. Incluye valores iniciales de apoyo y conserva `code` + `label` en cada referencia histórica.
-- La política se resuelve por Orden de Servicio (OS), después Cliente/Mandante y finalmente Empresa.
+- La política se resuelve por Orden de Servicio (OS), después Cliente/Mandante y finalmente Empresa. Si una persona tiene más de una OS activa, la ficha exige seleccionar el contexto de casco; no reutiliza silenciosamente una OS histórica.
 - Sólo se permite **una política activa por alcance** (empresa, cada cliente y cada OS). El servidor rechaza duplicados para que no se elija una regla arbitrariamente.
 - La política segura inicial exige color y talla cuando la persona declara que el casco es requerido. Clase/modelo queda desactivado hasta que una política lo habilite.
 - Una decisión `No requerido` acepta motivo opcional y no permite guardar atributos de casco.
@@ -14,7 +14,7 @@
 - Colores y políticas conservan autor, fecha de creación y última actualización en el servidor; el cambio completo queda además en la auditoría del módulo.
 - La persona y la entrega conservan etiqueta histórica junto al código de color. Un color renombrado o inactivado sigue siendo legible en un registro histórico sin reescribirlo.
 - El antiguo `casco: "Talla única"` se muestra como dato histórico con aplicabilidad pendiente; nunca se interpreta como una decisión ni se bloquea una corrección no relacionada.
-- Inventario y entrega registran el casco físico (color, talla, clase, marca/modelo, norma/certificación, lote/serie y vencimiento). Una entrega no cambia el requisito de la persona.
+- Inventario y entrega registran el casco físico (color, talla, clase, marca/modelo, norma/certificación, lote/serie y vencimiento), que se ve también en el historial de la ficha. Una entrega no cambia el requisito de la persona.
 
 ## Autorización y alertas
 
@@ -26,4 +26,4 @@
 
 - Normalización de legados, Sí/No, color/talla obligatorios, precedencia OS/cliente/tenant, colores históricos, entrega física y PATCH de ficha.
 - Validación de escritura de módulos mediante `validateTenantState` y su fallback append-only; no se declara como prueba HTTP de `PUT /api/state/modules`.
-- Inventario de casco, alertas derivadas y aporte al KPI de acreditación.
+- Inventario de casco, alertas derivadas, aporte al KPI de acreditación, nombre plural de casco, entrega desde inventario genérico y contexto multi-OS.
