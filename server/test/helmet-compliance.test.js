@@ -49,8 +49,8 @@ test('shared helmet context ignores forged top-level selectors and keeps the act
     ...state,
     minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente ajeno' }],
     mantenciones: [
-      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
-      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' },
+      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' },
     ],
     asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
   }
@@ -74,7 +74,7 @@ test('client-row helmet compliance does not leak an OS policy from another clien
     ...state,
     minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente dos' }],
     mantenciones: [
-      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' },
     ],
     asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
     helmetColors: [
@@ -103,7 +103,7 @@ test('client-row helmet compliance does not leak an OS policy from another clien
 
 test('client derivation includes a current operational assignment without a duplicated worker client link', () => {
   const persona = { id: 'w-operational', mineras: [] }
-  const projects = [{ id: 'os-operational', minaId: 'm1', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' }]
+  const projects = [{ id: 'os-operational', minaId: 'm1', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' }]
   const assignments = [{ id: 'a-operational', trabId: 'w-operational', mantId: 'os-operational', estado: 'confirmado' }]
   assert.deepEqual(workerClientIds(persona, assignments, projects), ['m1'])
 })
@@ -114,8 +114,8 @@ test('shared status flags an out-of-scope persisted helmet selector instead of a
     ...state,
     minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente ajeno' }],
     mantenciones: [
-      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
-      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' },
+      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2099-01-01' },
     ],
     asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
   }
