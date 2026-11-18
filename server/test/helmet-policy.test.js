@@ -89,10 +89,10 @@ test('delivery snapshots the physical helmet without mutating worker requirement
     condition: 'nuevo', deliveredAt: '2026-11-17',
   }, { id: 'delivery-1', createdAt: '2026-11-17T12:00:00.000Z' });
   state.eppDeliveries = [delivery];
-  assert.doesNotThrow(() => validateTenantState(state));
+  const clean = validateTenantState(state);
   assert.deepEqual(state.trabajadores[0].epp, before);
-  assert.equal(state.eppDeliveries[0].helmetColorLabel, 'Azul');
-  assert.equal(state.eppDeliveries[0].helmetSnapshot.colorCode, 'azul');
+  assert.equal(clean.eppDeliveries[0].helmetColorLabel, 'Azul');
+  assert.equal(clean.eppDeliveries[0].helmetSnapshot.colorCode, 'azul');
 });
 
 test('worker PATCH cannot bypass the applicable helmet policy', () => {
