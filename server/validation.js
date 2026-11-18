@@ -253,8 +253,11 @@ function resolveTrustedHelmetContext(worker, state, {
       helmetConflict('El cliente del contexto de casco no coincide con la orden.', 'INVALID_HELMET_CONTEXT');
     }
     const assigned = assignments.some(assignment => String(assignment?.mantId || '') === requested.mantId);
-    if (!assigned && !knownMineIds.has(projectMineId)) {
-      helmetConflict('La orden seleccionada para casco no pertenece al alcance de la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
+    // A client link permits a client policy only. It never authorizes choosing
+    // an arbitrary OS under that client: the OS must be an active persisted
+    // assignment (or an atomic candidate assignment for a new worker).
+    if (!assigned) {
+      helmetConflict('La orden seleccionada para casco no pertenece a una asignación activa de la persona.', 'HELMET_CONTEXT_OUT_OF_SCOPE');
     }
     return { mantId: requested.mantId, minaId: projectMineId };
   }
