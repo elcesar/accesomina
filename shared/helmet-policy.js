@@ -161,22 +161,102 @@ export function helmetPolicySnapshot(policy, color, context = {}) {
   };
 }
 
+const inactiveHelmetAssignmentStates = new Set(['retirado', 'cancelado', 'finalizado', 'inactivo']);
+const rows = value => Array.isArray(value) ? value : [];
+const helmetProjects = state => rows(state?.mantenciones).length ? rows(state.mantenciones) : rows(state?.proyectos);
+
+// Context used for an operational decision is derived from persisted
+// assignments/client links. UI data may contain legacy/raw selectors, but those
+// selectors are never authoritative by themselves.
+export function helmetActiveAssignments(worker = {}, state = {}) {
+  return rows(state?.asignaciones)
+    .filter(row => String(row?.trabId || row?.workerId || '') === String(worker?.id || ''))
+    .filter(row => text(row?.mantId))
+    .filter(row => !inactiveHelmetAssignmentStates.has(String(row?.estado || '').trim().toLowerCase()));
+}
+
+export function helmetClientIds(worker = {}, state = {}) {
+  const ids = new Set(rows(worker?.mineras).map(text).filter(Boolean));
+  const projects = helmetProjects(state);
+  for (const assignment of helmetActiveAssignments(worker, state)) {
+    const project = projects.find(row => String(row?.id || '') === String(assignment?.mantId || ''));
+    const minaId = text(project?.minaId);
+    if (minaId) ids.add(minaId);
+  }
+  return [...ids];
+}
+
+function helmetContextFields(context = {}) {
+  if (!context || typeof context !== 'object' || Array.isArray(context)) return null;
+  const mantId = text(context.mantId || context.orderId || context.projectId);
+  const minaId = text(context.minaId || context.clientId);
+  return mantId || minaId ? { mantId, minaId } : null;
+}
+
+// Returns a context only when the requested selector belongs to a persisted
+// active assignment or a persisted allowed client for this worker.
+export function helmetContextForWorkerScope(worker = {}, state = {}, requestedContext = {}) {
+  const requested = helmetContextFields(requestedContext);
+  if (!requested) return null;
+  const assignments = helmetActiveAssignments(worker, state);
+  const knownClientIds = new Set(helmetClientIds(worker, state));
+  const projects = helmetProjects(state);
+
+  if (requested.mantId) {
+    const project = projects.find(row => String(row?.id || '') === requested.mantId);
+    const minaId = text(project?.minaId);
+    if (!project || !minaId || (requested.minaId && requested.minaId !== minaId)) return null;
+    const assigned = assignments.some(row => String(row?.mantId || '') === requested.mantId);
+    if (!assigned && !knownClientIds.has(minaId)) return null;
+    return { mantId: requested.mantId, minaId };
+  }
+
+  return knownClientIds.has(requested.minaId)
+    ? { mantId: '', minaId: requested.minaId }
+    : null;
+}
+
 export function helmetContextFromWorker(worker = {}, state = {}) {
   const epp = worker?.epp || {};
   const helmet = normalizeHelmetRequirement(epp);
-  const assignments = (Array.isArray(state.asignaciones) ? state.asignaciones : [])
-    .filter(row => String(row?.trabId || row?.workerId) === String(worker?.id) && row?.mantId)
-    .filter(row => !['retirado', 'cancelado', 'finalizado', 'inactivo'].includes(String(row?.estado || '').trim().toLowerCase()));
-  // The current operational context wins. A saved snapshot proves what applied
-  // historically, but must not pin a person to an old order after reassignment.
-  const explicitMantId = text(epp?.helmetContext?.mantId || worker?.mantId);
-  const multipleActiveOrders = !explicitMantId && assignments.length > 1;
-  const mantId = explicitMantId || (assignments.length === 1 ? text(assignments[0]?.mantId) : '') || (multipleActiveOrders ? '' : text(helmet?.policySnapshot?.mantId));
-  const project = (Array.isArray(state.mantenciones) ? state.mantenciones : [])
-    .find(row => String(row?.id) === mantId);
-  const explicitMinaId = text(epp?.helmetContext?.minaId || worker?.minaId);
-  const minaId = explicitMinaId || text(project?.minaId) || (Array.isArray(worker?.mineras) && worker.mineras.length === 1 ? worker.mineras[0] : '') || (multipleActiveOrders ? '' : text(helmet?.policySnapshot?.minaId));
-  return { minaId, mantId, multipleActiveOrders };
+  const assignments = helmetActiveAssignments(worker, state);
+  const rawContext = helmetContextFields(helmet?.resolvedContext)
+    || helmetContextFields(epp?.helmetContext);
+  const explicit = helmetContextForWorkerScope(worker, state, rawContext || {});
+  const invalidContext = Boolean(rawContext && !explicit);
+
+  // A verified explicit OS selection resolves an otherwise ambiguous set of
+  // active orders. A client-only selection never masks multiple active OS.
+  if (explicit?.mantId) {
+    return { ...explicit, multipleActiveOrders: false, multipleActiveClients: false, invalidContext };
+  }
+  if (assignments.length > 1) {
+    return { mantId: '', minaId: '', multipleActiveOrders: true, multipleActiveClients: false, invalidContext };
+  }
+  if (assignments.length === 1) {
+    const project = helmetProjects(state).find(row => String(row?.id || '') === String(assignments[0]?.mantId || ''));
+    return {
+      mantId: text(assignments[0]?.mantId),
+      minaId: text(project?.minaId),
+      multipleActiveOrders: false,
+      multipleActiveClients: false,
+      invalidContext,
+    };
+  }
+  if (explicit?.minaId) {
+    return { ...explicit, multipleActiveOrders: false, multipleActiveClients: false, invalidContext };
+  }
+  const clientIds = helmetClientIds(worker, state);
+  if (clientIds.length > 1) {
+    return { mantId: '', minaId: '', multipleActiveOrders: false, multipleActiveClients: true, invalidContext };
+  }
+  return {
+    mantId: '',
+    minaId: clientIds[0] || '',
+    multipleActiveOrders: false,
+    multipleActiveClients: false,
+    invalidContext,
+  };
 }
 
 export function materializeHelmetState(state = {}) {
