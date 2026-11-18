@@ -85,6 +85,14 @@ export function helmetCompliance(worker, state = {}, { context: contextOverride 
   }
 }
 
+
+// A helmet only changes the worker compliance denominator when a decision is
+// still pending or it is required. “No requerido” remains neutral.
+export function helmetComplianceContribution(status) {
+  if (!status || status.status === 'not_required') return { required: 0, completed: 0 }
+  return { required: 1, completed: status.warning ? 0 : 1 }
+}
+
 export function helmetComplianceCounts(workers, state = {}) {
   return (Array.isArray(workers) ? workers : []).reduce((counts, worker) => {
     const status = helmetCompliance(worker, state)
