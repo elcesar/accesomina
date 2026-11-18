@@ -87,7 +87,16 @@ function workerHelmetIsHistorical(worker, previousWorker) {
 
 function validateWorkerHelmet(worker, state, previousWorker) {
   const epp = worker?.epp;
-  if (!epp || typeof epp !== 'object' || !Object.hasOwn(epp, 'helmet')) return;
+  const hasExplicitHelmet = Boolean(epp && typeof epp === 'object' && Object.hasOwn(epp, 'helmet'));
+  const hadExplicitHelmet = Boolean(previousWorker?.epp && typeof previousWorker.epp === 'object' && Object.hasOwn(previousWorker.epp, 'helmet'));
+  // New people must make the Yes/No decision. Existing legacy records remain
+  // readable until an EPP decision is intentionally completed.
+  if (!hasExplicitHelmet) {
+    if (!previousWorker || hadExplicitHelmet) {
+      helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
+    }
+    return;
+  }
   const helmet = normalizeHelmetRequirement(epp);
   const previousHelmet = normalizeHelmetRequirement(previousWorker?.epp);
   const unchangedHistorical = workerHelmetIsHistorical(worker, previousWorker);
@@ -104,6 +113,9 @@ function validateWorkerHelmet(worker, state, previousWorker) {
   }
 
   const context = helmetContextFromWorker(worker, state);
+  if (context.multipleActiveOrders && !unchangedHistorical) {
+    helmetConflict('Selecciona la orden de servicio aplicable antes de guardar el requisito de casco.', 'HELMET_POLICY_CONTEXT_REQUIRED');
+  }
   const policy = resolveHelmetPolicy(state, context);
   const color = helmetColorForCode(state, helmet.colorCode);
   const keepingHistoricalColor = unchangedHistorical
@@ -115,7 +127,7 @@ function validateWorkerHelmet(worker, state, previousWorker) {
   if (helmet.colorCode) {
     if (!color && !keepingHistoricalColor) helmetConflict('El color de casco no existe en el catálogo de la empresa.', 'INVALID_HELMET_COLOR');
     if (color && !color.active && !keepingHistoricalColor) helmetConflict('El color de casco está inactivo.', 'INACTIVE_HELMET_COLOR');
-    if (policy.allowedColorCodes.length && !policy.allowedColorCodes.includes(helmet.colorCode) && !keepingHistoricalColor) {
+    if (policy.hasColorRestriction && !policy.allowedColorCodes.includes(helmet.colorCode) && !keepingHistoricalColor) {
       helmetConflict('El color de casco no está habilitado para este cliente u orden.', 'HELMET_COLOR_NOT_ALLOWED');
     }
     if (color && helmet.colorLabel !== color.label && !keepingHistoricalColor) {
@@ -163,7 +175,7 @@ function validateHelmetDelivery(delivery, state, previousDelivery) {
     && String(previousDelivery.helmetColorCode || previousDelivery.colorCode || '') === code
     && String(previousDelivery.helmetColorLabel || previousDelivery.colorLabel || '') === label;
   if (!color && !sameHistoricalLabel) helmetConflict('El color físico del casco no existe en el catálogo.', 'INVALID_HELMET_COLOR');
-  if (color && (!color.active || (policy.allowedColorCodes.length && !policy.allowedColorCodes.includes(code))) && !sameHistoricalLabel) {
+  if (color && (!color.active || (policy.hasColorRestriction && !policy.allowedColorCodes.includes(code))) && !sameHistoricalLabel) {
     helmetConflict('El color físico del casco no está habilitado para este contexto.', 'HELMET_COLOR_NOT_ALLOWED');
   }
   if (color && color.label !== label && !sameHistoricalLabel) helmetConflict('La etiqueta histórica del color de casco no coincide.', 'INVALID_HELMET_COLOR');
