@@ -209,7 +209,8 @@ test('document removal keeps files referenced by another module or verification'
   assert.equal(referenced.has('file-in-incident'),true,'another module reference is retained');
   assert.equal(referenced.has('file-in-verification'),true,'operational verification reference is retained');
 });
-\n
+
+
 test('module-write fallback validates a new explicit helmet requirement despite unrelated legacy state',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
