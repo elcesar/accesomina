@@ -110,7 +110,8 @@ test('worker PATCH cannot bypass the applicable helmet policy', () => {
     error => error.code === 'HELMET_COLOR_REQUIRED',
   );
 });
-\n
+
+
 test('ambiguous active policies in the same scope are rejected', () => {
   const state = baseState();
   state.helmetPolicies = [
