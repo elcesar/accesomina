@@ -23,7 +23,7 @@ function rut(number) {
   const dv = 11 - total % 11;
   return `${number}-${dv === 11 ? '0' : dv === 10 ? 'K' : dv}`;
 }
-const workers = count => Array.from({ length: count }, (_, index) => ({ id: `qa-worker-${index}`, nombre: `Persona QA ${index}`, rut: rut(10_000_000 + index) }));
+const workers = count => Array.from({ length: count }, (_, index) => ({ id: `qa-worker-${index}`, nombre: `Persona QA ${index}`, rut: rut(10_000_000 + index), epp:{helmet:{applicability:'not_required'}} }));
 
 before(async () => {
   db = new PGlite();
@@ -118,8 +118,18 @@ test('actual state writes accept the fifteenth person and reject the sixteenth a
   assert.equal((await saveWorkers(auth, workers(15))).statusCode, 200);
   const accepted = await snapshot(auth);
   assert.equal(accepted.data.length, 15);
+  assert.deepEqual(accepted.data.at(-1).epp.helmet,{applicability:'unknown',legacyImport:true});
   await assert.rejects(() => saveWorkers(auth, workers(16)), error => error.code === 'SUBSCRIPTION_WORKER_LIMIT');
   assert.deepEqual(await snapshot(auth), accepted);
+});
+
+test('state modules rejects a new worker without an explicit helmet decision', async () => {
+  const auth = await company({ count: 0 }), before = await snapshot(auth);
+  await assert.rejects(
+    () => saveWorkers(auth, [{ id:'qa-without-helmet',nombre:'Persona sin decisión',rut:rut(10_020_000) }]),
+    error => error.code === 'HELMET_APPLICABILITY_REQUIRED',
+  );
+  assert.deepEqual(await snapshot(auth), before);
 });
 
 test('CSV append and backup restore cannot exceed capacity or change version, settings and audit on rejection', async () => {
