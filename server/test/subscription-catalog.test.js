@@ -22,13 +22,14 @@ async function api(path,{account='global',method='GET',body}={}){
  return {status:response.status,body:await response.json()};
 }
 async function catalog(){const result=await api('/plans');assert.equal(result.status,200);return result.body;}
+async function adminCatalog(){const result=await api('/subscriptions/admin/catalog');assert.equal(result.status,200);return result.body;}
 async function publish(kind,code,fields={}){
  const result=await api('/subscriptions/admin/catalog',{method:'POST',body:{kind,code,action:'publish',...fields}});
  assert.equal(result.status,201,JSON.stringify(result.body));return result.body;
 }
 async function commercial(overrides={}){
  const plan=(await catalog()).plans.find(p=>p.code==='LA_UNION');
- return {companyName:'Empresa QA',rut:'13.848.379-7',contactName:'Persona',contactLastName:'Ficticia',email:'catalog@example.test',phone:'+56912345678',workers:20,planCode:'LA_UNION',versionId:plan?.versionId,packages:[],displayedMonthlyNetPrice:plan?.monthlyPrice,acceptedTerms:true,termsVersion:'2026-11-05',idempotencyKey:randomUUID(),...overrides};
+ return {companyName:'Empresa QA',rut:'13.848.379-7',contactName:'Persona',contactLastName:'Ficticia',email:'catalog@example.test',phone:'+56912345678',workers:20,planCode:'LA_UNION',versionId:plan?.versionId,packages:[],...(Number.isInteger(plan?.monthlyPrice)?{displayedMonthlyNetPrice:plan.monthlyPrice}:{}),acceptedTerms:true,termsVersion:'2026-11-05',idempotencyKey:randomUUID(),...overrides};
 }
 const requestPath=id=>`/subscriptions/admin/companies/${QA_IDS.legacy}/requests${id?`/${id}`:''}`;
 async function request(code='LA_UNION',packages=[]){
@@ -53,11 +54,12 @@ async function execute(row){
 }
 
 test('HTTP catalogue versions every public parameter, keeps entitlements and audits locked before/after values',async()=>{
- const old=(await catalog()).plans.find(p=>p.code==='PURRANQUE');
- const input={versionId:old.versionId,name:'Purranque actualizado',description:'Descripción comercial editable.',publicFeatures:['Primera característica','Segunda característica'],displayOrder:0,ctaText:'Solicitar asesoría',monthlyPrice:2500,workerLimit:190,taxRate:.19,active:true,publicVisible:true,recommended:true,graceDays:17,warningPercent:72,criticalPercent:88,allowedUpgradeTargets:['FRUTILLAR','PUERTO_OCTAY'],trialMonths:0};
- const changed=await publish('plan','PURRANQUE',input),current=await catalog(),shown=current.plans.find(p=>p.code==='PURRANQUE');
+ const old=(await adminCatalog()).plans.find(p=>p.code==='PURRANQUE');
+ const input={versionId:old.versionId,name:'Purranque actualizado',description:'Descripción comercial editable.',publicFeatures:['Primera característica','Segunda característica'],displayOrder:0,ctaText:'Solicitar asesoría',monthlyPrice:2500,priceVisibility:'PUBLISHED',workerLimit:190,taxRate:.19,active:true,publicVisible:true,recommended:true,graceDays:17,warningPercent:72,criticalPercent:88,allowedUpgradeTargets:['FRUTILLAR','PUERTO_OCTAY'],trialMonths:0};
+ const changed=await publish('plan','PURRANQUE',input),current=await adminCatalog(),shown=current.plans.find(p=>p.code==='PURRANQUE');
  for(const field of Object.keys(input).filter(k=>k!=='versionId'))assert.deepEqual(shown[field],input[field]);
  assert.equal(current.plans[0].code,'PURRANQUE');assert.notEqual(changed.versionId,old.versionId);assert.deepEqual(shown.features,old.features);
+ const publicPlan=(await catalog()).plans.find(p=>p.code==='PURRANQUE');assert.equal(publicPlan.monthlyPrice,2500);assert.equal(publicPlan.priceVisibility,'PUBLISHED');
  const audit=(await fixture.db.query('SELECT old_value,new_value FROM audit_log WHERE entity_id=$1',[changed.versionId])).rows[0];
  assert.deepEqual(audit.old_value,old);assert.deepEqual(audit.new_value,changed);
  const withdrawn=await publish('plan','PURRANQUE',{versionId:changed.versionId,active:false,monthlyPrice:2800,workerLimit:200,description:'Descripción revisada'});
