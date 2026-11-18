@@ -86,7 +86,7 @@ test('delivery snapshots the physical helmet without mutating worker requirement
   const before = structuredClone(state.trabajadores[0].epp);
   const delivery = buildEppDelivery({
     workerId: 'w1', orderId: 'os1', itemName: 'Casco de seguridad', quantity: 1,
-    helmetColorCode: 'azul', helmetColorLabel: 'Azul', size: 'M',
+    helmetColorCode: 'azul', helmetColorLabel: 'Azul', helmetClass: 'A', helmetExpiryDate: '2029-12-31', size: 'M',
     brandModel: 'Modelo QA', certification: 'EN 397', lotSerial: 'L-001',
     condition: 'nuevo', deliveredAt: '2026-11-17',
   }, { id: 'delivery-1', createdAt: '2026-11-17T12:00:00.000Z' });
@@ -95,6 +95,8 @@ test('delivery snapshots the physical helmet without mutating worker requirement
   assert.deepEqual(state.trabajadores[0].epp, before);
   assert.equal(clean.eppDeliveries[0].helmetColorLabel, 'Azul');
   assert.equal(clean.eppDeliveries[0].helmetSnapshot.colorCode, 'azul');
+  assert.equal(clean.eppDeliveries[0].helmetExpiryDate, '2029-12-31');
+  assert.equal(clean.eppDeliveries[0].lotSerial, 'L-001');
 });
 
 test('worker PATCH cannot bypass the applicable helmet policy', () => {
@@ -145,4 +147,15 @@ test('current assignment context wins over an old helmet snapshot after reassign
     epp: requiredHelmet({ policySnapshot: { mantId: 'os-old', minaId: 'm1' } }),
   };
   assert.equal(helmetContextFromWorker(worker, state).mantId, 'os1');
+});
+
+
+test('an explicit active-color restriction never falls back to every active colour', () => {
+  const state = materializeHelmetState({
+    helmetColors: [{ code: 'azul', label: 'Azul', active: false }, { code: 'verde', label: 'Verde', active: true }],
+    helmetPolicies: [{ id: 'tenant', scope: 'tenant', allowedColorCodes: ['azul'] }],
+  });
+  const policy = resolveHelmetPolicy(state, {});
+  assert.equal(policy.hasColorRestriction, true);
+  assert.deepEqual(policy.allowedColorCodes, []);
 });
