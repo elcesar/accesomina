@@ -28,13 +28,13 @@ test('a valid new worker is not blocked by an unrelated legacy reference',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
   const proposed=structuredClone(current);
-  proposed.trabajadores.push({id:'w2',nombre:'Pamela Navarro',rut:'14.507.215-8',tel:'+56976490489'});
+  proposed.trabajadores.push({id:'w2',nombre:'Pamela Navarro',rut:'14.507.215-8',tel:'+56976490489',epp:{helmet:{applicability:'not_required'}}});
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
 });
 test('append fallback still rejects a new worker with an invalid direct reference',()=>{
   const current=validState(),proposed=structuredClone(current);
-  proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine']});
+  proposed.trabajadores.push({id:'w2',nombre:'Nueva persona',rut:'14.507.215-8',mineras:['missing-mine'],epp:{helmet:{applicability:'not_required'}}});
   assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='INVALID_REFERENCE');
 });
 test('append fallback fails closed for modules without equivalent validation',()=>{
@@ -44,7 +44,7 @@ test('append fallback fails closed for modules without equivalent validation',()
 });
 test('append fallback preserves strict duplicate rules for its supported modules',()=>{
   const current=validState(),proposed=structuredClone(current);
-  proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0'});
+  proposed.trabajadores.push({id:'w2',nombre:'Duplicada',rut:'14.567.890-0',epp:{helmet:{applicability:'not_required'}}});
   assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='DUPLICATE_WORKER_RUT');
 });
 test('append fallback applies every client rule despite unrelated legacy data',()=>{
@@ -96,7 +96,7 @@ test('append fallback applies every worker document rule despite unrelated legac
   ];
   for (const { items, code } of invalidDocuments) {
     const proposed=structuredClone(current);
-    proposed.trabajadores.push({id:`w-${code}`,nombre:'Persona nueva',rut:'14.507.215-8',workerItems:items});
+    proposed.trabajadores.push({id:`w-${code}`,nombre:'Persona nueva',rut:'14.507.215-8',workerItems:items,epp:{helmet:{applicability:'not_required'}}});
     assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code===code,code);
   }
 });
@@ -244,4 +244,11 @@ test('module-state normalization retains legacy physical helmet records on unrel
   previous.eppDeliveries=[{id:'legacy-delivered',workerId:'w1',mantId:'p1',itemId:'legacy-helmet',inventoryId:'legacy-helmet',itemName:'Casco histórico',qty:1,deliveryStatus:'entregado',condition:'nuevo',deliveredAt:'2026-07-01'}];
   const proposed=normalizeTenantState(structuredClone(previous));
   assert.doesNotThrow(()=>validateTenantState(proposed,{previousState:previous}));
+});
+
+
+test('append fallback rejects a new worker that omits the helmet decision',()=>{
+  const current=validState(),proposed=structuredClone(current);
+  proposed.trabajadores.push({id:'w-new',nombre:'Nueva persona',rut:'14.507.215-8'});
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
 });
