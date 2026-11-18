@@ -112,10 +112,11 @@ export function resolveHelmetPolicy(state = {}, context = {}) {
     });
   const policy = matching[0] || defaultHelmetPolicy();
   const activeCodes = new Set(colors.filter(color => color.active).map(color => color.code));
-  const allowedColorCodes = policy.allowedColorCodes.length
+  const hasColorRestriction = policy.allowedColorCodes.length > 0;
+  const allowedColorCodes = hasColorRestriction
     ? policy.allowedColorCodes.filter(code => activeCodes.has(code))
     : [...activeCodes];
-  return { ...policy, allowedColorCodes, colors };
+  return { ...policy, allowedColorCodes, hasColorRestriction, colors };
 }
 
 export function helmetColorForCode(state = {}, code) {
@@ -153,6 +154,7 @@ export function helmetPolicySnapshot(policy, color, context = {}) {
     requireSize: Boolean(policy.requireSize),
     requireModelClass: Boolean(policy.requireModelClass),
     allowedColorCodes: [...policy.allowedColorCodes],
+    hasColorRestriction: Boolean(policy.hasColorRestriction),
     colorCode: color?.code || '',
     colorLabel: color?.label || '',
     resolvedAt: new Date().toISOString(),
