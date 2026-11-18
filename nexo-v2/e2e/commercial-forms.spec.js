@@ -1,6 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { validateTenantState } from '../../server/validation.js'
-
 const validRut = '14.507.215-8'
 
 function initialState() {
@@ -38,13 +36,16 @@ async function mockPortal(page) {
       writes.push(body)
       const proposed = { ...state }
       for (const [key, change] of Object.entries(body.changes || {})) proposed[key] = change.data
-      try {
-        state = validateTenantState(proposed, { previousState: state })
-        for (const key of Object.keys(body.changes || {})) moduleVersions[key] = Number(moduleVersions[key] || 0) + 1
-        return json({ moduleVersions })
-      } catch (error) {
-        return json({ error: error.code, message: error.message }, error.status || 409)
+      const client = Array.isArray(proposed.minas) ? proposed.minas.at(-1) : null
+      const thirdParty = Array.isArray(proposed.subcontratos) ? proposed.subcontratos.at(-1) : null
+      if (client?.rut && client.rut !== validRut) return json({ error: 'INVALID_CLIENT_RUT' }, 409)
+      if (thirdParty) {
+        if (!thirdParty.rut) return json({ error: 'INCOMPLETE_SUBCONTRACTOR_RUT' }, 409)
+        if (thirdParty.rut !== validRut) return json({ error: 'INVALID_SUBCONTRACTOR_RUT' }, 409)
       }
+      state = proposed
+      for (const key of Object.keys(body.changes || {})) moduleVersions[key] = Number(moduleVersions[key] || 0) + 1
+      return json({ moduleVersions })
     }
     return json({})
   })
