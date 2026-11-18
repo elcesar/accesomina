@@ -21,10 +21,13 @@ export function moduleForEntityType(entityType) {
 
 export function canAccessModule(auth, moduleKey) {
   if (!moduleKey) return false
+  const service=separateServiceForModule(moduleKey);
+  // D-068: Libro de obra remains unavailable globally until its own release.
+  // This applies to legacy state aliases, imports and direct API requests too.
+  if (service === 'libroObra') return false
   // Tenant policy is authoritative. A company-disabled module stays unavailable
   // even for an administrator or a user with an old individual grant.
   if (auth?.companyModules?.[moduleKey] === false) return false
-  const service=separateServiceForModule(moduleKey);
   if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
   return ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false
 }
