@@ -36,7 +36,7 @@ function ProductPreview({ onClose }) {
       <button type="button" aria-label="Cerrar vista ampliada" onClick={onClose}>×</button>
       <img
         src="/product-overview.svg"
-        alt="Ilustración ampliada de Nexo Klar"
+        alt="Ilustración demostrativa ampliada del panel de Nexo Klar: personas, órdenes de servicio, documentos y alertas."
         onClick={event => event.stopPropagation()}
       />
     </div>

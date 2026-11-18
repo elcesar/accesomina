@@ -17,7 +17,7 @@ export default function ProductSection({ openPreview }) {
             onClick={openPreview}
             aria-label="Ampliar vista demostrativa del panel de control"
           >
-            <img src="/product-overview.svg" alt="Ilustración de Nexo Klar: personas, órdenes de servicio y alertas" />
+            <img src="/product-overview.svg" alt="Ilustración demostrativa del panel de Nexo Klar: personas, órdenes de servicio, documentos y alertas." />
           </button>
           <p className="nk-caption">
             Ilustración de Nexo Klar con información demostrativa. Cada empresa trabaja con su propia configuración, usuarios e información privada.

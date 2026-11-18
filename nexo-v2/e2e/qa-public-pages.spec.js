@@ -22,6 +22,34 @@ test('public routes have unique titles, a main heading, canonical URL and crawla
   await page.goBack()
   await expect(page).toHaveURL(/\/plataforma$/)
 })
+
+test('Inicio y Producto muestran la ilustración demostrativa con la identidad oficial', async ({ page }) => {
+  const asset = await page.request.get('/product-overview.svg')
+  const svg = await asset.text()
+
+  expect(asset.ok()).toBeTruthy()
+  expect(svg).toContain('href="/brand/NK-color-horizontal.svg"')
+  expect(svg).toContain('font-family="Manrope, Inter, sans-serif"')
+  expect(svg).not.toMatch(/AccesoMina|Arial/i)
+
+  for (const route of ['/', '/producto']) {
+    await page.setViewportSize({ width: 1440, height: 975 })
+    await page.goto(route)
+
+    const illustration = page.locator('img[src="/product-overview.svg"]')
+    await expect(illustration).toBeVisible()
+    await expect(illustration).toHaveAttribute('alt', 'Ilustración demostrativa del panel de Nexo Klar: personas, órdenes de servicio, documentos y alertas.')
+    const intrinsicSize = await illustration.evaluate(image => ({ width: image.naturalWidth, height: image.naturalHeight }))
+    expect(intrinsicSize.width).toBeGreaterThan(0)
+    expect(intrinsicSize.height).toBeGreaterThan(0)
+
+    const box = await illustration.boundingBox()
+    expect(box?.width).toBeGreaterThan(300)
+    expect(box?.height).toBeGreaterThan(180)
+    expect((await illustration.screenshot()).byteLength).toBeGreaterThan(4_000)
+  }
+})
+
 test('invalid registration reports all fields and makes invitation errors actionable', async ({ page }) => {
   await page.goto('/crear-empresa')
   await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
