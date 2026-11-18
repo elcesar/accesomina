@@ -34,6 +34,7 @@ export function buildEppDelivery(form, { id, createdAt }) {
     helmetColorCode: String(form.helmetColorCode || '').trim().toLowerCase(),
     helmetColorLabel: String(form.helmetColorLabel || '').trim(),
     helmetClass: String(form.helmetClass || '').trim(),
+    helmetExpiryDate: String(form.helmetExpiryDate || form.expiryDate || '').trim(),
     brandModel: String(form.brandModel || '').trim(),
     certification: String(form.certification || '').trim(),
     lotSerial: String(form.lotSerial || '').trim(),
