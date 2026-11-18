@@ -248,17 +248,30 @@ test('module-state writes retain legacy physical helmets when a non-EPP module c
   assert.doesNotThrow(()=>validateTenantState(proposed,{previousState:previous}));
 });
 
-test('generic imports remain compatible without an explicit helmet payload',()=>{
+test('new worker additions require a decision while legacy workers remain writable',()=>{
   const current=validState();
-  const stateWrite=structuredClone(current);
-  stateWrite.trabajadores.push({id:'w-import',nombre:'Importación histórica',rut:'14.507.215-8'});
-  assert.doesNotThrow(()=>validateTenantState(stateWrite,{previousState:current}));
 
-  const append=structuredClone(current);
-  append.trabajadores.push({id:'w-append',nombre:'Carga CSV',rut:'14.507.215-8'});
-  assert.equal(validateAppendChanges(current,append,['trabajadores']),true);
+  const omittedStateWrite=structuredClone(current);
+  omittedStateWrite.trabajadores.push({id:'w-import',nombre:'Persona nueva',rut:'14.507.215-8'});
+  assert.throws(()=>validateTenantState(omittedStateWrite,{previousState:current}),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
+
+  const omittedAppend=structuredClone(current);
+  omittedAppend.trabajadores.push({id:'w-append',nombre:'Carga sin decisión',rut:'14.507.215-8'});
+  assert.throws(()=>validateAppendChanges(current,omittedAppend,['trabajadores']),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
 
   const explicitUnknown=structuredClone(current);
   explicitUnknown.trabajadores.push({id:'w-unknown',nombre:'Decisión explícita',rut:'14.507.215-8',epp:{helmet:{applicability:'unknown'}}});
   assert.throws(()=>validateAppendChanges(current,explicitUnknown,['trabajadores']),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
+
+  const explicitNo=structuredClone(current);
+  explicitNo.trabajadores.push({id:'w-no',nombre:'Decisión válida',rut:'14.507.215-8',epp:{helmet:{applicability:'not_required'}}});
+  assert.doesNotThrow(()=>validateTenantState(explicitNo,{previousState:current}));
+});
+
+test('trusted migration IDs may retain an explicit pending helmet only through server options',()=>{
+  const current=validState();
+  const imported=structuredClone(current);
+  imported.trabajadores.push({id:'w-csv',nombre:'Importación pendiente',rut:'14.507.215-8',epp:{helmet:{applicability:'unknown',legacyImport:true}}});
+  assert.throws(()=>validateTenantState(imported,{previousState:current}),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
+  assert.doesNotThrow(()=>validateTenantState(imported,{previousState:current,legacyHelmetImportIds:new Set(['w-csv'])}));
 });
