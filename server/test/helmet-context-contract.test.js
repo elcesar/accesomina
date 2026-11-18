@@ -93,6 +93,20 @@ test('helmet context contract rejects conflicting and forged selector sources', 
   }
 });
 
+test('unchanged legacy raw selectors are removed without changing helmet facts', () => {
+  const previous = baseState();
+  previous.trabajadores[0].mantId = 'os1-alt';
+  previous.trabajadores[0].minaId = 'm1';
+  previous.trabajadores[0].epp.helmetContext = { mantId: 'os1-alt', minaId: 'm1' };
+  const clean = validateTenantState(clone(previous), { previousState: previous });
+  const stored = clean.trabajadores[0];
+  assert.equal(stored.mantId, undefined);
+  assert.equal(stored.minaId, undefined);
+  assert.equal(stored.epp.helmetContext, undefined);
+  assert.equal(stored.epp.helmet.colorCode, 'azul');
+  assert.equal(stored.epp.helmet.size, 'M');
+});
+
 test('new workers resolve only validated atomic client and OS associations', () => {
   const clientPrevious = baseState();
   clientPrevious.helmetPolicies = [{
