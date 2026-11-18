@@ -6,12 +6,14 @@ import path from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { pool, withTenant } from '../db.js'
 import { settingsRouter, settingsUpdateAuthorization } from '../routes/settings.js'
+import { filesRouter } from '../routes/files.js'
 import { canAccessModule } from '../module-access.js'
 import { accessibleBrandText, brandCssVariables } from '../../nexo-v2/src/services/theme.js'
 import { config } from '../config.js'
 
 const TENANT_A = '11111111-1111-4111-8111-111111111111'
 const TENANT_B = '22222222-2222-4222-8222-222222222222'
+const BOOK_FILE = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
 const USERS = {
   client_admin: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   domian_admin: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -111,6 +113,7 @@ before(async () => {
     next()
   })
   app.use('/settings', settingsRouter)
+  app.use('/files', filesRouter)
   app.use('/work-books', (await import('../routes/work-books.js')).workBooksRouter)
   app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.code || 'SERVER_ERROR' }))
   const server = await new Promise((resolve, reject) => {
@@ -213,4 +216,27 @@ test('D-068 color contract supplies contrast-safe variables and unavailable surf
 
   const workBook = await fetch(`${fixture.base}/work-books/entries`, { headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
   assert.deepEqual([workBook.status, (await workBook.json()).error], [409, 'WORK_BOOK_NOT_AVAILABLE'])
+
+  const attachment = new FormData()
+  attachment.append('file', new Blob([new Uint8Array([1])], { type: 'image/png' }), 'libro-qa.png')
+  attachment.append('entityType', 'work_book_attachment')
+  attachment.append('entityId', 'entry-qa')
+  const blockedUpload = await fetch(`${fixture.base}/files`, {
+    method: 'POST',
+    headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' },
+    body: attachment,
+  })
+  assert.deepEqual([blockedUpload.status, (await blockedUpload.json()).error], [409, 'WORK_BOOK_NOT_AVAILABLE'])
+
+  await withTenant(TENANT_A, client => client.query(
+    `INSERT INTO file_objects(id,tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status)
+     VALUES($1,$2,$3,'work_book_document','entry-qa','libro-qa.png','image/png',1,'local',$4,'qa-work-book','clean')`,
+    [BOOK_FILE, TENANT_A, USERS.client_admin, `tenants/${TENANT_A}/objects/qa-work-book`]
+  ))
+  const blockedDownload = await fetch(`${fixture.base}/files/${BOOK_FILE}`, { headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
+  assert.deepEqual([blockedDownload.status, (await blockedDownload.json()).error], [409, 'WORK_BOOK_NOT_AVAILABLE'])
+  const blockedDelete = await fetch(`${fixture.base}/files/${BOOK_FILE}`, { method: 'DELETE', headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
+  assert.deepEqual([blockedDelete.status, (await blockedDelete.json()).error], [409, 'WORK_BOOK_NOT_AVAILABLE'])
+  const file = await withTenant(TENANT_A, client => client.query('SELECT deleted_at FROM file_objects WHERE id=$1', [BOOK_FILE]))
+  assert.equal(file.rows[0].deleted_at, null)
 })
