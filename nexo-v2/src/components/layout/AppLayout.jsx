@@ -26,6 +26,9 @@ function ModuleOutlet() {
   const canAdministerSubscriptions = isNexoAdmin || administration?.capabilities?.includes('read')
   const retainedRead = isCompanyAdmin && ['/app/transferencia', '/app/privacidad', '/app/bitacora'].includes(pathname)
 
+  if (pathname === '/app/libro-obra' || pathname.startsWith('/app/libro-obra/')) {
+    return <section className="nk-module-page"><h1>Libro de obra</h1><p role="status">Este módulo aún no está disponible. Nexo Klar comunicará su habilitación cuando corresponda.</p></section>
+  }
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
   if (pathname === '/app/administracion-planes' && administrationLoading && !administration) return <p role="status">Verificando permisos de administración…</p>
   if (pathname === '/app/administracion-planes' && administrationError) return <section className="nk-module-page"><p role="alert">No fue posible verificar los permisos de planes. {administrationError}</p><button className="nk-button nk-button-secondary" onClick={refreshAdministration}>Reintentar permisos</button></section>
