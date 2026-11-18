@@ -138,7 +138,11 @@ function deliveryIsHistorical(delivery, previousDelivery) {
 }
 
 function validateHelmetDelivery(delivery, state, previousDelivery) {
-  if (!isHelmetItem(delivery)) return;
+  const inventoryItem = collection(state, 'inventoryItems').find(item => (
+    String(item?.id || '') === String(delivery?.inventoryId || '')
+    || String(item?.id || '') === String(delivery?.itemId || '')
+  ));
+  if (!isHelmetItem(delivery) && !isHelmetItem(inventoryItem)) return;
   const historical = deliveryIsHistorical(delivery, previousDelivery);
   const code = String(delivery.helmetColorCode || delivery.colorCode || '').trim().toLowerCase();
   const label = String(delivery.helmetColorLabel || delivery.colorLabel || '').trim();
