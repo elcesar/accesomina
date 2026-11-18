@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom'
 import { IconPackage, IconPlus, IconRefresh, IconSearch, IconShield, IconUsers, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { buildEppDelivery } from '../services/epp-delivery.js'
+import { DEFAULT_HELMET_COLORS, helmetOptions } from '../config/ppe-catalog.js'
+import { isHelmetItem } from '../../../shared/helmet-policy.js'
 import { mergeCollections } from '../services/report-collections.js'
 import { workerSegment } from '../services/worker-segments.js'
 import '../styles/proteccion-epp.css'
@@ -43,22 +45,25 @@ function workerSize(worker, itemName) {
   if (/pantal/.test(name)) return epp.pantalon || ''
   if (/calzad|bot|zapat/.test(name)) return epp.calzado || epp.zapato || ''
   if (/guant/.test(name)) return epp.guante || ''
-  if (/casco/.test(name)) return epp.casco || ''
+  if (/casco/.test(name)) return epp.helmet?.size || epp.casco || ''
   if (/arn[eé]s/.test(name)) return epp.arnes || ''
   if (/respir/.test(name)) return epp.respirador || ''
   if (/ropa|polera|camisa|chaqueta|overol/.test(name)) return epp.ropa || epp.polera || ''
   return ''
 }
 
-function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSaved }) {
-  const [form, setForm] = useState({ workerId: '', inventoryId: '', itemName: '', quantity: 1, warehouseId: '', orderId: '', size: '', brandModel: '', certification: '', lotSerial: '', condition: 'nuevo', deliveredBy: '', receivedBy: '', deliveredAt: today(), replaceAt: '', notes: '' })
+function DeliveryDialog({ workers, inventory, warehouses, orders, state, onClose, onSaved }) {
+  const [form, setForm] = useState({ workerId: '', inventoryId: '', itemName: '', quantity: 1, warehouseId: '', orderId: '', size: '', helmetColorCode: '', helmetColorLabel: '', helmetClass: '', brandModel: '', certification: '', lotSerial: '', condition: 'nuevo', deliveredBy: '', receivedBy: '', deliveredAt: today(), replaceAt: '', notes: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const selectedWorker = workers.find(item => item.id === form.workerId)
+  const helmet = isHelmetItem(form.itemName)
+  const helmetConfig = helmetOptions(state || {}, { mantId: form.orderId, epp: {} })
+  const helmetColors = helmetConfig.colors
 
   function chooseInventory(id) {
     const item = inventory.find(current => current.id === id)
-    setForm(current => ({ ...current, inventoryId: id, warehouseId: item?.warehouseId || item?.bodegaId || '', itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || current.size }))
+    setForm(current => ({ ...current, inventoryId: id, warehouseId: item?.warehouseId || item?.bodegaId || '', itemName: item?.nombre || item?.name || item?.itemName || current.itemName, brandModel: item?.brandModel || item?.marcaModelo || item?.marca || current.brandModel, certification: item?.certification || item?.certificacion || current.certification, helmetColorCode: item?.helmetColorCode || item?.colorCode || current.helmetColorCode, helmetColorLabel: item?.helmetColorLabel || item?.colorLabel || current.helmetColorLabel, helmetClass: item?.helmetClass || item?.class || current.helmetClass, size: workerSize(selectedWorker, item?.nombre || item?.name || item?.itemName) || item?.size || current.size }))
   }
 
   function chooseWorker(id) {
@@ -70,6 +75,10 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
     event.preventDefault()
     const quantity = Number(form.quantity || 0)
     if (!form.workerId || !form.itemName.trim() || quantity <= 0 || saving) return
+    if (helmet && (!form.helmetColorCode || !form.helmetColorLabel)) {
+      setError('Selecciona el color físico del casco antes de registrar la entrega.')
+      return
+    }
     if (form.inventoryId && !form.warehouseId) {
       setError('Selecciona la bodega de origen para descontar el EPP entregado.')
       return
@@ -129,6 +138,7 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, onClose, onSav
         <div className="nk-field"><label className="nk-label">Bodega de origen</label><select className="nk-select" disabled={!form.inventoryId} value={form.warehouseId} onChange={event => setForm(current => ({ ...current, warehouseId: event.target.value }))}><option value="">{form.inventoryId ? 'Seleccionar bodega' : 'Sin descuento de inventario'}</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.nombre || warehouse.name || warehouse.codigo || 'Bodega'}</option>)}</select></div>
         <div className="nk-field"><label className="nk-label">Orden de servicio</label><select className="nk-select" value={form.orderId} onChange={event => setForm(current => ({ ...current, orderId: event.target.value }))}><option value="">Sin orden asociada</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo ? `${order.codigo} · ` : ''}{order.nombre || order.name || 'Orden de servicio'}</option>)}</select></div>
         <div className="nk-field"><label className="nk-label">Talla / medida</label><input className="nk-input" value={form.size} onChange={event => setForm(current => ({ ...current, size: event.target.value }))} placeholder="Ej.: M, 42, universal" />{selectedWorker && <span className="nk-epp-size-hint">Se sugiere la talla registrada en la ficha cuando existe.</span>}</div>
+        {helmet && <><div className="nk-field"><label className="nk-label">Color físico del casco</label><select className="nk-select" required value={form.helmetColorCode} onChange={event => { const color = helmetColors.find(item => item.code === event.target.value); setForm(current => ({ ...current, helmetColorCode: event.target.value, helmetColorLabel: color?.label || '' })) }}><option value="">Seleccionar color</option>{helmetColors.map(color => <option key={color.code} value={color.code}>{color.label}</option>)}</select></div><div className="nk-field"><label className="nk-label">Clase de casco (opcional)</label><input className="nk-input" value={form.helmetClass} onChange={event => setForm(current => ({ ...current, helmetClass: event.target.value }))} /></div></>}
         <div className="nk-field"><label className="nk-label">Marca / modelo</label><input className="nk-input" value={form.brandModel} onChange={event => setForm(current => ({ ...current, brandModel: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Certificación</label><input className="nk-input" value={form.certification} onChange={event => setForm(current => ({ ...current, certification: event.target.value }))} /></div>
         <div className="nk-field"><label className="nk-label">Lote / serie</label><input className="nk-input" value={form.lotSerial} onChange={event => setForm(current => ({ ...current, lotSerial: event.target.value }))} placeholder="Opcional" /></div>
