@@ -53,3 +53,4 @@ jobs:
           server/test/module-access.test.js
           server/test/files-route-order.test.js
           server/test/data-transfer.test.js
+          server/test/configuration-d068.test.js
