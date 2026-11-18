@@ -3,6 +3,7 @@ import test from 'node:test'
 import { helmetCompliance, helmetComplianceContribution } from '../../nexo-v2/src/services/helmet-compliance.js'
 import { deriveOperationalAlerts } from '../../nexo-v2/src/services/operational-alerts.js'
 import { workerClientIds } from '../../nexo-v2/src/services/worker-list.js'
+import { helmetOptions } from '../../nexo-v2/src/config/ppe-catalog.js'
 import { helmetContextForWorkerScope, helmetContextFromWorker } from '../../shared/helmet-policy.js'
 
 const worker = (epp = {}) => ({ id: 'w1', nombre: 'Persona QA', mineras: ['m1'], epp })
@@ -121,6 +122,21 @@ test('shared display uses only server-materialized context, never raw epp contex
   })
   const canonical = helmetContextFromWorker(materialized, scopedState)
   assert.deepEqual({ mantId: canonical.mantId, minaId: canonical.minaId }, { mantId: 'os1-alt', minaId: 'm1' })
+})
+
+test('an atomic draft assignment previews the OS policy without raw EPP context', () => {
+  const previewState = {
+    ...state,
+    mantenciones: [{ id: 'os1', minaId: 'm1', nombre: 'OS QA' }],
+    asignaciones: [{ id: 'draft-assignment', trabId: 'draft-worker', mantId: 'os1', estado: 'preasignado' }],
+    helmetPolicies: [
+      { id: 'tenant', scope: 'tenant', active: true, requireColor: true, requireSize: true, allowedColorCodes: ['azul'] },
+      { id: 'os-green', scope: 'os', mantId: 'os1', active: true, requireColor: true, requireSize: true, allowedColorCodes: ['verde'] },
+    ],
+  }
+  const options = helmetOptions(previewState, { id: 'draft-worker', mineras: ['m1'], epp: {} })
+  assert.equal(options.context.mantId, 'os1')
+  assert.equal(options.policy.id, 'os-green')
 })
 
 test('client-row helmet compliance does not leak an OS policy from another client', () => {
