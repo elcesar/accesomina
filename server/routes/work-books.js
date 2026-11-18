@@ -10,6 +10,9 @@ import { canTransitionWorkBookEntry, workBookFolio } from '../work-book.js';
 import { tenantIntegration, tenantOperationalTimeZone } from './settings.js';
 
 export const workBooksRouter = Router();
+// D-068: Libro de obra is deliberately not available yet. Keep the server guard
+// before every handler so a bookmarked/direct API route cannot bypass the UI.
+workBooksRouter.use((_req, res) => res.status(409).json({ error: 'WORK_BOOK_NOT_AVAILABLE' }));
 const editors = allowRoles('domian_admin', 'client_admin', 'rrhh', 'prevencion', 'acreditacion');
 const text = (min, max) => z.string().trim().min(min).max(max);
 const entryStates = ['borrador', 'pendiente_firma', 'observado', 'firmado', 'cerrado'];
