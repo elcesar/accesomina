@@ -130,7 +130,7 @@ test('Cliente conserva RUT opcional y bloquea uno inválido sin desplazar su fil
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
   await expect.poll(() => api.writes.length).toBe(1)
   await expect.poll(() => api.state().minas.some(item => item.nombre === 'Cliente ficticio QA' && item.rut === '')).toBe(true)
-  await expect(page).toHaveURL(/\\/app\\/clientes\\//)
+  await expect(page).toHaveURL(/\/app\/clientes\//)
 })
 
 test('Tercero exige RUT y permite una corrección válida sin salto de grilla', async ({ page }) => {
@@ -138,8 +138,6 @@ test('Tercero exige RUT y permite una corrección válida sin salto de grilla', 
   await openThirdPartyForm(page)
   await page.getByLabel('Razón social', { exact: true }).fill('Tercero ficticio QA')
   const rut = page.getByLabel('RUT', { exact: true })
-  const statusBefore = await box(page, '#third-party-status')
-
   await page.getByRole('button', { name: 'Registrar tercero', exact: true }).click()
   await expect(rut).toHaveAttribute('aria-invalid', 'true')
   await expect(page.getByText('Ingresa el RUT.', { exact: true })).toBeVisible()
