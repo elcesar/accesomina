@@ -47,6 +47,12 @@ export function RutInput({
       }}
     />
     {!message && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
-    {message && <p id={errorId} className="nk-field-error" role="alert">{message}</p>}
+    {(error !== undefined || message) && <p
+      id={message ? errorId : undefined}
+      className="nk-field-error"
+      role={message ? 'alert' : undefined}
+      aria-hidden={message ? undefined : true}
+      style={{ visibility: message ? 'visible' : 'hidden' }}
+    >{message || 'Ingresa un RUT chileno válido o deja el campo vacío.'}</p>}
   </>
 }
