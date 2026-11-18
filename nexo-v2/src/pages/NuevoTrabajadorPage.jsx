@@ -344,7 +344,16 @@ export default function NuevoTrabajadorPage() {
 
   const mantenciones = stateData?.mantenciones || []
   const existingWorkers = stateData?.trabajadores || []
-  const helmetConfig = helmetOptions(stateData || {}, { mantId: data.mantId, epp: {} })
+  // This is a local draft of the association that this flow persists in the
+  // same operation. It lets the person see the applicable OS policy before
+  // saving; the server validates the actual association again.
+  const helmetDraftWorker = useMemo(() => {
+    const initialOrder = mantenciones.find(item => String(item.id) === String(data.mantId || ''))
+    return initialOrder
+      ? { id: 'draft-worker', mineras: initialOrder.minaId ? [initialOrder.minaId] : [], epp: { helmetContext: { mantId: initialOrder.id, minaId: initialOrder.minaId || '' } } }
+      : { id: 'draft-worker', mineras: [], epp: {} }
+  }, [data.mantId, mantenciones])
+  const helmetConfig = helmetOptions(stateData || {}, helmetDraftWorker)
   const helmetPolicy = helmetConfig.policy
   const helmetColors = helmetConfig.colors
 
