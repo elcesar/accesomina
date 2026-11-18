@@ -28,7 +28,13 @@ test('Inicio y Producto muestran la ilustración demostrativa con la identidad o
   const svg = await asset.text()
 
   expect(asset.ok()).toBeTruthy()
-  expect(svg).toContain('href="/brand/NK-color-horizontal.svg"')
+  // El logotipo oficial debe estar incrustado: los SVG externos pueden bloquearse dentro de <img>.
+  expect(svg).not.toMatch(/<image\\b|href=["']\\/brand\\/NK-color-horizontal\\.svg/)
+  expect(svg).toContain('viewBox="0 0 565.09198 142.45332"')
+  expect(svg).toContain('fill:#e9a319')
+  expect(svg).toContain('fill:#00cfc1')
+  expect(svg).toContain('fill:#e4006e')
+  expect(svg).toContain('fill:#1e3ae0')
   expect(svg).toContain('font-family="Manrope, Inter, sans-serif"')
   expect(svg).not.toMatch(/AccesoMina|Arial/i)
 
