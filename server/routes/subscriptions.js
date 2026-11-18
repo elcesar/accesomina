@@ -7,8 +7,8 @@ import { isValidRut, isValidChilePhone, normalizeEmail, normalizeRut, sha256 } f
 import { filesRouter, subscriptionDocumentsContext } from './files.js';
 import { listSubscriptionNotifications } from '../subscription-notifications.js';
 import { requireSubscriptionAdmin,requireSubscriptionCapability } from '../subscription-permissions.js';
-import { createSubscriptionRequest,getSubscriptionAuditPage,getSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
- recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
+import { createSubscriptionRequest,getSubscriptionAuditPage,getSubscriptionCatalog,getPublicSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
+ publicSubscriptionRecommendation,recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
  transitionSubscriptionRequest,withSubscriptionAdmin } from '../subscriptions.js';
 
 export const publicPlansRouter=Router();
@@ -24,11 +24,11 @@ const publicLimiter=rateLimit({windowMs:15*60000,limit:10,standardHeaders:true,l
 const recommendLimiter=rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false});
 
 publicPlansRouter.get('/plans',wrap(async(req,res)=>{
- res.set('Cache-Control','no-store');res.json(await getSubscriptionCatalog());
+ res.set('Cache-Control','no-store');res.json(await getPublicSubscriptionCatalog());
 }));
 publicPlansRouter.post('/plans/recommend',recommendLimiter,wrap(async(req,res)=>{
  const input=z.object({workers:z.number().int().min(1).max(1000000),freeEligible:z.boolean().optional()}).strict().parse(req.body);
- res.json(recommendSubscription(await getSubscriptionCatalog(),input));
+ res.json(publicSubscriptionRecommendation(await getSubscriptionCatalog(),input));
 }));
 
 const commercialSchema=z.object({companyName:z.string().trim().min(3).max(160),rut:z.string().trim().max(20),tradeName:z.string().trim().max(160).optional(),region:z.string().trim().max(100).optional(),commune:z.string().trim().max(100).optional(),
@@ -89,7 +89,7 @@ subscriptionRouter.get('/subscription/notifications',ownAdmin,wrap(async(req,res
 subscriptionRouter.use('/subscriptions/admin',requireSubscriptionAdmin,requireSubscriptionCapability('read'));
 subscriptionRouter.get('/subscriptions/admin/catalog',wrap(async(req,res)=>res.json(await getSubscriptionCatalog(undefined,{admin:true}))));
 subscriptionRouter.post('/subscriptions/admin/catalog',requireSubscriptionCapability('catalog.manage'),wrap(async(req,res)=>{
- const common={code:z.string().max(40),versionId:id.optional(),action:z.enum(['draft','publish']),name:z.string().trim().min(1).max(100).optional(),monthlyPrice:z.number().int().min(0).max(1000000000).optional(),taxRate:z.number().min(0).max(1).optional(),active:z.boolean().optional(),displayOrder:z.number().int().min(0).max(10000).optional()};
+ const common={code:z.string().max(40),versionId:id.optional(),action:z.enum(['draft','publish']),name:z.string().trim().min(1).max(100).optional(),monthlyPrice:z.number().int().min(0).max(1000000000).optional(),taxRate:z.number().min(0).max(1).optional(),active:z.boolean().optional(),displayOrder:z.number().int().min(0).max(10000).optional(),priceVisibility:z.enum(['PUBLISHED','QUOTE']).optional()};
  const input=z.discriminatedUnion('kind',[
   z.object({...common,kind:z.literal('plan'),workerLimit:z.number().int().min(1).max(1000000).optional(),publicVisible:z.boolean().optional(),recommended:z.boolean().optional(),description:z.string().trim().max(2000).optional(),publicFeatures:z.array(z.string().trim().min(1).max(240)).max(30).optional(),ctaText:z.string().trim().min(1).max(80).optional(),trialMonths:z.number().int().min(0).max(120).optional(),graceDays:z.number().int().min(0).max(365).optional(),warningPercent:z.number().int().min(0).max(99).optional(),criticalPercent:z.number().int().min(1).max(99).optional(),allowedUpgradeTargets:z.array(z.enum(['LA_UNION','PURRANQUE','FRUTILLAR','PUERTO_OCTAY'])).max(4).optional()}).strict(),
   z.object({...common,kind:z.literal('package'),workersQuantity:z.number().int().min(1).max(1000000).optional(),repeatable:z.boolean().optional(),stackable:z.boolean().optional(),maxQuantity:z.number().int().min(1).max(1000).optional()}).strict()
