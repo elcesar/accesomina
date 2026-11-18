@@ -25,7 +25,7 @@ async function fixture(page, { role = 'domian_admin', profile = 'SUPER_ADMIN', s
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
     if (path === '/api/subscriptions/admin/access') return state.loggedIn && profile ? json({ profile, capabilities: profileCapabilities[profile] }) : json({ error: 'FORBIDDEN' }, 403)
-    if (path === '/api/plans') return json(state.catalog)
+    if (path === '/api/plans' || path === '/api/subscription/catalog') return json(state.catalog)
     if (path === '/api/subscription') return json(state.summary)
     if (path.endsWith('/audit')) return json({ events: [], nextCursor: null })
     if (path === '/api/subscription/notifications') return json({ notifications: [] })
