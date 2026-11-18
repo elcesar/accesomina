@@ -176,3 +176,15 @@ test('multiple active orders require an explicit helmet context instead of reusi
   worker.epp.helmetContext = { mantId: 'os2', minaId: 'm1' };
   assert.doesNotThrow(() => validateTenantState({ ...state, trabajadores: [worker] }, { previousState: state }));
 });
+
+
+test('an inactive-only restriction rejects other active colours server-side', () => {
+  const state = baseState();
+  state.helmetColors = [{ code: 'azul', label: 'Azul', active: false }, { code: 'verde', label: 'Verde', active: true }];
+  state.helmetPolicies = [{ id: 'tenant', scope: 'tenant', allowedColorCodes: ['azul'] }];
+  state.trabajadores[0].epp = {
+    casco: 'M',
+    helmet: { applicability: 'required', colorCode: 'verde', colorLabel: 'Verde', size: 'M' },
+  };
+  assert.throws(() => validateTenantState(state), error => error.code === 'HELMET_COLOR_NOT_ALLOWED');
+});
