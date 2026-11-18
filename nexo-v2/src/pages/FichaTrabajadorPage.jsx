@@ -29,6 +29,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, WORKER_SPECIALTIES, isCanonicalWorkerRegimen, workerRegimenLabel } from '../config/worker-catalogs.js'
 import { HELMET_APPLICABILITY, PPE_SIZE_FIELDS, helmetOptions, normalizeWorkerEpp, updateWorkerEpp, updateWorkerHelmet } from '../config/ppe-catalog.js'
+import { helmetCompliance, helmetComplianceBadgeClass } from '../services/helmet-compliance.js'
 import {
   DOCUMENT_TYPE_OPTIONS,
   documentRule,
@@ -374,6 +375,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries, state }) {
   const epp = normalizeWorkerEpp(worker.epp)
   const helmet = epp.helmet
   const helmetConfig = helmetOptions(state || {}, worker)
+  const helmetStatus = helmetCompliance(worker, state || {})
   const helmetPolicy = helmetConfig.policy
   const helmetColors = helmetConfig.colors
   const isLegacyHelmet = !Object.hasOwn(worker.epp || {}, 'helmet') || helmet.applicability === HELMET_APPLICABILITY.UNKNOWN
@@ -381,7 +383,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries, state }) {
   const helmetRequired = helmet.applicability === HELMET_APPLICABILITY.REQUIRED
   return <>
     <CardSection title="Aplicabilidad de casco" subtitle={isLegacyHelmet ? "Dato histórico: confirma si el casco aplica para completar el registro." : "La política se resuelve por orden de servicio, cliente y empresa; no se infiere por cargo."}>
-      <div className="nk-person-grid">
+      <div className="nk-person-grid"><div className="nk-person-field-full"><span className={`nk-badge ${helmetComplianceBadgeClass(helmetStatus)}`}>{helmetStatus.label}</span><p className="nk-person-text-sub">{helmetStatus.detail}</p></div>
         <Field label="¿Casco requerido?"><div role="radiogroup" aria-label="¿Casco requerido?">
           <label><input type="radio" name="worker-helmet-applicability" checked={helmetRequired} onChange={() => onChange('epp', updateWorkerHelmet(worker.epp, { applicability: HELMET_APPLICABILITY.REQUIRED }))} /> Sí</label>
           <label><input type="radio" name="worker-helmet-applicability" checked={helmet.applicability === HELMET_APPLICABILITY.NOT_REQUIRED} onChange={() => onChange('epp', updateWorkerHelmet(worker.epp, { applicability: HELMET_APPLICABILITY.NOT_REQUIRED, colorCode: '', colorLabel: '', size: '', modelClass: '' }))} /> No</label>
