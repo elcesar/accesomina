@@ -6,6 +6,34 @@ import { documentFileIds, referencedFileIds, referencedFileIdsOutsideRemovedDocu
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
 test('state normalizes and validates worker Chilean phones before persistence',()=>{const state=validState();state.trabajadores[0].tel='9 1234 5678';assert.equal(validateTenantState(state).trabajadores[0].tel,'+56912345678');state.trabajadores[0].tel='123';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_WORKER_PHONE');});
+test('subcontractor RUT is required for new records without rewriting historical blanks',()=>{
+  const current=validState();
+  current.subcontratos=[{id:'subc-legacy',razon:'Tercero histórico',rut:''}];
+  assert.doesNotThrow(()=>validateTenantState(structuredClone(current),{previousState:current}));
+
+  const newBlank=structuredClone(current);
+  newBlank.subcontratos.push({id:'subc-new',razon:'Tercero nuevo',rut:''});
+  assert.throws(()=>validateTenantState(newBlank,{previousState:current}),error=>error.code==='INCOMPLETE_SUBCONTRACTOR_RUT');
+
+  const legacyEdited=structuredClone(current);
+  legacyEdited.subcontratos[0].servicios='Aseo industrial';
+  assert.doesNotThrow(()=>validateTenantState(legacyEdited,{previousState:current}));
+
+  const validExisting=structuredClone(current);
+  validExisting.subcontratos[0].rut='14.507.215-8';
+  const persisted=validateTenantState(validExisting,{previousState:current});
+  const cleared=structuredClone(persisted);
+  cleared.subcontratos[0].rut='';
+  assert.throws(()=>validateTenantState(cleared,{previousState:persisted}),error=>error.code==='INCOMPLETE_SUBCONTRACTOR_RUT');
+
+  const invalid=structuredClone(current);
+  invalid.subcontratos.push({id:'subc-invalid',razon:'Tercero inválido',rut:'11.111.111-2'});
+  assert.throws(()=>validateTenantState(invalid,{previousState:current}),error=>error.code==='INVALID_SUBCONTRACTOR_RUT');
+
+  const valid=structuredClone(current);
+  valid.subcontratos.push({id:'subc-valid',razon:'Tercero válido',rut:'14.507.215-8'});
+  assert.doesNotThrow(()=>validateTenantState(valid,{previousState:current}));
+});
 test('state rejects duplicate worker RUT',()=>{const state=validState();state.trabajadores.push({id:'w2',nombre:'Otra persona',rut:'14.567.890-0'});assert.throws(()=>validateTenantState(state),/Duplicate worker RUT/);});
 test('state rejects an invalid client RUT before persistence',()=>{const state=validState();state.minas[0].rut='13.848.379-6';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_CLIENT_RUT');});
 test('state requires client id and name before persistence',()=>{const state=validState();state.minas[0].nombre='';assert.throws(()=>validateTenantState(state),error=>error.code==='INCOMPLETE_CLIENT');});
