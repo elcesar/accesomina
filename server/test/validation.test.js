@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
-import { documentFileIds, referencedFileIds, referencedFileIdsOutsideRemovedDocument } from '../routes/state.js';
+import { documentFileIds, normalizeTenantState, referencedFileIds, referencedFileIdsOutsideRemovedDocument } from '../routes/state.js';
 
 const validState=()=>({trabajadores:[{id:'w1',rut:'14.567.890-0',nombre:'Persona'}],minas:[{id:'m1',nombre:'Mina'}],contratos:[{id:'c1',minaId:'m1'}],mantenciones:[{id:'p1',minaId:'m1',contratoId:'c1',inicio:'2026-01-01',termino:'2026-01-02'}],asignaciones:[{trabId:'w1',mantId:'p1'}]});
 test('state accepts valid relationships',()=>assert.equal(validateTenantState(validState()).trabajadores.length,1));
@@ -235,4 +235,13 @@ test('module-write validation requires a physical helmet inventory snapshot',()=
   const invalid=structuredClone(valid);
   invalid.inventoryItems[0].helmetColorLabel='';
   assert.throws(()=>validateTenantState(invalid),error=>error.code==='HELMET_INVENTORY_COLOR_REQUIRED');
+});
+
+
+test('module-state normalization retains legacy physical helmet records on unrelated writes',()=>{
+  const previous=validState();
+  previous.inventoryItems=[{id:'legacy-helmet',name:'Casco histórico',category:'epp',stock:2,warehouseId:'w1'}];
+  previous.eppDeliveries=[{id:'legacy-delivered',workerId:'w1',mantId:'p1',itemId:'legacy-helmet',inventoryId:'legacy-helmet',itemName:'Casco histórico',qty:1,deliveryStatus:'entregado',condition:'nuevo',deliveredAt:'2026-07-01'}];
+  const proposed=normalizeTenantState(structuredClone(previous));
+  assert.doesNotThrow(()=>validateTenantState(proposed,{previousState:previous}));
 });
