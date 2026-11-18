@@ -238,17 +238,27 @@ test('module-write validation requires a physical helmet inventory snapshot',()=
 });
 
 
-test('module-state normalization retains legacy physical helmet records on unrelated writes',()=>{
+test('module-state writes retain legacy physical helmets when a non-EPP module changes',()=>{
   const previous=validState();
   previous.inventoryItems=[{id:'legacy-helmet',name:'Casco histórico',category:'epp',stock:2,warehouseId:'w1'}];
   previous.eppDeliveries=[{id:'legacy-delivered',workerId:'w1',mantId:'p1',itemId:'legacy-helmet',inventoryId:'legacy-helmet',itemName:'Casco histórico',qty:1,deliveryStatus:'entregado',condition:'nuevo',deliveredAt:'2026-07-01'}];
   const proposed=normalizeTenantState(structuredClone(previous));
+  // This is a real unrelated module change, not merely a normalize-and-save.
+  proposed.incidentes=[{id:'incident-unrelated-write',mantId:'p1'}];
   assert.doesNotThrow(()=>validateTenantState(proposed,{previousState:previous}));
 });
 
+test('generic imports remain compatible without an explicit helmet payload',()=>{
+  const current=validState();
+  const stateWrite=structuredClone(current);
+  stateWrite.trabajadores.push({id:'w-import',nombre:'Importación histórica',rut:'14.507.215-8'});
+  assert.doesNotThrow(()=>validateTenantState(stateWrite,{previousState:current}));
 
-test('append fallback rejects a new worker that omits the helmet decision',()=>{
-  const current=validState(),proposed=structuredClone(current);
-  proposed.trabajadores.push({id:'w-new',nombre:'Nueva persona',rut:'14.507.215-8'});
-  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
+  const append=structuredClone(current);
+  append.trabajadores.push({id:'w-append',nombre:'Carga CSV',rut:'14.507.215-8'});
+  assert.equal(validateAppendChanges(current,append,['trabajadores']),true);
+
+  const explicitUnknown=structuredClone(current);
+  explicitUnknown.trabajadores.push({id:'w-unknown',nombre:'Decisión explícita',rut:'14.507.215-8',epp:{helmet:{applicability:'unknown'}}});
+  assert.throws(()=>validateAppendChanges(current,explicitUnknown,['trabajadores']),error=>error.code==='HELMET_APPLICABILITY_REQUIRED');
 });
