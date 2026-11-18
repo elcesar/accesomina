@@ -23,13 +23,12 @@ const ownAdmin=(req,res,next)=>['client_admin','domian_admin'].includes(req.auth
 const publicLimiter=rateLimit({windowMs:15*60000,limit:10,standardHeaders:true,legacyHeaders:false,message:{error:'SUBSCRIPTION_RATE_LIMITED',message:'Espera unos minutos antes de volver a enviar una solicitud.'}});
 const recommendLimiter=rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false});
 
-publicPlansRouter.get('/plans',wrap(async(req,res)=>{
- res.set('Cache-Control','no-store');res.json(await getPublicSubscriptionCatalog());
-}));
-publicPlansRouter.post('/plans/recommend',recommendLimiter,wrap(async(req,res)=>{
- const input=z.object({workers:z.number().int().min(1).max(1000000),freeEligible:z.boolean().optional()}).strict().parse(req.body);
- res.json(publicSubscriptionRecommendation(await getSubscriptionCatalog(),input));
-}));
+// The public commercial model is not approved (#341).
+// Keep the unapproved catalogue inaccessible without an authenticated session.
+const PUBLIC_COMMERCIAL_OFFERS_APPROVED = false;
+const publicOfferUnavailable = (req,res) => res.status(404).json({error:'PUBLIC_PLANS_NOT_AVAILABLE'});
+publicPlansRouter.get('/plans',publicOfferUnavailable);
+publicPlansRouter.post('/plans/recommend',publicOfferUnavailable);
 
 const commercialSchema=z.object({companyName:z.string().trim().min(3).max(160),rut:z.string().trim().max(20),tradeName:z.string().trim().max(160).optional(),region:z.string().trim().max(100).optional(),commune:z.string().trim().max(100).optional(),
  contactName:z.string().trim().min(2).max(120),contactLastName:z.string().trim().min(2).max(120),position:z.string().trim().max(120).optional(),email:z.string().trim().email().max(254),phone:z.string().trim().min(1).max(32),
@@ -39,6 +38,7 @@ function commercialView(row){return {id:row.id,tenantId:row.tenant_id,companyNam
  workers:row.workers_quantity,planCode:row.requested_plan_code,proposal:row.proposal,packages:row.proposal?.packages||[],comments:row.comments,status:row.status,linkedRequestId:row.linked_request_id,createdAt:row.created_at};}
 
 publicPlansRouter.post('/commercial-requests',publicLimiter,wrap(async(req,res)=>{
+ if(!PUBLIC_COMMERCIAL_OFFERS_APPROVED)return res.status(503).json({error:'COMMERCIAL_OFFER_NOT_APPROVED'});
  const input=commercialSchema.parse(req.body);
  if(!isValidRut(input.rut))fail('SUBSCRIPTION_COMPANY_RUT','Revisa el RUT de la empresa.');
  if(!isValidChilePhone(input.phone))fail('SUBSCRIPTION_CONTACT_PHONE','Revisa el teléfono de contacto.');
@@ -60,6 +60,12 @@ publicPlansRouter.post('/commercial-requests',publicLimiter,wrap(async(req,res)=
    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13) RETURNING id`,[input.companyName,normalizeRut(input.rut),input.contactName,input.contactLastName,normalizeEmail(input.email),input.phone,input.workers,input.planCode,JSON.stringify(proposal),input.comments,input.termsVersion,input.idempotencyKey,hash])).rows[0];
  });
  res.status(201).json({requestId:result.id,message:'Hemos recibido tu solicitud. Nuestro equipo revisará la información y se pondrá en contacto contigo.'});
+}));
+
+// Private catalogue remains available to authenticated companies, with quote prices masked.
+subscriptionRouter.get('/subscription/catalog',wrap(async(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ res.json(await getPublicSubscriptionCatalog());
 }));
 
 subscriptionRouter.get('/subscription',wrap(async(req,res)=>{
