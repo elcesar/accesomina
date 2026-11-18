@@ -45,6 +45,12 @@ function sendSettingsPermissionDenied(res) {
   return res.status(403).json({ error: 'PERMISSION_DENIED' })
 }
 
+export function settingsUpdateAuthorization(role, wantsModules) {
+  if (wantsModules && !canManageTenantModules(role)) return 'MODULE_SETTINGS_PERMISSION_DENIED'
+  if (!canEditTenantSettings(role)) return 'PERMISSION_DENIED'
+  return null
+}
+
 function normalizeModules(value) {
   if (!plainObject(value)) {
     throw Object.assign(new Error('Los módulos deben ser una configuración válida.'), { status: 400, code: 'INVALID_MODULE_SETTINGS' })
@@ -128,10 +134,8 @@ settingsRouter.put('/', async (req, res) => {
 
   // Do this before the broad settings gate so a direct API attempt receives the
   // stable denial required by #179, even if the account has no settings access.
-  if (wantsModules && !canManageTenantModules(req.auth?.role)) {
-    return res.status(403).json({ error: 'MODULE_SETTINGS_PERMISSION_DENIED' })
-  }
-  if (!canEditTenantSettings(req.auth?.role)) return sendSettingsPermissionDenied(res)
+  const denied = settingsUpdateAuthorization(req.auth?.role, wantsModules)
+  if (denied) return res.status(403).json({ error: denied })
 
   const row = await withTenant(req.auth.tenantId, async client => {
     const before = (await client.query(
