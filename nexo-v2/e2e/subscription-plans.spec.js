@@ -36,7 +36,7 @@ async function fixture(page, { role = null, summary = fixtureSummary(), stalePri
     if (path === '/api/subscriptions/admin/access') return role === 'domian_admin' ? json({ profile: 'SUPER_ADMIN', capabilities: ['read', 'catalog.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage', 'operators.manage', 'policies.manage'] }) : json({ error: 'FORBIDDEN' }, 403)
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
-    if (path === '/api/plans') return json(state.catalog)
+    if (path === '/api/plans' || path === '/api/subscription/catalog') return json(state.catalog)
     if (path === '/api/plans/recommend') return json({ planCode: 'PUERTO_OCTAY', workers: payload.workers, baseCapacity: 720, packages: [{ code: 'EXTRA_200', quantity: 1, workersQuantity: 200, monthlyPrice: quotePricing ? null : 100000, priceVisibility: quotePricing ? 'QUOTE' : undefined }], totalCapacity: 920, available: 70, monthlyNetPrice: quotePricing ? null : 104000, priceVisibility: quotePricing ? 'QUOTE' : undefined, currency: 'CLP' })
     if (path === '/api/commercial-requests') {
       if (stalePrice && !state.commercial.length) { stalePrice = false; const plan = state.catalog.plans.find(item => item.code === 'PURRANQUE'); plan.monthlyPrice = 2500; plan.versionId = 'PURRANQUE-v2'; return json({ error: 'SUBSCRIPTION_OFFER_CHANGED' }, 409) }
