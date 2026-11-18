@@ -96,11 +96,28 @@ function referenceProject(referenceState, mantId) {
   return collection(referenceState, 'mantenciones')
     .find(project => String(project?.id || '') === String(mantId || ''));
 }
-function knownHelmetMineIds(worker, referenceState, assignments = activeHelmetAssignments(worker, referenceState)) {
+function knownHelmetMineIds(worker, referenceState, assignments = activeHelmetAssignments(worker, referenceState), {
+  includeWorkerClients = true,
+} = {}) {
   return new Set([
-    ...(Array.isArray(worker?.mineras) ? worker.mineras : []),
+    ...(includeWorkerClients && Array.isArray(worker?.mineras) ? worker.mineras : []),
     ...assignments.map(assignment => referenceProject(referenceState, assignment?.mantId)?.minaId),
   ].map(value => String(value || '').trim()).filter(Boolean));
+}
+function validateCandidateHelmetAssignments(assignments, candidateState) {
+  for (const assignment of assignments) {
+    const project = referenceProject(candidateState, assignment?.mantId);
+    if (!project || !collection(candidateState, 'minas').some(mine => String(mine?.id || '') === String(project.minaId || ''))) {
+      helmetConflict('La asignación candidata no tiene una orden y cliente válidos.', 'INVALID_HELMET_CONTEXT');
+    }
+    const contractId = project.contratoId || project.contractId;
+    if (contractId) {
+      const contract = collection(candidateState, 'contratos').find(row => String(row?.id || '') === String(contractId));
+      if (!contract || String(contract.minaId || '') !== String(project.minaId || '')) {
+        helmetConflict('La asignación candidata no coincide con su contrato y cliente.', 'INVALID_HELMET_CONTEXT');
+      }
+    }
+  }
 }
 function contextFingerprint(worker) {
   return JSON.stringify({
@@ -140,13 +157,20 @@ function resolveTrustedHelmetContext(worker, state, {
   allowHistorical = false,
   historicalSnapshot = null,
 } = {}) {
-  const referenceState = previousWorker && previousState ? previousState : state;
+  const existingWorker = Boolean(previousWorker);
+  const referenceState = existingWorker && previousState ? previousState : state;
   const scopeWorker = previousWorker || worker;
   if (allowHistorical) return historicalHelmetContext(historicalSnapshot, referenceState);
 
   const raw = rawHelmetContext(worker, requestedContext);
   const assignments = activeHelmetAssignments(scopeWorker, referenceState);
-  const knownMineIds = knownHelmetMineIds(scopeWorker, referenceState, assignments);
+  // A new worker may use an assignment created in the same atomic write only
+  // after its OS/client/contract relationship has been validated server-side.
+  if (!existingWorker) validateCandidateHelmetAssignments(assignments, state);
+  const knownMineIds = knownHelmetMineIds(scopeWorker, referenceState, assignments, {
+    // Raw worker client fields are not a trusted policy selector at creation.
+    includeWorkerClients: existingWorker,
+  });
   if (raw) {
     if (!raw.value || typeof raw.value !== 'object' || Array.isArray(raw.value)) {
       helmetConflict('El contexto de casco no es válido.', 'INVALID_HELMET_CONTEXT');
