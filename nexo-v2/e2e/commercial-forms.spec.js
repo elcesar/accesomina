@@ -127,7 +127,7 @@ test('Cliente conserva RUT opcional y bloquea uno inválido sin desplazar su fil
   await rut.press('Tab')
   await expect(rut).toHaveAttribute('aria-invalid', 'false')
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
-  await expect(page.getByText('Cambios guardados con trazabilidad.')).toBeVisible()
+  await expect(page.getByText('Cliente creado y disponible para contratos y órdenes de servicio.')).toBeVisible()
   expect(api.state().minas).toEqual(expect.arrayContaining([expect.objectContaining({ nombre: 'Cliente ficticio QA', rut: '' })]))
 })
 
