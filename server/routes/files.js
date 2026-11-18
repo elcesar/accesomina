@@ -85,6 +85,9 @@ filesRouter.post('/', fileEditors, requireFileInfrastructure, upload.single('fil
   const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${commercial?'commercial/':''}${sha}`;
   const row=await withTenant(req.auth.tenantId,async client=>{
     await lockFileWrite(client,req,entityType);
+    // Serialize new physical uploads with suspension and definitive tenant erasure.
+    const tenant=(await client.query("SELECT id FROM tenants WHERE id=$1 AND status='active' FOR SHARE",[req.auth.tenantId])).rows[0];
+    if(!tenant)throw Object.assign(new Error('La cuenta no está habilitada para adjuntar archivos.'),{status:403,code:'ACCOUNT_DISABLED'});
     // Serialize uploads of identical content, including restoration of soft-deleted objects.
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[storageKey]);
     const existing=(await client.query(`SELECT id,original_name,content_type,byte_size,malware_status,created_at,deleted_at
