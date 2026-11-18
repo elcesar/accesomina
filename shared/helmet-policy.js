@@ -97,6 +97,11 @@ function policyMatches(policy, context = {}) {
 }
 
 export function resolveHelmetPolicy(state = {}, context = {}) {
+  const colors = normalizeHelmetColors(state.helmetColors);
+  if (context.multipleActiveOrders) {
+    const activeCodes = colors.filter(color => color.active).map(color => color.code);
+    return { ...defaultHelmetPolicy(), colors, allowedColorCodes: activeCodes, ambiguousContext: true };
+  }
   const policies = normalizeHelmetPolicies(state.helmetPolicies);
   const matching = policies
     .filter(policy => policyMatches(policy, context))
@@ -106,7 +111,6 @@ export function resolveHelmetPolicy(state = {}, context = {}) {
       return String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || ''));
     });
   const policy = matching[0] || defaultHelmetPolicy();
-  const colors = normalizeHelmetColors(state.helmetColors);
   const activeCodes = new Set(colors.filter(color => color.active).map(color => color.code));
   const allowedColorCodes = policy.allowedColorCodes.length
     ? policy.allowedColorCodes.filter(code => activeCodes.has(code))
@@ -164,12 +168,13 @@ export function helmetContextFromWorker(worker = {}, state = {}) {
   // The current operational context wins. A saved snapshot proves what applied
   // historically, but must not pin a person to an old order after reassignment.
   const explicitMantId = text(epp?.helmetContext?.mantId || worker?.mantId);
-  const mantId = explicitMantId || (assignments.length === 1 ? text(assignments[0]?.mantId) : '') || text(helmet?.policySnapshot?.mantId);
+  const multipleActiveOrders = !explicitMantId && assignments.length > 1;
+  const mantId = explicitMantId || (assignments.length === 1 ? text(assignments[0]?.mantId) : '') || (multipleActiveOrders ? '' : text(helmet?.policySnapshot?.mantId));
   const project = (Array.isArray(state.mantenciones) ? state.mantenciones : [])
     .find(row => String(row?.id) === mantId);
   const explicitMinaId = text(epp?.helmetContext?.minaId || worker?.minaId);
-  const minaId = explicitMinaId || text(project?.minaId) || (Array.isArray(worker?.mineras) && worker.mineras.length === 1 ? worker.mineras[0] : '') || text(helmet?.policySnapshot?.minaId);
-  return { minaId, mantId, multipleActiveOrders: !explicitMantId && assignments.length > 1 };
+  const minaId = explicitMinaId || text(project?.minaId) || (Array.isArray(worker?.mineras) && worker.mineras.length === 1 ? worker.mineras[0] : '') || (multipleActiveOrders ? '' : text(helmet?.policySnapshot?.minaId));
+  return { minaId, mantId, multipleActiveOrders };
 }
 
 export function materializeHelmetState(state = {}) {
