@@ -876,10 +876,16 @@ export function validateAppendChanges(current, proposed, keys) {
   const newWorkers = additions.get('trabajadores') || [];
   const workerIds = new Set(workers.map(row => String(row?.id || '')).filter(Boolean));
   const projectIds = new Set(projects.map(row => String(row?.id || '')).filter(Boolean));
+  // The append fallback validates against the same candidate graph that the
+  // transaction will persist. This prevents a new worker from falling back to
+  // the tenant policy when a client/OS association is appended atomically.
   const appendState = {
     ...current,
     trabajadores: workers,
+    minas,
+    contratos,
     mantenciones: projects,
+    asignaciones: [...collection(current, 'asignaciones'), ...(additions.get('asignaciones') || [])],
     restricted: [...collection(current, 'restricted'), ...(additions.get('restricted') || [])],
   };
   for (const assignment of additions.get('asignaciones') || []) {
