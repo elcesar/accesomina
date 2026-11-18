@@ -28,6 +28,7 @@ const ERROR_MESSAGES = {
   INVALID_PRIMARY_COLOR: 'Selecciona un color principal válido.',
   INVALID_LOGO_FILE: 'Selecciona un logo PNG o JPG de hasta 2 MB.',
   LOGO_MANAGED_SEPARATELY: 'El logo debe cargarse desde la sección de identidad de la empresa.',
+  BRANDING_FILE_MANAGED_SEPARATELY: 'El logo se administra desde Configuración de la empresa.',
   INTEGRATION_NOT_AVAILABLE: 'Esta integración aún no está disponible.',
   WORK_BOOK_NOT_AVAILABLE: 'El Libro de obra aún no está disponible.',
   RECORD_VERSION_CONFLICT: 'Esta persona cambió mientras la editabas. Recarga su ficha y revisa los cambios antes de guardar.',
