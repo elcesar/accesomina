@@ -18,6 +18,7 @@ import { api } from '../services/api.js'
 import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
 import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
+import { helmetCompliance, helmetComplianceBadgeClass } from '../services/helmet-compliance.js'
 import '../styles/trabajadores.css'
 
 function diasHasta(fecha) { return calendarDaysUntil(fecha) }
@@ -110,7 +111,7 @@ function LinkTypeBadge({ segment }) {
   return <span className={`nk-badge ${className}`}>{label}</span>
 }
 
-function ProgressBar({ pct, expiry }) {
+function ProgressBar({ pct, expiry, helmet }) {
   const stateClass = pct >= 85 ? 'is-ok' : pct >= 60 ? 'is-warn' : 'is-error'
 
   return (
@@ -127,6 +128,7 @@ function ProgressBar({ pct, expiry }) {
       <div className="nk-people-expiry">
         {expiry ? `Próx. vence: ${formatShortDate(expiry)}` : 'Sin vencimientos próximos'}
       </div>
+      {helmet && <span className={`nk-badge ${helmetComplianceBadgeClass(helmet)}`} title={helmet.detail}>{helmet.label}</span>}
     </div>
   )
 }
@@ -464,6 +466,7 @@ export default function TrabajadoresPage() {
                 const segment = workerSegment(persona, asignaciones, proyectos, restrictions)
                 const pct = acreditacionPct(persona)
                 const expiry = nextExpiry(persona)
+                const helmet = helmetCompliance(persona, state)
                 const context = getContext(persona)
                 const primaryClient = context.clients[0]
                 const primaryProject = context.projects[0]
@@ -492,7 +495,7 @@ export default function TrabajadoresPage() {
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
                     <td><AvailabilityBadge value={operationalStatus(persona, asignaciones, restrictions, proyectos)} blocked={segment === 'bloqueados'} /></td>
-                    <td><ProgressBar pct={pct} expiry={expiry} /></td>
+                    <td><ProgressBar pct={pct} expiry={expiry} helmet={helmet} /></td>
                     <td onClick={event => event.stopPropagation()}>
                       <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>
                     </td>
