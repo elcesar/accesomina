@@ -22,6 +22,8 @@ test('worker CSV imports keep category separate from availability without an ass
   assert.equal(fixed.disponibilidad,'disponible');
   assert.equal(temporary.tipo,'esporadico');
   assert.equal(temporary.disponibilidad,'disponible');
+  assert.equal(legacy.epp.helmet.applicability,'unknown');
+  assert.equal(legacy.epp.helmet.legacyImport,true);
 });
 
 test('CSV templates declare required business columns',async()=>{
