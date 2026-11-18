@@ -11,7 +11,7 @@ import {
  * and alerts. It is deliberately advisory: it never changes availability,
  * accreditation records, or a manually assigned operational restriction.
  */
-export function helmetCompliance(worker, state = {}) {
+export function helmetCompliance(worker, state = {}, { context: contextOverride = {} } = {}) {
   const source = worker?.epp || {}
   const hasExplicitDecision = Object.hasOwn(source, 'helmet')
   const helmet = normalizeHelmetRequirement(source)
@@ -42,7 +42,7 @@ export function helmetCompliance(worker, state = {}) {
     }
   }
 
-  const context = helmetContextFromWorker(worker, state)
+  const context = { ...helmetContextFromWorker(worker, state), ...(contextOverride || {}) }
   const policy = resolveHelmetPolicy(state, context)
   const color = helmetColorForCode(state, helmet.colorCode)
   const snapshot = helmet.policySnapshot || {}
