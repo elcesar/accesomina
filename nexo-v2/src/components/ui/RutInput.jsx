@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { formatRut, OPTIONAL_RUT_ERROR, validateRut } from '../../services/rut.js'
+import { formatRut, validateRut } from '../../services/rut.js'
 
 /**
  * Controlled, reusable RUT field. Its help/error slot is always rendered so a
