@@ -46,11 +46,17 @@ function validateHelmetConfiguration(state) {
     codeSet.add(color.code);
   }
   const policyIds = new Set();
+  const activeScopes = new Set();
   const mineIds = new Set(collection(state, 'minas').map(row => String(row?.id || '')));
   const projectIds = new Set(collection(state, 'mantenciones').map(row => String(row?.id || '')));
   for (const policy of policies) {
     if (!policy.id || policyIds.has(policy.id)) helmetConflict('Las políticas de casco requieren identificadores únicos.', 'DUPLICATE_HELMET_POLICY');
     policyIds.add(policy.id);
+    const scopeKey = policy.scope === 'tenant' ? 'tenant' : `${policy.scope}:${policy.scope === 'cliente' ? policy.minaId : policy.mantId}`;
+    if (policy.active && activeScopes.has(scopeKey)) {
+      helmetConflict('Sólo puede existir una política de casco activa para el mismo alcance.', 'DUPLICATE_HELMET_POLICY_SCOPE');
+    }
+    if (policy.active) activeScopes.add(scopeKey);
     if (policy.scope === 'cliente' && (!policy.minaId || !mineIds.has(String(policy.minaId)))) {
       helmetConflict('La política de casco referencia un cliente inexistente.', 'INVALID_REFERENCE');
     }
