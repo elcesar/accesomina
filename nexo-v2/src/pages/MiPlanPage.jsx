@@ -42,7 +42,7 @@ export default function MiPlanPage() {
   const capacity = Number(selected?.workerLimit || 0) + extra.workers
   const price = selected ? planPrice(selected) + extra.price : 0
   const pricePending = isPricePending(selected) || packages.some(isPricePending)
-  const loadCatalog = () => api.get('/plans').then(data => { setCatalog(data); setCatalogError('') }).catch(fault => setCatalogError(errorMessage(fault)))
+  const loadCatalog = () => api.get('/subscription/catalog').then(data => { setCatalog(data); setCatalogError('') }).catch(fault => setCatalogError(errorMessage(fault)))
   useEffect(() => { loadCatalog() }, [])
   useEffect(() => { if (!catalog) return; setPlanCode(current => plans.some(item => item.code === current) ? current : plans[0]?.code || ''); if (!plans.length && type === 'UPGRADE' && contract?.planCode === 'PUERTO_OCTAY') setType('PACKAGES') }, [catalog, contract?.planCode, type, summary?.legacy])
   const loadNotifications = () => api.get('/subscription/notifications').then(data => { setNotifications(data.notifications || []); setNotificationError('') }).catch(fault => setNotificationError(errorMessage(fault)))
