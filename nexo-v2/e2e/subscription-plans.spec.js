@@ -146,14 +146,14 @@ test('suspensión mantiene Mi plan accesible y no salta por rutas directas', asy
   await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar' })).toBeVisible()
 })
 
-test('una contratación independiente conserva acceso con principal suspendido', async ({ page }) => {
+test('una contratación independiente conserva oportunidades, mientras Libro de obra permanece no disponible', async ({ page }) => {
   const summary = fixtureSummary({ status: 'SUSPENDED' }); summary.separateServices.oportunidades = { enabled: true, reference: 'ACUERDO-QA', endsAt: '2099-01-01T00:00:00Z' }
   await fixture(page, { role: 'client_admin', summary })
   await page.goto('/app/oportunidades')
   await expect(page.getByRole('heading', { name: 'Tu plan requiere renovación' })).toHaveCount(0)
   await expect(page.locator('main')).toContainText('Oportunidades')
   await page.goto('/app/libro-obra')
-  await expect(page.getByRole('heading', { name: 'Este servicio requiere contratación independiente' })).toBeVisible()
+  await expect(page.getByText('Este módulo aún no está disponible.', { exact: false })).toBeVisible()
 })
 
 test('usuario operativo consulta su estado sin solicitar ni administrar planes', async ({ page }) => {

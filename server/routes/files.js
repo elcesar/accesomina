@@ -3,7 +3,7 @@ import multer from 'multer';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { config } from '../config.js';
 import { withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
@@ -35,6 +35,19 @@ async function lockFileWrite(client,req,entityType) {
   const service=separateServiceForEntity(entityType);
   await lockSubscriptionForWrite(client,req.auth,{modules:service?[service==='libroObra'?'libroObra':'prospectos']:undefined});
 }
+// Libro de obra is globally unavailable under D-068. This guard belongs here,
+// not only in its router, because generic file endpoints receive its attachments.
+export function assertAvailableFileEntityType(entityType) {
+  const type = String(entityType || '').trim().toLowerCase()
+  if (type === 'company_branding') {
+    // Branding files are associated and retired atomically by /settings/logo.
+    // The generic file API must not leave tenant_settings pointing at a soft-deleted object.
+    throw Object.assign(new Error('El logo se administra desde Configuración de la empresa.'), { status: 409, code: 'BRANDING_FILE_MANAGED_SEPARATELY' });
+  }
+  if (separateServiceForEntity(type) === 'libroObra') {
+    throw Object.assign(new Error('El Libro de obra aún no está disponible.'), { status: 409, code: 'WORK_BOOK_NOT_AVAILABLE' });
+  }
+}
 const allowedMime=/^(application\/pdf|image\/(jpeg|png)|application\/(msword|vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet)))$/;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 }, fileFilter: (req,file,cb) => {
   if(allowedMime.test(file.mimetype))return cb(null,true);
@@ -42,9 +55,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
   return cb(error);
 } });
 const s3 = new S3Client({ region: config.aws.region });
-const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
+export const safeName = value => path.basename(String(value || 'file')).replace(/[^a-zA-Z0-9._-]/g, '_').slice(-180);
 
-function storageReadiness() {
+export function storageReadiness() {
   if (config.fileStorage === 's3' && !config.aws.bucket) return { ready:false, code:'STORAGE_NOT_CONFIGURED' };
   if (config.env === 'production' && !config.virusScan.url && config.virusScan.enabled) return { ready:false, code:'VIRUS_SCAN_REQUIRED' };
   return { ready:true, provider:config.fileStorage, scan:config.virusScan.url ? 'configured' : 'disabled' };
@@ -56,20 +69,21 @@ function requireFileInfrastructure(req, res, next) {
   next();
 }
 
-async function scanFile(file) {
+export async function scanFile(file) {
   if (!config.virusScan.url) {
   if(config.env==='production' && config.virusScan.enabled)throw Object.assign(new Error('Virus scanning must be configured before accepting files'),{status:503,code:'VIRUS_SCAN_REQUIRED'});return 'clean';}
   const body = new FormData(); body.append('file', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
   const response = await fetch(config.virusScan.url, { method:'POST', headers: config.virusScan.token ? { authorization:`Bearer ${config.virusScan.token}` } : {}, body });
   if (!response.ok) throw Object.assign(new Error('Virus scanning service unavailable'),{status:503,code:'VIRUS_SCAN_UNAVAILABLE'}); const result = await response.json(); return result.clean === true ? 'clean' : 'blocked';
 }
-async function storeFile(storageKey, file) {
+export async function storeFile(storageKey, file) {
   if (config.fileStorage === 's3') {
     if (!config.aws.bucket) throw Object.assign(new Error('AWS_S3_BUCKET is required'), { status: 503, code:'STORAGE_NOT_CONFIGURED' });
     await s3.send(new PutObjectCommand({ Bucket:config.aws.bucket,Key:storageKey,Body:file.buffer,ContentType:file.mimetype,ServerSideEncryption:'AES256',Metadata:{originalname:safeName(file.originalname)} }));
   } else { const target=path.join(config.uploadDir,storageKey);await fs.mkdir(path.dirname(target),{recursive:true});await fs.writeFile(target,file.buffer,{mode:0o600}); }
 }
 export async function readStoredFile(file){if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return Buffer.from(await object.Body.transformToByteArray());}return fs.readFile(path.join(config.uploadDir,file.storage_key));}
+export async function removeStoredFile(file){if(!file?.storage_key)return;if(file.storage_provider==='s3'){if(!config.aws.bucket)return;await s3.send(new DeleteObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));return;}await fs.rm(path.join(config.uploadDir,file.storage_key),{force:true});}
 
 filesRouter.get('/status', allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'), (req,res) => {
   const status=storageReadiness();
@@ -81,7 +95,7 @@ filesRouter.post('/', fileEditors, requireFileInfrastructure, upload.single('fil
   const entityType=String(req.body.entityType||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,50),entityId=String(req.body.entityId||'general').replace(/[^a-z0-9_-]/gi,'').slice(0,100);
   const commercial=commercialDocumentsRequest(req,'requests.documents');
   if(commercial&&entityType!=='subscription_document')return res.status(400).json({error:'SUBSCRIPTION_DOCUMENT_TYPE_REQUIRED'});
-  if(!commercial){assertEntityTypeAccess(req.auth,entityType);assertSubscriptionFileAccess(req.auth,entityType,{write:true});}
+  if(!commercial){assertAvailableFileEntityType(entityType);assertEntityTypeAccess(req.auth,entityType);assertSubscriptionFileAccess(req.auth,entityType,{write:true});}
   const id=crypto.randomUUID(),sha=crypto.createHash('sha256').update(req.file.buffer).digest('hex'),storageKey=`tenants/${req.auth.tenantId}/objects/${commercial?'commercial/':''}${sha}`;
   const row=await withTenant(req.auth.tenantId,async client=>{
     await lockFileWrite(client,req,entityType);
@@ -126,9 +140,9 @@ filesRouter.get('/:id', async (req,res) => {
   const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT * FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId]));const file=result.rows[0];
   if(!file)return res.status(404).json({error:'FILE_NOT_FOUND'});
   if(commercialDocumentsRequest(req)&&file.entity_type!=='subscription_document')return res.status(404).json({error:'FILE_NOT_FOUND'});
-  if(!commercialDocumentsRequest(req)){assertEntityTypeAccess(req.auth,file.entity_type);assertSubscriptionFileAccess(req.auth,file.entity_type);}if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
+  if(!commercialDocumentsRequest(req)){assertAvailableFileEntityType(file.entity_type);assertEntityTypeAccess(req.auth,file.entity_type);assertSubscriptionFileAccess(req.auth,file.entity_type);}if(file.malware_status!=='clean')return res.status(423).json({error:'FILE_NOT_CLEARED',status:file.malware_status});
   res.set({'Content-Type':file.content_type,'Content-Disposition':`attachment; filename="${safeName(file.original_name)}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
   if(file.storage_provider==='s3'){const object=await s3.send(new GetObjectCommand({Bucket:config.aws.bucket,Key:file.storage_key}));object.Body.pipe(res);}else res.sendFile(path.join(config.uploadDir,file.storage_key));
 });
 
-filesRouter.delete('/:id',allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'),async(req,res)=>{const row=await withTenant(req.auth.tenantId,async client=>{if(typeof req.auth.subscriptionManaged==='boolean')await lockSubscriptionTenant(client,req.auth.tenantId);const existing=(await client.query('SELECT id,original_name,entity_type FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId])).rows[0];if(!existing)return null;assertEntityTypeAccess(req.auth,existing.entity_type);assertSubscriptionFileAccess(req.auth,existing.entity_type,{write:true});const service=separateServiceForEntity(existing.entity_type);await lockSubscriptionForWrite(client,req.auth,{modules:service?[service==='libroObra'?'libroObra':'prospectos']:undefined});const result=await client.query('UPDATE file_objects SET deleted_at=now() WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL RETURNING id,original_name',[req.params.id,req.auth.tenantId]);if(result.rows[0])await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:req.params.id,action:'file.deleted',oldValue:result.rows[0]});return result.rows[0];});if(!row)return res.status(404).json({error:'FILE_NOT_FOUND'});res.status(204).end();});
+filesRouter.delete('/:id',allowRoles('domian_admin','client_admin','rrhh','prevencion','acreditacion'),async(req,res)=>{const row=await withTenant(req.auth.tenantId,async client=>{if(typeof req.auth.subscriptionManaged==='boolean')await lockSubscriptionTenant(client,req.auth.tenantId);const existing=(await client.query('SELECT id,original_name,entity_type FROM file_objects WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL',[req.params.id,req.auth.tenantId])).rows[0];if(!existing)return null;assertAvailableFileEntityType(existing.entity_type);assertEntityTypeAccess(req.auth,existing.entity_type);assertSubscriptionFileAccess(req.auth,existing.entity_type,{write:true});const service=separateServiceForEntity(existing.entity_type);await lockSubscriptionForWrite(client,req.auth,{modules:service?[service==='libroObra'?'libroObra':'prospectos']:undefined});const result=await client.query('UPDATE file_objects SET deleted_at=now() WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL RETURNING id,original_name',[req.params.id,req.auth.tenantId]);if(result.rows[0])await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'file',entityId:req.params.id,action:'file.deleted',oldValue:result.rows[0]});return result.rows[0];});if(!row)return res.status(404).json({error:'FILE_NOT_FOUND'});res.status(204).end();});

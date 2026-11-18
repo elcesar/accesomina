@@ -6,6 +6,8 @@ import { applyTenantBranding } from '../services/theme.js'
 import { setOperationalTimeZone } from '../services/calendar-date.js'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
+import { useAuth } from '../services/auth.jsx'
+import { canManageTenantModules } from '../services/tenant-capabilities.js'
 import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
@@ -33,12 +35,14 @@ function lineList(value) {
 }
 
 export default function ConfiguracionPage() {
+  const { session } = useAuth()
+  const canManageModules = canManageTenantModules(session?.user?.role)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
   const [smtpValidationRequested, setSmtpValidationRequested] = useState(false)
   const [settings, setSettings] = useState({
-    branding: { displayName: '', theme: 'light', logoUrl: '' },
+    branding: { displayName: '', theme: 'light', logoUrl: '', logoFileId: '', primaryColor: '#2A2A8C' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
     catalogs: { specialties: [], operationalTimeZone: 'America/Santiago' },
@@ -64,6 +68,8 @@ export default function ConfiguracionPage() {
           displayName: current.branding?.displayName || '',
           theme: normalizeTheme(current.branding?.theme),
           logoUrl: current.branding?.logoUrl || '',
+          logoFileId: current.branding?.logoFileId || '',
+          primaryColor: current.branding?.primaryColor || '#2A2A8C',
         },
         modules: current.modules || {},
         alerts: {
@@ -102,7 +108,8 @@ export default function ConfiguracionPage() {
     setSaving('settings')
     setMessage('')
     try {
-      const result = await api.put('/settings', settings)
+      const payload = canManageModules ? settings : (() => { const { modules, ...withoutModules } = settings; return withoutModules })()
+      const result = await api.put('/settings', payload)
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       const nextModules = result?.modules || settings.modules
       setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
@@ -142,11 +149,34 @@ export default function ConfiguracionPage() {
   const setBranding = (key, value) => {
     setSettings(current => {
       const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
-      if (key === 'theme') applyTenantBranding(branding)
+      if (key === 'theme' || key === 'primaryColor') applyTenantBranding(branding)
       return { ...current, branding }
     })
   }
-  const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
+  const uploadLogo = async event => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      setMessage('Selecciona un logo PNG o JPG de hasta 2 MB.')
+      return
+    }
+    setSaving('logo')
+    setMessage('')
+    try {
+      const result = await api.upload('/settings/logo', file, {}, { feedback: false })
+      const branding = { ...settings.branding, ...(result?.branding || {}) }
+      setSettings(current => ({ ...current, branding }))
+      applyTenantBranding(branding)
+      window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: branding }))
+      setMessage(result?.replaced ? 'Logo reemplazado y aplicado correctamente.' : 'Logo aplicado correctamente.')
+    } catch (error) {
+      setMessage(error.message || 'No fue posible aplicar el logo.')
+    } finally {
+      setSaving('')
+    }
+  }
+    const setAlert = (key, value) => setSettings(current => ({ ...current, alerts: { ...current.alerts, [key]: Number(value) } }))
   const toggleModule = key => setSettings(current => ({ ...current, modules: { ...current.modules, [key]: current.modules?.[key] === false } }))
   const updateIntegration = (provider, section, key, value) => setIntegrations(current => ({ ...current, [provider]: { ...current[provider], [section]: { ...current[provider][section], [key]: value } } }))
   const selectableUsers = users.filter(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))
@@ -197,14 +227,16 @@ export default function ConfiguracionPage() {
           <div className="nk-config-form-grid">
             <label className="nk-config-field full"><span>Nombre visible</span><input className="nk-input" value={settings.branding.displayName} onChange={e => setBranding('displayName', e.target.value)} /></label>
             <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="light">Fondo claro</option><option value="dark">Fondo oscuro</option></select></label>
-            <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Color principal</span><input className="nk-input" type="color" aria-label="Color principal" value={settings.branding.primaryColor} onChange={e => setBranding('primaryColor', e.target.value)} /></label>
+            <label className="nk-config-field full"><span>Logo de la empresa (PNG o JPG, hasta 2 MB)</span><input className="nk-input" type="file" accept="image/png,image/jpeg" aria-label="Logo de la empresa (PNG o JPG, hasta 2 MB)" disabled={saving === 'logo'} onChange={uploadLogo} /></label>
+            {settings.branding.logoFileId && <img className="nk-config-logo-preview" src={`/api/settings/logo?v=${encodeURIComponent(settings.branding.logoFileId)}`} alt="Logo actual de la empresa" />}
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Zona horaria operacional</span><input className="nk-input" value={settings.catalogs?.operationalTimeZone || 'America/Santiago'} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, operationalTimeZone: e.target.value } }))} placeholder="America/Santiago" /></label><label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
           </div>
         </section>
 
-        <section className="nk-module-card nk-config-card">
+        {canManageModules && <section className="nk-module-card nk-config-card">
           <header><div><h2>Módulos habilitados</h2><p>Configuración declarativa de los módulos disponibles para esta empresa.</p></div></header>
           <div className="nk-config-modules">
             {MODULE_OPTIONS.map(([key, label]) => {
@@ -213,7 +245,7 @@ export default function ConfiguracionPage() {
             })}
           </div>
           <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
-        </section>
+        </section>}
       </div>
 
       <section className="nk-module-card nk-config-card nk-config-user-views">
@@ -245,19 +277,25 @@ export default function ConfiguracionPage() {
           </article>
 
           <article className="nk-config-integration">
-            <div className="nk-config-integration-title"><h3>WhatsApp</h3><span className={integrations.whatsapp.configured ? 'ready' : ''}>{integrations.whatsapp.configured ? 'Configurado' : 'Pendiente'}</span></div>
-            <label className="nk-config-field"><span>Phone Number ID</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Token WhatsApp nuevo</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
-            <label className="nk-config-toggle"><input type="checkbox" checked={integrations.whatsapp.enabled} onChange={e => setIntegrations(v => ({ ...v, whatsapp: { ...v.whatsapp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'whatsapp'} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
+            <div className="nk-config-integration-title"><h3>WhatsApp</h3><span>Próximamente</span></div>
+            <p role="status">Esta integración aún no está disponible.</p>
+            <fieldset className="nk-config-inactive" disabled>
+              <label className="nk-config-field"><span>Phone Number ID</span><input className="nk-input" value="" readOnly /></label>
+              <label className="nk-config-field"><span>Token WhatsApp</span><input className="nk-input" type="password" value="" readOnly /></label>
+              <label className="nk-config-toggle"><input type="checkbox" checked={false} readOnly /> Integración activa</label>
+              <button className="nk-button nk-button-secondary" type="button">Guardar WhatsApp</button>
+            </fieldset>
           </article>
 
           <article className="nk-config-integration">
-            <div className="nk-config-integration-title"><h3>Firma electrónica</h3><span className={integrations.signature.configured ? 'ready' : ''}>{integrations.signature.configured ? 'Configurado' : 'Pendiente'}</span></div>
-            <label className="nk-config-field"><span>URL proveedor firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Token firma nuevo</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
-            <label className="nk-config-toggle"><input type="checkbox" checked={integrations.signature.enabled} onChange={e => setIntegrations(v => ({ ...v, signature: { ...v.signature, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'signature'} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
+            <div className="nk-config-integration-title"><h3>Firma electrónica</h3><span>Próximamente</span></div>
+            <p role="status">Esta integración aún no está disponible.</p>
+            <fieldset className="nk-config-inactive" disabled>
+              <label className="nk-config-field"><span>URL proveedor firma</span><input className="nk-input" value="" readOnly /></label>
+              <label className="nk-config-field"><span>Token firma</span><input className="nk-input" type="password" value="" readOnly /></label>
+              <label className="nk-config-toggle"><input type="checkbox" checked={false} readOnly /> Integración activa</label>
+              <button className="nk-button nk-button-secondary" type="button">Guardar firma</button>
+            </fieldset>
           </article>
         </div>
       </section>

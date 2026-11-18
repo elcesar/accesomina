@@ -20,9 +20,16 @@ export function moduleForEntityType(entityType) {
 }
 
 export function canAccessModule(auth, moduleKey) {
+  if (!moduleKey) return false
   const service=separateServiceForModule(moduleKey);
+  // D-068: Libro de obra remains unavailable globally until its own release.
+  // This applies to legacy state aliases, imports and direct API requests too.
+  if (service === 'libroObra') return false
+  // Tenant policy is authoritative. A company-disabled module stays unavailable
+  // even for an administrator or a user with an old individual grant.
+  if (auth?.companyModules?.[moduleKey] === false) return false
   if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
-  return Boolean(moduleKey) && (ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false)
+  return ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false
 }
 
 export function assertModuleAccess(auth, moduleKey) {
@@ -36,7 +43,10 @@ export function assertModuleAccess(auth, moduleKey) {
 export function canAccessEntityType(auth, entityType) {
   const service=separateServiceForEntity(entityType);
   if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
-  return ADMIN_ROLES.has(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
+  const moduleKey = moduleForEntityType(entityType)
+  // Administrators retain access only to unknown/unclassified entity types.
+  // For a known entity, tenant policy remains authoritative for every role.
+  return moduleKey ? canAccessModule(auth, moduleKey) : ADMIN_ROLES.has(auth?.role)
 }
 
 export function assertEntityTypeAccess(auth, entityType) {
