@@ -89,7 +89,6 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, state, onClose
     try {
       const response = await api.get('/state')
       const state = response?.state || response || {}
-  const canManageHelmet = ['domian_admin', 'client_admin', 'prevencion'].includes(session?.user?.role)
       const versions = response?.moduleVersions || {}
       const version = versions.eppDeliveries ?? versions.eppEntregas ?? 0
       // Legacy deliveries stay in their original collection; only canonical records are persisted here.
@@ -244,6 +243,7 @@ function HelmetConfiguration({ state, onSaved, canManage }) {
 export default function ProteccionEppPage() {
   const navigate = useNavigate()
   const { session } = useAuth()
+  const canManageHelmet = ['domian_admin', 'client_admin', 'prevencion'].includes(session?.user?.role)
   const [response, setResponse] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
