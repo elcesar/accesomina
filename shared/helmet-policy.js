@@ -240,9 +240,14 @@ export function helmetContextFromWorker(worker = {}, state = {}) {
   const helmet = normalizeHelmetRequirement(epp);
   const assignments = helmetActiveAssignments(worker, state);
   const rawResolvedContext = helmetContextFields(helmet?.resolvedContext);
+  const rawEppContext = helmetContextFields(epp?.helmetContext);
   const materialized = materializedHelmetContext(helmet);
   const explicit = helmetContextForWorkerScope(worker, state, materialized || {});
-  const invalidContext = Boolean(rawResolvedContext && !explicit);
+  // Raw EPP selectors never choose a policy, but an out-of-scope one is
+  // surfaced as invalid rather than silently concealing corrupted data.
+  const invalidRawEppContext = Boolean(rawEppContext
+    && !helmetContextForWorkerScope(worker, state, rawEppContext));
+  const invalidContext = Boolean((rawResolvedContext && !explicit) || invalidRawEppContext);
 
   // A verified explicit OS selection resolves an otherwise ambiguous set of
   // active orders. A client-only selection never masks multiple active OS.
