@@ -890,8 +890,8 @@ export function validateAppendChanges(current, proposed, keys) {
   const appendState = {
     ...current,
     trabajadores: workers,
-    minas,
-    contratos,
+    minas: mines,
+    contratos: contracts,
     mantenciones: projects,
     asignaciones: [...collection(current, 'asignaciones'), ...(additions.get('asignaciones') || [])],
     restricted: [...collection(current, 'restricted'), ...(additions.get('restricted') || [])],
