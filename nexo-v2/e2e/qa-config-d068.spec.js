@@ -51,11 +51,7 @@ test('configuración separa permisos de módulos de la identidad visual privada'
   await expect(page.getByRole('button', { name: 'Guardar WhatsApp' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Guardar firma' })).toBeDisabled()
 
-  await page.getByLabel('Color principal').evaluate(node => {
-    node.value = '#005577'
-    node.dispatchEvent(new Event('input', { bubbles: true }))
-    node.dispatchEvent(new Event('change', { bubbles: true }))
-  })
+  await page.getByLabel('Color principal').fill('#005577')
   await expect.poll(() => page.locator('.nk-app-shell').evaluate(node => getComputedStyle(node).getPropertyValue('--nk-primary').trim())).toBe('#005577')
 
   await page.getByRole('button', { name: 'Guardar configuración' }).click()
