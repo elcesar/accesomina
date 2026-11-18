@@ -1,6 +1,7 @@
 import { calendarDaysUntil } from './calendar-date.js'
 import { mergeCollections } from './report-collections.js'
 import { documentEvidenceMessage, hasRequiredEvidence } from './worker-document-rules.js'
+import { helmetCompliance } from './helmet-compliance.js'
 export const rows = value => Array.isArray(value) ? value : value && typeof value === 'object' ? Object.values(value) : []
 export const normalize = value => String(value || '').trim().toLowerCase()
 export const isRestricted = person => Boolean(person?.bloqueado || person?.restringido || /bloquead|restringid/.test(normalize(person?.disponibilidad || person?.operationalStatus)))
@@ -59,6 +60,20 @@ export function deriveOperationalAlerts(state) {
       else if (left !== null && left <= 7) derived.push({ id: `derived-person-critical-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
       else if (left !== null && left <= 30) derived.push({ id: `derived-person-upcoming-${person.id}-${item.id || item.name}`, tipo: item.type || 'documento', urgencia: 'proximo', trabId: person.id, msg: `${person.nombre}: ${item.name || 'antecedente'} vence en ${left}d`, derived: true })
     })
+
+    const helmet = helmetCompliance(person, state)
+    if (helmet.warning) {
+      derived.push({
+        id: `derived-person-helmet-${person.id}`,
+        tipo: 'epp',
+        urgencia: 'proximo',
+        trabId: person.id,
+        msg: `${person.nombre}: ${helmet.label.toLowerCase()}. ${helmet.detail}`,
+        derived: true,
+        advisory: true,
+        blocksOperation: false,
+      })
+    }
 
     if (isRestricted(person)) {
       derived.push({ id: `derived-person-blocked-${person.id}`, tipo: 'persona', urgencia: 'critico', trabId: person.id, msg: `${person.nombre}: persona no habilitada para operar`, derived: true })
