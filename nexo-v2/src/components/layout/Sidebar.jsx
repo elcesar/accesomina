@@ -137,6 +137,9 @@ const NEXO_ADMIN_NAV = {
 }
 
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
+  if (to === '/app/libro-obra') {
+    return <span className="nk-side-link nk-feature-unavailable" aria-disabled="true"><Icon size={15} strokeWidth={1.7} /><span className="nk-side-link-label">{label} · Próximamente</span></span>
+  }
   return (
     <NavLink
       to={to}
@@ -243,8 +246,8 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         {!loading && NAV.map(group => {
           const items = group.items.filter(item => {
             if (item.to === '/app/mi-plan') return true
-            if (summary?.managed && ['/app/libro-obra', '/app/oportunidades'].includes(item.to)) {
-              const service = summary.separateServices?.[item.to === '/app/libro-obra' ? 'libroObra' : 'oportunidades']
+            if (summary?.managed && item.to === '/app/oportunidades') {
+              const service = summary.separateServices?.oportunidades
               if (!service?.enabled || (service.endsAt && Date.parse(service.endsAt) <= Date.now())) return false
             }
             return isEnabled(moduleForPath(item.to))
