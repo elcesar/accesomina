@@ -43,6 +43,19 @@ export function helmetCompliance(worker, state = {}, { context: contextOverride 
   }
 
   const context = { ...helmetContextFromWorker(worker, state), ...(contextOverride || {}) }
+  if (context.multipleActiveOrders) {
+    return {
+      status: 'context_required',
+      severity: 'warning',
+      applicable: true,
+      label: 'Contexto de casco pendiente',
+      detail: 'La persona tiene más de una orden activa. Selecciona el contexto de OS antes de aplicar una política específica.',
+      warning: true,
+      blocksOperation: false,
+      context,
+      helmet,
+    }
+  }
   const policy = resolveHelmetPolicy(state, context)
   const color = helmetColorForCode(state, helmet.colorCode)
   const snapshot = helmet.policySnapshot || {}
@@ -52,7 +65,7 @@ export function helmetCompliance(worker, state = {}, { context: contextOverride 
   if (policy.requireSize && !helmet.size) missing.push('talla')
   if (policy.requireModelClass && !helmet.modelClass) missing.push('clase o modelo')
   if (helmet.colorCode && !color && !historicalColor) missing.push('color válido')
-  if (helmet.colorCode && color && color.active !== false && policy.allowedColorCodes.length && !policy.allowedColorCodes.includes(helmet.colorCode) && !historicalColor) missing.push('color permitido')
+  if (helmet.colorCode && color && color.active !== false && policy.hasColorRestriction && !policy.allowedColorCodes.includes(helmet.colorCode) && !historicalColor) missing.push('color permitido')
 
   if (missing.length) {
     return {
@@ -99,7 +112,7 @@ export function helmetComplianceCounts(workers, state = {}) {
     counts[status.status] = (counts[status.status] || 0) + 1
     if (status.warning) counts.warning += 1
     return counts
-  }, { complete: 0, historical: 0, incomplete: 0, pending: 0, not_required: 0, warning: 0 })
+  }, { complete: 0, historical: 0, incomplete: 0, pending: 0, context_required: 0, not_required: 0, warning: 0 })
 }
 
 export function helmetComplianceBadgeClass(status) {
