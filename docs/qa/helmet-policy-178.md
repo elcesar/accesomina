@@ -14,7 +14,7 @@
 - Colores y políticas conservan autor, fecha de creación y última actualización en el servidor; el cambio completo queda además en la auditoría del módulo.
 - La persona y la entrega conservan etiqueta histórica junto al código de color. Un color renombrado o inactivado sigue siendo legible en un registro histórico sin reescribirlo.
 - El antiguo `casco: "Talla única"` se muestra como dato histórico con aplicabilidad pendiente; nunca se interpreta como una decisión ni se bloquea una corrección no relacionada.
-- La pantalla Personas siempre envía la decisión Sí/No. El servidor valida toda carga explícita de casco y evita borrar una decisión ya registrada, pero mantiene compatibles las filas históricas/CSV/sistema que omiten por completo el campo de casco; esa ausencia queda pendiente, no se interpreta como “No requerido”.
+- La pantalla Personas y la ruta general `/state/modules` exigen la decisión Sí/No para toda persona nueva; un ID nuevo que omite casco se rechaza. Los registros históricos existentes continúan legibles. Sólo la importación/restauración administrada marca un casco ausente como `unknown + legacyImport` mediante una autorización interna de servidor: queda pendiente/advisorio, nunca se interpreta como “No requerido”, y el mismo marcador enviado directamente por `/modules` se rechaza.
 - Inventario y entrega registran el casco físico (color, talla, clase, marca/modelo, norma/certificación, lote/serie y vencimiento), que se ve también en el historial de la ficha. Una entrega no cambia el requisito de la persona.
 
 ## Autorización y alertas
