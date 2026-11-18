@@ -156,6 +156,88 @@ function DeliveryDialog({ workers, inventory, warehouses, orders, state, onClose
 
 const SEGMENTS=[['todos','Todas'],['permanente','Trabajador fijo'],['esporadico','Trabajador por proyecto'],['disponible','Trabajador disponible'],['bloqueado','No habilitados']]
 
+function helmetColorCode(value) {
+  return String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function HelmetConfiguration({ state, onSaved }) {
+  const [open, setOpen] = useState(false)
+  const [colors, setColors] = useState([])
+  const [policies, setPolicies] = useState([])
+  const [selectedPolicyId, setSelectedPolicyId] = useState('')
+  const [newLabel, setNewLabel] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const sourceColors = (Array.isArray(state.helmetColors) && state.helmetColors.length ? state.helmetColors : DEFAULT_HELMET_COLORS).map(color => ({ ...color, active: color.active !== false }))
+  const sourcePolicies = Array.isArray(state.helmetPolicies) && state.helmetPolicies.length ? state.helmetPolicies : [{ id: 'default-tenant-helmet-policy', scope: 'tenant', active: true, requireColor: true, requireSize: true, requireModelClass: false, allowedColorCodes: [] }]
+  const mines = asRows(state.minas)
+  const orders = asRows(state.mantenciones)
+
+  function begin() {
+    setColors(sourceColors)
+    setPolicies(sourcePolicies)
+    setSelectedPolicyId(sourcePolicies[0]?.id || '')
+    setError('')
+    setOpen(true)
+  }
+  const selected = policies.find(policy => policy.id === selectedPolicyId) || policies[0]
+  function patchPolicy(patch) {
+    setPolicies(current => current.map(policy => policy.id === selected?.id ? { ...policy, ...patch } : policy))
+  }
+  function addColor() {
+    const label = newLabel.trim()
+    const code = helmetColorCode(label)
+    if (!label || !code) return
+    if (colors.some(color => color.code === code)) { setError('Ese código de color ya existe. Ajusta la etiqueta o edita el color existente.'); return }
+    setColors(current => [...current, { code, label, active: true }])
+    setNewLabel('')
+  }
+  function addPolicy() {
+    const id = `helmet-policy-${Date.now()}`
+    const next = { id, scope: 'cliente', minaId: mines[0]?.id || '', mantId: '', active: true, requireColor: true, requireSize: true, requireModelClass: false, allowedColorCodes: [] }
+    setPolicies(current => [...current, next])
+    setSelectedPolicyId(id)
+  }
+  async function save() {
+    if (!colors.some(color => color.active)) { setError('Mantén al menos un color activo.'); return }
+    if (policies.some(policy => policy.scope === 'cliente' && !policy.minaId) || policies.some(policy => policy.scope === 'os' && !policy.mantId)) {
+      setError('Selecciona el cliente u orden para cada política específica.'); return
+    }
+    setSaving(true); setError('')
+    try {
+      const response = await api.get('/state')
+      const versions = response?.moduleVersions || {}
+      await api.put('/state/modules', {
+        reason: 'Actualización de catálogo y política de cascos',
+        changes: {
+          helmetColors: { version: Number(versions.helmetColors || 0), data: colors },
+          helmetPolicies: { version: Number(versions.helmetPolicies || 0), data: policies },
+        },
+      })
+      setOpen(false)
+      onSaved()
+    } catch (cause) {
+      setError(cause.message || 'No fue posible guardar la configuración de casco.')
+    } finally { setSaving(false) }
+  }
+
+  return <section className="nk-card nk-epp-toolbar-card">
+    <div className="nk-epp-toolbar"><div><strong>Política de cascos</strong><p className="nk-epp-subtle">Colores y requisitos configurables por empresa, cliente u orden. No se asignan colores por cargo.</p></div><ActionButton className="nk-button nk-button-secondary" type="button" onClick={open ? () => setOpen(false) : begin}>{open ? 'Cerrar configuración' : 'Configurar casco'}</ActionButton></div>
+    {open && <div className="nk-person-grid">
+      <div className="nk-field"><label className="nk-label">Nuevo color</label><div className="nk-actions"><input className="nk-input" value={newLabel} onChange={event => setNewLabel(event.target.value)} placeholder="Ej.: Negro" /><button className="nk-button nk-button-secondary" type="button" onClick={addColor}>Agregar</button></div></div>
+      <div className="nk-field"><span className="nk-label">Catálogo de colores</span>{colors.map(color => <label key={color.code}><input type="checkbox" checked={color.active !== false} onChange={event => setColors(current => current.map(item => item.code === color.code ? { ...item, active: event.target.checked } : item))} /> {color.label} <span className="nk-epp-subtle">({color.code})</span></label>)}</div>
+      <div className="nk-field"><label className="nk-label">Política</label><select className="nk-select" value={selected?.id || ''} onChange={event => setSelectedPolicyId(event.target.value)}>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.scope === 'tenant' ? 'Empresa' : policy.scope === 'cliente' ? `Cliente: ${mines.find(mine => String(mine.id) === String(policy.minaId))?.nombre || 'sin seleccionar'}` : `OS: ${orders.find(order => String(order.id) === String(policy.mantId))?.nombre || 'sin seleccionar'}`}</option>)}</select><button className="nk-button nk-button-quiet nk-button-sm" type="button" onClick={addPolicy}>Agregar regla de cliente / OS</button></div>
+      {selected && <><div className="nk-field"><label className="nk-label">Alcance</label><select className="nk-select" value={selected.scope} onChange={event => patchPolicy({ scope: event.target.value, minaId: event.target.value === 'cliente' ? selected.minaId || mines[0]?.id || '' : '', mantId: event.target.value === 'os' ? selected.mantId || orders[0]?.id || '' : '' })}><option value="tenant">Empresa</option><option value="cliente">Cliente / mandante</option><option value="os">Orden de servicio</option></select></div>
+      {selected.scope === 'cliente' && <div className="nk-field"><label className="nk-label">Cliente / mandante</label><select className="nk-select" value={selected.minaId || ''} onChange={event => patchPolicy({ minaId: event.target.value })}><option value="">Seleccionar cliente</option>{mines.map(mine => <option key={mine.id} value={mine.id}>{mine.nombre}</option>)}</select></div>}
+      {selected.scope === 'os' && <div className="nk-field"><label className="nk-label">Orden de servicio</label><select className="nk-select" value={selected.mantId || ''} onChange={event => patchPolicy({ mantId: event.target.value })}><option value="">Seleccionar orden</option>{orders.map(order => <option key={order.id} value={order.id}>{order.nombre || order.codigo || order.id}</option>)}</select></div>}
+      <div className="nk-field"><span className="nk-label">Campos requeridos</span><label><input type="checkbox" checked={selected.requireColor !== false} onChange={event => patchPolicy({ requireColor: event.target.checked })} /> Color</label><label><input type="checkbox" checked={selected.requireSize !== false} onChange={event => patchPolicy({ requireSize: event.target.checked })} /> Talla</label><label><input type="checkbox" checked={selected.requireModelClass === true} onChange={event => patchPolicy({ requireModelClass: event.target.checked })} /> Clase / modelo</label><label><input type="checkbox" checked={selected.active !== false} onChange={event => patchPolicy({ active: event.target.checked })} /> Regla activa</label></div>
+      <div className="nk-field"><span className="nk-label">Colores habilitados</span>{colors.filter(color => color.active !== false).map(color => <label key={color.code}><input type="checkbox" checked={(selected.allowedColorCodes || []).includes(color.code)} onChange={event => patchPolicy({ allowedColorCodes: event.target.checked ? [...new Set([...(selected.allowedColorCodes || []), color.code])] : (selected.allowedColorCodes || []).filter(code => code !== color.code) })} /> {color.label}</label>)}<p className="nk-epp-subtle">Sin selección restringe por catálogo activo; con selección sólo permite los colores marcados.</p></div></>}
+      {error && <div className="nk-epp-feedback error"><span>{error}</span></div>}
+      <div className="nk-actions"><ActionButton className="nk-button nk-button-primary" type="button" onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar política de casco'}</ActionButton></div>
+    </div>}
+  </section>
+}
+
 export default function ProteccionEppPage() {
   const navigate = useNavigate()
   const [response, setResponse] = useState(null)
@@ -195,12 +277,13 @@ export default function ProteccionEppPage() {
   return <div className="nk-epp-page">
     <header className="nk-epp-header"><div><h1>Protección personal / EPP</h1><p>Controla necesidades, matriz por función e historial de entregas por persona.</p></div><div className="nk-actions"><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={15}/>Actualizar</ActionButton><ActionButton disabledReason="Completa trabajador, elemento y cantidad válida; o espera a que finalice el guardado." className="nk-button nk-button-primary" type="button" onClick={() => setCreating(true)} disabled={!workers.length}><IconPlus size={15}/>Registrar entrega</ActionButton></div></header>
     {error && <div className="nk-epp-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')} aria-label="Cerrar"><IconX size={15}/></button></div>}
+    <HelmetConfiguration state={state} onSaved={load} />
     <section className="nk-card nk-epp-toolbar-card"><div className="nk-epp-toolbar"><label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, RUT, función o EPP" /></label><div className="nk-field"><label className="nk-label">Persona</label><select className="nk-select" value={personFilter} onChange={event => setPersonFilter(event.target.value)}><option value="todos">Todas</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{worker.nombre}</option>)}</select></div><div className="nk-field"><label className="nk-label">Reposición</label><select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="todos">Todos</option><option value="ok">Vigente</option><option value="warn">Próxima</option><option value="error">Vencida</option><option value="none">Sin información</option></select></div></div><div className="nk-epp-segments">{SEGMENTS.map(([key,label])=><button key={key} type="button" className={`nk-epp-segment ${segment===key?'active':''}`} onClick={()=>setSegment(key)}>{label}</button>)}</div></section>
     <section className="nk-epp-summary"><article className="nk-epp-kpi"><strong>{loading?'…':summary.peopleControlled}</strong><span>Personas controladas</span></article><article className="nk-epp-kpi"><strong>{loading?'…':summary.pendingPeople}</strong><span>Con entregas pendientes</span></article><article className="nk-epp-kpi"><strong>{loading?'…':summary.soon}</strong><span>Reposición próxima</span></article><article className="nk-epp-kpi"><strong>{loading?'…':summary.missingSizes}</strong><span>Sin tallas registradas</span></article></section>
     <div className="nk-tabs nk-epp-tabs"><button className={`nk-tab ${view==='personas'?'active':''}`} onClick={()=>setView('personas')}><IconUsers size={14}/>Personas</button><button className={`nk-tab ${view==='matriz'?'active':''}`} onClick={()=>setView('matriz')}><IconShield size={14}/>Matriz por función</button><button className={`nk-tab ${view==='historial'?'active':''}`} onClick={()=>setView('historial')}><IconPackage size={14}/>Historial de entregas</button></div>
     {view==='personas'&&<section className="nk-card nk-epp-table-card">{loading?<div className="nk-empty nk-epp-empty"><IconUsers size={30}/><p className="nk-empty-title">Cargando personas…</p></div>:!personRows.length?<div className="nk-empty nk-epp-empty"><p className="nk-empty-title">Sin personas para mostrar</p></div>:<div className="nk-table-wrapper"><AccessibleTable caption="Catálogo de equipos de protección personal" className="nk-table"><thead><tr><th scope="col">Persona</th><th scope="col">Función</th><th scope="col">Entregas</th><th scope="col">Pendientes / reposición</th><th scope="col">Tallas registradas</th></tr></thead><tbody>{personRows.map(({worker,own,pending,sizes})=><tr key={worker.id}><td><PersonCell name={worker.nombre} rut={worker.rut} onClick={()=>navigate(`/app/trabajadores/${worker.id}`)} /></td><td>{worker.cargo||worker.especialidad||'—'}</td><td>{own.length}</td><td><span className={`nk-badge ${pending.length?'nk-badge-warn':'nk-badge-ok'}`}>{pending.length?`${pending.length} por revisar`:'Al día'}</span></td><td>{sizes||'Sin tallas'}</td></tr>)}</tbody></AccessibleTable></div>}</section>}
     {view==='matriz'&&<section className="nk-card nk-epp-table-card">{!matrixRows.length?<div className="nk-empty nk-epp-empty"><p className="nk-empty-title">Sin funciones para mostrar</p></div>:<div className="nk-table-wrapper"><AccessibleTable caption="Asignaciones de equipos de protección personal" className="nk-table"><thead><tr><th scope="col">Función / especialidad</th><th scope="col">Personas</th><th scope="col">EPP observados en entregas</th><th scope="col">Cobertura registrada</th></tr></thead><tbody>{matrixRows.map(row=><tr key={row.role}><td><strong>{row.role}</strong></td><td>{row.people}</td><td>{[...row.items.keys()].slice(0,6).join(' · ')||'Sin entregas registradas'}</td><td>{row.items.size?`${row.items.size} tipos de EPP`:'Sin información'}</td></tr>)}</tbody></AccessibleTable></div>}</section>}
     {view==='historial'&&<section className="nk-card nk-epp-table-card">{loading?<div className="nk-empty nk-epp-empty"><IconShield size={30}/><p className="nk-empty-title">Cargando entregas…</p></div>:filtered.length===0?<div className="nk-empty nk-epp-empty"><IconPackage size={30}/><p className="nk-empty-title">Sin entregas para mostrar</p></div>:<div className="nk-table-wrapper"><AccessibleTable caption="Entregas de equipos de protección personal" className="nk-table"><thead><tr><th scope="col">Persona</th><th scope="col">EPP</th><th scope="col">Cantidad</th><th scope="col">Bodega / orden</th><th scope="col">Entrega</th><th scope="col">Reposición</th><th scope="col">Estado</th></tr></thead><tbody>{filtered.map((item,index)=>{const status=replaceStatus(item.replaceAt);const warehouse=warehouses.find(entry=>String(entry.id)===String(item.warehouseId));const order=orders.find(entry=>String(entry.id)===String(item.orderId));return<tr key={item.id||index}><td><PersonCell name={item.workerName} rut={item.workerRut} onClick={item.workerId?()=>navigate(`/app/trabajadores/${item.workerId}`):undefined} /></td><td><div className="nk-epp-item"><strong>{item.itemName}</strong><span className="nk-epp-subtle">{item.brandModel||'Sin marca/modelo'}{item.certification?` · ${item.certification}`:''}</span></div></td><td>{item.quantity || 1}{item.size ? ` · ${item.size}` : ''}</td><td><span className="nk-epp-subtle">{warehouse?.nombre || warehouse?.name || 'Sin bodega'}{order ? ` · ${order.codigo || order.nombre || order.name}` : ''}</span></td><td>{formatChileDate(item.deliveredAt||'—')}</td><td>{formatChileDate(item.replaceAt||'Según inspección')}</td><td><span className={`nk-badge ${status.cls}`}>{status.label}</span></td></tr>})}</tbody></AccessibleTable></div>}</section>}
-    {creating && <DeliveryDialog workers={workers} inventory={inventory} warehouses={warehouses} orders={orders} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
+    {creating && <DeliveryDialog workers={workers} inventory={inventory} warehouses={warehouses} orders={orders} state={state} onClose={() => setCreating(false)} onSaved={() => { setCreating(false); load() }} />}
   </div>
 }
