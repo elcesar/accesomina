@@ -2,13 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { PPE_SIZE_FIELDS, normalizeWorkerEpp, updateWorkerEpp } from '../../nexo-v2/src/config/ppe-catalog.js'
 
-test('EPP optional sizes start blank and helmet remains fixed', () => {
+test('EPP optional sizes start blank and legacy helmet data is not authoritative', () => {
   const epp = normalizeWorkerEpp({})
-  assert.equal(epp.casco, 'Talla única')
+  assert.equal(epp.casco, '')
+  assert.equal(epp.helmet.applicability, 'unknown')
   assert.equal(epp.camisa, '')
   assert.equal(epp.pantalon, '')
   assert.equal(epp.calzado, '')
-  assert.equal(PPE_SIZE_FIELDS.find(field => field.key === 'casco').fixed, true)
+  assert.equal(PPE_SIZE_FIELDS.find(field => field.key === 'casco').fixed, undefined)
 })
 
 test('EPP keeps historical aliases and all previously visible fields', () => {

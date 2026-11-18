@@ -28,7 +28,8 @@ import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
 import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, WORKER_SPECIALTIES, isCanonicalWorkerRegimen, workerRegimenLabel } from '../config/worker-catalogs.js'
-import { PPE_SIZE_FIELDS, normalizeWorkerEpp, updateWorkerEpp } from '../config/ppe-catalog.js'
+import { HELMET_APPLICABILITY, PPE_SIZE_FIELDS, helmetOptions, normalizeWorkerEpp, updateWorkerEpp, updateWorkerHelmet } from '../config/ppe-catalog.js'
+import { helmetCompliance, helmetComplianceBadgeClass } from '../services/helmet-compliance.js'
 import {
   DOCUMENT_TYPE_OPTIONS,
   documentRule,
@@ -370,21 +371,52 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   </>
 }
 
-function EppTab({ worker, saving, onChange, onSave, deliveries }) {
+function EppTab({ worker, saving, onChange, onSave, deliveries, state }) {
   const epp = normalizeWorkerEpp(worker.epp)
+  const helmet = epp.helmet
+  const helmetConfig = helmetOptions(state || {}, worker)
+  const helmetStatus = helmetCompliance(worker, state || {})
+  const helmetPolicy = helmetConfig.policy
+  const activeHelmetOrders = (state?.asignaciones || [])
+    .filter(assignment => String(assignment?.trabId || assignment?.workerId) === String(worker.id) && assignment?.mantId)
+    .filter(assignment => !['retirado', 'cancelado', 'finalizado', 'inactivo'].includes(String(assignment?.estado || '').trim().toLowerCase()))
+    .map(assignment => (state?.mantenciones || []).find(project => String(project?.id) === String(assignment.mantId)))
+    .filter(Boolean)
+  const helmetColors = helmetConfig.colors
+  const isLegacyHelmet = !Object.hasOwn(worker.epp || {}, 'helmet') || helmet.applicability === HELMET_APPLICABILITY.UNKNOWN
   const rows = deliveries.filter(d => d.workerId === worker.id).sort((a, b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
+  const helmetRequired = helmet.applicability === HELMET_APPLICABILITY.REQUIRED
   return <>
-    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{PPE_SIZE_FIELDS.map(field => {
+    <CardSection title="Aplicabilidad de casco" subtitle={isLegacyHelmet ? "Dato histórico: confirma si el casco aplica para completar el registro." : "La política se resuelve por orden de servicio, cliente y empresa; no se infiere por cargo."}>
+      <div className="nk-person-grid"><div className="nk-person-field-full"><span className={`nk-badge ${helmetComplianceBadgeClass(helmetStatus)}`}>{helmetStatus.label}</span><p className="nk-person-text-sub">{helmetStatus.detail}</p></div>
+        {activeHelmetOrders.length > 1 && <Field label="Orden de servicio para política de casco"><select className="nk-select" value={epp.helmetContext?.mantId || ''} onChange={event => { const project = activeHelmetOrders.find(item => String(item.id) === String(event.target.value)); onChange('epp', { ...worker.epp, helmetContext: project ? { mantId: project.id, minaId: project.minaId || '' } : undefined }) }}><option value="">Seleccionar orden de servicio</option>{activeHelmetOrders.map(project => <option key={project.id} value={project.id}>{project.codigo ? `${project.codigo} · ` : ''}{project.nombre || project.name || project.id}</option>)}</select></Field>}
+        <Field label="¿Casco requerido?"><div role="radiogroup" aria-label="¿Casco requerido?">
+          <label><input type="radio" name="worker-helmet-applicability" checked={helmetRequired} onChange={() => onChange('epp', updateWorkerHelmet(worker.epp, { applicability: HELMET_APPLICABILITY.REQUIRED }))} /> Sí</label>
+          <label><input type="radio" name="worker-helmet-applicability" checked={helmet.applicability === HELMET_APPLICABILITY.NOT_REQUIRED} onChange={() => onChange('epp', updateWorkerHelmet(worker.epp, { applicability: HELMET_APPLICABILITY.NOT_REQUIRED, colorCode: '', colorLabel: '', size: '', modelClass: '' }))} /> No</label>
+        </div></Field>
+        {helmetRequired && <>
+          <Field label="Color de casco"><select className="nk-select" value={helmet.colorCode || ''} onChange={event => {
+            const color = helmetColors.find(item => item.code === event.target.value)
+            onChange('epp', updateWorkerHelmet(worker.epp, { colorCode: event.target.value, colorLabel: color?.label || '' }))
+          }}><option value="">Seleccionar color</option>{helmet.colorCode && !helmetColors.some(color => color.code === helmet.colorCode) && <option value={helmet.colorCode}>{helmet.colorLabel || helmet.colorCode} (histórico)</option>}{helmetColors.map(color => <option key={color.code} value={color.code}>{color.label}</option>)}</select></Field>
+          <Field label="Talla de casco"><select className="nk-select" value={helmet.size || ''} onChange={event => onChange('epp', updateWorkerHelmet(worker.epp, { size: event.target.value }))}><option value="">Seleccionar talla</option>{PPE_SIZE_FIELDS.find(field => field.key === 'casco').sizes.map(size => <option key={size} value={size}>{size}</option>)}</select></Field>
+          {helmetPolicy.requireModelClass && <Field label="Clase o modelo"><input className="nk-input" value={helmet.modelClass || ''} onChange={event => onChange('epp', updateWorkerHelmet(worker.epp, { modelClass: event.target.value }))} /></Field>}
+        </>}
+        {helmet.applicability === HELMET_APPLICABILITY.NOT_REQUIRED && <Field label="Motivo (opcional)"><input className="nk-input" value={helmet.reason || ''} onChange={event => onChange('epp', updateWorkerHelmet(worker.epp, { reason: event.target.value }))} placeholder="Ej.: función administrativa" /></Field>}
+      </div>
+      <div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div>
+    </CardSection>
+    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{PPE_SIZE_FIELDS.filter(field => !field.helmet).map(field => {
       const value = epp[field.key] ?? ''
       const isHistorical = value && !field.sizes.includes(value)
-      return <Field key={field.key} label={field.label}><select className="nk-select" value={value} disabled={field.fixed} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, field.key, event.target.value))}>
-        {!field.fixed && <option value="">Seleccionar talla</option>}
+      return <Field key={field.key} label={field.label}><select className="nk-select" value={value} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, field.key, event.target.value))}>
+        <option value="">Seleccionar talla</option>
         {isHistorical && <option value={value}>{value} (valor histórico)</option>}
         {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
       </select></Field>
     })}</div><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
     <CardSection title="Fit Test" subtitle="Verificación de ajuste de protección respiratoria."><label><input type="checkbox" checked={Boolean(epp.fitTest)} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, 'fitTest', event.target.checked))} /> Fit Test aprobado</label><div className="nk-person-save-bar"><SaveButton saving={saving} onClick={onSave} /></div></CardSection>
-    <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><AccessibleTable caption="Historial de entregas de EPP" className="nk-table"><thead><tr><th scope="col">Fecha</th><th scope="col">EPP</th><th scope="col">Talla</th><th scope="col">Marca / certificación</th><th scope="col">Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{formatChileDate(d.deliveredAt || '—')}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{formatChileDate(d.replaceAt || 'Según inspección')}</td></tr>)}</tbody></AccessibleTable></div>}</CardSection>
+    <CardSection title="Historial de entregas EPP" subtitle="Entregas, certificación y fecha de reposición.">{rows.length === 0 ? <div className="nk-empty"><IconShield size={30} strokeWidth={1.3} /><p className="nk-empty-title">Sin entregas registradas</p></div> : <div className="nk-table-wrapper nk-person-table"><AccessibleTable caption="Historial de entregas de EPP" className="nk-table"><thead><tr><th scope="col">Fecha</th><th scope="col">EPP</th><th scope="col">Talla</th><th scope="col">Color</th><th scope="col">Marca / certificación</th><th scope="col">Trazabilidad física</th><th scope="col">Reposición</th></tr></thead><tbody>{rows.map((d, i) => <tr key={d.id || i}><td>{formatChileDate(d.deliveredAt || '—')}</td><td className="nk-person-text-strong">{d.itemName || '—'}</td><td>{d.size || '—'}</td><td>{d.helmetColorLabel || '—'}</td><td>{d.brandModel || '—'}<div className="nk-person-text-sub">{d.certification || 'Sin certificado'}</div></td><td>{[d.helmetClass && `Clase: ${d.helmetClass}`, d.lotSerial && `Serie/lote: ${d.lotSerial}`, d.helmetExpiryDate && `Vence: ${formatChileDate(d.helmetExpiryDate)}`].filter(Boolean).join(' · ') || '—'}</td><td>{formatChileDate(d.replaceAt || 'Según inspección')}</td></tr>)}</tbody></AccessibleTable></div>}</CardSection>
   </>
 }
 
@@ -424,7 +456,7 @@ export default function FichaTrabajadorPage() {
     originalProfileRef.current = null
     setWorker(null)
     Promise.all([
-      api.get('/state?modules=minas,contratos,mantenciones,asignaciones,hotelAsig,hoteles,restricted,eppDeliveries'),
+      api.get('/state?modules=minas,contratos,mantenciones,asignaciones,hotelAsig,hoteles,restricted,eppDeliveries,helmetColors,helmetPolicies'),
       api.get(`/state/records/trabajadores/${encodeURIComponent(id)}`),
     ]).then(([r, profile]) => {
     if (!active) return
@@ -612,7 +644,7 @@ export default function FichaTrabajadorPage() {
       </>}
       {tab === 'docs' && <DocsTab worker={worker} tabKey="docs" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}
       {tab === 'cursos' && <DocsTab worker={worker} tabKey="cursos" onAppendItem={appendDocument} onRemoveItem={removeDocument} onError={setError} />}
-      {tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} />}
+      {tab === 'epp' && <EppTab worker={worker} saving={saving} onChange={onChange} onSave={handleSave} deliveries={deliveries} state={stateData} />}
       {tab === 'historial' && <HistoryTab worker={worker} proyectos={proyectos} clientes={clientes} />}
     </main>
   </div>

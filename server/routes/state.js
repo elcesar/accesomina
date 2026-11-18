@@ -5,6 +5,7 @@ import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
 import { assertModuleAccess } from '../module-access.js';
 import { enforceStateScope, removeWorkerDocument, sanitizeJson, summarizeChanges, validateAppendChanges, validateTenantState, validateWorkerDocumentAppend } from '../validation.js';
+import { materializeHelmetState, stampHelmetConfiguration } from '../../shared/helmet-policy.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS } from '../../shared/opportunity-domain.js';
 import { assertWorkerDocumentFileReferences, changedWorkerDocuments } from '../worker-document-evidence.js';
 import { lockSubscriptionForWrite } from '../subscription-access.js';
@@ -58,7 +59,7 @@ function normalizeLegacyEppDeliveries(state){
 }
 
 export function normalizeTenantState(state){
-  state=normalizeLegacyEppDeliveries(state);
+  state=materializeHelmetState(normalizeLegacyEppDeliveries(state));
   const items=Array.isArray(state?.inventoryItems)?state.inventoryItems:null;
   if(!items)return state;
   const locations=Array.isArray(state.inventoryLocations)?state.inventoryLocations:[];
@@ -150,8 +151,10 @@ stateRouter.patch('/records/trabajadores/:workerId',editors,async(req,res)=>{
  const result=await withTenant(req.auth.tenantId,async client=>{
   const subscriptionTenant=await lockSubscriptionForWrite(client,req.auth);
   await ensureModules(client,req.auth.tenantId,req.auth.userId);
-  const workers=(await client.query("SELECT data FROM tenant_module_state WHERE tenant_id=$1 AND module_key='trabajadores' FOR UPDATE",[req.auth.tenantId])).rows[0]?.data||[];
-  const result=patchWorkerProfile(workers,String(req.params.workerId),req.body?.patch,req.body?.revision);
+  const currentRows=(await client.query('SELECT module_key,data FROM tenant_module_state WHERE tenant_id=$1 FOR UPDATE',[req.auth.tenantId])).rows;
+  const currentState=normalizeTenantState(rowsToState(currentRows));
+  const workers=Array.isArray(currentState.trabajadores)?currentState.trabajadores:[];
+  const result=patchWorkerProfile(workers,String(req.params.workerId),req.body?.patch,req.body?.revision,currentState);
   enforceStateScope(req.auth.role,{trabajadores:workers},{trabajadores:result.records});
   if(subscriptionTenant)await assertSubscriptionWorkerCapacity(client,req.auth.tenantId,workers,result.records);
   await client.query("UPDATE tenant_module_state SET data=$2::jsonb,version=version+1,updated_by=$3,updated_at=now() WHERE tenant_id=$1 AND module_key='trabajadores'",[req.auth.tenantId,JSON.stringify(result.records),req.auth.userId]);
@@ -292,7 +295,11 @@ stateRouter.put('/modules',editors,async(req,res,next)=>{
       if(!change||Number(change.version)!==Number(versions[key]||0))return null;
       proposed[key]=change.data;
     }
-    const normalized=normalizeTenantState(writesOpportunities?canonicalizeOpportunityState(proposed):proposed);
+    const normalized=stampHelmetConfiguration(
+      normalizeTenantState(writesOpportunities?canonicalizeOpportunityState(proposed):proposed),
+      normalizeTenantState(current),
+      { actorId:req.auth.userId }
+    );
     let clean;
     try {
       clean = validateTenantState(normalized, { previousState: current });

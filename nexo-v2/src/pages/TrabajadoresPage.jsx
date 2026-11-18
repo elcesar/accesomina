@@ -18,6 +18,7 @@ import { api } from '../services/api.js'
 import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
 import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
+import { helmetCompliance, helmetComplianceBadgeClass, helmetComplianceContribution } from '../services/helmet-compliance.js'
 import '../styles/trabajadores.css'
 
 function diasHasta(fecha) { return calendarDaysUntil(fecha) }
@@ -32,11 +33,9 @@ const REQUIRED_ITEMS = [
   { type: 'curso', name: 'Reglamento Interno' },
 ]
 
-function acreditacionPct(persona) {
+function acreditacionPct(persona, state = {}) {
   const items = persona.workerItems || []
-  if (!items.length) return 0
-
-  const ok = REQUIRED_ITEMS.filter(req => (
+  const documentsOk = REQUIRED_ITEMS.filter(req => (
     items.some(item => (
       item.type === req.type &&
       item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
@@ -44,8 +43,11 @@ function acreditacionPct(persona) {
       (!item.vence || (diasHasta(item.vence) !== null && diasHasta(item.vence) >= 0))
     ))
   )).length
-
-  return Math.round((ok / REQUIRED_ITEMS.length) * 100)
+  // Pending and required helmet decisions are an explicit, shared compliance
+  // criterion. “No requerido” deliberately does not dilute document coverage.
+  const helmet = helmetCompliance(persona, state)
+  const helmetPart = helmetComplianceContribution(helmet)
+  return Math.round(((documentsOk + helmetPart.completed) / (REQUIRED_ITEMS.length + helmetPart.required)) * 100)
 }
 
 function nextExpiry(persona) {
@@ -110,12 +112,12 @@ function LinkTypeBadge({ segment }) {
   return <span className={`nk-badge ${className}`}>{label}</span>
 }
 
-function ProgressBar({ pct, expiry }) {
+function ProgressBar({ pct, expiry, helmet }) {
   const stateClass = pct >= 85 ? 'is-ok' : pct >= 60 ? 'is-warn' : 'is-error'
 
   return (
     <div className="nk-people-compliance">
-      <div className="nk-people-progress" aria-label={`${pct}% de cumplimiento documental`}>
+      <div className="nk-people-progress" aria-label={`${pct}% de cumplimiento documental y de casco aplicable`}>
         <div className="nk-people-progress-track" aria-hidden="true">
           <div
             className={`nk-people-progress-bar ${stateClass}`}
@@ -127,6 +129,7 @@ function ProgressBar({ pct, expiry }) {
       <div className="nk-people-expiry">
         {expiry ? `Próx. vence: ${formatShortDate(expiry)}` : 'Sin vencimientos próximos'}
       </div>
+      {helmet && <span className={`nk-badge ${helmetComplianceBadgeClass(helmet)}`} title={helmet.detail}>{helmet.label}</span>}
     </div>
   )
 }
@@ -248,8 +251,8 @@ export default function TrabajadoresPage() {
         valueB = operationalStatus(b, asignaciones, restrictions, proyectos)
       }
       if (sortCol === 'acreditacion') {
-        valueA = acreditacionPct(a)
-        valueB = acreditacionPct(b)
+        valueA = acreditacionPct(a, state)
+        valueB = acreditacionPct(b, state)
       }
       if (valueA < valueB) return sortAsc ? -1 : 1
       if (valueA > valueB) return sortAsc ? 1 : -1
@@ -288,7 +291,7 @@ export default function TrabajadoresPage() {
         tipo: typeLabels[workerSegment(persona, asignaciones, proyectos, restrictions)],
         clientes: context.clients.join(' / '), ordenes: context.projects.join(' / '),
         disponibilidad: availabilityLabels[operationalStatus(persona, asignaciones, restrictions, proyectos)],
-        cumplimiento: `${acreditacionPct(persona)}%`,
+        cumplimiento: `${acreditacionPct(persona, state)}%`,
       }
     })
     const url = URL.createObjectURL(new Blob([workerListCsv(records)], { type: 'text/csv;charset=utf-8' }))
@@ -462,8 +465,9 @@ export default function TrabajadoresPage() {
                 </tr>
               ) : filtered.map(persona => {
                 const segment = workerSegment(persona, asignaciones, proyectos, restrictions)
-                const pct = acreditacionPct(persona)
+                const pct = acreditacionPct(persona, state)
                 const expiry = nextExpiry(persona)
+                const helmet = helmetCompliance(persona, state)
                 const context = getContext(persona)
                 const primaryClient = context.clients[0]
                 const primaryProject = context.projects[0]
@@ -492,7 +496,7 @@ export default function TrabajadoresPage() {
                       {primaryProject && <div className="nk-people-muted">{primaryProject}{extraContext > 0 ? ` · +${extraContext} más` : ''}</div>}
                     </td>
                     <td><AvailabilityBadge value={operationalStatus(persona, asignaciones, restrictions, proyectos)} blocked={segment === 'bloqueados'} /></td>
-                    <td><ProgressBar pct={pct} expiry={expiry} /></td>
+                    <td><ProgressBar pct={pct} expiry={expiry} helmet={helmet} /></td>
                     <td onClick={event => event.stopPropagation()}>
                       <button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(`/app/trabajadores/${persona.id}`)}>Ficha</button>
                     </td>
