@@ -6,7 +6,9 @@ import { useNavigate } from 'react-router-dom'
 import { IconArrowLeft, IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
+import { isValidRut } from '../services/rut.js'
 import '../styles/terceros-subcontratos.css'
+import '../styles/commercial-form-grid.css'
 
 const EMPTY_FORM = {
   razon: '', rut: '', contratoId: '', servicios: '', responsable: '', contacto: '', personal: 0,
@@ -79,6 +81,8 @@ export default function TercerosSubcontratosPage() {
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [rutValidationRequested, setRutValidationRequested] = useState(false)
+  const [rutServerError, setRutServerError] = useState('')
 
   async function load() {
     setLoading(true)
@@ -146,22 +150,31 @@ export default function TercerosSubcontratosPage() {
 
   function openNew() {
     setSelectedId(null)
+    setRutValidationRequested(false)
+    setRutServerError('')
     setCreating(true)
   }
 
   function openDetail(id) {
     setCreating(false)
+    setRutValidationRequested(false)
+    setRutServerError('')
     setSelectedId(id)
   }
 
   function closeDetail() {
     setSelectedId(null)
     setCreating(false)
+    setRutValidationRequested(false)
+    setRutServerError('')
     setForm(EMPTY_FORM)
   }
 
-  async function save() {
-    if (!form.razon.trim() || !form.rut.trim() || saving) return
+  async function save(event) {
+    event?.preventDefault()
+    setRutValidationRequested(true)
+    setRutServerError('')
+    if (!form.razon.trim() || !isValidRut(form.rut) || saving) return
     setSaving(true)
     setError('')
     try {
@@ -199,6 +212,14 @@ export default function TercerosSubcontratosPage() {
       setSelectedId(record.id)
       setCreating(false)
     } catch (cause) {
+      if (cause?.code === 'INCOMPLETE_SUBCONTRACTOR_RUT') {
+        setRutServerError('Ingresa el RUT.')
+        return
+      }
+      if (cause?.code === 'INVALID_SUBCONTRACTOR_RUT') {
+        setRutServerError('Ingresa un RUT chileno válido o deja el campo vacío.')
+        return
+      }
       setError(cause.message || 'No fue posible guardar el tercero.')
     } finally {
       setSaving(false)
@@ -276,31 +297,32 @@ export default function TercerosSubcontratosPage() {
 
       {(selected || creating) && (
         <section className="nk-card nk-third-detail">
+          <form className="nk-third-detail-form" noValidate onSubmit={save}>
           <div className="nk-third-detail-head">
             <div><button className="nk-third-back" type="button" onClick={closeDetail}><IconArrowLeft size={16} />Volver a terceros y subcontratos</button><p className="nk-third-eyebrow">{creating ? 'Nuevo tercero' : 'Ficha del tercero'}</p><h2>{creating ? 'Registrar tercero' : form.razon || 'Empresa colaboradora'}</h2></div>
-            <div className="nk-actions"><ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</ActionButton></div>
+            <div className="nk-actions"><ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="submit" disabled={saving}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</ActionButton></div>
           </div>
 
-          <div className="nk-third-form">
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
-            <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
-            <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Responsable</label><input className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Contacto</label><input className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
+          <div className="nk-commercial-form-grid">
+            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-name">Razón social</label><input id="third-party-name" name="razon" className="nk-input" required value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-rut">RUT</label><RutInput id="third-party-rut" name="rut" required value={form.rut} error={rutServerError || undefined} validationRequested={rutValidationRequested} onChange={value => { setRutServerError(''); setForm(current => ({ ...current, rut: value })) }} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-status">Estado</label><select id="third-party-status" name="estado" className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-contract">Contrato asociado</label><select id="third-party-contract" name="contratoId" className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-staffing">Dotación</label><input id="third-party-staffing" name="personal" className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
+            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-services">Servicios</label><input id="third-party-services" name="servicios" className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
+            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-manager">Responsable</label><input id="third-party-manager" name="responsable" className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
+            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-contact">Contacto</label><input id="third-party-contact" name="contacto" className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
           </div>
 
           <div className="nk-third-section-title"><h3>Control laboral y previsional</h3><p>Fechas de vigencia utilizadas para detectar alertas operacionales.</p></div>
-          <div className="nk-third-form nk-third-compliance-grid">
+          <div className="nk-third-compliance-grid">
             <div className="nk-field"><label className="nk-label">F30</label><input className="nk-input" type="date" value={form.f30} onChange={e => setForm(current => ({ ...current, f30: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">F30-1</label><input className="nk-input" type="date" value={form.f301} onChange={e => setForm(current => ({ ...current, f301: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">Cotizaciones</label><input className="nk-input" type="date" value={form.cotizaciones} onChange={e => setForm(current => ({ ...current, cotizaciones: e.target.value }))} /></div>
             <div className="nk-field"><label className="nk-label">Seguro</label><input className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
             <div className="nk-field nk-third-wide"><label className="nk-label">Observaciones</label><textarea className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
           </div>
-
+          </form>
         </section>
       )}
     </div>
