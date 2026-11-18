@@ -54,3 +54,4 @@ jobs:
           server/test/files-route-order.test.js
           server/test/data-transfer.test.js
           server/test/helmet-context-contract.test.js
+          server/test/helmet-compliance.test.js
