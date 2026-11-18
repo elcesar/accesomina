@@ -143,7 +143,11 @@ function validateHelmetDelivery(delivery, state, previousDelivery) {
   const code = String(delivery.helmetColorCode || delivery.colorCode || '').trim().toLowerCase();
   const label = String(delivery.helmetColorLabel || delivery.colorLabel || '').trim();
   if (!code || !label) {
-    if (historical) return;
+    const legacyPhysicalSnapshot = previousDelivery
+      && !String(previousDelivery.helmetColorCode || previousDelivery.colorCode || '').trim()
+      && !String(previousDelivery.helmetColorLabel || previousDelivery.colorLabel || '').trim()
+      && !code && !label;
+    if (historical || legacyPhysicalSnapshot) return;
     helmetConflict('La entrega de casco requiere el color físico del artículo.', 'HELMET_DELIVERY_COLOR_REQUIRED');
   }
   const context = { mantId: delivery.mantId || delivery.orderId || '' };
@@ -170,7 +174,14 @@ function validateHelmetInventoryItem(item, state, previousItem) {
   const code = String(item.helmetColorCode || item.colorCode || '').trim().toLowerCase();
   const label = String(item.helmetColorLabel || item.colorLabel || '').trim();
   if (!code || !label) {
-    if (historical) return;
+    // State normalization can add stock/location fields before this validator
+    // receives an unchanged legacy item. A persisted no-colour item remains
+    // readable until someone completes its physical helmet snapshot.
+    const legacyPhysicalSnapshot = previousItem
+      && !String(previousItem.helmetColorCode || previousItem.colorCode || '').trim()
+      && !String(previousItem.helmetColorLabel || previousItem.colorLabel || '').trim()
+      && !code && !label;
+    if (historical || legacyPhysicalSnapshot) return;
     helmetConflict('El casco de inventario requiere color físico y etiqueta histórica.', 'HELMET_INVENTORY_COLOR_REQUIRED');
   }
   const color = helmetColorForCode(state, code);
