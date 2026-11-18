@@ -40,7 +40,10 @@ export function assertModuleAccess(auth, moduleKey) {
 export function canAccessEntityType(auth, entityType) {
   const service=separateServiceForEntity(entityType);
   if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
-  return ADMIN_ROLES.has(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
+  const moduleKey = moduleForEntityType(entityType)
+  // Administrators retain access only to unknown/unclassified entity types.
+  // For a known entity, tenant policy remains authoritative for every role.
+  return moduleKey ? canAccessModule(auth, moduleKey) : ADMIN_ROLES.has(auth?.role)
 }
 
 export function assertEntityTypeAccess(auth, entityType) {
