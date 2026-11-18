@@ -107,3 +107,24 @@ test('client derivation includes a current operational assignment without a dupl
   const assignments = [{ id: 'a-operational', trabId: 'w-operational', mantId: 'os-operational', estado: 'confirmado' }]
   assert.deepEqual(workerClientIds(persona, assignments, projects), ['m1'])
 })
+
+
+test('shared status flags an out-of-scope persisted helmet selector instead of applying it', () => {
+  const scopedState = {
+    ...state,
+    minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente ajeno' }],
+    mantenciones: [
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+    ],
+    asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
+  }
+  const persona = worker({
+    casco: 'M',
+    helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' },
+    helmetContext: { mantId: 'os2', minaId: 'm2' },
+  })
+  const status = helmetCompliance(persona, scopedState)
+  assert.equal(status.status, 'context_required')
+  assert.equal(status.context.invalidContext, true)
+})
