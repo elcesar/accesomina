@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { helmetCompliance, helmetComplianceContribution } from '../../nexo-v2/src/services/helmet-compliance.js'
 import { deriveOperationalAlerts } from '../../nexo-v2/src/services/operational-alerts.js'
+import { workerClientIds } from '../../nexo-v2/src/services/worker-list.js'
+import { helmetContextForWorkerScope, helmetContextFromWorker } from '../../shared/helmet-policy.js'
 
 const worker = (epp = {}) => ({ id: 'w1', nombre: 'Persona QA', mineras: ['m1'], epp })
 const state = {
@@ -39,4 +41,69 @@ test('operational alerts expose helmet incompleteness as an advisory warning onl
   assert.equal(alert.urgencia, 'proximo')
   assert.equal(alert.advisory, true)
   assert.equal(alert.blocksOperation, false)
+})
+
+
+test('shared helmet context ignores forged top-level selectors and keeps the active assignment', () => {
+  const scopedState = {
+    ...state,
+    minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente ajeno' }],
+    mantenciones: [
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+      { id: 'os2', minaId: 'm2', nombre: 'OS ajena', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+    ],
+    asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
+  }
+  const persona = {
+    ...worker({
+      casco: 'M',
+      helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' },
+      helmetContext: {},
+    }),
+    // These top-level values are not an authoritative helmet selector.
+    mantId: 'os2',
+    minaId: 'm2',
+  }
+
+  const context = helmetContextFromWorker(persona, scopedState)
+  assert.deepEqual({ mantId: context.mantId, minaId: context.minaId }, { mantId: 'os1', minaId: 'm1' })
+})
+
+test('client-row helmet compliance does not leak an OS policy from another client', () => {
+  const scopedState = {
+    ...state,
+    minas: [{ id: 'm1', nombre: 'Cliente uno' }, { id: 'm2', nombre: 'Cliente dos' }],
+    mantenciones: [
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' },
+    ],
+    asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
+    helmetColors: [
+      { code: 'azul', label: 'Azul', active: true },
+      { code: 'verde', label: 'Verde', active: true },
+    ],
+    helmetPolicies: [
+      { id: 'tenant', scope: 'tenant', active: true, requireColor: true, requireSize: true, allowedColorCodes: ['azul'] },
+      { id: 'os-m1', scope: 'os', mantId: 'os1', active: true, requireColor: true, requireSize: true, allowedColorCodes: ['azul'] },
+      { id: 'client-m2', scope: 'cliente', minaId: 'm2', active: true, requireColor: true, requireSize: true, allowedColorCodes: ['verde'] },
+    ],
+  }
+  const persona = {
+    ...worker({ casco: 'M', helmet: { applicability: 'required', colorCode: 'verde', colorLabel: 'Verde', size: 'M' } }),
+    mineras: ['m1', 'm2'],
+  }
+
+  const clientContext = helmetContextForWorkerScope(persona, scopedState, { minaId: 'm2' })
+  assert.deepEqual(clientContext, { mantId: '', minaId: 'm2' })
+  const status = helmetCompliance(persona, scopedState, { context: { minaId: 'm2' } })
+  assert.equal(status.context.mantId, '')
+  assert.equal(status.context.minaId, 'm2')
+  assert.equal(status.policy.id, 'client-m2')
+  assert.equal(status.status, 'complete')
+})
+
+test('client derivation includes a current operational assignment without a duplicated worker client link', () => {
+  const persona = { id: 'w-operational', mineras: [] }
+  const projects = [{ id: 'os-operational', minaId: 'm1', estado: 'activo', inicio: '2026-01-01', termino: '2027-01-01' }]
+  const assignments = [{ id: 'a-operational', trabId: 'w-operational', mantId: 'os-operational', estado: 'confirmado' }]
+  assert.deepEqual(workerClientIds(persona, assignments, projects), ['m1'])
 })
