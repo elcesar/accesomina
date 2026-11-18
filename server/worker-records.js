@@ -14,7 +14,9 @@ export function patchWorkerProfile(workers,id,patch,revision,stateContext={}){
  if(Object.keys(patch).some(key=>!WORKER_PROFILE_FIELDS.includes(key)))conflict('Sólo se pueden modificar los datos del perfil desde esta operación.','FIELD_PERMISSION_DENIED',403)
  const next={...current,...sanitizeJson({trabajadores:[patch]}).trabajadores[0]}
  // Documents and operational links have separate endpoints and are immutable here.
- const profile={...next,mineras:[],workerItems:[]},previous={...current,mineras:[],workerItems:[]}
+ // Retain the existing client scope in validation: client-scoped helmet
+ // policies must apply even though this PATCH cannot edit assignments.
+ const profile={...next,workerItems:[]},previous={...current,workerItems:[]}
  try{
   const clean=validateTenantState(
     { ...stateContext, trabajadores:[profile] },
