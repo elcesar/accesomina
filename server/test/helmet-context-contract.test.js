@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { validateTenantState } from '../validation.js';
+import { patchWorkerProfile, recordRevision } from '../worker-records.js';
 
 const clone = value => structuredClone(value);
 const helmet = (overrides = {}) => ({
@@ -178,4 +179,76 @@ test('legacy helmet inventory allows harmless stock maintenance but not identity
     () => validateTenantState(renamed, { previousState: previous }),
     error => error.code === 'HELMET_INVENTORY_COLOR_REQUIRED',
   );
+});
+
+
+test('worker PATCH cannot expand trusted scope and writes canonical context', () => {
+  const state = baseState();
+  const current = state.trabajadores[0];
+  assert.throws(
+    () => patchWorkerProfile(
+      [current],
+      'w1',
+      { epp: { ...helmet(), helmetContext: { mantId: 'os2', minaId: 'm2' } } },
+      recordRevision(current),
+      state,
+    ),
+    error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
+  );
+
+  const patched = patchWorkerProfile(
+    [current],
+    'w1',
+    { epp: { ...helmet(), helmetContext: { mantId: 'os1', minaId: 'm1' } } },
+    recordRevision(current),
+    state,
+  );
+  assert.deepEqual(patched.record.epp.helmet.resolvedContext, { mantId: 'os1', minaId: 'm1' });
+  assert.equal(patched.record.mantId, undefined);
+  assert.equal(patched.record.minaId, undefined);
+});
+
+test('delivery context rejects a foreign OS and legacy identity rewrites', () => {
+  const foreign = baseState();
+  foreign.eppDeliveries = [{
+    id: 'foreign-delivery', workerId: 'w1', mantId: 'os2',
+    itemId: 'helmet', itemName: 'Casco de seguridad', qty: 1,
+    deliveredAt: '2026-11-17', helmetColorCode: 'azul', helmetColorLabel: 'Azul',
+  }];
+  assert.throws(
+    () => validateTenantState(foreign),
+    error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
+  );
+
+  const previous = baseState();
+  previous.eppDeliveries = [{
+    id: 'legacy-rename', workerId: 'w1', mantId: 'os1',
+    itemId: 'helmet', itemName: 'Casco de seguridad', qty: 1,
+    deliveredAt: '2026-11-17',
+  }];
+  const renamed = clone(previous);
+  renamed.eppDeliveries[0].itemName = 'Equipo genérico';
+  assert.throws(
+    () => validateTenantState(renamed, { previousState: previous }),
+    error => error.code === 'HELMET_DELIVERY_COLOR_REQUIRED',
+  );
+});
+
+test('a new multi-client worker must select a validated client context', () => {
+  const previous = baseState();
+  const ambiguous = clone(previous);
+  ambiguous.trabajadores.push(newWorker('w2', helmet(), { mineras: ['m1', 'm2'] }));
+  assert.throws(
+    () => validateTenantState(ambiguous, { previousState: previous }),
+    error => error.code === 'HELMET_POLICY_CONTEXT_REQUIRED',
+  );
+
+  const selected = clone(previous);
+  selected.trabajadores.push(newWorker('w2', helmet(), {
+    mineras: ['m1', 'm2'],
+    epp: { ...helmet(), helmetContext: { minaId: 'm1' } },
+  }));
+  const clean = validateTenantState(selected, { previousState: previous });
+  const worker = clean.trabajadores.find(item => item.id === 'w2');
+  assert.deepEqual(worker.epp.helmet.resolvedContext, { mantId: '', minaId: 'm1' });
 });
