@@ -143,9 +143,17 @@ test('Tercero exige RUT y permite una corrección válida sin salto de grilla', 
   await expect(page.getByText('Ingresa el RUT.', { exact: true })).toBeVisible()
   expect(api.writes).toHaveLength(0)
 
+  await rut.fill(validRut)
+  await page.getByLabel('Razón social', { exact: true }).fill('')
+  await page.getByRole('button', { name: 'Registrar tercero', exact: true }).click()
+  await expect(page.getByText('Ingresa la razón social.', { exact: true })).toBeVisible()
+  await expect(page.getByLabel('Razón social', { exact: true })).toBeFocused()
+  expect(api.writes).toHaveLength(0)
+
+  await page.getByLabel('Razón social', { exact: true }).fill('Tercero ficticio QA')
   await rut.fill('11.111.111-2')
   await rut.press('Tab')
-  await expect(page.getByText('Ingresa un RUT chileno válido o deja el campo vacío.', { exact: true })).toBeVisible()
+  await expect(page.getByText('Ingresa un RUT chileno válido.', { exact: true })).toBeVisible()
   expect(Math.abs((await box(page, '#third-party-status')).y - statusBefore.y)).toBeLessThanOrEqual(1)
 
   await rut.fill('145072158')
