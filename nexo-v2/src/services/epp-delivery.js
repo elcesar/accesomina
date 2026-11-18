@@ -30,6 +30,10 @@ export function buildEppDelivery(form, { id, createdAt }) {
     warehouseId: form.warehouseId || undefined,
     orderId: form.orderId || undefined,
     size: String(form.size || '').trim(),
+    // Physical item snapshot. It deliberately does not alter worker.epp.helmet.
+    helmetColorCode: String(form.helmetColorCode || '').trim().toLowerCase(),
+    helmetColorLabel: String(form.helmetColorLabel || '').trim(),
+    helmetClass: String(form.helmetClass || '').trim(),
     brandModel: String(form.brandModel || '').trim(),
     certification: String(form.certification || '').trim(),
     lotSerial: String(form.lotSerial || '').trim(),
