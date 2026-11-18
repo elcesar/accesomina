@@ -33,7 +33,7 @@ export function isHelmetItem(item) {
   const source = typeof item === 'string'
     ? item
     : [item?.itemName, item?.nombre, item?.name, item?.epp, item?.category, item?.type].join(' ');
-  return /\bcasco\b|helmet/i.test(String(source || ''));
+  return /\bcasco(?:s)?\b|helmet/i.test(String(source || ''));
 }
 
 export function normalizeHelmetColors(input) {
@@ -158,13 +158,18 @@ export function helmetPolicySnapshot(policy, color, context = {}) {
 export function helmetContextFromWorker(worker = {}, state = {}) {
   const epp = worker?.epp || {};
   const helmet = normalizeHelmetRequirement(epp);
-  const assignment = (Array.isArray(state.asignaciones) ? state.asignaciones : [])
-    .find(row => String(row?.trabId || row?.workerId) === String(worker?.id) && row?.mantId);
-  const mantId = text(helmet?.policySnapshot?.mantId || epp?.helmetContext?.mantId || worker?.mantId || assignment?.mantId);
+  const assignments = (Array.isArray(state.asignaciones) ? state.asignaciones : [])
+    .filter(row => String(row?.trabId || row?.workerId) === String(worker?.id) && row?.mantId)
+    .filter(row => !['retirado', 'cancelado', 'finalizado', 'inactivo'].includes(String(row?.estado || '').trim().toLowerCase()));
+  // The current operational context wins. A saved snapshot proves what applied
+  // historically, but must not pin a person to an old order after reassignment.
+  const explicitMantId = text(epp?.helmetContext?.mantId || worker?.mantId);
+  const mantId = explicitMantId || (assignments.length === 1 ? text(assignments[0]?.mantId) : '') || text(helmet?.policySnapshot?.mantId);
   const project = (Array.isArray(state.mantenciones) ? state.mantenciones : [])
     .find(row => String(row?.id) === mantId);
-  const minaId = text(helmet?.policySnapshot?.minaId || epp?.helmetContext?.minaId || worker?.minaId || project?.minaId || (Array.isArray(worker?.mineras) && worker.mineras.length === 1 ? worker.mineras[0] : ''));
-  return { minaId, mantId };
+  const explicitMinaId = text(epp?.helmetContext?.minaId || worker?.minaId);
+  const minaId = explicitMinaId || text(project?.minaId) || (Array.isArray(worker?.mineras) && worker.mineras.length === 1 ? worker.mineras[0] : '') || text(helmet?.policySnapshot?.minaId);
+  return { minaId, mantId, multipleActiveOrders: !explicitMantId && assignments.length > 1 };
 }
 
 export function materializeHelmetState(state = {}) {
