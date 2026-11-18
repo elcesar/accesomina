@@ -207,7 +207,9 @@ export function helmetContextForWorkerScope(worker = {}, state = {}, requestedCo
     const minaId = text(project?.minaId);
     if (!project || !minaId || (requested.minaId && requested.minaId !== minaId)) return null;
     const assigned = assignments.some(row => String(row?.mantId || '') === requested.mantId);
-    if (!assigned && !knownClientIds.has(minaId)) return null;
+    // A client link authorizes client-scoped policy only. An OS-specific
+    // policy is usable solely through an active persisted assignment.
+    if (!assigned) return null;
     return { mantId: requested.mantId, minaId };
   }
 
@@ -216,14 +218,31 @@ export function helmetContextForWorkerScope(worker = {}, state = {}, requestedCo
     : null;
 }
 
+function sameHelmetContext(left, right) {
+  return Boolean(left && right)
+    && left.mantId === right.mantId
+    && left.minaId === right.minaId;
+}
+
+// A stored context is display-authoritative only when it has the companion
+// policy snapshot produced by the server. Raw legacy epp.helmetContext is
+// intentionally ignored; the UI derives from persisted associations instead.
+function materializedHelmetContext(helmet = {}) {
+  const resolved = helmetContextFields(helmet?.resolvedContext);
+  const snapshot = helmet?.policySnapshot;
+  const snapshotted = helmetContextFields(snapshot);
+  if (!resolved || !snapshotted || !text(snapshot?.resolvedAt)) return null;
+  return sameHelmetContext(resolved, snapshotted) ? resolved : null;
+}
+
 export function helmetContextFromWorker(worker = {}, state = {}) {
   const epp = worker?.epp || {};
   const helmet = normalizeHelmetRequirement(epp);
   const assignments = helmetActiveAssignments(worker, state);
-  const rawContext = helmetContextFields(helmet?.resolvedContext)
-    || helmetContextFields(epp?.helmetContext);
-  const explicit = helmetContextForWorkerScope(worker, state, rawContext || {});
-  const invalidContext = Boolean(rawContext && !explicit);
+  const rawResolvedContext = helmetContextFields(helmet?.resolvedContext);
+  const materialized = materializedHelmetContext(helmet);
+  const explicit = helmetContextForWorkerScope(worker, state, materialized || {});
+  const invalidContext = Boolean(rawResolvedContext && !explicit);
 
   // A verified explicit OS selection resolves an otherwise ambiguous set of
   // active orders. A client-only selection never masks multiple active OS.
