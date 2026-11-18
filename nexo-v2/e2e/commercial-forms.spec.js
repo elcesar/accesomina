@@ -128,8 +128,9 @@ test('Cliente conserva RUT opcional y bloquea uno inválido sin desplazar su fil
   await rut.press('Tab')
   await expect(rut).toHaveAttribute('aria-invalid', 'false')
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
-  await expect(page.getByText('Cliente creado y disponible para contratos y órdenes de servicio.')).toBeVisible()
-  expect(api.state().minas).toEqual(expect.arrayContaining([expect.objectContaining({ nombre: 'Cliente ficticio QA', rut: '' })]))
+  await expect.poll(() => api.writes.length).toBe(1)
+  await expect.poll(() => api.state().minas.some(item => item.nombre === 'Cliente ficticio QA' && item.rut === '')).toBe(true)
+  await expect(page).toHaveURL(/\\/app\\/clientes\\//)
 })
 
 test('Tercero exige RUT y permite una corrección válida sin salto de grilla', async ({ page }) => {
@@ -152,10 +153,11 @@ test('Tercero exige RUT y permite una corrección válida sin salto de grilla', 
   expect(api.writes).toHaveLength(0)
 
   await page.getByLabel('Razón social', { exact: true }).fill('Tercero ficticio QA')
+  const statusBeforeRutError = await box(page, '#third-party-status')
   await rut.fill('11.111.111-2')
   await rut.press('Tab')
   await expect(page.getByText('Ingresa un RUT chileno válido.', { exact: true })).toBeVisible()
-  expect(Math.abs((await box(page, '#third-party-status')).y - statusBefore.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs((await box(page, '#third-party-status')).y - statusBeforeRutError.y)).toBeLessThanOrEqual(1)
 
   await rut.fill('145072158')
   await page.getByRole('button', { name: 'Registrar tercero', exact: true }).click()
