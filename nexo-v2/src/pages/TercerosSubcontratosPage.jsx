@@ -1,12 +1,12 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { calendarDaysUntil } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconArrowLeft, IconBuildingFactory2, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { RutInput } from '../components/ui/RutInput.jsx'
-import { isValidRut } from '../services/rut.js'
+import { isValidRut, REQUIRED_RUT_ERROR, REQUIRED_RUT_INVALID_ERROR } from '../services/rut.js'
 import '../styles/terceros-subcontratos.css'
 import '../styles/commercial-form-grid.css'
 
@@ -83,6 +83,8 @@ export default function TercerosSubcontratosPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [rutValidationRequested, setRutValidationRequested] = useState(false)
   const [rutServerError, setRutServerError] = useState('')
+  const [nameError, setNameError] = useState('')
+  const nameInputRef = useRef(null)
 
   async function load() {
     setLoading(true)
@@ -152,6 +154,7 @@ export default function TercerosSubcontratosPage() {
     setSelectedId(null)
     setRutValidationRequested(false)
     setRutServerError('')
+    setNameError('')
     setCreating(true)
   }
 
@@ -159,6 +162,7 @@ export default function TercerosSubcontratosPage() {
     setCreating(false)
     setRutValidationRequested(false)
     setRutServerError('')
+    setNameError('')
     setSelectedId(id)
   }
 
@@ -167,6 +171,7 @@ export default function TercerosSubcontratosPage() {
     setCreating(false)
     setRutValidationRequested(false)
     setRutServerError('')
+    setNameError('')
     setForm(EMPTY_FORM)
   }
 
@@ -174,7 +179,13 @@ export default function TercerosSubcontratosPage() {
     event?.preventDefault()
     setRutValidationRequested(true)
     setRutServerError('')
-    if (!form.razon.trim() || !isValidRut(form.rut) || saving) return
+    setNameError('')
+    if (!form.razon.trim()) {
+      setNameError('Ingresa la razón social.')
+      nameInputRef.current?.focus()
+      return
+    }
+    if (!isValidRut(form.rut) || saving) return
     setSaving(true)
     setError('')
     try {
@@ -213,11 +224,11 @@ export default function TercerosSubcontratosPage() {
       setCreating(false)
     } catch (cause) {
       if (cause?.code === 'INCOMPLETE_SUBCONTRACTOR_RUT') {
-        setRutServerError('Ingresa el RUT.')
+        setRutServerError(REQUIRED_RUT_ERROR)
         return
       }
       if (cause?.code === 'INVALID_SUBCONTRACTOR_RUT') {
-        setRutServerError('Ingresa un RUT chileno válido o deja el campo vacío.')
+        setRutServerError(REQUIRED_RUT_INVALID_ERROR)
         return
       }
       setError(cause.message || 'No fue posible guardar el tercero.')
@@ -304,7 +315,7 @@ export default function TercerosSubcontratosPage() {
           </div>
 
           <div className="nk-commercial-form-grid">
-            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-name">Razón social</label><input id="third-party-name" name="razon" className="nk-input" required value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
+            <div className="nk-field nk-commercial-span-2"><label className="nk-label" htmlFor="third-party-name">Razón social</label><input ref={nameInputRef} id="third-party-name" name="razon" className="nk-input" required aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'third-party-name-error' : undefined} value={form.razon} onChange={e => { setNameError(''); setForm(current => ({ ...current, razon: e.target.value })) }} />{nameError && <p id="third-party-name-error" className="nk-field-error" role="alert">{nameError}</p>}</div>
             <div className="nk-field"><label className="nk-label" htmlFor="third-party-rut">RUT</label><RutInput id="third-party-rut" name="rut" required value={form.rut} error={rutServerError || undefined} validationRequested={rutValidationRequested} onChange={value => { setRutServerError(''); setForm(current => ({ ...current, rut: value })) }} /></div>
             <div className="nk-field"><label className="nk-label" htmlFor="third-party-status">Estado</label><select id="third-party-status" name="estado" className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
             <div className="nk-field"><label className="nk-label" htmlFor="third-party-contract">Contrato asociado</label><select id="third-party-contract" name="contratoId" className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
