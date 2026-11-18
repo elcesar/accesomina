@@ -288,6 +288,14 @@ function canonicalContext(context = {}) {
 function clearUntrustedWorkerContext(worker) {
   for (const key of ['mantId', 'orderId', 'projectId', 'minaId', 'clientId']) delete worker[key];
 }
+function clearLegacyHelmetSelectors(worker) {
+  clearUntrustedWorkerContext(worker);
+  if (!worker?.epp || typeof worker.epp !== 'object' || !Object.hasOwn(worker.epp, 'helmetContext')) return;
+  // The canonical context lives under helmet.resolvedContext with its policy
+  // snapshot. A legacy epp.helmetContext is only an untrusted request.
+  const { helmetContext, ...safeEpp } = worker.epp;
+  worker.epp = safeEpp;
+}
 function deliveryHelmetContext(delivery, state, previousDelivery, previousWorker, previousState, historical) {
   const workerId = String(delivery?.workerId || delivery?.trabId || '');
   const worker = collection(state, 'trabajadores').find(row => String(row?.id || '') === workerId);
@@ -309,7 +317,12 @@ function validateWorkerHelmet(worker, state, previousWorker, {
   const hasExplicitHelmet = Boolean(epp && typeof epp === 'object' && Object.hasOwn(epp, 'helmet'));
   const hadExplicitHelmet = Boolean(previousWorker?.epp && typeof previousWorker.epp === 'object' && Object.hasOwn(previousWorker.epp, 'helmet'));
   const unchangedHistorical = workerHelmetIsHistorical(worker, previousWorker);
-  if (unchangedHistorical) return;
+  if (unchangedHistorical) {
+    // Preserve the legacy helmet facts, while removing raw aliases whenever the
+    // worker collection is written. This does not require a data migration.
+    clearLegacyHelmetSelectors(worker);
+    return;
+  }
 
   const resolverOptions = {
     previousWorker,
