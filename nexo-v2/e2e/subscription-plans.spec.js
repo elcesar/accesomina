@@ -68,7 +68,7 @@ async function fillCommercial(page) {
 }
 
 for (const width of [375, 768, 1024, 1440]) {
-  test(`planes públicos, formulario y recomendador a ${width}px`, async ({ page }) => {
+  test.skip(`planes públicos, formulario y recomendador a ${width}px (ocultos por decisión comercial #341)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 })
     const state = await fixture(page)
     await page.goto('/planes')
@@ -100,7 +100,7 @@ for (const width of [375, 768, 1024, 1440]) {
   })
 }
 
-test('una oferta modificada requiere revisión y segundo envío explícito', async ({ page }) => {
+test.skip('una oferta modificada requiere revisión y segundo envío explícito (página pública oculta #341)', async ({ page }) => {
   const state = await fixture(page, { stalePrice: true })
   await page.goto('/planes')
   await page.getByRole('button', { name: 'Solicitar Purranque', exact: true }).click()
@@ -117,19 +117,7 @@ test('una oferta modificada requiere revisión y segundo envío explícito', asy
 })
 
 test('los planes por cotizar no exponen importes públicos ni privados de nuevas solicitudes', async ({ page }) => {
-  const state = await fixture(page, { role: 'client_admin', summary: fixtureSummary({ legacy: true }), quotePricing: true })
-  await page.goto('/planes')
-  const publicPlan = page.locator('[data-plan-code=PURRANQUE]')
-  await expect(publicPlan).toContainText('Precio por definir')
-  await expect(publicPlan).not.toContainText('2.000')
-  await page.locator('[data-plan-code=PURRANQUE]').getByRole('button', { name: 'Solicitar cotización', exact: true }).click()
-  await fillCommercial(page)
-  await page.getByRole('button', { name: 'Enviar solicitud', exact: true }).click()
-  expect(state.commercial[0]).not.toHaveProperty('displayedMonthlyNetPrice')
-  await page.locator('#plans-workers').fill('850')
-  await page.getByRole('button', { name: 'Recomendar plan', exact: true }).click()
-  await expect(page.locator('.nk-plan-recommendation')).toContainText('Precio por definir')
-  await expect(page.locator('.nk-plan-recommendation')).not.toContainText('104.000')
+  await fixture(page, { role: 'client_admin', summary: fixtureSummary({ legacy: true }), quotePricing: true })
   await page.goto('/app/mi-plan')
   await page.locator('#subscription-request-plan').selectOption('PURRANQUE')
   await expect(page.locator('.nk-subscription-request-form .nk-plan-total')).toContainText('Precio por definir')
