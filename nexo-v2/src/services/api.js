@@ -1,4 +1,4 @@
-import { OPTIONAL_RUT_ERROR } from './rut.js'
+import { OPTIONAL_RUT_ERROR, REQUIRED_RUT_ERROR, REQUIRED_RUT_INVALID_ERROR } from './rut.js'
 
 const BASE = '/api'
 let csrfToken = null
@@ -83,7 +83,8 @@ const ERROR_MESSAGES = {
   DUPLICATE_ID: 'Ya existe un registro con ese identificador.',
   DUPLICATE_PROJECT: 'Ya existe una orden de servicio equivalente para ese cliente y fecha.',
   DUPLICATE_HOTEL: 'Ya existe un alojamiento equivalente registrado.',
-  INVALID_SUBCONTRACTOR_RUT: 'El RUT del subcontratista no es válido.',
+  INCOMPLETE_SUBCONTRACTOR_RUT: REQUIRED_RUT_ERROR,
+  INVALID_SUBCONTRACTOR_RUT: REQUIRED_RUT_INVALID_ERROR,
   DUPLICATE_SUBCONTRACTOR_RUT: 'Ya existe un subcontratista registrado con ese RUT.',
   DUPLICATE_VEHICLE: 'Ya existe un vehículo registrado con esa patente o número de serie.',
   DUPLICATE_HEALTH_PROTOCOL: 'Ya existe un protocolo de salud equivalente para esta persona.',
