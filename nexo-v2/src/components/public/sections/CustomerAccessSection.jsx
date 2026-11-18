@@ -236,7 +236,7 @@ export function CustomerAccessPanel() {
           </label>
         </div>
 
-        {freePlan && <p className="nk-access-note">Plan {freePlan.name}: hasta {freePlan.workerLimit} trabajadores durante {freePlan.trialMonths} meses calendario. La gratuidad comienza con la primera activación aprobada de la empresa. No requiere tarjeta.</p>}
+        <p className="nk-access-note">Las condiciones comerciales de nuevas cuentas se informarán tras la revisión y aprobación correspondiente.</p>
         <button type="button" className="nk-button nk-button-quiet" onClick={() => setShowTerms(true)}>Leer términos y privacidad</button>
         <label className="nk-plan-consent"><input id="registration-acceptedTerms" name="acceptedTerms" type="checkbox" checked={registration.acceptedTerms} onChange={event => { setRegistration(current => ({ ...current, acceptedTerms: event.target.checked })); setFieldErrors(current => ({ ...current, acceptedTerms: '' })) }} aria-invalid={Boolean(fieldErrors.acceptedTerms)} aria-describedby={fieldErrors.acceptedTerms ? 'registration-acceptedTerms-error' : undefined} /><span>He leído y acepto los términos y la política de privacidad.</span></label>
         {fieldErrors.acceptedTerms && <span id="registration-acceptedTerms-error" className="nk-field-error" role="alert">{fieldErrors.acceptedTerms}</span>}
