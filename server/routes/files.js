@@ -38,7 +38,13 @@ async function lockFileWrite(client,req,entityType) {
 // Libro de obra is globally unavailable under D-068. This guard belongs here,
 // not only in its router, because generic file endpoints receive its attachments.
 export function assertAvailableFileEntityType(entityType) {
-  if (separateServiceForEntity(entityType) === 'libroObra') {
+  const type = String(entityType || '').trim().toLowerCase()
+  if (type === 'company_branding') {
+    // Branding files are associated and retired atomically by /settings/logo.
+    // The generic file API must not leave tenant_settings pointing at a soft-deleted object.
+    throw Object.assign(new Error('El logo se administra desde Configuración de la empresa.'), { status: 409, code: 'BRANDING_FILE_MANAGED_SEPARATELY' });
+  }
+  if (separateServiceForEntity(type) === 'libroObra') {
     throw Object.assign(new Error('El Libro de obra aún no está disponible.'), { status: 409, code: 'WORK_BOOK_NOT_AVAILABLE' });
   }
 }
