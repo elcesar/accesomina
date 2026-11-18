@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { pool, withTenant } from '../db.js'
 import { settingsRouter, settingsUpdateAuthorization } from '../routes/settings.js'
 import { filesRouter } from '../routes/files.js'
-import { canAccessModule } from '../module-access.js'
+import { canAccessEntityType, canAccessModule } from '../module-access.js'
 import { accessibleBrandText, brandCssVariables } from '../../nexo-v2/src/services/theme.js'
 import { config } from '../config.js'
 
@@ -162,6 +162,8 @@ test('direct settings API gives module authority only to the tenant client admin
   assert.equal(audit.rows[0].user_id, USERS.client_admin)
   assert.equal(canAccessModule({ role: 'client_admin', companyModules: { epp: false }, permissions: { modules: { epp: true } } }, 'epp'), false)
   assert.equal(canAccessModule({ role: 'domian_admin', companyModules: { epp: false }, permissions: { modules: {} } }, 'epp'), false)
+  assert.equal(canAccessEntityType({ role: 'client_admin', companyModules: { trabajadores: false }, permissions: { modules: { trabajadores: true } } }, 'worker_document'), false)
+  assert.equal(canAccessEntityType({ role: 'domian_admin', companyModules: { trabajadores: false }, permissions: { modules: {} } }, 'worker_document'), false)
 })
 
 test('uploaded logos are private to the tenant, replace the prior branding object, and clean up a failed persistence', async () => {
@@ -191,6 +193,23 @@ test('uploaded logos are private to the tenant, replace the prior branding objec
     [first.body.logo.id, TENANT_A]
   ))
   assert.ok(oldObject.rows[0].deleted_at)
+
+  const brandingUpload = new FormData()
+  brandingUpload.append('file', new Blob([new Uint8Array([9])], { type: 'image/png' }), 'bypass-logo.png')
+  brandingUpload.append('entityType', 'company_branding')
+  brandingUpload.append('entityId', 'logo')
+  const blockedBrandingUpload = await fetch(`${fixture.base}/files`, {
+    method: 'POST',
+    headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' },
+    body: brandingUpload,
+  })
+  assert.deepEqual([blockedBrandingUpload.status, (await blockedBrandingUpload.json()).error], [409, 'BRANDING_FILE_MANAGED_SEPARATELY'])
+  const blockedBrandingRead = await fetch(`${fixture.base}/files/${second.body.logo.id}`, { headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
+  assert.deepEqual([blockedBrandingRead.status, (await blockedBrandingRead.json()).error], [409, 'BRANDING_FILE_MANAGED_SEPARATELY'])
+  const blockedBrandingDelete = await fetch(`${fixture.base}/files/${second.body.logo.id}`, { method: 'DELETE', headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
+  assert.deepEqual([blockedBrandingDelete.status, (await blockedBrandingDelete.json()).error], [409, 'BRANDING_FILE_MANAGED_SEPARATELY'])
+  const activeLogo = await fetch(`${fixture.base}/settings/logo`, { headers: { 'x-qa-tenant': TENANT_A, 'x-qa-role': 'client_admin' } })
+  assert.equal(activeLogo.status, 200)
 
   const beforeFailure = await storedBrandingFiles()
   failNextSettingsPersist = true
