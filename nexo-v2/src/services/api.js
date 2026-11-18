@@ -23,6 +23,13 @@ function loadFailure(path,method,status){
 
 
 const ERROR_MESSAGES = {
+  MODULE_SETTINGS_PERMISSION_DENIED: 'Sólo el administrador de la empresa puede modificar los módulos habilitados.',
+  INVALID_MODULE_SETTINGS: 'La configuración de módulos no es válida.',
+  INVALID_PRIMARY_COLOR: 'Selecciona un color principal válido.',
+  INVALID_LOGO_FILE: 'Selecciona un logo PNG o JPG de hasta 2 MB.',
+  LOGO_MANAGED_SEPARATELY: 'El logo debe cargarse desde la sección de identidad de la empresa.',
+  INTEGRATION_NOT_AVAILABLE: 'Esta integración aún no está disponible.',
+  WORK_BOOK_NOT_AVAILABLE: 'El Libro de obra aún no está disponible.',
   RECORD_VERSION_CONFLICT: 'Esta persona cambió mientras la editabas. Recarga su ficha y revisa los cambios antes de guardar.',
   AUTH_REQUIRED: 'Tu sesión ha expirado. Inicia sesión nuevamente.',
   SESSION_INVALID: 'Tu sesión ya no es válida. Inicia sesión nuevamente.',
