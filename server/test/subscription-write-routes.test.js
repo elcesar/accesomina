@@ -95,6 +95,26 @@ async function saveWorkers(auth, records) {
   const current = await snapshot(auth);
   return invoke(stateRouter, '/modules', 'put', { auth, body: { changes: { trabajadores: { version: current.version, data: records } }, reason: 'Prueba QA de capacidad' } });
 }
+async function moduleState(auth, key) {
+  const result = await db.query(
+    'SELECT data,version FROM tenant_module_state WHERE tenant_id=$1 AND module_key=$2',
+    [auth.tenantId, key],
+  );
+  return result.rows[0] ? { data: result.rows[0].data, version: Number(result.rows[0].version) } : { data: null, version: 0 };
+}
+async function seedHelmetScope(auth) {
+  const modules = {
+    minas: [{ id: 'm-http', nombre: 'Cliente HTTP' }],
+    contratos: [{ id: 'c-http', minaId: 'm-http', numero: 'CTR-HTTP' }],
+    mantenciones: [{ id: 'os-http', minaId: 'm-http', contratoId: 'c-http', nombre: 'OS HTTP' }],
+  };
+  for (const [key, value] of Object.entries(modules)) {
+    await db.query(
+      'UPDATE tenant_module_state SET data=$3::jsonb WHERE tenant_id=$1 AND module_key=$2',
+      [auth.tenantId, key, JSON.stringify(value)],
+    );
+  }
+}
 function pdfFile(value = 'QA evidence') { const buffer = Buffer.from(`%PDF-1.4\n${value}`); return { buffer, size: buffer.length, originalname: 'qa.pdf', mimetype: 'application/pdf' }; }
 async function delegatedDocument(auth, { file = pdfFile(), type = 'subscription_document', downloadId } = {}) {
   const res = response();
@@ -129,6 +149,64 @@ test('state modules rejects a new worker without an explicit helmet decision', a
     error => error.code === 'HELMET_APPLICABILITY_REQUIRED',
   );
   assert.deepEqual(await snapshot(auth), before);
+});
+
+test('state modules enforces client/OS helmet policy for a new worker atomically', async () => {
+  const greenHelmet = {
+    casco: 'M',
+    helmet: { applicability: 'required', colorCode: 'verde', colorLabel: 'Verde', size: 'M' },
+  };
+
+  const restricted = await company({ count: 0 });
+  await seedHelmetScope(restricted);
+  const rejectedBefore = await snapshot(restricted);
+  const rejectedWorker = {
+    id: 'http-rejected-worker', nombre: 'Persona HTTP restringida', rut: rut(10_050_000),
+    mineras: ['m-http'], workerItems: [], epp: greenHelmet,
+  };
+  await assert.rejects(
+    () => invoke(stateRouter, '/modules', 'put', {
+      auth: restricted,
+      body: {
+        changes: {
+          trabajadores: { version: rejectedBefore.version, data: [rejectedWorker] },
+          helmetPolicies: {
+            version: 0,
+            data: [{ id: 'client-http-blue', scope: 'cliente', minaId: 'm-http', allowedColorCodes: ['azul'] }],
+          },
+        },
+        reason: 'QA casco restringido por cliente',
+      },
+    }),
+    error => error.code === 'HELMET_COLOR_NOT_ALLOWED',
+  );
+  assert.deepEqual(await snapshot(restricted), rejectedBefore);
+  assert.deepEqual(await moduleState(restricted, 'helmetPolicies'), { data: null, version: 0 });
+
+  const accepted = await company({ count: 0 });
+  await seedHelmetScope(accepted);
+  const acceptedWorkers = await snapshot(accepted);
+  const acceptedWorker = {
+    id: 'http-atomic-worker', nombre: 'Persona HTTP OS', rut: rut(10_050_001),
+    mineras: ['m-http'], workerItems: [], epp: greenHelmet,
+  };
+  const saved = await invoke(stateRouter, '/modules', 'put', {
+    auth: accepted,
+    body: {
+      changes: {
+        trabajadores: { version: acceptedWorkers.version, data: [acceptedWorker] },
+        asignaciones: { version: 0, data: [{ id: 'http-assignment', trabId: 'http-atomic-worker', mantId: 'os-http', estado: 'confirmado' }] },
+        helmetPolicies: {
+          version: 0,
+          data: [{ id: 'os-http-green', scope: 'os', mantId: 'os-http', allowedColorCodes: ['verde'] }],
+        },
+      },
+      reason: 'QA casco con asociación OS atómica',
+    },
+  });
+  assert.equal(saved.statusCode, 200);
+  const persisted = await snapshot(accepted);
+  assert.deepEqual(persisted.data[0].epp.helmet.resolvedContext, { mantId: 'os-http', minaId: 'm-http' });
 });
 
 test('backup restore converts a missing legacy helmet into an advisory pending decision', async () => {
