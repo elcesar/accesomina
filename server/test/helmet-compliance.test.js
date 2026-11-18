@@ -69,6 +69,60 @@ test('shared helmet context ignores forged top-level selectors and keeps the act
   assert.deepEqual({ mantId: context.mantId, minaId: context.minaId }, { mantId: 'os1', minaId: 'm1' })
 })
 
+test('shared scope requires an active OS assignment even when the client is linked', () => {
+  const scopedState = {
+    ...state,
+    mantenciones: [
+      { id: 'os1', minaId: 'm1', nombre: 'OS asignada' },
+      { id: 'os1-alt', minaId: 'm1', nombre: 'OS no asignada' },
+    ],
+    asignaciones: [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }],
+  }
+  const persona = worker({ casco: 'M', helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' } })
+  assert.equal(
+    helmetContextForWorkerScope(persona, scopedState, { mantId: 'os1-alt', minaId: 'm1' }),
+    null,
+  )
+  assert.equal(
+    helmetCompliance(persona, scopedState, { context: { mantId: 'os1-alt', minaId: 'm1' } }).status,
+    'context_required',
+  )
+})
+
+test('shared display uses only server-materialized context, never raw epp context', () => {
+  const scopedState = {
+    ...state,
+    mantenciones: [
+      { id: 'os1', minaId: 'm1', nombre: 'OS uno' },
+      { id: 'os1-alt', minaId: 'm1', nombre: 'OS alternativa' },
+    ],
+    asignaciones: [
+      { id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' },
+      { id: 'a2', trabId: 'w1', mantId: 'os1-alt', estado: 'confirmado' },
+    ],
+  }
+  const raw = worker({
+    casco: 'M',
+    helmet: { applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M' },
+    helmetContext: { mantId: 'os1-alt', minaId: 'm1' },
+  })
+  const rawContext = helmetContextFromWorker(raw, scopedState)
+  assert.equal(rawContext.multipleActiveOrders, true)
+  assert.equal(rawContext.mantId, '')
+
+  const materialized = worker({
+    casco: 'M',
+    helmet: {
+      applicability: 'required', colorCode: 'azul', colorLabel: 'Azul', size: 'M',
+      resolvedContext: { mantId: 'os1-alt', minaId: 'm1' },
+      policySnapshot: { mantId: 'os1-alt', minaId: 'm1', resolvedAt: '2026-11-18T00:00:00.000Z' },
+    },
+    helmetContext: { mantId: 'os1', minaId: 'm1' },
+  })
+  const canonical = helmetContextFromWorker(materialized, scopedState)
+  assert.deepEqual({ mantId: canonical.mantId, minaId: canonical.minaId }, { mantId: 'os1-alt', minaId: 'm1' })
+})
+
 test('client-row helmet compliance does not leak an OS policy from another client', () => {
   const scopedState = {
     ...state,
