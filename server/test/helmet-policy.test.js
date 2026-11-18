@@ -110,3 +110,12 @@ test('worker PATCH cannot bypass the applicable helmet policy', () => {
     error => error.code === 'HELMET_COLOR_REQUIRED',
   );
 });
+\n
+test('ambiguous active policies in the same scope are rejected', () => {
+  const state = baseState();
+  state.helmetPolicies = [
+    { id: 'client-a', scope: 'cliente', minaId: 'm1', active: true },
+    { id: 'client-b', scope: 'cliente', minaId: 'm1', active: true },
+  ];
+  assert.throws(() => validateTenantState(state), error => error.code === 'DUPLICATE_HELMET_POLICY_SCOPE');
+});
