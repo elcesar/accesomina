@@ -116,6 +116,108 @@ test('worker PATCH cannot bypass the applicable helmet policy', () => {
 });
 
 
+test('worker PATCH preserves client context for client-scoped helmet policies', () => {
+  const state = baseState();
+  state.helmetColors = [
+    { code: 'azul', label: 'Azul', active: true },
+    { code: 'verde', label: 'Verde', active: true },
+  ];
+  state.helmetPolicies = [{
+    id: 'client-policy',
+    scope: 'cliente',
+    minaId: 'm1',
+    allowedColorCodes: ['azul'],
+    requireModelClass: true,
+  }];
+  state.trabajadores[0].epp = requiredHelmet({ modelClass: 'Clase A' });
+  const worker = state.trabajadores[0];
+
+  assert.throws(
+    () => patchWorkerProfile(
+      [worker],
+      'w1',
+      { epp: requiredHelmet({ colorCode: 'verde', colorLabel: 'Verde', modelClass: 'Clase A' }) },
+      recordRevision(worker),
+      state,
+    ),
+    error => error.code === 'HELMET_COLOR_NOT_ALLOWED',
+  );
+  assert.throws(
+    () => patchWorkerProfile(
+      [worker],
+      'w1',
+      { epp: requiredHelmet({ modelClass: '' }) },
+      recordRevision(worker),
+      state,
+    ),
+    error => error.code === 'HELMET_MODEL_CLASS_REQUIRED',
+  );
+});
+
+test('worker PATCH rejects a helmet context outside the worker client scope', () => {
+  const state = baseState();
+  state.minas.push({ id: 'm2', nombre: 'Cliente ajeno' });
+  state.contratos.push({ id: 'c2', minaId: 'm2', numero: 'CTR-2' });
+  state.mantenciones.push({ id: 'os-ajena', minaId: 'm2', contratoId: 'c2', nombre: 'OS ajena' });
+  state.trabajadores[0].epp = requiredHelmet();
+  const worker = state.trabajadores[0];
+  assert.throws(
+    () => patchWorkerProfile(
+      [worker],
+      'w1',
+      { epp: { ...requiredHelmet(), helmetContext: { mantId: 'os-ajena', minaId: 'm2' } } },
+      recordRevision(worker),
+      state,
+    ),
+    error => error.code === 'HELMET_CONTEXT_OUT_OF_SCOPE',
+  );
+});
+
+test('manual helmet delivery without an order inherits the recipient client policy', () => {
+  const state = baseState();
+  state.helmetColors = [
+    { code: 'azul', label: 'Azul', active: true },
+    { code: 'verde', label: 'Verde', active: true },
+  ];
+  state.helmetPolicies = [{ id: 'client-policy', scope: 'cliente', minaId: 'm1', allowedColorCodes: ['azul'] }];
+  state.eppDeliveries = [{
+    id: 'manual-delivery',
+    workerId: 'w1',
+    itemId: 'manual-helmet',
+    itemName: 'Casco de seguridad',
+    qty: 1,
+    deliveryStatus: 'entregado',
+    condition: 'nuevo',
+    deliveredAt: '2026-11-17',
+    helmetColorCode: 'verde',
+    helmetColorLabel: 'Verde',
+  }];
+  assert.throws(() => validateTenantState(state), error => error.code === 'HELMET_COLOR_NOT_ALLOWED');
+});
+
+test('manual helmet delivery without an order rejects ambiguous active orders', () => {
+  const state = baseState();
+  state.mantenciones.push({ id: 'os2', minaId: 'm1', contratoId: 'c1', nombre: 'OS 2' });
+  state.asignaciones = [
+    { id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' },
+    { id: 'a2', trabId: 'w1', mantId: 'os2', estado: 'confirmado' },
+  ];
+  state.helmetColors = [{ code: 'azul', label: 'Azul', active: true }];
+  state.eppDeliveries = [{
+    id: 'ambiguous-delivery',
+    workerId: 'w1',
+    itemId: 'manual-helmet',
+    itemName: 'Casco de seguridad',
+    qty: 1,
+    deliveryStatus: 'entregado',
+    condition: 'nuevo',
+    deliveredAt: '2026-11-17',
+    helmetColorCode: 'azul',
+    helmetColorLabel: 'Azul',
+  }];
+  assert.throws(() => validateTenantState(state), error => error.code === 'HELMET_POLICY_CONTEXT_REQUIRED');
+});
+
 test('ambiguous active policies in the same scope are rejected', () => {
   const state = baseState();
   state.helmetPolicies = [
