@@ -122,7 +122,8 @@ test('ambiguous active policies in the same scope are rejected', () => {
   ];
   assert.throws(() => validateTenantState(state), error => error.code === 'DUPLICATE_HELMET_POLICY_SCOPE');
 });
-\n
+
+
 test('plural helmet labels and a referenced inventory helmet are not bypassed', () => {
   assert.equal(isHelmetItem('Cascos de seguridad'), true);
   const state = baseState();
