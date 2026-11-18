@@ -17,7 +17,7 @@ test('state rejects cross-reference errors',()=>{const state=validState();state.
 test('state rejects duplicate worker assignments',()=>{const state=validState();state.asignaciones.push({trabId:'w1',mantId:'p1'});assert.throws(()=>validateTenantState(state),error=>error.code==='DUPLICATE_ASSIGNMENT');});
 test('state validates connected operational modules',()=>{const state=validState();state.hoteles=[{id:'h1',nombre:'Hotel Norte',ciudad:'Calama'}];state.hotelAsig=[{id:'ha1',trabId:'w1',mantId:'p1',hotelId:'h1'}];state.turnos=[{id:'t1',trabId:'w1',mantId:'p1',fecha:'2026-07-01',turno:'dia'}];state.credenciales=[{id:'cr1',trabId:'w1',minaId:'m1',numero:'P-1'}];state.protocolosSalud=[{id:'ps1',trabId:'w1',minaId:'m1'}];state.incidentes=[{id:'i1',mantId:'p1'}];assert.doesNotThrow(()=>validateTenantState(state));state.hotelAsig[0].hotelId='missing';assert.throws(()=>validateTenantState(state),/unknown worker, project or hotel/);});
 test('state validates EPP delivery relationships',()=>{const state=validState();state.eppDeliveries=[{id:'e1',workerId:'w1',mantId:'p1',itemId:'helmet',itemName:'Casco',qty:1,deliveredAt:'2026-07-01'}];assert.doesNotThrow(()=>validateTenantState(state));state.eppDeliveries[0].workerId='missing';assert.throws(()=>validateTenantState(state),/unknown worker/);});
-test('state accepts a multi-item EPP batch and validates each status',()=>{const state=validState();state.eppDeliveries=[{id:'e1',batchId:'batch1',workerId:'w1',mantId:'p1',itemId:'helmet',itemName:'Casco',qty:1,size:'M',condition:'nuevo',deliveryStatus:'entregado',deliveredAt:'2026-07-01'},{id:'e2',batchId:'batch1',workerId:'w1',mantId:'p1',itemId:'boots',itemName:'Calzado',qty:1,size:'42',condition:'nuevo',deliveryStatus:'entregado',deliveredAt:'2026-07-01'}];const clean=validateTenantState(state);assert.equal(clean.eppDeliveries.length,2);state.eppDeliveries[1].deliveryStatus='desconocido';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_EPP_DELIVERY_STATUS');});
+test('state accepts a multi-item EPP batch and validates each status',()=>{const state=validState();state.eppDeliveries=[{id:'e1',batchId:'batch1',workerId:'w1',mantId:'p1',itemId:'helmet',itemName:'Casco',qty:1,size:'M',helmetColorCode:'azul',helmetColorLabel:'Azul',condition:'nuevo',deliveryStatus:'entregado',deliveredAt:'2026-07-01'},{id:'e2',batchId:'batch1',workerId:'w1',mantId:'p1',itemId:'boots',itemName:'Calzado',qty:1,size:'42',condition:'nuevo',deliveryStatus:'entregado',deliveredAt:'2026-07-01'}];const clean=validateTenantState(state);assert.equal(clean.eppDeliveries.length,2);state.eppDeliveries[1].deliveryStatus='desconocido';assert.throws(()=>validateTenantState(state),error=>error.code==='INVALID_EPP_DELIVERY_STATUS');});
 test('state rejects duplicate operational records',()=>{const cases=[['protocolosSalud',{id:'x1',trabId:'w1',minaId:'m1',tipo:'ruido'},'DUPLICATE_HEALTH_PROTOCOL'],['incidentes',{id:'x1',mantId:'p1',fecha:'2026-07-01',tipo:'hallazgo',descripcion:'Falta barrera'},'DUPLICATE_INCIDENT'],['permisosTrabajo',{id:'x1',mantId:'p1',nombre:'Trabajo en altura'},'DUPLICATE_WORK_PERMIT'],['waGroups',{id:'x1',minaId:'m1',mantId:'p1',nombre:'Turno A'},'DUPLICATE_WHATSAPP_GROUP'],['firmas',{id:'x1',trabId:'w1',mantId:'p1',tipo:'contrato',estado:'enviado'},'DUPLICATE_SIGNATURE_REQUEST']];for(const[module,row,code]of cases){const state=validState();state[module]=[row,{...row,id:'x2'}];assert.throws(()=>validateTenantState(state),error=>error.code===code,module);}});
 test('state rejects duplicate worker documents and overlapping lodging',()=>{const docs=validState();docs.trabajadores[0].workerItems=[{id:'d1',type:'examen',name:'Altura física',vence:'2027-01-01'},{id:'d2',type:'examen',name:'Altura física',vence:'2027-01-01'}];assert.throws(()=>validateTenantState(docs),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');const lodging=validState();lodging.hoteles=[{id:'h1',nombre:'Hotel A'},{id:'h2',nombre:'Hotel B'}];lodging.hotelAsig=[{id:'ha1',trabId:'w1',mantId:'p1',hotelId:'h1',checkin:'2026-07-01',checkout:'2026-07-10'},{id:'ha2',trabId:'w1',mantId:'p1',hotelId:'h2',checkin:'2026-07-05',checkout:'2026-07-12'}];assert.throws(()=>validateTenantState(lodging),error=>error.code==='OVERLAPPING_HOTEL_ASSIGNMENT');});
 test('sanitizer removes executable markup and embedded files',()=>{const clean=sanitizeJson({name:'<img src=x onerror="bad">',fileData:'data:secret',cloudUrl:'javascript:alert(1)'});assert.equal(clean.name.includes('<'),false);assert.equal(clean.fileData,null);assert.equal(clean.cloudUrl,'');});
@@ -208,4 +208,30 @@ test('document removal keeps files referenced by another module or verification'
   assert.equal(referenced.has('file-shared-worker'),true,'shared worker evidence is retained');
   assert.equal(referenced.has('file-in-incident'),true,'another module reference is retained');
   assert.equal(referenced.has('file-in-verification'),true,'operational verification reference is retained');
+});
+\n
+test('module-write fallback validates a new explicit helmet requirement despite unrelated legacy state',()=>{
+  const current=validState();
+  current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
+  const proposed=structuredClone(current);
+  proposed.trabajadores.push({
+    id:'w2',nombre:'Persona casco',rut:'14.507.215-8',mineras:['m1'],
+    epp:{helmet:{applicability:'required',colorCode:'',colorLabel:'',size:'M'}},
+  });
+  assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
+  assert.throws(()=>validateAppendChanges(current,proposed,['trabajadores']),error=>error.code==='HELMET_COLOR_REQUIRED');
+});
+
+test('module-write validation requires a physical helmet inventory snapshot',()=>{
+  const valid=validState();
+  valid.helmetColors=[{code:'azul',label:'Azul',active:true}];
+  valid.inventoryItems=[{
+    id:'i1',name:'Casco de seguridad',category:'epp',stock:1,
+    helmetColorCode:'azul',helmetColorLabel:'Azul',helmetClass:'A',
+    brandModel:'Modelo QA',certification:'EN 397',lotSerial:'L-1',size:'M',
+  }];
+  assert.doesNotThrow(()=>validateTenantState(valid));
+  const invalid=structuredClone(valid);
+  invalid.inventoryItems[0].helmetColorLabel='';
+  assert.throws(()=>validateTenantState(invalid),error=>error.code==='HELMET_INVENTORY_COLOR_REQUIRED');
 });
