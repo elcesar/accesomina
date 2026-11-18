@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   HELMET_APPLICABILITY,
+  helmetContextFromWorker,
+  isHelmetItem,
   materializeHelmetState,
   normalizeHelmetRequirement,
   resolveHelmetPolicy,
@@ -119,4 +121,27 @@ test('ambiguous active policies in the same scope are rejected', () => {
     { id: 'client-b', scope: 'cliente', minaId: 'm1', active: true },
   ];
   assert.throws(() => validateTenantState(state), error => error.code === 'DUPLICATE_HELMET_POLICY_SCOPE');
+});
+\n
+test('plural helmet labels and a referenced inventory helmet are not bypassed', () => {
+  assert.equal(isHelmetItem('Cascos de seguridad'), true);
+  const state = baseState();
+  state.inventoryItems = [{ id: 'i-helmet', name: 'Cascos de seguridad', category: 'epp', stock: 1 }];
+  state.eppDeliveries = [{
+    id: 'd-generic', workerId: 'w1', mantId: 'os1', inventoryId: 'i-helmet',
+    itemId: 'i-helmet', itemName: 'EPP genérico', qty: 1,
+    deliveryStatus: 'entregado', condition: 'nuevo', deliveredAt: '2026-11-17',
+  }];
+  assert.throws(() => validateTenantState(state), error => error.code === 'HELMET_DELIVERY_COLOR_REQUIRED');
+});
+
+test('current assignment context wins over an old helmet snapshot after reassignment', () => {
+  const state = baseState();
+  state.mantenciones.push({ id: 'os-old', minaId: 'm1', contratoId: 'c1', nombre: 'OS antigua' });
+  state.asignaciones = [{ id: 'a1', trabId: 'w1', mantId: 'os1', estado: 'confirmado' }];
+  const worker = {
+    ...state.trabajadores[0],
+    epp: requiredHelmet({ policySnapshot: { mantId: 'os-old', minaId: 'm1' } }),
+  };
+  assert.equal(helmetContextFromWorker(worker, state).mantId, 'os1');
 });
