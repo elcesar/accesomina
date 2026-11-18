@@ -35,11 +35,9 @@ export function CustomerAccessPanel() {
   const [fieldErrors, setFieldErrors] = useState({})
   const [showInvite, setShowInvite] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
-  const [freePlan, setFreePlan] = useState(null)
 
   useEffect(() => {
     api.get('/auth/config').then(setConfig).catch(() => {})
-    api.get('/plans').then(data => setFreePlan(data.plans?.find(plan => plan.code === 'FREE') || null)).catch(() => {})
   }, [])
 
   const update = key => event => {
