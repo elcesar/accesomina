@@ -85,14 +85,14 @@ function workerHelmetIsHistorical(worker, previousWorker) {
   );
 }
 
-function validateWorkerHelmet(worker, state, previousWorker) {
+function validateWorkerHelmet(worker, state, previousWorker, { requireDecisionForNew = false } = {}) {
   const epp = worker?.epp;
   const hasExplicitHelmet = Boolean(epp && typeof epp === 'object' && Object.hasOwn(epp, 'helmet'));
   const hadExplicitHelmet = Boolean(previousWorker?.epp && typeof previousWorker.epp === 'object' && Object.hasOwn(previousWorker.epp, 'helmet'));
   // New people must make the Yes/No decision. Existing legacy records remain
   // readable until an EPP decision is intentionally completed.
   if (!hasExplicitHelmet) {
-    if (!previousWorker || hadExplicitHelmet) {
+    if (hadExplicitHelmet || (requireDecisionForNew && !previousWorker)) {
       helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
     }
     return;
@@ -620,7 +620,7 @@ export function validateAppendChanges(current, proposed, keys) {
     }
     validateWorkerBirthDate(worker);
     validateWorkerEmail(worker);
-    validateWorkerHelmet(worker, appendState, null);
+    validateWorkerHelmet(worker, appendState, null, { requireDecisionForNew: true });
     validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
@@ -709,7 +709,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
     }
     validateWorkerBirthDate(worker);
     validateWorkerEmail(worker, previousWorkers.get(String(worker.id)));
-    validateWorkerHelmet(worker, state, previousWorkers.get(String(worker.id)));
+    validateWorkerHelmet(worker, state, previousWorkers.get(String(worker.id)), { requireDecisionForNew: Boolean(previousState) });
   }
   for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
