@@ -18,8 +18,13 @@ const fixtureSummary = ({ code = 'LA_UNION', status = 'ACTIVE', legacy = false, 
   const plan = fixtureCatalog().plans.find(item => item.code === code)
   return { legacy, managed: !legacy, canOperate: legacy || status !== 'SUSPENDED', freeEligible: !legacy, daysRemaining: code === 'FREE' ? 120 : null, contract: legacy ? null : { id: 'contract-qa', planCode: plan.code, planName: plan.name, status, workerLimit: plan.workerLimit, monthlyNetPrice: plan.monthlyPrice, currency: 'CLP', startsAt: '2026-11-05T10:00:00Z', endsAt: code === 'FREE' ? '2027-05-05T10:00:00Z' : '2026-12-05T10:00:00Z' }, capacity: { base: plan.workerLimit, additional: 0, total: plan.workerLimit, used, available: plan.workerLimit - used, overCapacity: 0 }, packages: [], requests: [], separateServices: { libroObra: { enabled: false }, oportunidades: { enabled: false } } }
 }
-async function fixture(page, { role = null, summary = fixtureSummary(), stalePrice = false } = {}) {
-  const state = { catalog: fixtureCatalog(), summary, requests: [], commercial: [], calls: [], uploads: 0 }
+async function fixture(page, { role = null, summary = fixtureSummary(), stalePrice = false, quotePricing = false } = {}) {
+  const catalog = fixtureCatalog()
+  if (quotePricing) {
+    for (const item of catalog.plans) if (item.code !== 'FREE') Object.assign(item, { monthlyPrice: null, priceVisibility: 'QUOTE' })
+    for (const item of catalog.packages) Object.assign(item, { monthlyPrice: null, priceVisibility: 'QUOTE' })
+  }
+  const state = { catalog, summary, requests: [], commercial: [], calls: [], uploads: 0 }
   const company = { id: 'company-qa', name: 'Empresa de pruebas QA', rut: '11.111.111-1', managed: !summary.legacy }
   await page.route('**/api/**', async route => {
     const request = route.request(); const path = new URL(request.url()).pathname
@@ -31,8 +36,8 @@ async function fixture(page, { role = null, summary = fixtureSummary(), stalePri
     if (path === '/api/subscriptions/admin/access') return role === 'domian_admin' ? json({ profile: 'SUPER_ADMIN', capabilities: ['read', 'catalog.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage', 'operators.manage', 'policies.manage'] }) : json({ error: 'FORBIDDEN' }, 403)
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
-    if (path === '/api/plans') return json(state.catalog)
-    if (path === '/api/plans/recommend') return json({ planCode: 'PUERTO_OCTAY', workers: payload.workers, baseCapacity: 720, packages: [{ code: 'EXTRA_200', quantity: 1, workersQuantity: 200, monthlyPrice: 100000 }], totalCapacity: 920, available: 70, monthlyNetPrice: 104000, currency: 'CLP' })
+    if (path === '/api/plans' || path === '/api/subscription/catalog') return json(state.catalog)
+    if (path === '/api/plans/recommend') return json({ planCode: 'PUERTO_OCTAY', workers: payload.workers, baseCapacity: 720, packages: [{ code: 'EXTRA_200', quantity: 1, workersQuantity: 200, monthlyPrice: quotePricing ? null : 100000, priceVisibility: quotePricing ? 'QUOTE' : undefined }], totalCapacity: 920, available: 70, monthlyNetPrice: quotePricing ? null : 104000, priceVisibility: quotePricing ? 'QUOTE' : undefined, currency: 'CLP' })
     if (path === '/api/commercial-requests') {
       if (stalePrice && !state.commercial.length) { stalePrice = false; const plan = state.catalog.plans.find(item => item.code === 'PURRANQUE'); plan.monthlyPrice = 2500; plan.versionId = 'PURRANQUE-v2'; return json({ error: 'SUBSCRIPTION_OFFER_CHANGED' }, 409) }
       state.commercial.push(payload); return json({ requestId: 'public-request-qa' }, 201)
@@ -63,7 +68,7 @@ async function fillCommercial(page) {
 }
 
 for (const width of [375, 768, 1024, 1440]) {
-  test(`planes públicos, formulario y recomendador a ${width}px`, async ({ page }) => {
+  test.skip(`planes públicos, formulario y recomendador a ${width}px (ocultos por decisión comercial #341)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 })
     const state = await fixture(page)
     await page.goto('/planes')
@@ -88,14 +93,14 @@ for (const width of [375, 768, 1024, 1440]) {
     await expect(page.locator('.nk-plan-recommendation')).toContainText('920 cupos')
     await expect(page.locator('.nk-plan-recommendation')).toContainText('70 disponibles')
     await page.getByRole('button', { name: 'Solicitar esta selección' }).click()
-    await expect(page.locator('#plan-request-title')).toHaveText('Solicitar plan Puerto Octay')
+    await expect(page.locator('#plan-request-title')).toHaveText('Solicitar cotización: Puerto Octay')
     await expect(page.getByLabel('Cantidad de 200 trabajadores adicionales')).toHaveValue('1')
     await expect(page.locator('.nk-plan-request .nk-plan-total')).toContainText('104.000')
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })
 }
 
-test('una oferta modificada requiere revisión y segundo envío explícito', async ({ page }) => {
+test.skip('una oferta modificada requiere revisión y segundo envío explícito (página pública oculta #341)', async ({ page }) => {
   const state = await fixture(page, { stalePrice: true })
   await page.goto('/planes')
   await page.getByRole('button', { name: 'Solicitar Purranque', exact: true }).click()
@@ -109,6 +114,14 @@ test('una oferta modificada requiere revisión y segundo envío explícito', asy
   await page.getByRole('button', { name: 'Enviar solicitud', exact: true }).click()
   await expect(page.getByText('Hemos recibido tu solicitud. Nuestro equipo revisará')).toBeVisible()
   expect(state.commercial[0]).toMatchObject({ versionId: 'PURRANQUE-v2', displayedMonthlyNetPrice: 2500 })
+})
+
+test('los planes por cotizar no exponen importes públicos ni privados de nuevas solicitudes', async ({ page }) => {
+  await fixture(page, { role: 'client_admin', summary: fixtureSummary({ legacy: true }), quotePricing: true })
+  await page.goto('/app/mi-plan')
+  await page.locator('#subscription-request-plan').selectOption('PURRANQUE')
+  await expect(page.locator('.nk-subscription-request-form .nk-plan-total')).toContainText('Precio por definir')
+  await expect(page.locator('.nk-subscription-request-form .nk-plan-total')).not.toContainText('2.000')
 })
 
 test('empresa existente conserva condiciones y puede solicitar sin inventar Free', async ({ page }) => {

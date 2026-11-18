@@ -14,7 +14,6 @@ export const publicSections = [
   ['industrias', 'Industrias'],
   ['implementacion', 'Implementación y privacidad'],
   ['proposito', 'Propósito'],
-  ['planes', 'Planes y precios'],
   ['contacto', 'Contacto'],
 ]
 

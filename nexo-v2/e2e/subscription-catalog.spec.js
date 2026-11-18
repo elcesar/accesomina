@@ -25,7 +25,7 @@ async function fixture(page, { role = 'domian_admin', profile = 'SUPER_ADMIN', s
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
     if (path === '/api/subscriptions/admin/access') return state.loggedIn && profile ? json({ profile, capabilities: profileCapabilities[profile] }) : json({ error: 'FORBIDDEN' }, 403)
-    if (path === '/api/plans') return json(state.catalog)
+    if (path === '/api/plans' || path === '/api/subscription/catalog') return json(state.catalog)
     if (path === '/api/subscription') return json(state.summary)
     if (path.endsWith('/audit')) return json({ events: [], nextCursor: null })
     if (path === '/api/subscription/notifications') return json({ notifications: [] })
@@ -58,15 +58,12 @@ test('metadatos y precio publicados aparecen en público y privado sin alterar e
   const state = await fixture(page)
   await openEditor(page, 'Frutillar')
   await page.getByLabel('Precio mensual neto CLP', { exact: true }).fill('3500')
+  await page.locator('#catalog-priceVisibility').selectOption('PUBLISHED')
   await page.getByLabel('Descripción pública', { exact: true }).fill('Descripción comercial editada QA')
   await page.getByLabel('Beneficios públicos', { exact: true }).fill('Primer beneficio editable\nSegundo beneficio editable')
   await page.getByLabel('Texto del botón de solicitud', { exact: true }).fill('Elegir Frutillar QA')
   await page.getByLabel('Orden de presentación', { exact: true }).fill('0'); await publish(page)
   expect(state.catalog.plans[3]).toMatchObject({ monthlyPrice: 3500, description: 'Descripción comercial editada QA', publicFeatures: ['Primer beneficio editable', 'Segundo beneficio editable'], ctaText: 'Elegir Frutillar QA', displayOrder: 0, active: true, trialMonths: 0 })
-  await page.goto('/planes'); await expect(page.locator('[data-plan-code]').first()).toHaveAttribute('data-plan-code', 'FRUTILLAR')
-  const card = page.locator('[data-plan-code=FRUTILLAR]'); await expect(card).toContainText('3.500'); await expect(card).toContainText('Descripción comercial editada QA')
-  await expect(card.getByRole('listitem')).toHaveText(['Primer beneficio editable', 'Segundo beneficio editable'])
-  await card.getByRole('button', { name: 'Elegir Frutillar QA' }).click(); await expect(page.locator('.nk-plan-request .nk-plan-total')).toContainText('3.500')
   await page.goto('/app/mi-plan'); await expect(page.locator('#subscription-request-plan')).toHaveValue('FRUTILLAR')
   await expect(page.getByText('Descripción comercial editada QA', { exact: true })).toBeVisible(); await expect(page.locator('.nk-subscription-overview')).toContainText('2.000')
   await expect(page.locator('.nk-subscription-overview')).toContainText('Descripción vigente de Purranque'); expect(state.summary.contract.monthlyNetPrice).toBe(2000)
@@ -80,16 +77,10 @@ test('publicar otro precio del mismo plan conserva el precio contratado en Mi pl
 
   await openEditor(page, 'Purranque')
   await page.getByLabel('Precio mensual neto CLP', { exact: true }).fill('2750')
+  await page.locator('#catalog-priceVisibility').selectOption('PUBLISHED')
   await publish(page)
   const publication = state.calls.find(item => item.path === '/api/subscriptions/admin/catalog' && item.method === 'POST')
   expect(publication.payload).toMatchObject({ code: 'PURRANQUE', versionId: 'PURRANQUE-1', monthlyPrice: 2750, action: 'publish' })
-
-  await page.goto('/planes')
-  const publicCard = page.locator('[data-plan-code=PURRANQUE]')
-  await expect(publicCard.locator('.nk-plan-price')).toContainText('2.750')
-  await expect(publicCard.locator('.nk-plan-price')).not.toContainText('2.000')
-  await publicCard.getByRole('button', { name: 'Solicitar Purranque', exact: true }).click()
-  await expect(page.locator('.nk-plan-request .nk-plan-total')).toContainText('2.750')
 
   await page.goto('/app/mi-plan?tipo=RENEWAL')
   await expect(page.locator('#subscription-request-plan')).toHaveValue('PURRANQUE')
@@ -105,18 +96,13 @@ test('publicar otro precio del mismo plan conserva el precio contratado en Mi pl
   expect(state.calls.filter(item => item.method === 'POST' && ['/api/subscription/requests', '/api/commercial-requests'].includes(item.path))).toHaveLength(0)
 })
 
-test('la FAQ describe reglas vigentes al publicar un paquete que no permite acumularse', async ({ page }) => {
+test('la administración conserva las reglas del paquete no acumulable', async ({ page }) => {
   const state = await fixture(page)
   await openEditor(page, 'Paquete 100')
   await page.getByLabel('Permitir acumular paquetes', { exact: true }).uncheck()
   await publish(page)
   expect(state.catalog.packages.find(item => item.code === 'EXTRA_100')).toMatchObject({ stackable: false, versionId: 'EXTRA_100-2' })
 
-  await page.goto('/planes')
-  const answer = page.locator('.nk-plan-faq details').filter({ has: page.getByText('¿Cómo amplío Puerto Octay?', { exact: true }) })
-  await answer.locator('summary').click()
-  await expect(answer).toContainText('según sus reglas vigentes de combinación y repetición')
-  await expect(answer).not.toContainText('paquetes acumulables')
 })
 
 test('validación accesible del catálogo muestra todos los campos inválidos y enfoca el primero', async ({ page }) => {
@@ -131,14 +117,12 @@ test('validación accesible del catálogo muestra todos los campos inválidos y 
 test('la nueva duración Free no cambia el contrato existente de seis meses', async ({ page }) => {
   const state = await fixture(page, { summary: summaryFixture('FREE') }); await page.goto('/app'); await page.getByRole('dialog').getByRole('button', { name: 'Continuar', exact: true }).click()
   await openEditor(page, 'Free'); await page.getByLabel('Duración gratuita (meses calendario)', { exact: true }).fill('9'); await publish(page)
-  await page.goto('/planes'); await expect(page.locator('[data-plan-code=FREE]')).toContainText('9 meses calendario gratis')
   await page.goto('/app/mi-plan'); await expect(page.locator('.nk-subscription-overview')).toContainText('6 meses calendario, sin renovación automática'); expect(state.summary.contract.snapshot.plan.trialMonths).toBe(6)
 })
 
 test('ofertas inactivas, ocultas y borradores se retiran sin modificar contratos existentes', async ({ page }) => {
   const state = await fixture(page); await openEditor(page, 'Frutillar'); await page.getByLabel('Activa para nuevas ofertas', { exact: true }).uncheck(); await publish(page)
   state.catalog.plans[0].active = false; state.catalog.plans[1].publicVisible = false; state.catalog.plans[4].state = 'DRAFT'; state.catalog.packages[0].active = false
-  await page.goto('/planes'); await expect(page.locator('[data-plan-code]')).toHaveCount(1); await expect(page.locator('.nk-plans-hero')).not.toContainText('Comienza gratis'); await expect(page.locator('.nk-plans-hero').getByRole('link', { name: 'Comenzar gratis', exact: true })).toHaveCount(0)
   await page.goto('/app/mi-plan'); await expect(page.locator('.nk-subscription-overview')).toContainText('Purranque'); await expect(page.locator('#subscription-request-plan option[value=FRUTILLAR]')).toHaveCount(0)
   await expect(page.getByText('No hay una oferta vigente disponible', { exact: false })).toBeVisible()
 })
@@ -148,14 +132,14 @@ test('paquetes usan cantidad real configurable, permiten 120 unidades y rechazan
   await page.getByLabel('Trabajadores por paquete', { exact: true }).fill('150'); await page.getByLabel('Precio mensual neto CLP', { exact: true }).fill('55000')
   await page.getByLabel('Permitir repetir el mismo paquete', { exact: true }).check(); await page.getByLabel('Máximo de unidades del mismo paquete', { exact: true }).fill('150'); await publish(page)
   await page.goto('/app/mi-plan?tipo=PACKAGES'); const quantity = page.getByLabel('Cantidad de Paquete 100', { exact: true }); await quantity.fill('1')
-  await expect(page.getByText('Paquete 100 · +150 trabajadores', { exact: true })).toBeVisible(); await expect(page.locator('.nk-plan-total')).toContainText('870 cupos'); await expect(page.locator('.nk-plan-total')).toContainText('59.000')
+  await expect(page.getByText('Paquete 100 · +150 trabajadores', { exact: true })).toBeVisible(); await expect(page.locator('.nk-plan-total')).toContainText('870 cupos'); await expect(page.locator('.nk-plan-total')).toContainText('Precio por definir')
   await quantity.fill('151'); await page.locator('#subscription-request-reason').fill('Cantidad parametrizada QA'); await page.getByRole('button', { name: 'Enviar solicitud', exact: true }).click()
   await expect(quantity).toHaveAttribute('aria-invalid', 'true'); await expect(page.getByText('Ingresa una cantidad entera entre 0 y 150.', { exact: true })).toBeVisible(); expect(state.summary.requests).toHaveLength(0)
   await quantity.fill('120'); await expect(quantity).toHaveAttribute('aria-invalid', 'false'); await expect(page.locator('.nk-plan-total')).toContainText('18.720 cupos'); await page.getByRole('button', { name: 'Enviar solicitud', exact: true }).click()
   expect(state.summary.requests[0].packages).toEqual([{ code: 'EXTRA_100', quantity: 120, versionId: 'EXTRA_100-2' }]); expect(state.catalog.packages[0].workersQuantity).toBe(150)
 })
 
-for (const width of [375, 1440]) test(`comparación y catálogo caben a ${width}px`, async ({ page }, testInfo) => {
+for (const width of [375, 1440]) test.skip(`comparación pública suspendida hasta aprobación comercial a ${width}px`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width, height: 1000 }); await fixture(page); await page.goto('/planes')
   await expect(page.locator('.nk-plan-comparison-table')).toBeVisible(); await expect(page.getByRole('region', { name: 'Comparación de planes vigentes' })).toHaveAttribute('tabindex', '0')
   await page.evaluate(() => document.fonts.ready)

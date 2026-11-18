@@ -7,8 +7,8 @@ import { isValidRut, isValidChilePhone, normalizeEmail, normalizeRut, sha256 } f
 import { filesRouter, subscriptionDocumentsContext } from './files.js';
 import { listSubscriptionNotifications } from '../subscription-notifications.js';
 import { requireSubscriptionAdmin,requireSubscriptionCapability } from '../subscription-permissions.js';
-import { createSubscriptionRequest,getSubscriptionAuditPage,getSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
- recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
+import { createSubscriptionRequest,getSubscriptionAuditPage,getSubscriptionCatalog,getPublicSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
+ publicSubscriptionRecommendation,recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
  transitionSubscriptionRequest,withSubscriptionAdmin } from '../subscriptions.js';
 
 export const publicPlansRouter=Router();
@@ -23,12 +23,17 @@ const ownAdmin=(req,res,next)=>['client_admin','domian_admin'].includes(req.auth
 const publicLimiter=rateLimit({windowMs:15*60000,limit:10,standardHeaders:true,legacyHeaders:false,message:{error:'SUBSCRIPTION_RATE_LIMITED',message:'Espera unos minutos antes de volver a enviar una solicitud.'}});
 const recommendLimiter=rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false});
 
-publicPlansRouter.get('/plans',wrap(async(req,res)=>{
- res.set('Cache-Control','no-store');res.json(await getSubscriptionCatalog());
+// The public commercial model is not approved (#341).
+// Keep the unapproved catalogue inaccessible without an authenticated session.
+const PUBLIC_COMMERCIAL_OFFERS_APPROVED = false;
+const publicOfferUnavailable = (req,res) => res.status(404).json({error:'PUBLIC_PLANS_NOT_AVAILABLE'});
+const requireApprovedPublicOffers = (req,res,next) => PUBLIC_COMMERCIAL_OFFERS_APPROVED ? next() : publicOfferUnavailable(req,res);
+publicPlansRouter.get('/plans',requireApprovedPublicOffers,wrap(async(req,res)=>{
+ res.set('Cache-Control','no-store');res.json(await getPublicSubscriptionCatalog());
 }));
-publicPlansRouter.post('/plans/recommend',recommendLimiter,wrap(async(req,res)=>{
+publicPlansRouter.post('/plans/recommend',requireApprovedPublicOffers,recommendLimiter,wrap(async(req,res)=>{
  const input=z.object({workers:z.number().int().min(1).max(1000000),freeEligible:z.boolean().optional()}).strict().parse(req.body);
- res.json(recommendSubscription(await getSubscriptionCatalog(),input));
+ res.json(publicSubscriptionRecommendation(await getSubscriptionCatalog(),input));
 }));
 
 const commercialSchema=z.object({companyName:z.string().trim().min(3).max(160),rut:z.string().trim().max(20),tradeName:z.string().trim().max(160).optional(),region:z.string().trim().max(100).optional(),commune:z.string().trim().max(100).optional(),
@@ -39,6 +44,7 @@ function commercialView(row){return {id:row.id,tenantId:row.tenant_id,companyNam
  workers:row.workers_quantity,planCode:row.requested_plan_code,proposal:row.proposal,packages:row.proposal?.packages||[],comments:row.comments,status:row.status,linkedRequestId:row.linked_request_id,createdAt:row.created_at};}
 
 publicPlansRouter.post('/commercial-requests',publicLimiter,wrap(async(req,res)=>{
+ if(!PUBLIC_COMMERCIAL_OFFERS_APPROVED)return res.status(503).json({error:'COMMERCIAL_OFFER_NOT_APPROVED'});
  const input=commercialSchema.parse(req.body);
  if(!isValidRut(input.rut))fail('SUBSCRIPTION_COMPANY_RUT','Revisa el RUT de la empresa.');
  if(!isValidChilePhone(input.phone))fail('SUBSCRIPTION_CONTACT_PHONE','Revisa el teléfono de contacto.');
@@ -60,6 +66,12 @@ publicPlansRouter.post('/commercial-requests',publicLimiter,wrap(async(req,res)=
    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13) RETURNING id`,[input.companyName,normalizeRut(input.rut),input.contactName,input.contactLastName,normalizeEmail(input.email),input.phone,input.workers,input.planCode,JSON.stringify(proposal),input.comments,input.termsVersion,input.idempotencyKey,hash])).rows[0];
  });
  res.status(201).json({requestId:result.id,message:'Hemos recibido tu solicitud. Nuestro equipo revisará la información y se pondrá en contacto contigo.'});
+}));
+
+// Private catalogue remains available to authenticated companies, with quote prices masked.
+subscriptionRouter.get('/subscription/catalog',wrap(async(req,res)=>{
+ res.set('Cache-Control','private, no-store');
+ res.json(await getPublicSubscriptionCatalog());
 }));
 
 subscriptionRouter.get('/subscription',wrap(async(req,res)=>{
@@ -89,7 +101,7 @@ subscriptionRouter.get('/subscription/notifications',ownAdmin,wrap(async(req,res
 subscriptionRouter.use('/subscriptions/admin',requireSubscriptionAdmin,requireSubscriptionCapability('read'));
 subscriptionRouter.get('/subscriptions/admin/catalog',wrap(async(req,res)=>res.json(await getSubscriptionCatalog(undefined,{admin:true}))));
 subscriptionRouter.post('/subscriptions/admin/catalog',requireSubscriptionCapability('catalog.manage'),wrap(async(req,res)=>{
- const common={code:z.string().max(40),versionId:id.optional(),action:z.enum(['draft','publish']),name:z.string().trim().min(1).max(100).optional(),monthlyPrice:z.number().int().min(0).max(1000000000).optional(),taxRate:z.number().min(0).max(1).optional(),active:z.boolean().optional(),displayOrder:z.number().int().min(0).max(10000).optional()};
+ const common={code:z.string().max(40),versionId:id.optional(),action:z.enum(['draft','publish']),name:z.string().trim().min(1).max(100).optional(),monthlyPrice:z.number().int().min(0).max(1000000000).optional(),taxRate:z.number().min(0).max(1).optional(),active:z.boolean().optional(),displayOrder:z.number().int().min(0).max(10000).optional(),priceVisibility:z.enum(['PUBLISHED','QUOTE']).optional()};
  const input=z.discriminatedUnion('kind',[
   z.object({...common,kind:z.literal('plan'),workerLimit:z.number().int().min(1).max(1000000).optional(),publicVisible:z.boolean().optional(),recommended:z.boolean().optional(),description:z.string().trim().max(2000).optional(),publicFeatures:z.array(z.string().trim().min(1).max(240)).max(30).optional(),ctaText:z.string().trim().min(1).max(80).optional(),trialMonths:z.number().int().min(0).max(120).optional(),graceDays:z.number().int().min(0).max(365).optional(),warningPercent:z.number().int().min(0).max(99).optional(),criticalPercent:z.number().int().min(1).max(99).optional(),allowedUpgradeTargets:z.array(z.enum(['LA_UNION','PURRANQUE','FRUTILLAR','PUERTO_OCTAY'])).max(4).optional()}).strict(),
   z.object({...common,kind:z.literal('package'),workersQuantity:z.number().int().min(1).max(1000000).optional(),repeatable:z.boolean().optional(),stackable:z.boolean().optional(),maxQuantity:z.number().int().min(1).max(1000).optional()}).strict()

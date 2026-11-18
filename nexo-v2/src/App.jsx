@@ -3,7 +3,7 @@ import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, 
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
-import { PUBLIC_PAGES } from './config/public-pages.js'
+import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED } from './config/public-pages.js'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
@@ -113,7 +113,8 @@ function AuthShell() {
 const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<AuthShell />}>
 
-          {Object.values(PUBLIC_PAGES).map(page => <Route key={page.path} path={page.path} element={<LandingPage />} />)}
+          {Object.values(PUBLIC_PAGES).filter(page => PUBLIC_PLANS_APPROVED || page.path !== '/planes').map(page => <Route key={page.path} path={page.path} element={<LandingPage />} />)}
+          {!PUBLIC_PLANS_APPROVED && <Route path="/planes" element={<Navigate to="/contacto" replace />} />}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />

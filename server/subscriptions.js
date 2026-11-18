@@ -64,17 +64,28 @@ function planView(row) {
  return {code:row.code,name:row.name,versionId:row.id,version:row.version,monthlyPrice:money(row.monthly_price),netPrice:money(row.monthly_price),
   currency:row.currency,taxRate:money(row.tax_rate),workerLimit:row.worker_limit,isFree:row.code==='FREE',trialMonths:row.trial_months,
   period:row.code==='FREE'?'trial':'monthly',publicVisible:row.public_visible,recommended:row.recommended,displayOrder:row.display_order,
-  description:row.description,publicFeatures:row.public_features||[],ctaText:row.cta_text,active:row.active,features:row.features,state:row.state,graceDays:row.grace_days,warningPercent:row.warning_percent,criticalPercent:row.critical_percent,allowedUpgradeTargets:row.allowed_upgrade_targets||[]};
+  description:row.description,publicFeatures:row.public_features||[],ctaText:row.cta_text,active:row.active,features:row.features,state:row.state,priceVisibility:row.price_visibility||'PUBLISHED',graceDays:row.grace_days,warningPercent:row.warning_percent,criticalPercent:row.critical_percent,allowedUpgradeTargets:row.allowed_upgrade_targets||[]};
 }
 function packageView(row) {
  return {code:row.code,name:row.name,versionId:row.id,version:row.version,workersQuantity:row.workers_quantity,monthlyPrice:money(row.monthly_price),
-  currency:row.currency,taxRate:money(row.tax_rate),stackable:row.stackable,repeatable:row.repeatable,maxQuantity:row.max_quantity,active:row.active,displayOrder:row.display_order,state:row.state};
+  currency:row.currency,taxRate:money(row.tax_rate),stackable:row.stackable,repeatable:row.repeatable,maxQuantity:row.max_quantity,active:row.active,displayOrder:row.display_order,state:row.state,priceVisibility:row.price_visibility||'PUBLISHED'};
 }
 export async function getSubscriptionCatalog(client={query}, {admin=false}={}) {
  const plans=(await client.query(`SELECT * FROM subscription_plan_versions ${admin?'':"WHERE state='PUBLISHED' AND active AND public_visible"} ORDER BY display_order,version DESC`)).rows.map(planView);
  const packages=(await client.query(`SELECT * FROM subscription_package_versions ${admin?'':"WHERE state='PUBLISHED' AND active"} ORDER BY display_order,version DESC`)).rows.map(packageView);
  const free=plans.find(p=>p.code==='FREE'&&p.state==='PUBLISHED'&&p.active);
  return {plans,packages,meta:{currency:'CLP',taxPolicy:'NET_PLUS_TAX',period:'monthly',renewal:'manual',trialMonths:free?.trialMonths??null,graceDays:30,termsVersion:'2026-11-05',separateServices:['libroObra','oportunidades']}};
+}
+const hidesPrice=offer=>offer?.code!=='FREE'&&offer?.priceVisibility==='QUOTE';
+const publicOffer=offer=>hidesPrice(offer)?{...offer,monthlyPrice:null,netPrice:null}:offer;
+export async function getPublicSubscriptionCatalog(client={query}) {
+ const catalog=await getSubscriptionCatalog(client);
+ return {...catalog,plans:catalog.plans.map(publicOffer),packages:catalog.packages.map(publicOffer)};
+}
+export function publicSubscriptionRecommendation(catalog,input) {
+ const recommendation=recommendSubscription(catalog,input);
+ const quote=hidesPrice(recommendation.plan)||recommendation.packages?.some(hidesPrice);
+ return quote?{...recommendation,plan:publicOffer(recommendation.plan),packages:(recommendation.packages||[]).map(publicOffer),additionalPackages:(recommendation.additionalPackages||[]).map(publicOffer),monthlyNetPrice:null,priceVisibility:'QUOTE'}:recommendation;
 }
 
 async function publishedPlan(client,code,versionId) {
@@ -155,7 +166,7 @@ async function currentContract(client,tenantId) {
 }
 function safeAuditValue(value) {
  if(!value||typeof value!=='object')return null;
- const fields=['code','name','version','planCode','status','contractId','reason','effectiveAt','startsAt','endsAt','type','requiresPaidActivation','workerLimit','workersQuantity','monthlyPrice','totalCapacity','trialMonths','active','displayOrder','workersAtRequest','description','ctaText','publicVisible','recommended','taxRate','graceDays','warningPercent','criticalPercent','repeatable','stackable','maxQuantity'];
+ const fields=['code','name','version','planCode','status','contractId','reason','effectiveAt','startsAt','endsAt','type','requiresPaidActivation','workerLimit','workersQuantity','monthlyPrice','totalCapacity','trialMonths','active','displayOrder','workersAtRequest','description','ctaText','publicVisible','recommended','priceVisibility','taxRate','graceDays','warningPercent','criticalPercent','repeatable','stackable','maxQuantity'];
  const result=Object.fromEntries(fields.filter(k=>['string','number','boolean'].includes(typeof value[k])||value[k]===null).map(k=>[k,value[k]]));
  for(const field of ['publicFeatures','allowedUpgradeTargets'])if(Array.isArray(value[field]))result[field]=value[field].filter(v=>typeof v==='string');
  return result;
@@ -461,7 +472,8 @@ export async function saveSubscriptionCatalogVersion(client,{input,userId,auditT
  if(input.versionId&&input.versionId!==previous?.id)fail('SUBSCRIPTION_CATALOG_STALE','El catálogo cambió. Recarga antes de publicar.');
  const name=text(input.name??previous?.name);if(!name||name.length>100)fail('SUBSCRIPTION_CATALOG_NAME','Indica un nombre válido.',400);
  const active=input.active??previous?.active??true,displayOrder=Number(input.displayOrder??previous?.display_order??(isPlan?SUBSCRIPTION_PLAN_CODES.indexOf(input.code)+1:SUBSCRIPTION_PACKAGE_CODES.indexOf(input.code)+1));
- if(typeof active!=='boolean'||!integer(displayOrder,0,10000))fail('SUBSCRIPTION_CATALOG_METADATA','Revisa el estado y el orden de presentación.',400);
+ const priceVisibility=input.priceVisibility??previous?.price_visibility??'QUOTE';
+ if(typeof active!=='boolean'||!integer(displayOrder,0,10000)||!['PUBLISHED','QUOTE'].includes(priceVisibility))fail('SUBSCRIPTION_CATALOG_METADATA','Revisa el estado, orden y visibilidad comercial.',400);
  if(isPlan){
   const limit=Number(input.workerLimit??previous?.worker_limit);if(!integer(limit,1))fail('SUBSCRIPTION_CAPACITY_INVALID','El cupo no es válido.',400);
   const description=text(input.description??previous?.description),ctaText=text(input.ctaText??previous?.cta_text??(input.code==='FREE'?'Comenzar gratis':'Solicitar plan'));
@@ -474,8 +486,8 @@ export async function saveSubscriptionCatalogVersion(client,{input,userId,auditT
   if(!integer(graceDays,0,365)||!integer(warning,0,99)||!integer(critical,1,99)||warning>=critical)fail('SUBSCRIPTION_POLICY_INVALID','Revisa los días de gracia y umbrales de capacidad.',400);
   if(input.code==='FREE'&&Number(price)!==0)fail('SUBSCRIPTION_FREE_PRICE','Free debe conservar el precio cero.',400);
   if(state==='PUBLISHED')await client.query(`UPDATE ${table} SET state='RETIRED' WHERE code=$1 AND state='PUBLISHED'`,[input.code]);
-  const result=planView((await client.query(`INSERT INTO subscription_plan_versions(code,version,name,monthly_price,tax_rate,worker_limit,trial_months,state,public_visible,recommended,display_order,description,created_by,published_at,grace_days,warning_percent,critical_percent,allowed_upgrade_targets,active,public_features,cta_text,features)
-   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,CASE WHEN $8='PUBLISHED' THEN now() END,$14,$15,$16,$17,$18,$19::jsonb,$20,$21::jsonb) RETURNING *`,[input.code,(previous?.version||0)+1,name,price,tax,limit,trialMonths,state,input.publicVisible??previous?.public_visible??true,input.recommended??previous?.recommended??false,displayOrder,description,userId,graceDays,warning,critical,allowed,active,JSON.stringify(publicFeatures.map(text)),ctaText,JSON.stringify(previous?.features??{allCore:true,separateServices:['libroObra','oportunidades']})])).rows[0]);
+  const result=planView((await client.query(`INSERT INTO subscription_plan_versions(code,version,name,monthly_price,tax_rate,worker_limit,trial_months,state,public_visible,recommended,display_order,description,created_by,published_at,grace_days,warning_percent,critical_percent,allowed_upgrade_targets,active,public_features,cta_text,features,price_visibility)
+   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,CASE WHEN $8='PUBLISHED' THEN now() END,$14,$15,$16,$17,$18,$19::jsonb,$20,$21::jsonb,$22) RETURNING *`,[input.code,(previous?.version||0)+1,name,price,tax,limit,trialMonths,state,input.publicVisible??previous?.public_visible??true,input.recommended??previous?.recommended??false,displayOrder,description,userId,graceDays,warning,critical,allowed,active,JSON.stringify(publicFeatures.map(text)),ctaText,JSON.stringify(previous?.features??{allCore:true,separateServices:['libroObra','oportunidades']}),priceVisibility])).rows[0]);
   if(auditTenantId)await appendAudit(client,{tenantId:auditTenantId,userId,entityType:'subscription_catalog',entityId:result.versionId,action:`subscription.catalog.${input.action}`,oldValue:previous?planView(previous):null,newValue:result});
   return result;
  }
@@ -484,8 +496,8 @@ export async function saveSubscriptionCatalogVersion(client,{input,userId,auditT
  const repeatable=input.repeatable??previous?.repeatable??false,stackable=input.stackable??previous?.stackable??true,max=Number(input.maxQuantity??(repeatable?(previous?.max_quantity||1):1));
  if(typeof repeatable!=='boolean'||typeof stackable!=='boolean'||!integer(max,1,1000)||!repeatable&&max!==1)fail('SUBSCRIPTION_PACKAGE_QUANTITY','Revisa repetición y cantidad máxima.',400);
  if(state==='PUBLISHED')await client.query(`UPDATE ${table} SET state='RETIRED' WHERE code=$1 AND state='PUBLISHED'`,[input.code]);
- const result=packageView((await client.query(`INSERT INTO subscription_package_versions(code,version,name,workers_quantity,monthly_price,tax_rate,stackable,repeatable,max_quantity,state,display_order,created_by,published_at,active)
-  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,CASE WHEN $10='PUBLISHED' THEN now() END,$13) RETURNING *`,[input.code,(previous?.version||0)+1,name,workers,price,tax,stackable,repeatable,max,state,displayOrder,userId,active])).rows[0]);
+ const result=packageView((await client.query(`INSERT INTO subscription_package_versions(code,version,name,workers_quantity,monthly_price,tax_rate,stackable,repeatable,max_quantity,state,display_order,created_by,published_at,active,price_visibility)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,CASE WHEN $10='PUBLISHED' THEN now() END,$13,$14) RETURNING *`,[input.code,(previous?.version||0)+1,name,workers,price,tax,stackable,repeatable,max,state,displayOrder,userId,active,priceVisibility])).rows[0]);
  if(auditTenantId)await appendAudit(client,{tenantId:auditTenantId,userId,entityType:'subscription_catalog',entityId:result.versionId,action:`subscription.catalog.${input.action}`,oldValue:previous?packageView(previous):null,newValue:result});
  return result;
 }

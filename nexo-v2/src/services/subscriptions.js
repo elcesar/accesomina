@@ -7,6 +7,7 @@ export const money = (value, currency = 'CLP') => new Intl.NumberFormat('es-CL',
 export const count = value => new Intl.NumberFormat('es-CL').format(Number(value || 0))
 export const dateTime = value => value && !Number.isNaN(Date.parse(value)) ? new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Por definir'
 export const planPrice = plan => Number(plan.monthlyPrice ?? plan.netPrice ?? 0)
+export const isPricePending = offer => offer?.code !== 'FREE' && offer?.priceVisibility === 'QUOTE'
 export const requestKey = () => globalThis.crypto?.randomUUID?.() || `request-${Date.now()}-${Math.random().toString(36).slice(2)}`
 export const isCompanyAdministrator = session => ['client_admin', 'domian_admin'].includes(session?.user?.role)
 export function errorMessage(error) {
