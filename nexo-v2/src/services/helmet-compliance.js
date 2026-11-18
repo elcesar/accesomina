@@ -2,6 +2,7 @@ import {
   HELMET_APPLICABILITY,
   helmetColorForCode,
   helmetContextFromWorker,
+  helmetContextForWorkerScope,
   normalizeHelmetRequirement,
   resolveHelmetPolicy,
 } from '../../../shared/helmet-policy.js'
@@ -42,14 +43,32 @@ export function helmetCompliance(worker, state = {}, { context: contextOverride 
     }
   }
 
-  const context = { ...helmetContextFromWorker(worker, state), ...(contextOverride || {}) }
-  if (context.multipleActiveOrders) {
+  const requestedKeys = ['mantId', 'orderId', 'projectId', 'minaId', 'clientId']
+  const hasContextOverride = Boolean(contextOverride && typeof contextOverride === 'object'
+    && requestedKeys.some(key => Object.hasOwn(contextOverride, key)))
+  const requestedContext = hasContextOverride
+    ? helmetContextForWorkerScope(worker, state, contextOverride)
+    : null
+  // A client-row override is accepted only when it belongs to the worker's
+  // persisted scope. It deliberately clears any OS from the base context so a
+  // policy of another client can never leak into this row.
+  const context = hasContextOverride
+    ? (requestedContext
+      ? { ...requestedContext, multipleActiveOrders: false, multipleActiveClients: false, invalidContext: false }
+      : { mantId: '', minaId: '', multipleActiveOrders: false, multipleActiveClients: false, invalidContext: true })
+    : helmetContextFromWorker(worker, state)
+  if (context.multipleActiveOrders || context.multipleActiveClients || context.invalidContext) {
+    const detail = context.invalidContext
+      ? 'El contexto de casco registrado no coincide con las asociaciones vigentes de la persona.'
+      : context.multipleActiveOrders
+        ? 'La persona tiene más de una orden activa. Selecciona el contexto de OS antes de aplicar una política específica.'
+        : 'La persona tiene más de un cliente vigente. Selecciona el cliente aplicable antes de aplicar una política específica.'
     return {
       status: 'context_required',
       severity: 'warning',
       applicable: true,
       label: 'Contexto de casco pendiente',
-      detail: 'La persona tiene más de una orden activa. Selecciona el contexto de OS antes de aplicar una política específica.',
+      detail,
       warning: true,
       blocksOperation: false,
       context,
