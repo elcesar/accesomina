@@ -85,16 +85,15 @@ function workerHelmetIsHistorical(worker, previousWorker) {
   );
 }
 
-function validateWorkerHelmet(worker, state, previousWorker) {
+function validateWorkerHelmet(worker, state, previousWorker, { requireDecisionForNew = false, allowLegacyImport = false } = {}) {
   const epp = worker?.epp;
   const hasExplicitHelmet = Boolean(epp && typeof epp === 'object' && Object.hasOwn(epp, 'helmet'));
   const hadExplicitHelmet = Boolean(previousWorker?.epp && typeof previousWorker.epp === 'object' && Object.hasOwn(previousWorker.epp, 'helmet'));
-  // Explicit helmet payloads must carry a Yes/No decision. Records that omit
-  // the entire helmet payload remain compatible with legacy, CSV and system
-  // imports; the Personas UI always sends the explicit decision. An existing
-  // explicit decision cannot be removed through a generic profile write.
+  // A new worker written through operational state must make the Yes/No
+  // decision. Only the trusted data-transfer path can materialize an explicit
+  // pending legacy import; an arbitrary /modules payload cannot opt into it.
   if (!hasExplicitHelmet) {
-    if (hadExplicitHelmet) {
+    if (hadExplicitHelmet || (requireDecisionForNew && !previousWorker)) {
       helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
     }
     return;
@@ -103,7 +102,9 @@ function validateWorkerHelmet(worker, state, previousWorker) {
   const previousHelmet = normalizeHelmetRequirement(previousWorker?.epp);
   const unchangedHistorical = workerHelmetIsHistorical(worker, previousWorker);
   if (helmet.applicability === HELMET_APPLICABILITY.UNKNOWN) {
-    if (unchangedHistorical) return;
+    // Only server-owned data-transfer may retain an imported pending decision.
+    // It can never overwrite a previously explicit helmet decision.
+    if (unchangedHistorical || (allowLegacyImport && !hadExplicitHelmet && helmet.legacyImport === true)) return;
     helmetConflict('Selecciona si el casco es requerido para la persona.', 'HELMET_APPLICABILITY_REQUIRED');
   }
   if (helmet.applicability === HELMET_APPLICABILITY.NOT_REQUIRED) {
@@ -622,7 +623,7 @@ export function validateAppendChanges(current, proposed, keys) {
     }
     validateWorkerBirthDate(worker);
     validateWorkerEmail(worker);
-    validateWorkerHelmet(worker, appendState, null);
+    validateWorkerHelmet(worker, appendState, null, { requireDecisionForNew: true });
     validateWorkerItems(worker);
     if ((worker.mineras || []).some(id => !mineIds.has(String(id)))) conflict('La persona referencia un cliente inexistente.', 'INVALID_REFERENCE');
   }
@@ -684,7 +685,7 @@ function requiresAvailabilityValidation(assignment, previousAssignments) {
   return !before || !assignmentIsOperationalForAvailability(before)
 }
 
-export function validateTenantState(input, { previousState = null } = {}) {
+export function validateTenantState(input, { previousState = null, legacyHelmetImportIds = null } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
   const state = materializeHelmetState(sanitizeJson(input, '', '', { preserveOpportunityRutValues: true }));
   validateHelmetConfiguration(state);
@@ -710,8 +711,13 @@ export function validateTenantState(input, { previousState = null } = {}) {
       if (!isValidChilePhone(worker.tel)) throw Object.assign(new Error(`Worker ${worker.id} has invalid Chilean phone`), { status: 409, code: 'INVALID_WORKER_PHONE' });
     }
     validateWorkerBirthDate(worker);
-    validateWorkerEmail(worker, previousWorkers.get(String(worker.id)));
-    validateWorkerHelmet(worker, state, previousWorkers.get(String(worker.id)));
+    const previousWorker = previousWorkers.get(String(worker.id));
+    validateWorkerEmail(worker, previousWorker);
+    const allowLegacyImport = legacyHelmetImportIds instanceof Set && legacyHelmetImportIds.has(String(worker.id));
+    validateWorkerHelmet(worker, state, previousWorker, {
+      requireDecisionForNew: Boolean(previousState),
+      allowLegacyImport,
+    });
   }
   for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
