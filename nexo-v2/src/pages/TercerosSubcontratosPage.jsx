@@ -316,11 +316,11 @@ export default function TercerosSubcontratosPage() {
 
           <div className="nk-third-section-title"><h3>Control laboral y previsional</h3><p>Fechas de vigencia utilizadas para detectar alertas operacionales.</p></div>
           <div className="nk-third-compliance-grid">
-            <div className="nk-field"><label className="nk-label">F30</label><input className="nk-input" type="date" value={form.f30} onChange={e => setForm(current => ({ ...current, f30: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">F30-1</label><input className="nk-input" type="date" value={form.f301} onChange={e => setForm(current => ({ ...current, f301: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Cotizaciones</label><input className="nk-input" type="date" value={form.cotizaciones} onChange={e => setForm(current => ({ ...current, cotizaciones: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Seguro</label><input className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
-            <div className="nk-field nk-third-compliance-wide"><label className="nk-label">Observaciones</label><textarea className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-f30">F30</label><input id="third-party-f30" name="f30" className="nk-input" type="date" value={form.f30} onChange={e => setForm(current => ({ ...current, f30: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-f301">F30-1</label><input id="third-party-f301" name="f301" className="nk-input" type="date" value={form.f301} onChange={e => setForm(current => ({ ...current, f301: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-contributions">Cotizaciones</label><input id="third-party-contributions" name="cotizaciones" className="nk-input" type="date" value={form.cotizaciones} onChange={e => setForm(current => ({ ...current, cotizaciones: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="third-party-insurance">Seguro</label><input id="third-party-insurance" name="seguro" className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
+            <div className="nk-field nk-third-compliance-wide"><label className="nk-label" htmlFor="third-party-notes">Observaciones</label><textarea id="third-party-notes" name="observaciones" className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
           </div>
           </form>
         </section>
