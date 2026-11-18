@@ -118,7 +118,6 @@ test('actual state writes accept the fifteenth person and reject the sixteenth a
   assert.equal((await saveWorkers(auth, workers(15))).statusCode, 200);
   const accepted = await snapshot(auth);
   assert.equal(accepted.data.length, 15);
-  assert.deepEqual(accepted.data.at(-1).epp.helmet,{applicability:'unknown',legacyImport:true});
   await assert.rejects(() => saveWorkers(auth, workers(16)), error => error.code === 'SUBSCRIPTION_WORKER_LIMIT');
   assert.deepEqual(await snapshot(auth), accepted);
 });
@@ -132,11 +131,30 @@ test('state modules rejects a new worker without an explicit helmet decision', a
   assert.deepEqual(await snapshot(auth), before);
 });
 
+test('backup restore converts a missing legacy helmet into an advisory pending decision', async () => {
+  const auth = await company({ count: 0 });
+  const backup = {
+    format: BACKUP_FORMAT,
+    version: 2,
+    modules: { trabajadores: [{ id:'backup-legacy',nombre:'Persona restaurada',rut:rut(10_030_000) }] },
+    settings: {},
+  };
+  const result = await invoke(dataTransferRouter, '/import/:type', 'post', {
+    auth,
+    params: { type: 'backup' },
+    file: { buffer: Buffer.from(JSON.stringify(backup)), originalname: 'legacy-backup.json' },
+  });
+  assert.equal(result.statusCode, 200);
+  const restored = await snapshot(auth);
+  assert.deepEqual(restored.data[0].epp.helmet,{applicability:'unknown',legacyImport:true});
+});
+
 test('CSV append and backup restore cannot exceed capacity or change version, settings and audit on rejection', async () => {
   const auth = await company(), csv = `nombre,rut\nPersona nueva QA,${rut(40_000_000)}\n`;
   assert.equal((await invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'trabajadores' }, file: { buffer: Buffer.from(csv), originalname: 'qa.csv' } })).statusCode, 200);
   const accepted = await snapshot(auth);
   assert.equal(accepted.data.length, 15);
+  assert.deepEqual(accepted.data.at(-1).epp.helmet,{applicability:'unknown',legacyImport:true});
   const overflow = `nombre,rut\nPersona excedida QA,${rut(40_000_001)}\n`;
   await assert.rejects(() => invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'trabajadores' }, file: { buffer: Buffer.from(overflow) } }), error => error.code === 'SUBSCRIPTION_WORKER_LIMIT');
   assert.deepEqual(await snapshot(auth), accepted);
