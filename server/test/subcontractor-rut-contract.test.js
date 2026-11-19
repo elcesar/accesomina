@@ -51,5 +51,5 @@ test('new subcontractors require a valid RUT while an unchanged historical blank
 test('shared RUT feedback allows formatting whitespace but rejects alpha and backslash input', () => {
   assert.equal(validateRut('14.507.215 - 8'), null)
   assert.equal(validateRut('14s507.215-8'), OPTIONAL_RUT_ERROR)
-  assert.equal(validateRut(String.raw\`14\\507.215-8\`), OPTIONAL_RUT_ERROR)
+  assert.equal(validateRut('14\\\\507.215-8'), OPTIONAL_RUT_ERROR)
 })
