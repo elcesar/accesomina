@@ -15,25 +15,35 @@ SET delivery_outcome = CASE delivery_status
 END
 WHERE delivery_outcome = 'PENDING';
 
-ALTER TABLE public_demo_requests
-  ADD CONSTRAINT public_demo_requests_delivery_outcome_check
-  CHECK (delivery_outcome IN (
-    'PENDING',
-    'SMTP_ACCEPTED',
-    'SMTP_NOT_CONFIGURED',
-    'SMTP_RECIPIENT_REJECTED',
-    'SMTP_RECIPIENT_PENDING',
-    'SMTP_RECIPIENT_NOT_ACCEPTED',
-    'SMTP_AUTH_FAILED',
-    'SMTP_CONNECTION_FAILED',
-    'SMTP_DELIVERY_FAILED',
-    'LEGACY_UNVERIFIED',
-    'LEGACY_FAILED'
-  ));
+DO $$
+BEGIN
+  ALTER TABLE public_demo_requests
+    ADD CONSTRAINT public_demo_requests_delivery_outcome_check
+    CHECK (delivery_outcome IN (
+      'PENDING',
+      'SMTP_ACCEPTED',
+      'SMTP_NOT_CONFIGURED',
+      'SMTP_RECIPIENT_REJECTED',
+      'SMTP_RECIPIENT_PENDING',
+      'SMTP_RECIPIENT_NOT_ACCEPTED',
+      'SMTP_AUTH_FAILED',
+      'SMTP_CONNECTION_FAILED',
+      'SMTP_DELIVERY_FAILED',
+      'LEGACY_UNVERIFIED',
+      'LEGACY_FAILED'
+    ));
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE public_demo_requests
-  ADD CONSTRAINT public_demo_requests_delivery_smtp_response_code_check
-  CHECK (delivery_smtp_response_code IS NULL OR delivery_smtp_response_code BETWEEN 100 AND 599);
+DO $$
+BEGIN
+  ALTER TABLE public_demo_requests
+    ADD CONSTRAINT public_demo_requests_delivery_smtp_response_code_check
+    CHECK (delivery_smtp_response_code IS NULL OR delivery_smtp_response_code BETWEEN 100 AND 599);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_public_demo_requests_delivery_outcome
   ON public_demo_requests(delivery_outcome, delivery_attempted_at DESC);
