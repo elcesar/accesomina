@@ -3,7 +3,9 @@ const state={trabajadores:[{id:'qa-person',nombre:'José Peña QA',rut:'11.111.1
 test.beforeEach(async({page})=>{
  await page.route('**/api/**',route=>{
  const path=new URL(route.request().url()).pathname
- return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:{}})
+ const workerId=path.startsWith('/api/state/records/trabajadores/')?decodeURIComponent(path.split('/').pop()):null
+ const body=path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:workerId?{record:state.trabajadores.find(worker=>worker.id===workerId)||null,revision:1}:{}
+ return route.fulfill({json:body})
  })
 })
 test('underage validation has one associated error, and leaving through global actions is guarded',async({page})=>{
