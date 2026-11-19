@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { validateWorkerDocumentAppend } from '../../server/validation.js'
+import { patchWorkerProfile, recordRevision } from '../../server/worker-records.js'
 
 const FILE = '11111111-1111-4111-8111-111111111111'
 const BACK = '22222222-2222-4222-8222-222222222222'
@@ -8,7 +9,8 @@ const file = name => ({ name, mimeType: 'application/pdf', buffer: Buffer.from('
 async function backend(page, { reject = false, reused = false } = {}) {
   const legacy = { id: 'qa-old', name: 'Currículum vitae QA', type: 'cv', documentType: 'CV', fileId: FILE }
   const worker = { id: 'qa-person', nombre: 'Persona ficticia QA', rut: '13.848.379-7', tipo: 'permanente', mineras: [], workerItems: reused ? [legacy] : [] }
-  const state = { trabajadores: [worker], minas: [], contratos: [], mantenciones: [], asignaciones: [], restricted: [] }
+  // The record endpoint owns the profile; /state contains its related modules.
+  const state = { minas: [], contratos: [], mantenciones: [], asignaciones: [], restricted: [] }
   const uploads = [], documents = [], removed = []
   await page.route('**/api/**', async route => {
     const req = route.request(), path = new URL(req.url()).pathname
@@ -16,6 +18,17 @@ async function backend(page, { reject = false, reused = false } = {}) {
     if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin', nombre: 'Administrador QA' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' } })
     if (path === '/api/settings') return json({ settings: {} })
     if (path === '/api/state') return json({ state, moduleVersions: { trabajadores: 1 } })
+    if (path === '/api/state/records/trabajadores/qa-person') {
+      if (req.method() === 'GET') return json({ record: worker, revision: recordRevision(worker) })
+      if (req.method() === 'PATCH') {
+        const { patch, revision } = req.postDataJSON()
+        try {
+          const result = patchWorkerProfile([worker], worker.id, patch, revision)
+          Object.assign(worker, result.record)
+          return json({ record: worker, revision: result.revision })
+        } catch (error) { return json({ error: error.code }, error.status || 400) }
+      }
+    }
     if (path === '/api/files' && req.method() === 'POST') {
       const id = uploads.length ? BACK : FILE
       uploads.push(id)
@@ -46,7 +59,7 @@ for (const width of [1440, 375]) {
       await page.getByLabel('Tipo', { exact: true }).selectOption('EMPLOYMENT_CONTRACT')
       const save = page.getByRole('button', { name: 'Guardar registro', exact: true })
       await expect(save).toBeDisabled()
-      await expect(save).toHaveAttribute('aria-describedby', 'worker-document-evidence-hint')
+      await expect(save).toHaveAttribute('aria-describedby', /(?:^|\s)worker-document-evidence-hint(?:\s|$)/)
       await expect(page.locator('#worker-document-evidence-hint')).toHaveText('Adjunta el archivo del documento antes de guardar.')
       expect(api.uploads).toHaveLength(0)
       expect(api.documents).toHaveLength(0)

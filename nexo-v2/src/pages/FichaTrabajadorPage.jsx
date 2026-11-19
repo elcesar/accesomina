@@ -406,9 +406,16 @@ export default function FichaTrabajadorPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [emailError, setEmailError] = useState(null)
+  const [emailFocusRequest, setEmailFocusRequest] = useState(0)
   const [ok, setOk] = useState(null)
   const [restricting, setRestricting] = useState(false)
   const [restrictionReason, setRestrictionReason] = useState('')
+
+  useEffect(() => {
+    // The data tab must be committed before its email input can receive focus.
+    // A new request also handles consecutive rejections with the same message.
+    if (emailFocusRequest > 0) document.getElementById('worker-email')?.focus()
+  }, [emailFocusRequest])
 
   useEffect(() => {
     // Feedback belongs to the tab/context where the operation occurred.
@@ -444,7 +451,7 @@ export default function FichaTrabajadorPage() {
   function showEmailError(message) {
     setEmailError(message)
     setTab('datos')
-    requestAnimationFrame(() => document.getElementById('worker-email')?.focus())
+    setEmailFocusRequest(current => current + 1)
   }
   async function persistWorker(nextWorker, reason) {
     if (!workerRevision || !originalProfileRef.current) throw new Error('La ficha aún no está lista para guardar. Recárgala e inténtalo nuevamente.')

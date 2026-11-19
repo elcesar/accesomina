@@ -181,8 +181,22 @@ test('Consulta no obtiene acciones para quitar contactos o requisitos', async ({
 
 test('un administrador de empresa no puede abrir la administración global', async ({ page }) => {
   const api = await mockPortal(page)
+  const administrativeRequests = []
+  page.on('request', request => {
+    if (/^\/api\/tenants(?:\/|$)/.test(new URL(request.url()).pathname)) administrativeRequests.push({ method: request.method(), url: request.url() })
+  })
   await page.goto('/app/administracion-clientes')
-  await expect(page.getByRole('alert')).toContainText('Sin acceso a administración Nexo Klar')
+  await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar', exact: true })).toBeVisible()
+  await expect(page.getByText('Error 403', { exact: true })).toBeVisible()
+  await expect(page.getByText('Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa.', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /^Eliminar$|^Restablecer acceso$/ })).toHaveCount(0)
+  const returnToPanel = page.getByRole('link', { name: 'Ir al panel', exact: true })
+  await expect(returnToPanel).toHaveAttribute('href', '/app')
+  expect(administrativeRequests).toHaveLength(0)
+  expect(api.calls).toHaveLength(0)
+  await returnToPanel.click()
+  await expect(page).toHaveURL(/\/app$/)
+  await expect(page.getByRole('heading', { name: 'Estado de la operación', exact: true })).toBeVisible()
+  expect(administrativeRequests).toHaveLength(0)
   expect(api.calls).toHaveLength(0)
 })
