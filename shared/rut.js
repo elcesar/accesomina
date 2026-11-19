@@ -27,7 +27,7 @@ export const REQUIRED_RUT_INVALID_ERROR = 'Ingresa un RUT chileno válido.'
 export function validateRut(value, { required = false } = {}) {
   const trimmed = typeof value === 'string' ? value.trim() : value == null ? '' : String(value).trim()
   if (!trimmed) return required ? REQUIRED_RUT_ERROR : null
-  if (trimmed.length > 20 || !/^[0-9kK.\\s-]+$/.test(trimmed) || !isValidRut(trimmed)) return required ? REQUIRED_RUT_INVALID_ERROR : OPTIONAL_RUT_ERROR
+  if (trimmed.length > 20 || !/^[0-9kK.\s-]+$/.test(trimmed) || !isValidRut(trimmed)) return required ? REQUIRED_RUT_INVALID_ERROR : OPTIONAL_RUT_ERROR
   return null
 }
 
