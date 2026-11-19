@@ -20,6 +20,16 @@ export function isValidRut(value) {
 }
 
 export const OPTIONAL_RUT_ERROR = 'Ingresa un RUT chileno válido o deja el campo vacío.'
+export const REQUIRED_RUT_ERROR = 'Ingresa el RUT.'
+export const REQUIRED_RUT_INVALID_ERROR = 'Ingresa un RUT chileno válido.'
+
+// Shared, localized client-side feedback. Server validation remains authoritative.
+export function validateRut(value, { required = false } = {}) {
+  const trimmed = typeof value === 'string' ? value.trim() : value == null ? '' : String(value).trim()
+  if (!trimmed) return required ? REQUIRED_RUT_ERROR : null
+  if (trimmed.length > 20 || !/^[0-9kK.\s-]+$/.test(trimmed) || !isValidRut(trimmed)) return required ? REQUIRED_RUT_INVALID_ERROR : OPTIONAL_RUT_ERROR
+  return null
+}
 
 // Stored JSON objects may return in a different key order after JSONB round trips.
 // Compare own keys without assigning them or changing any object prototypes.

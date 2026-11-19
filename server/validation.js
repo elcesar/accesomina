@@ -490,6 +490,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
   const previousWorkers = new Map((Array.isArray(previousState?.trabajadores) ? previousState.trabajadores : []).map(worker => [String(worker.id), worker]));
   const previousClients = new Map((Array.isArray(previousState?.minas) ? previousState.minas : []).filter(client => client?.id != null).map(client => [String(client.id), client]));
+  const previousSubcontractors = new Map((Array.isArray(previousState?.subcontratos) ? previousState.subcontratos : []).filter(row => row?.id != null).map(row => [String(row.id), row]));
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
@@ -508,7 +509,23 @@ export function validateTenantState(input, { previousState = null } = {}) {
     validateWorkerBirthDate(worker);
     validateWorkerEmail(worker, previousWorkers.get(String(worker.id)));
   }
-  for(const subcontractor of Array.isArray(state.subcontratos)?state.subcontratos:[])if(subcontractor.rut&&!isValidRut(subcontractor.rut))throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`),{status:409,code:'INVALID_SUBCONTRACTOR_RUT'});
+  for (const subcontractor of Array.isArray(state.subcontratos) ? state.subcontratos : []) {
+    const previous = previousSubcontractors.get(String(subcontractor?.id || ''));
+    const rut = typeof subcontractor?.rut === 'string' ? subcontractor.rut.trim() : subcontractor?.rut == null ? '' : String(subcontractor.rut).trim();
+    const previousRut = typeof previous?.rut === 'string' ? previous.rut.trim() : previous?.rut == null ? '' : String(previous.rut).trim();
+    // New subcontractors require a valid RUT. A historical blank may remain
+    // readable while unrelated fields are corrected, but cannot be newly created
+    // or cleared from a record that already had an identifier.
+    if (!rut) {
+      if (!previous || previousRut) {
+        throw Object.assign(new Error(`Subcontractor ${subcontractor?.id || ''} requires RUT`), { status: 409, code: 'INCOMPLETE_SUBCONTRACTOR_RUT' });
+      }
+      continue;
+    }
+    if (!isValidRut(rut)) {
+      throw Object.assign(new Error(`Subcontractor ${subcontractor.id} has invalid RUT`), { status: 409, code: 'INVALID_SUBCONTRACTOR_RUT' });
+    }
+  }
   assertUnique(workers.map(w => normalizeRut(w.rut)), 'Duplicate worker RUT', 'DUPLICATE_WORKER_RUT');
   assertUnique(contracts.map(c => normalizedText(c.numero)), 'Duplicate contract number', 'DUPLICATE_CONTRACT_NUMBER');
   assertUnique(mines.filter(m => m.rut).map(m => normalizeRut(m.rut)), 'Duplicate client RUT', 'DUPLICATE_CLIENT_RUT');
