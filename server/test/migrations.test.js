@@ -43,7 +43,7 @@ test('contact delivery diagnostics preserve legacy evidence and can be reapplied
       await db.exec(sql);
     }
     await db.query(
-      "INSERT INTO public_demo_requests(id,full_name,email,delivery_status) VALUES($1,'Histórico enviado','sent'),($2,'Histórico fallido','failed'),($3,'Histórico pendiente','pending')",
+      "INSERT INTO public_demo_requests(id,full_name,email,delivery_status) VALUES($1,'Histórico enviado','sent@example.test','sent'),($2,'Histórico fallido','failed@example.test','failed'),($3,'Histórico pendiente','pending@example.test','pending')",
       ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'],
     );
 
