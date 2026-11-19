@@ -86,6 +86,7 @@ for (const width of [1440, 375]) {
     test(`rechazo del servidor señala el campo y permite corregir desde ${fromEpp ? 'EPP' : 'Resumen'} a ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       const { state, writes } = await mockWorker(page, true)
+      await page.getByLabel('Correo electrónico', { exact: true }).fill('pendiente@example.com')
       if (fromEpp) await page.getByRole('button', { name: 'Operación y EPP', exact: true }).click()
       const save = page.getByRole('button', { name: 'Guardar cambios', exact: true })
       await (fromEpp ? save.first() : save).click()
