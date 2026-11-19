@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { validateTenantState } from '../validation.js'
+import { OPTIONAL_RUT_ERROR, validateRut } from '../../shared/rut.js'
 
 function state() {
   return {
@@ -44,4 +45,11 @@ test('new subcontractors require a valid RUT while an unchanged historical blank
     () => validateTenantState(cleared, { previousState: previouslyIdentified }),
     error => error.code === 'INCOMPLETE_SUBCONTRACTOR_RUT'
   )
+})
+
+
+test('shared RUT feedback allows formatting whitespace but rejects alpha and backslash input', () => {
+  assert.equal(validateRut('14.507.215 - 8'), null)
+  assert.equal(validateRut('14s507.215-8'), OPTIONAL_RUT_ERROR)
+  assert.equal(validateRut(String.raw\`14\\507.215-8\`), OPTIONAL_RUT_ERROR)
 })
