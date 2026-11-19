@@ -30,6 +30,17 @@ test('public routes have unique titles, a main heading, canonical URL and crawla
   await expect(page).toHaveURL(/\/plataforma$/)
 })
 
+test('the public plans route follows the commercial publication gate', async ({ page }) => {
+  await page.goto('/planes')
+  if (PUBLIC_PLANS_APPROVED) {
+    await expect(page).toHaveTitle('Nexo Klar · Planes y precios')
+    return
+  }
+  await expect(page).toHaveURL(/\/contacto$/)
+  await expect(page).toHaveTitle('Nexo Klar · Contacto')
+  await expect(page.locator('[data-plan-code]')).toHaveCount(0)
+})
+
 test('Inicio y Producto muestran la ilustración demostrativa con la identidad oficial', async ({ page }) => {
   const asset = await page.request.get('/product-overview.svg')
   const svg = await asset.text()

@@ -21,7 +21,8 @@ async function api(path,{account='global',method='GET',body}={}){
  const response=await fetch(`${fixture.base}/api${path}`,{method,headers:{'x-qa-account':account,'x-forwarded-for':`198.51.100.${++sequence%250+1}`,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
  return {status:response.status,body:await response.json()};
 }
-async function catalog(){const result=await api('/plans');assert.equal(result.status,200);return result.body;}
+// #341: public offers are deliberately unavailable. Operational tests use the authenticated catalogue.
+async function catalog(){const result=await api('/subscription/catalog',{account:'legacy'});assert.equal(result.status,200);return result.body;}
 async function adminCatalog(){const result=await api('/subscriptions/admin/catalog');assert.equal(result.status,200);return result.body;}
 async function publish(kind,code,fields={}){
  const result=await api('/subscriptions/admin/catalog',{method:'POST',body:{kind,code,action:'publish',...fields}});
@@ -53,13 +54,20 @@ async function execute(row){
  const result=await transition(row.id,'execute');assert.equal(result.status,200,JSON.stringify(result.body));return result.body;
 }
 
-test('HTTP catalogue versions every public parameter, keeps entitlements and audits locked before/after values',async()=>{
+test('unapproved public catalogue remains unavailable while a company can read its private catalogue',async()=>{
+ const publicPlans=await api('/plans');assert.equal(publicPlans.status,404);assert.equal(publicPlans.body.error,'PUBLIC_PLANS_NOT_AVAILABLE');
+ const recommendation=await api('/plans/recommend',{method:'POST',body:{workers:20}});assert.equal(recommendation.status,404);assert.equal(recommendation.body.error,'PUBLIC_PLANS_NOT_AVAILABLE');
+ const lead=await api('/commercial-requests',{method:'POST',body:{}});assert.equal(lead.status,503);assert.equal(lead.body.error,'COMMERCIAL_OFFER_NOT_APPROVED');
+ const privateCatalog=await catalog();assert.equal(privateCatalog.plans.length,5);assert.equal(privateCatalog.plans.find(plan=>plan.code==='FREE').monthlyPrice,0);
+});
+
+test('HTTP catalogue versions every commercial parameter, keeps entitlements and audits locked before/after values',async()=>{
  const old=(await adminCatalog()).plans.find(p=>p.code==='PURRANQUE');
  const input={versionId:old.versionId,name:'Purranque actualizado',description:'Descripción comercial editable.',publicFeatures:['Primera característica','Segunda característica'],displayOrder:0,ctaText:'Solicitar asesoría',monthlyPrice:2500,priceVisibility:'PUBLISHED',workerLimit:190,taxRate:.19,active:true,publicVisible:true,recommended:true,graceDays:17,warningPercent:72,criticalPercent:88,allowedUpgradeTargets:['FRUTILLAR','PUERTO_OCTAY'],trialMonths:0};
  const changed=await publish('plan','PURRANQUE',input),current=await adminCatalog(),shown=current.plans.find(p=>p.code==='PURRANQUE');
  for(const field of Object.keys(input).filter(k=>k!=='versionId'))assert.deepEqual(shown[field],input[field]);
  assert.equal(current.plans[0].code,'PURRANQUE');assert.notEqual(changed.versionId,old.versionId);assert.deepEqual(shown.features,old.features);
- const publicPlan=(await catalog()).plans.find(p=>p.code==='PURRANQUE');assert.equal(publicPlan.monthlyPrice,2500);assert.equal(publicPlan.priceVisibility,'PUBLISHED');
+ const privatePlan=(await catalog()).plans.find(p=>p.code==='PURRANQUE');assert.equal(privatePlan.monthlyPrice,2500);assert.equal(privatePlan.priceVisibility,'PUBLISHED');
  const audit=(await fixture.db.query('SELECT old_value,new_value FROM audit_log WHERE entity_id=$1',[changed.versionId])).rows[0];
  assert.deepEqual(audit.old_value,old);assert.deepEqual(audit.new_value,changed);
  const withdrawn=await publish('plan','PURRANQUE',{versionId:changed.versionId,active:false,monthlyPrice:2800,workerLimit:200,description:'Descripción revisada'});
@@ -79,7 +87,7 @@ test('withdrawing Free prevents new trials without suspending existing contracts
  const old=(await api('/subscription',{account:'admin'})).body;
  const inactive=await publish('plan','FREE',{active:false});assert.equal(inactive.active,false);
  assert.equal((await catalog()).plans.some(p=>p.code==='FREE'),false);
- assert.equal((await api('/plans/recommend',{method:'POST',body:{workers:10}})).body.planCode,'LA_UNION');
+ assert.equal(recommendSubscription(await catalog(),{workers:10}).planCode,'LA_UNION');
  const existing=(await api('/subscription',{account:'admin'})).body;assert.deepEqual(existing.contract,old.contract);assert.equal(existing.canOperate,true);
  const initial=await withTenant(QA_IDS.legacy,c=>activateInitialSubscription(c,{tenantId:QA_IDS.legacy,userId:QA_IDS.legacyAdmin}));
  assert.equal(initial.managed,true);assert.equal(initial.contract,null);assert.equal(initial.canOperate,false);
@@ -87,9 +95,9 @@ test('withdrawing Free prevents new trials without suspending existing contracts
  await publish('plan','FREE',{versionId:inactive.versionId,active:true});assert.ok((await catalog()).plans.some(p=>p.code==='FREE'));
 });
 
-test('inactive paid offers reject new selections and stale catalog edits cannot overwrite newer versions',async()=>{
+test('inactive paid offers reject private selections and stale catalog edits cannot overwrite newer versions',async()=>{
  const input=await commercial(),inactive=await publish('plan','LA_UNION',{active:false});
- const lead=await api('/commercial-requests',{method:'POST',body:input});assert.equal(lead.status,409);assert.equal(lead.body.error,'SUBSCRIPTION_OFFER_CHANGED');
+ const lead=await api('/commercial-requests',{method:'POST',body:input});assert.equal(lead.status,503);assert.equal(lead.body.error,'COMMERCIAL_OFFER_NOT_APPROVED');
  const privateRequest=await api('/subscription/requests',{account:'legacy',method:'POST',body:{type:'UPGRADE',planCode:'LA_UNION',versionId:input.versionId,reason:'Solicitud QA',idempotencyKey:randomUUID()}});assert.equal(privateRequest.status,409);
  const stale=await api('/subscriptions/admin/catalog',{method:'POST',body:{kind:'plan',code:'LA_UNION',action:'publish',versionId:input.versionId,name:'Edición obsoleta'}});assert.equal(stale.status,409);assert.equal(stale.body.error,'SUBSCRIPTION_CATALOG_STALE');
  await publish('plan','LA_UNION',{versionId:inactive.versionId,active:true});assert.ok((await catalog()).plans.some(p=>p.code==='LA_UNION'));
