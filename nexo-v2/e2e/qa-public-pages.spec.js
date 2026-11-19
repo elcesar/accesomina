@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { PUBLIC_PAGES } from '../src/config/public-pages.js'
+import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED } from '../src/config/public-pages.js'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => {
@@ -9,11 +9,18 @@ test.beforeEach(async ({ page }) => {
   })
 })
 test('public routes have unique titles, a main heading, canonical URL and crawlable links', async ({ page }) => {
-  for (const item of Object.values(PUBLIC_PAGES)) {
+  for (const [key, item] of Object.entries(PUBLIC_PAGES)) {
+    if (key === 'planes' && !PUBLIC_PLANS_APPROVED) continue
     await page.goto(item.path)
     await expect(page.locator('main h1')).toHaveCount(1)
     await expect(page).toHaveTitle(`Nexo Klar · ${item.title}`)
     await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', `https://nexoklar.com${item.path}`)
+  }
+  if (!PUBLIC_PLANS_APPROVED) {
+    await page.goto('/planes')
+    await expect(page).toHaveURL(/\/contacto$/)
+    await expect(page).toHaveTitle('Nexo Klar · Contacto')
+    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', 'https://nexoklar.com/contacto')
   }
   await page.goto('/#solucion')
   await expect(page).toHaveURL(/\/plataforma$/)
@@ -28,7 +35,9 @@ test('Inicio y Producto muestran la ilustración demostrativa con la identidad o
   const svg = await asset.text()
 
   expect(asset.ok()).toBeTruthy()
-  expect(svg).toContain('href="/brand/NK-color-horizontal.svg"')
+  expect(svg).toContain("Logotipo oficial incrustado")
+  expect(svg).toContain('viewBox="0 0 565.09198 142.45332"')
+  expect(svg).not.toContain('href="/brand/NK-color-horizontal.svg"')
   expect(svg).toContain('font-family="Manrope, Inter, sans-serif"')
   expect(svg).not.toMatch(/AccesoMina|Arial/i)
 
