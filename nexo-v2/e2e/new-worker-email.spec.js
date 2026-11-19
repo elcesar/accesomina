@@ -82,6 +82,15 @@ for (const width of [1440, 480, 375]) {
     await expect(email).toHaveValue(atLimit)
     await expect(email).toHaveAttribute('aria-invalid', 'false')
 
+    await email.evaluate((element, value) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(element, value)
+      element.dispatchEvent(new Event('input', { bubbles: true }))
+    }, 'b' + atLimit)
+    await page.getByRole('button', { name: 'Siguiente', exact: true }).click()
+    await expect(email).toBeFocused()
+    await expect(email).toHaveAttribute('aria-invalid', 'true')
+    await expect(page.locator('#worker-email-error')).toHaveCount(1)
+
     await email.fill('')
     await email.blur()
     await page.getByRole('button', { name: 'Siguiente', exact: true }).click()
