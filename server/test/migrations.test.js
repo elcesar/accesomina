@@ -31,3 +31,38 @@ test('all PostgreSQL migrations apply in order', async () => {
   await db.exec('BEGIN');await db.query("SELECT set_config('app.current_tenant_id',$1,true)",[companyB]);await db.exec('SET LOCAL ROLE tenant_isolation_test');const isolated=await db.query("SELECT tenant_id,data FROM tenant_module_state WHERE module_key='trabajadores'");assert.equal(isolated.rows.length,1);assert.equal(isolated.rows[0].tenant_id,companyB);assert.equal(isolated.rows[0].data[0].id,'b1');await db.exec('ROLLBACK');
   await db.close();
 });
+
+
+test('contact delivery diagnostics preserve legacy evidence and can be reapplied safely', async () => {
+  const db = new PGlite();
+  const dir = path.resolve('database/postgres');
+  try {
+    const files = (await fs.readdir(dir)).filter(file => /^\d+.*\.sql$/.test(file) && file < '031_contact_delivery_diagnostics.sql').sort();
+    for (const file of files) {
+      const sql = (await fs.readFile(path.join(dir, file), 'utf8')).replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;/g, '');
+      await db.exec(sql);
+    }
+    await db.query(
+      "INSERT INTO public_demo_requests(id,full_name,email,delivery_status) VALUES($1,'Histórico enviado','sent'),($2,'Histórico fallido','failed'),($3,'Histórico pendiente','pending')",
+      ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'],
+    );
+
+    const migration = await fs.readFile(path.join(dir, '031_contact_delivery_diagnostics.sql'), 'utf8');
+    await db.exec(migration);
+    await db.exec(migration);
+
+    const rows = (await db.query('SELECT delivery_status,delivery_outcome,delivery_smtp_response_code,delivery_message_id_hash,delivery_attempted_at FROM public_demo_requests ORDER BY id')).rows;
+    assert.deepEqual(rows.map(row => [row.delivery_status, row.delivery_outcome]), [
+      ['sent', 'LEGACY_UNVERIFIED'],
+      ['failed', 'LEGACY_FAILED'],
+      ['pending', 'PENDING'],
+    ]);
+    assert.ok(rows.every(row => row.delivery_smtp_response_code === null && row.delivery_message_id_hash === null && row.delivery_attempted_at === null));
+    await assert.rejects(
+      () => db.query("UPDATE public_demo_requests SET delivery_smtp_response_code=99 WHERE id=$1", ['11111111-1111-4111-8111-111111111111']),
+      /check/i,
+    );
+  } finally {
+    await db.close();
+  }
+});
