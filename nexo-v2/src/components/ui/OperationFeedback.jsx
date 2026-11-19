@@ -10,6 +10,8 @@ export default function OperationFeedback({ children }) {
   const [retrying, setRetrying] = useState(false)
   const timerRef = useRef(null)
   const retryRef = useRef(0)
+  const pathnameRef = useRef(pathname)
+  pathnameRef.current = pathname
 
   useEffect(() => {
     clearTimeout(timerRef.current)
@@ -27,14 +29,24 @@ export default function OperationFeedback({ children }) {
       timerRef.current = setTimeout(() => setMessage(''), 8000)
     }
     const failed = event => setFailure(event.detail || { status: 503 })
+    const recovered = event => {
+      if (!event.detail?.result || (event.detail.sourcePath && event.detail.sourcePath !== pathnameRef.current)) return
+      // A successful state reload clears only the load failure, never a
+      // module's write errors or its operation confirmation.
+      retryRef.current += 1
+      setRetrying(false)
+      setFailure(null)
+    }
     window.addEventListener('nexo:mutation-started', started)
     window.addEventListener('nexo:mutation-completed', completed)
     window.addEventListener('nexo:load-failed', failed)
+    window.addEventListener('nexo:state-retry-succeeded', recovered)
     return () => {
       clearTimeout(timerRef.current)
       window.removeEventListener('nexo:mutation-started', started)
       window.removeEventListener('nexo:mutation-completed', completed)
       window.removeEventListener('nexo:load-failed', failed)
+      window.removeEventListener('nexo:state-retry-succeeded', recovered)
     }
   }, [])
 
@@ -43,7 +55,9 @@ export default function OperationFeedback({ children }) {
     setRetrying(true)
     const retryId = ++retryRef.current
     try {
-      const result = await api.get('/state')
+      // Own this retry's alert so an obsolete response cannot broadcast a
+      // failure before retryRef determines whether it is still current.
+      const result = await api.get('/state', { loadFeedback: false })
       if (retryId !== retryRef.current) return
       setFailure(null)
       // Let mounted modules refresh their data without losing local form state.
