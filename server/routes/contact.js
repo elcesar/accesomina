@@ -45,7 +45,10 @@ function contactLimiter() {
 
 function normalizedMailbox(value) {
   const raw = String(value || '').trim();
-  return raw ? normalizeEmail(raw) : '';
+  const display = raw.match(/<([^<>]+)>$/);
+  const mailbox = (display ? display[1] : raw).trim();
+  if (!/^[^@\s<>]+@[^@\s<>]+\.[^@\s<>]+$/.test(mailbox)) return '';
+  return normalizeEmail(mailbox);
 }
 
 function responseCode(value) {
