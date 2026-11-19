@@ -29,7 +29,7 @@ test('the public plans route follows the commercial publication gate', async ({ 
     await expect(page).toHaveTitle('Nexo Klar · Planes y precios')
     return
   }
-  await expect(page).toHaveURL(/\\/contacto$/)
+  await expect(page).toHaveURL(/\/contacto$/)
   await expect(page).toHaveTitle('Nexo Klar · Contacto')
   await expect(page.locator('[data-plan-code]')).toHaveCount(0)
 })
