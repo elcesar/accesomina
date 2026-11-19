@@ -29,12 +29,14 @@ test('administration denial renders a clear 403 page with a return action',async
  await expect(page.getByText('Error 403',{exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Ir al panel',exact:true})).toBeVisible()
 })
-for(const code of [500,503])test(`state load failure shows a nonblocking ${code} alert and allows retry`,async({page})=>{
+for(const code of [500,503])test(`state load failure shows a nonblocking ${code} alert without technical jargon and allows retry`,async({page})=>{
  status=code
  await page.goto('/app/trabajadores')
  const alert=page.locator('.nk-operation-feedback-error')
  await expect(alert).toBeVisible()
- await expect(alert).toContainText(`Error ${code}`)
+ await expect(alert).toContainText(code===500?'No pudimos cargar la información':'El servicio no está disponible temporalmente')
+ await expect(alert).not.toContainText(`Error ${code}`)
+ await expect(alert).toHaveCSS('border-color', /rgb\(/)
  await expect(page.getByRole('button',{name:'Volver a intentar'})).toBeVisible()
  await expect(page.getByRole('button',{name:'Cerrar aviso'})).toBeVisible()
  // The module remains mounted; the error is an inline alert, not a full-page replacement.

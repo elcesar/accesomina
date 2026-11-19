@@ -21,12 +21,12 @@ export const WORKER_SPECIALTIES = [
 ]
 
 export const WORKER_REGIMENS = [
-  { value: '5x2', label: '5x2' },
-  { value: '4x3', label: '4x3' },
-  { value: '6x1', label: '6x1' },
-  { value: '7x7', label: '7x7' },
-  { value: '10x10', label: '10x10' },
-  { value: '14x14', label: '14x14' },
+  { value: '5x2', label: '5×2' },
+  { value: '4x3', label: '4×3' },
+  { value: '6x1', label: '6×1' },
+  { value: '7x7', label: '7×7' },
+  { value: '10x10', label: '10×10' },
+  { value: '14x14', label: '14×14' },
   { value: 'otro', label: 'Turno especial' },
 ]
 

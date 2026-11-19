@@ -59,6 +59,15 @@ test('Free vencido explica el fin del beneficio conservando la información', as
   await expect(page.getByRole('link', { name: 'Ver planes', exact: true })).toHaveAttribute('href', '/planes')
   await expect(page.getByRole('link', { name: 'Ir a Mi plan', exact: true })).toHaveAttribute('href', '/app/mi-plan')
 })
+test('administrador de empresa no consulta el acceso global de suscripciones', async ({ page }) => {
+  const calls = await mockPortal(page, { suspended: false, role: 'client_admin' })
+  await page.goto('/app')
+  await expect(page.getByRole('heading', { name: 'Estado de la operación', exact: true })).toBeVisible()
+  expect(calls.filter(call => call.path === '/api/subscriptions/admin/access')).toHaveLength(0)
+  await page.goto('/app/administracion-planes')
+  await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar', exact: true })).toBeVisible()
+  expect(calls.filter(call => call.path === '/api/subscriptions/admin/access')).toHaveLength(0)
+})
 test('el exceso de importación explica cupos y confirma que no se guardó la carga', async ({ page }) => {
   await mockPortal(page, { suspended: false })
   await page.goto('/app/transferencia')

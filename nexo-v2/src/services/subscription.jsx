@@ -5,7 +5,7 @@ import { errorMessage } from './subscriptions.js'
 
 const SubscriptionContext = createContext({ summary: null, loading: false, error: '', refresh: async () => {}, administration: null, administrationLoading: false, administrationError: '', refreshAdministration: async () => {} })
 export function SubscriptionProvider({ children }) {
-  const { session } = useAuth()
+  const { session, loading: authLoading } = useAuth()
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -14,6 +14,10 @@ export function SubscriptionProvider({ children }) {
   const [administrationError, setAdministrationError] = useState('')
   const summaryGeneration = useRef(0)
   const accessGeneration = useRef(0)
+  // The endpoint is reserved for the global subscription team. A company
+  // administrator has no global profile, so avoid an expected 403 on every
+  // portal load while retaining server-side authorization for all other roles.
+  const canReadAdministration = Boolean(session?.user?.id) && !authLoading && session.user.role !== 'client_admin'
   const refresh = useCallback(async () => {
     const generation = ++summaryGeneration.current
     setLoading(true)
@@ -22,14 +26,30 @@ export function SubscriptionProvider({ children }) {
     finally { if (generation === summaryGeneration.current) setLoading(false) }
   }, [session?.user?.id, session?.tenant?.id])
   const refreshAdministration = useCallback(async () => {
+    if (!canReadAdministration) {
+      accessGeneration.current += 1
+      setAdministration(null)
+      setAdministrationError('')
+      setAdministrationLoading(false)
+      return null
+    }
     const generation = ++accessGeneration.current
     setAdministrationLoading(true)
     try { const data = await api.get('/subscriptions/admin/access'); if (generation !== accessGeneration.current) return null; setAdministration(data); setAdministrationError(''); return data }
     catch (failure) { if (generation === accessGeneration.current) { setAdministration(null); setAdministrationError([401, 403].includes(failure.status) ? '' : errorMessage(failure)) } return null }
     finally { if (generation === accessGeneration.current) setAdministrationLoading(false) }
-  }, [session?.user?.id, session?.tenant?.id])
+  }, [session?.user?.id, session?.tenant?.id, canReadAdministration])
   useEffect(() => { setSummary(null); setError(''); refresh(); return () => { summaryGeneration.current++ } }, [refresh])
-  useEffect(() => { setAdministration(null); setAdministrationError(''); refreshAdministration(); return () => { accessGeneration.current++ } }, [refreshAdministration])
+  useEffect(() => {
+    setAdministration(null)
+    setAdministrationError('')
+    if (!canReadAdministration) {
+      setAdministrationLoading(false)
+      return () => { accessGeneration.current++ }
+    }
+    refreshAdministration()
+    return () => { accessGeneration.current++ }
+  }, [refreshAdministration, canReadAdministration])
   useEffect(() => { const update = () => { refresh() }; window.addEventListener('nexo:subscription-changed', update); return () => window.removeEventListener('nexo:subscription-changed', update) }, [refresh])
   return <SubscriptionContext.Provider value={{ summary, loading, error, refresh, administration, administrationLoading, administrationError, refreshAdministration }}>{children}</SubscriptionContext.Provider>
 }

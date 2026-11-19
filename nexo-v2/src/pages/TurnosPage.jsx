@@ -5,10 +5,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
-import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, workerRegimenMatches } from '../config/worker-catalogs.js'
+import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, workerRegimenLabel, workerRegimenMatches } from '../config/worker-catalogs.js'
 import '../styles/turnos.css'
 
-const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
+const ASISTENCIAS = [
+  { value: 'presente', label: 'Presente' },
+  { value: 'ausente', label: 'Ausente' },
+  { value: 'licencia', label: 'Licencia' },
+  { value: 'permiso', label: 'Permiso' },
+  { value: 'observado', label: 'Observado' },
+]
 
 const hoy = () => localDate()
 
@@ -27,7 +33,12 @@ function AsistenciaBadge({ value }) {
     permiso: 'nk-badge-warn',
     observado: 'nk-badge-none',
   }
-  return <span className={`nk-badge ${classes[value] || 'nk-badge-none'}`}>{value || 'Sin información'}</span>
+  const label = ASISTENCIAS.find(item => item.value === value)?.label || value || 'Sin información'
+  return <span className={`nk-badge ${classes[value] || 'nk-badge-none'}`}>{label}</span>
+}
+
+function turnoLabel(value) {
+  return WORKER_ASSIGNMENT_SHIFTS.find(item => item.value === value)?.label || value || '—'
 }
 
 function CoberturaBadge({ status }) {
@@ -113,7 +124,7 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
           </Field>
           <Field label="Asistencia">
             <select className="nk-select" value={form.asistencia} onChange={e => set('asistencia', e.target.value)}>
-              {ASISTENCIAS.map(a => <option key={a} value={a}>{a}</option>)}
+              {ASISTENCIAS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Ingreso">
@@ -169,6 +180,11 @@ export default function TurnosPage() {
   const minas = state?.minas || []
   const turnos = state?.turnos || []
   const asignaciones = state?.asignaciones || []
+  const programTurnDisabledReason = !trabajadoresProgramables.length
+    ? 'Primero debes registrar una persona habilitada.'
+    : !mantenciones.length
+      ? 'Primero debes registrar un proyecto o servicio activo.'
+      : 'Espera mientras se completa la operación en curso.'
 
   const cobertura = useMemo(() => {
     const activas = mantenciones.filter(m => m.estado !== 'cerrada')
@@ -238,7 +254,7 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <ActionButton disabledReason="Acción no disponible." className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason={programTurnDisabledReason} className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
         </ActionButton>
       </header>
@@ -326,7 +342,7 @@ export default function TurnosPage() {
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
                         <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
-                        <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
+                        <td><span className="nk-turnos-primary">{workerRegimenLabel(t.regimen) || '—'}</span> <span className="nk-turnos-sub">· {turnoLabel(t.turno)}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>
                     ))}
