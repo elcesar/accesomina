@@ -86,7 +86,10 @@ test('overlapping collection IDs retain each persisted RUT during an unrelated s
     opportunities: [{ ...opportunity, stage: 'perdida', rut: 'histórico sin regularizar' }],
   };
   const result = validateTenantState({ ...structuredClone(previousState), configuracion: { note: 'changed' } }, { previousState });
-  for (const key of OPPORTUNITY_COLLECTIONS) assert.deepEqual(result[key], previousState[key]);
+  for (const key of OPPORTUNITY_COLLECTIONS) {
+    assert.deepEqual(JSON.parse(JSON.stringify(result[key])), previousState[key]);
+    assert.equal(result[key][0].rut, previousState[key][0].rut, `${key} must retain its own historical RUT`);
+  }
   assert.throws(() => validateTenantState({ ...previousState, opportunities: [{ ...previousState.opportunities[0], rut: 'otro RUT histórico' }] }, { previousState }), error => error.code === 'INVALID_OPPORTUNITY_RUT');
 });
 

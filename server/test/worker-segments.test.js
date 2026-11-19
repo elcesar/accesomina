@@ -23,7 +23,7 @@ test('employment relationship and operational availability remain independent', 
   const fixedWorker = { ...available, employmentProfile: 'permanente', tipo: 'permanente' }
   const assignment = [{ trabId: fixedWorker.id, mantId: order.id, estado: 'confirmado' }]
   assert.equal(employmentRelationship(fixedWorker), 'fijo')
-  assert.equal(operationalStatus(fixedWorker, assignment), 'asignado')
+  assert.equal(operationalStatus(fixedWorker, assignment, [], [order]), 'asignado')
 
   const projectWorker = { ...available, employmentProfile: 'esporadico', tipo: 'esporadico' }
   assert.equal(employmentRelationship(projectWorker), 'proyecto')

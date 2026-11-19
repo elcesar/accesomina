@@ -3,19 +3,22 @@ import assert from 'node:assert/strict';
 import Papa from 'papaparse';
 import { PGlite } from '@electric-sql/pglite';
 import { pool } from '../db.js';
-import { dataTransferRouter, definitions, csvRows } from '../routes/data-transfer.js';
+import { BACKUP_FORMAT, dataTransferRouter, definitions, csvRows } from '../routes/data-transfer.js';
 import { validateTenantState } from '../validation.js';
 import { opportunityRows, opportunityFields, OPPORTUNITY_COLLECTIONS } from '../../nexo-v2/src/services/opportunity-collections.js';
 
 const legacy = { id:'legacy', empresa:'Empresa histórica QA', tipo:'cliente', etapa:'contactado', monto:25, probabilidad:0 };
 const current = { id:'current', company:'Empresa actual QA', type:'nuevo_cliente', stage:'prospecto', amount:100, probability:20 };
-let db;
+let db, rejectAuditFor;
 before(async()=>{
- db=new PGlite();await db.exec(`CREATE TABLE tenant_module_state (tenant_id text,module_key text,data jsonb,version bigint DEFAULT 1,updated_by text,updated_at timestamptz DEFAULT now(),PRIMARY KEY(tenant_id,module_key));CREATE TABLE audit_log (tenant_id text,user_id text,entity_type text,entity_id text,action text,old_value jsonb,new_value jsonb);`);
- mock.method(pool,'connect',async()=>({query:(sql,params)=>db.query(sql,params),release(){}}));
+ db=new PGlite();await db.exec(`CREATE TABLE tenant_module_state (tenant_id text,module_key text,data jsonb,version bigint DEFAULT 1,updated_by text,updated_at timestamptz DEFAULT now(),PRIMARY KEY(tenant_id,module_key));CREATE TABLE audit_log (tenant_id text,user_id text,entity_type text,entity_id text,action text,old_value jsonb,new_value jsonb);CREATE TABLE tenant_settings(tenant_id text PRIMARY KEY,branding jsonb,modules jsonb,alerts jsonb,catalogs jsonb,updated_by text,updated_at timestamptz DEFAULT now());`);
+ mock.method(pool,'connect',async()=>({query:(sql,params)=>{
+  if(rejectAuditFor&&sql.includes('INSERT INTO audit_log')&&params[2]===rejectAuditFor)throw new Error('QA audit unavailable');
+  return db.query(sql,params);
+ },release(){}}));
 });
 after(async()=>{mock.restoreAll();await db?.close();});
-beforeEach(async()=>{await db.exec('TRUNCATE tenant_module_state,audit_log');});
+beforeEach(async()=>{rejectAuditFor=null;await db.exec('TRUNCATE tenant_module_state,audit_log,tenant_settings');});
 async function seed(modules){for(const[key,data]of Object.entries(modules))await db.query('INSERT INTO tenant_module_state(tenant_id,module_key,data,version) VALUES($1,$2,$3::jsonb,3)',['qa-tenant',key,JSON.stringify(data)]);}
 async function invoke(path,method,{type='oportunidades',role='client_admin',file,mode,confirmReplace}={}){
  const route=dataTransferRouter.stack.find(l=>l.route?.path===path&&l.route.methods[method]).route;
@@ -57,11 +60,11 @@ test('opportunity CSV import writes the portal module, retains history and can b
  await seed({opportunities:[legacy]});const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa,monto,probabilidad\nnuevo_cliente,Empresa importada QA,prospecto,50,25\n',mode:'append'});
  assert.equal(res.statusCode,200);assert.deepEqual(res.body.modules,['prospectos','oportunidades','opportunities']);const state=await stored();assert.deepEqual(state.opportunities,[]);assert.deepEqual(state.oportunidades,[]);assert.equal(state.prospectos.some(item=>item.id==='legacy'),true);assert.equal(state.prospectos.some(item=>item.company==='Empresa importada QA'),true);assert.equal(opportunityRows(state).length,2);
  const exported=await invoke('/export/:type','get');assert.match(exported.body,/Empresa importada QA/);assert.match(exported.body,/Empresa histórica QA/);
- const log=await db.query('SELECT * FROM audit_log');assert.equal(log.rows.length,1);assert.equal(log.rows[0].entity_type,'prospectos');
+ const log=await db.query('SELECT * FROM audit_log');assert.equal(log.rows.length,3);assert.deepEqual(log.rows.map(row=>row.entity_type).sort(),[...OPPORTUNITY_COLLECTIONS].sort());
 });
 test('explicit replacement clears historical aliases atomically instead of showing deleted old rows',async()=>{
  await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{id:'other',company:'Otro QA'}]});
- const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace'});assert.equal(res.statusCode,200);
+ const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace',confirmReplace:'REEMPLAZAR'});assert.equal(res.statusCode,200);
  const state=await stored();assert.deepEqual(state.oportunidades,[]);assert.deepEqual(state.opportunities,[]);assert.equal(opportunityRows(state).length,1);assert.equal(opportunityRows(state)[0].company,'Reemplazo QA');
 });
 test('invalid references roll back CSV import and audit without affecting existing opportunities',async()=>{
@@ -79,7 +82,7 @@ test('CSV output preserves order, accents, commas and multiline notes',async()=>
 test('the backend rejects duplicate active opportunities without RUT across legacy and canonical collections',async()=>{
   await seed({opportunities:[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]});
   await assert.rejects(
-    ()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa Sur QA,prospecto\\n',mode:'append'}),
+    ()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Empresa Sur QA,prospecto\n',mode:'append'}),
     error=>error.code==='DUPLICATE_OPPORTUNITY'
   );
   assert.deepEqual((await stored()).opportunities,[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]);
@@ -87,7 +90,7 @@ test('the backend rejects duplicate active opportunities without RUT across lega
 
 test('replace requires explicit confirmation and reports its operational impact without writing',async()=>{
   await seed({prospectos:[current],opportunities:[legacy]});
-  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Reemplazo QA,prospecto\\n',mode:'replace'});
+  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace'});
   assert.equal(res.statusCode,409);
   assert.equal(res.body.error,'OPPORTUNITY_REPLACE_CONFIRMATION_REQUIRED');
   assert.equal(res.body.existingRows,2);
@@ -107,8 +110,86 @@ test('legacy records without type or stage remain visibly incomplete instead of 
 
 test('canonical imports retain archived records in the audit log for restoration',async()=>{
   await seed({opportunities:[legacy]});
-  await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa nueva QA,prospecto\\n',mode:'append'});
+  await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Empresa nueva QA,prospecto\n',mode:'append'});
   const audit=(await db.query("SELECT old_value,new_value FROM audit_log WHERE entity_type='opportunities'")).rows[0];
   assert.deepEqual(audit.old_value.records,[legacy]);
   assert.equal(audit.new_value.canonicalStore,'prospectos');
+});
+
+test('successive CSV appends merge existing canonical records and both aliases exactly once',async()=>{
+ const older={id:'older',company:'Empresa antigua QA',type:'nuevo_cliente',stage:'prospecto'};
+ const client={id:'qa-client',nombre:'Cliente sin cambios QA'};
+ await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{...current,company:'Copia obsoleta QA'},older],minas:[client]});
+ for(const name of ['Primera importación QA','Segunda importación QA']){
+  const res=await invoke('/import/:type','post',{file:`tipo,empresa,etapa\nnuevo_cliente,${name},prospecto\n`,mode:'append'});
+  assert.equal(res.statusCode,200);
+ }
+ const state=await stored();
+ assert.deepEqual(state.oportunidades,[]);assert.deepEqual(state.opportunities,[]);
+ assert.equal(state.prospectos.length,5);
+ assert.equal(new Set(state.prospectos.map(row=>row.id)).size,5);
+ assert.equal(state.prospectos.find(row=>row.id===current.id).company,current.company);
+ for(const name of [current.company,'Empresa histórica QA',older.company,'Primera importación QA','Segunda importación QA'])assert.equal(state.prospectos.filter(row=>row.company===name).length,1);
+ assert.deepEqual(state.minas,[client]);
+ const versions=(await db.query("SELECT module_key,version FROM tenant_module_state WHERE tenant_id='qa-tenant' ORDER BY module_key")).rows;
+ assert.ok(versions.filter(row=>OPPORTUNITY_COLLECTIONS.includes(row.module_key)).every(row=>Number(row.version)===5));
+ assert.equal(Number(versions.find(row=>row.module_key==='minas').version),3);
+ assert.equal((await db.query('SELECT * FROM audit_log')).rows.length,6);
+});
+
+test('an invalid reference leaves canonical records, both aliases, versions and audit untouched',async()=>{
+ await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{id:'other',company:'Otra histórica QA'}]});
+ const before=(await db.query("SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id='qa-tenant' ORDER BY module_key")).rows;
+ await assert.rejects(()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa,cliente\nnuevo_cliente,Referencia inexistente QA,prospecto,missing\n',mode:'append'}),error=>error.code==='INVALID_REFERENCE');
+ assert.deepEqual((await db.query("SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id='qa-tenant' ORDER BY module_key")).rows,before);
+ assert.equal((await db.query('SELECT * FROM audit_log')).rows.length,0);
+});
+
+test('an audit failure rolls back migration of all opportunity collections and their versions',async()=>{
+ await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{id:'other',company:'Otra histórica QA'}]});
+ const before=(await db.query("SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id='qa-tenant' ORDER BY module_key")).rows;
+ rejectAuditFor='oportunidades';
+ await assert.rejects(()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,No debe guardarse QA,prospecto\n',mode:'append'}),/QA audit unavailable/);
+ assert.deepEqual((await db.query("SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id='qa-tenant' ORDER BY module_key")).rows,before);
+ assert.equal((await db.query('SELECT * FROM audit_log')).rows.length,0);
+});
+
+test('ordinary CSV append preserves its own module behavior and does not migrate unrelated opportunities',async()=>{
+ const client={id:'qa-client',nombre:'Cliente original QA'};
+ await seed({minas:[client],opportunities:[legacy]});
+ const res=await invoke('/import/:type','post',{type:'minas',file:'nombre,mandante\nCliente agregado QA,Mandante QA\n',mode:'append'});
+ assert.equal(res.statusCode,200);
+ const state=await stored();
+ assert.equal(state.minas.length,2);assert.equal(state.minas[0].id,client.id);assert.equal(state.minas[0].nombre,client.nombre);
+ assert.deepEqual(state.opportunities,[legacy]);
+ assert.equal(state.prospectos,undefined);
+ assert.deepEqual((await db.query('SELECT entity_type FROM audit_log')).rows,[{entity_type:'minas'}]);
+});
+
+for(const source of ['prospectos','opportunities']){
+ test(`backup replacement canonicalizes incoming ${source} without resurrecting destination aliases`,async()=>{
+  const client={id:'qa-client',nombre:'Cliente conservado QA'};
+  await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{id:'destination-only',company:'No restaurar QA'}],minas:[client]});
+  const incoming={id:'from-backup',company:'Empresa restaurada QA',type:'nuevo_cliente',stage:'prospecto'};
+  const backup={format:BACKUP_FORMAT,modules:{[source]:[incoming]},settings:{branding:{displayName:'Marca restaurada QA'}}};
+  const res=await invoke('/import/:type','post',{type:'backup',file:JSON.stringify(backup),mode:'append'});
+  assert.equal(res.statusCode,200);assert.equal(res.body.mode,'replace');
+  const state=await stored();
+  assert.deepEqual(state.oportunidades,[]);assert.deepEqual(state.opportunities,[]);
+  assert.equal(state.prospectos.length,1);assert.equal(state.prospectos[0].id,incoming.id);
+  assert.deepEqual(state.minas,[client]);
+  assert.equal((await db.query('SELECT branding FROM tenant_settings')).rows[0].branding.displayName,'Marca restaurada QA');
+  const audit=(await db.query("SELECT old_value FROM audit_log WHERE entity_type='oportunidades'")).rows[0];
+  assert.deepEqual(audit.old_value.records,[legacy]);
+ });
+}
+
+test('an explicitly empty opportunity backup clears the logical store while retaining its audit history',async()=>{
+ await seed({prospectos:[current],opportunities:[legacy]});
+ const backup={format:BACKUP_FORMAT,modules:{prospectos:[]}};
+ assert.equal((await invoke('/import/:type','post',{type:'backup',file:JSON.stringify(backup)})).statusCode,200);
+ const state=await stored();
+ for(const collection of OPPORTUNITY_COLLECTIONS)assert.deepEqual(state[collection],[]);
+ const archived=(await db.query("SELECT old_value FROM audit_log WHERE entity_type='opportunities'")).rows[0];
+ assert.deepEqual(archived.old_value.records,[legacy]);
 });
