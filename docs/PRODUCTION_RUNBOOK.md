@@ -22,10 +22,11 @@ El analisis documental real requiere `DOCUMENT_AI_API_URL` y `DOCUMENT_AI_API_TO
 2. Ejecutar `pnpm run migrate` como tarea unica de despliegue. El bloqueo asesor evita ejecuciones simultaneas accidentales.
 3. Publicar la imagen por su digest, no por una etiqueta mutable.
 4. Esperar respuesta satisfactoria de `/api/ready` antes de recibir trafico.
-5. Ejecutar una prueba con dos empresas y confirmar que usuarios, archivos, marca, integraciones y registros no se cruzan.
-6. Probar correo, WhatsApp, almacenamiento, antivirus y analisis documental con cuentas productivas.
-7. Restaurar un respaldo en un entorno aislado y registrar tiempo real de recuperacion.
-8. Ejecutar analisis de vulnerabilidades de imagen y una prueba de penetracion externa.
+5. Ejecutar `npm run email:auth:check` dentro de la tarea configurada y conservar sólo su resultado, nunca secretos ni enlaces de acceso.
+6. Ejecutar una prueba con dos empresas y confirmar que usuarios, archivos, marca, integraciones y registros no se cruzan.
+7. Probar correo con buzones QA autorizados de Microsoft 365 y Gmail —incluidos invitación y recuperación—, además de WhatsApp, almacenamiento, antivirus y analisis documental con cuentas productivas.
+8. Restaurar un respaldo en un entorno aislado y registrar tiempo real de recuperacion.
+9. Ejecutar analisis de vulnerabilidades de imagen y una prueba de penetracion externa.
 
 ## Operacion
 
