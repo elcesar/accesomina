@@ -36,14 +36,25 @@ EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$
+DO $
 BEGIN
   ALTER TABLE public_demo_requests
     ADD CONSTRAINT public_demo_requests_delivery_smtp_response_code_check
     CHECK (delivery_smtp_response_code IS NULL OR delivery_smtp_response_code BETWEEN 100 AND 599);
 EXCEPTION
   WHEN duplicate_object THEN NULL;
-END $$;
+END $;
+
+DO $
+BEGIN
+  ALTER TABLE public_demo_requests
+    ADD CONSTRAINT public_demo_requests_delivery_message_id_hash_check
+    CHECK (delivery_message_id_hash IS NULL OR delivery_message_id_hash ~ '^[a-f0-9]{64} IF NOT EXISTS idx_public_demo_requests_delivery_outcome
+  ON public_demo_requests(delivery_outcome, delivery_attempted_at DESC);
+);
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $;
 
 CREATE INDEX IF NOT EXISTS idx_public_demo_requests_delivery_outcome
   ON public_demo_requests(delivery_outcome, delivery_attempted_at DESC);
