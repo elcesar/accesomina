@@ -62,6 +62,10 @@ test('contact delivery diagnostics preserve legacy evidence and can be reapplied
       () => db.query("UPDATE public_demo_requests SET delivery_smtp_response_code=99 WHERE id=$1", ['11111111-1111-4111-8111-111111111111']),
       /check/i,
     );
+    await assert.rejects(
+      () => db.query("UPDATE public_demo_requests SET delivery_message_id_hash='not-a-hash' WHERE id=$1", ['11111111-1111-4111-8111-111111111111']),
+      /check/i,
+    );
   } finally {
     await db.close();
   }
