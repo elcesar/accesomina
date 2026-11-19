@@ -1,7 +1,7 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
@@ -94,21 +94,27 @@ function validationError(message, suggestion) {
 }
 
 function Field({ label, required, hint, error, fieldId, children, full = false }) {
-  const errorId = error && fieldId ? `${fieldId}-error` : undefined
-  const control = fieldId
-    ? cloneElement(children, {
-        id: fieldId,
-        'aria-invalid': error ? true : undefined,
-        'aria-describedby': errorId,
-        ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
-      })
+  const generatedId = useId().replace(/:/g, '')
+  const controlId = fieldId || `worker-field-${generatedId}`
+  const isGroup = isValidElement(children) && ['div', 'label'].includes(children.type)
+  const labelId = `${controlId}-label`
+  const errorId = error ? `${controlId}-error` : undefined
+  const control = isValidElement(children)
+    ? cloneElement(children, isGroup
+      ? { 'aria-labelledby': labelId, ...(children.type === 'div' ? { role: 'group' } : {}) }
+      : {
+          id: children.props.id || controlId,
+          'aria-invalid': error ? true : undefined,
+          'aria-describedby': errorId,
+          ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
+        })
     : children
 
   return (
     <div className={`nk-field ${full ? 'nk-person-field-full' : ''}`} data-state={error ? 'error' : undefined}>
-      <label className="nk-label" htmlFor={fieldId}>
-        {label}{required && <span className="nk-person-field-required"> *</span>}
-      </label>
+      {isGroup
+        ? <span id={labelId} className="nk-label">{label}{required && <span className="nk-person-field-required"> *</span>}</span>
+        : <label className="nk-label" htmlFor={controlId}>{label}{required && <span className="nk-person-field-required"> *</span>}</label>}
       {control}
       {error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
       {!error && hint && <p className="nk-field-help">{hint}</p>}

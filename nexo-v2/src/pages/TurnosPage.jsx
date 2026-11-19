@@ -1,7 +1,7 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useId, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
@@ -50,10 +50,11 @@ function KPI({ value, label, tone = '' }) {
 }
 
 function Field({ label, children, wide = false }) {
+  const fieldId = useId()
   return (
     <div className={`nk-field ${wide ? 'nk-turnos-modal-wide' : ''}`}>
-      <label className="nk-label">{label}</label>
-      {children}
+      <label className="nk-label" htmlFor={fieldId}>{label}</label>
+      {cloneElement(children, { id: children.props.id || fieldId })}
     </div>
   )
 }
@@ -295,10 +296,10 @@ export default function TurnosPage() {
             </div>
 
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
-              <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select aria-label="Filtrar por cliente" className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select aria-label="Filtrar por proyecto o servicio" className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select aria-label="Filtrar por régimen" className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select aria-label="Filtrar por turno" className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
