@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { PUBLIC_PAGES } from '../src/config/public-pages.js'
+import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED } from '../src/config/public-pages.js'
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => {
@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
   })
 })
 test('public routes have unique titles, a main heading, canonical URL and crawlable links', async ({ page }) => {
-  for (const item of Object.values(PUBLIC_PAGES)) {
+  for (const item of Object.values(PUBLIC_PAGES).filter(page => PUBLIC_PLANS_APPROVED || page.path !== '/planes')) {
     await page.goto(item.path)
     await expect(page.locator('main h1')).toHaveCount(1)
     await expect(page).toHaveTitle(`Nexo Klar · ${item.title}`)
@@ -21,6 +21,17 @@ test('public routes have unique titles, a main heading, canonical URL and crawla
   await expect(page).toHaveURL(/\/beneficios$/)
   await page.goBack()
   await expect(page).toHaveURL(/\/plataforma$/)
+})
+
+test('the public plans route follows the commercial publication gate', async ({ page }) => {
+  await page.goto('/planes')
+  if (PUBLIC_PLANS_APPROVED) {
+    await expect(page).toHaveTitle('Nexo Klar · Planes y precios')
+    return
+  }
+  await expect(page).toHaveURL(/\\/contacto$/)
+  await expect(page).toHaveTitle('Nexo Klar · Contacto')
+  await expect(page.locator('[data-plan-code]')).toHaveCount(0)
 })
 
 test('Inicio y Producto muestran la ilustración demostrativa con la identidad oficial', async ({ page }) => {
