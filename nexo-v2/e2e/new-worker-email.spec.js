@@ -74,7 +74,7 @@ for (const width of [1440, 480, 375]) {
     await page.getByRole('button', { name: 'Siguiente', exact: true }).click()
     await expect(email).toBeFocused()
     await expect(page.locator('#worker-email-error')).toHaveCount(1)
-    await expect(page.locator('html')).toEvaluate(element => element.scrollWidth <= window.innerWidth)
+    expect(await page.locator('html').evaluate(element => element.scrollWidth <= window.innerWidth)).toBe(true)
 
     await email.fill('')
     await email.blur()
