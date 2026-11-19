@@ -76,6 +76,12 @@ for (const width of [1440, 480, 375]) {
     await expect(page.locator('#worker-email-error')).toHaveCount(1)
     expect(await page.locator('html').evaluate(element => element.scrollWidth <= window.innerWidth)).toBe(true)
 
+    const atLimit = 'a'.repeat(242) + '@example.com'
+    await email.fill(atLimit)
+    await email.blur()
+    await expect(email).toHaveValue(atLimit)
+    await expect(email).toHaveAttribute('aria-invalid', 'false')
+
     await email.fill('')
     await email.blur()
     await page.getByRole('button', { name: 'Siguiente', exact: true }).click()
