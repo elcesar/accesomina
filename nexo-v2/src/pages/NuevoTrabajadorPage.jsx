@@ -10,7 +10,7 @@ import {
 import { api } from '../services/api.js'
 import { PhoneInput } from '../components/ui/PhoneInput.jsx'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
-import { validateEmail } from '../services/email-validation.js'
+import { EMAIL_ERROR, validateEmail } from '../services/email-validation.js'
 import { BirthDateInput, birthDateError } from '../components/ui/BirthDateInput.jsx'
 import { isValidChilePhone } from '../services/chile-phone.js'
 import { formatChileDate, formatChilePhone } from '../services/chile-format.js'
@@ -93,13 +93,15 @@ function validationError(message, suggestion) {
   return { title: 'Revisa la información', message, suggestion }
 }
 
-function Field({ label, required, hint, error, fieldId, children, full = false }) {
+function Field({ label, required, hint, error, fieldId, children, full = false, controlOwnsFeedback = false }) {
   const errorId = error && fieldId ? `${fieldId}-error` : undefined
   const control = fieldId
     ? cloneElement(children, {
         id: fieldId,
-        'aria-invalid': error ? true : undefined,
-        'aria-describedby': errorId,
+        ...(controlOwnsFeedback ? {} : {
+          'aria-invalid': error ? true : undefined,
+          'aria-describedby': errorId,
+        }),
         ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
     : children
@@ -110,7 +112,7 @@ function Field({ label, required, hint, error, fieldId, children, full = false }
         {label}{required && <span className="nk-person-field-required"> *</span>}
       </label>
       {control}
-      {error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
+      {error && !controlOwnsFeedback && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
       {!error && hint && <p className="nk-field-help">{hint}</p>}
     </div>
   )
@@ -162,8 +164,8 @@ function StepIdentidad({ data, onChange, errors }) {
       <Field label="Teléfono" fieldId="worker-phone" error={errors.tel}>
         <PhoneInput value={data.tel} onChange={value => onChange('tel', value)} />
       </Field>
-      <Field label="Correo electrónico" fieldId="worker-email" error={errors.email}>
-        <EmailInput autoComplete="email" value={data.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
+      <Field label="Correo electrónico" fieldId="worker-email" error={errors.email} controlOwnsFeedback>
+        <EmailInput autoComplete="email" value={data.email} error={errors.email} onChange={value => onChange('email', value)} placeholder="correo@email.com" />
       </Field>
       <Field label="Región">
         <FSelect value={data.region} onChange={updateRegion}>
@@ -407,6 +409,12 @@ export default function NuevoTrabajadorPage() {
       allowNavigation.current = true
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
+      if (cause.code === 'INVALID_WORKER_EMAIL') {
+        setStep(0)
+        setFieldErrors({ email: EMAIL_ERROR })
+        requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById('worker-email')?.focus()))
+        return
+      }
       setError(personError(cause.code, cause.message))
     } finally {
       setLoading(false)
