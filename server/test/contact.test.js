@@ -94,7 +94,7 @@ test('SMTP delivery succeeds only when the commercial recipient is accepted', as
     createTransport: () => ({
       sendMail: async value => {
         message = value;
-        return { accepted: ['VENTAS@NEXOKLAR.EXAMPLE'], responseCode: 250, messageId: '<accepted-message@qa.invalid>' };
+        return { accepted: ['Nexo Klar <VENTAS@NEXOKLAR.EXAMPLE>'], responseCode: 250, messageId: '<accepted-message@qa.invalid>' };
       },
     }),
   });
@@ -122,6 +122,10 @@ test('SMTP delivery succeeds only when the commercial recipient is accepted', as
   const empty = evaluateSmtpDelivery({ accepted: [], responseCode: 250 }, SALES_EMAIL);
   assert.equal(empty.delivered, false);
   assert.equal(empty.outcome, 'SMTP_RECIPIENT_NOT_ACCEPTED');
+
+  const pending = evaluateSmtpDelivery({ accepted: [], pending: [SALES_EMAIL], responseCode: 250 }, SALES_EMAIL);
+  assert.equal(pending.delivered, false);
+  assert.equal(pending.outcome, 'SMTP_RECIPIENT_PENDING');
 
   const failure = await deliverToSales(normalizeDemoRequest(validPayload), {
     smtpConfig: SMTP,
@@ -193,6 +197,8 @@ test('contact endpoint records a sanitized transport failure and never logs erro
   }, async ({ base, writes, logs }) => {
     const response = await postContact(base);
     assert.equal(response.status, 503);
+    assert.ok(!JSON.stringify(response.body).includes(secret));
+    assert.ok(!JSON.stringify(response.body).includes(SALES_EMAIL));
     assert.deepEqual(writes[0].params, [
       DEMO_ID, 'failed', 'SMTP_AUTH_FAILED', 535, null, 'SMTP_AUTH_FAILED',
     ]);
