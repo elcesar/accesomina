@@ -53,3 +53,6 @@ jobs:
           server/test/module-access.test.js
           server/test/files-route-order.test.js
           server/test/data-transfer.test.js
+          server/test/worker-evidence-save.test.js
+          server/test/worker-evidence-required.test.js
+

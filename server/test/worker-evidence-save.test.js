@@ -15,8 +15,9 @@ let db;
 before(async () => {
   db = new PGlite();
   await db.exec(`CREATE TABLE tenant_module_state (tenant_id text,module_key text,data jsonb,version bigint DEFAULT 1,updated_by text,updated_at timestamptz DEFAULT now(),PRIMARY KEY(tenant_id,module_key));
-    CREATE TABLE audit_log (tenant_id text,user_id text,entity_type text,entity_id text,action text,old_value jsonb,new_value jsonb);
-    CREATE TABLE file_objects (id uuid PRIMARY KEY,tenant_id text,entity_type text,storage_key text,malware_status text,deleted_at timestamptz);
+    CREATE TABLE audit_log (id serial PRIMARY KEY,tenant_id text,user_id text,entity_type text,entity_id text,action text,old_value jsonb,new_value jsonb);
+    CREATE TABLE document_verifications (tenant_id text,file_id uuid);
+    CREATE TABLE file_objects (id uuid PRIMARY KEY,tenant_id text,entity_type text,storage_key text,malware_status text,original_name text,deleted_at timestamptz);
     CREATE TABLE tenant_settings (tenant_id text PRIMARY KEY,branding jsonb,modules jsonb,alerts jsonb,catalogs jsonb,updated_by text,updated_at timestamptz DEFAULT now());`);
   mock.method(pool, 'connect', async () => ({ query: (sql, params) => db.query(sql, params), release() {} }));
 });
@@ -49,6 +50,16 @@ async function write(mode, document, { role = 'client_admin', authPatch = {}, sn
     let allowed = false; dataTransferRouter.stack[0].handle(req, res, () => { allowed = true; });
     if (allowed) await route.stack.at(-1).handle(req, res);
   }
+  return res;
+}
+
+
+async function remove(documentId) {
+  const route = stateRouter.stack.find(layer => layer.route?.path === '/workers/:workerId/documents/:documentId' && layer.route.methods.delete).route;
+  const req = { auth: { tenantId: 'qa-tenant', userId: 'qa-admin', role: 'client_admin' }, params: { workerId: worker.id, documentId }, body: {} };
+  const res = { statusCode: 200, status(value) { this.statusCode = value; return this; }, json(value) { this.body = value; return this; } };
+  let allowed = false; route.stack[0].handle(req, res, () => { allowed = true; });
+  if (allowed) await route.stack.at(-1).handle(req, res);
   return res;
 }
 
@@ -116,3 +127,25 @@ test('audit failure rolls back the newly attached document and version', async (
   assert.equal(Number((await stored()).version), 3);
   await db.exec('ALTER TABLE audit_log DROP CONSTRAINT qa_reject_audit');
 });
+
+test('removed evidence keeps an audit trail and can be reattached after its file is restored', async () => {
+  const first = { ...item, id: 'qa-contract-first' };
+  assert.equal((await write('append', first)).statusCode, 201);
+  const deleted = await remove(first.id);
+  assert.equal(deleted.statusCode, 200);
+  assert.deepEqual(deleted.body.deletedFileIds, [FILE]);
+  assert.notEqual((await db.query('SELECT deleted_at FROM file_objects WHERE id=$1', [FILE])).rows[0].deleted_at, null);
+
+  await db.query('UPDATE file_objects SET deleted_at=NULL WHERE id=$1', [FILE]);
+  const reloaded = { ...item, id: 'qa-contract-reloaded' };
+  assert.equal((await write('append', reloaded)).statusCode, 201);
+  assert.deepEqual((await stored()).data[0].workerItems, [oldItem, reloaded]);
+
+  const actions = (await db.query('SELECT action FROM audit_log ORDER BY id')).rows.map(row => row.action);
+  assert.deepEqual(actions, [
+    'worker.document_added',
+    'file.deleted_with_worker_document',
+    'worker.document_removed',
+    'worker.document_added',
+  ]);
+})

@@ -60,3 +60,12 @@ test('history is matched by worker/document identity, not by position or a forge
   const anonymous = { ...contract }; delete anonymous.id;
   assert.deepEqual(changedWorkerDocuments([{ ...worker, workerItems: [anonymous] }], [{ ...worker, workerItems: [anonymous, anonymous] }]), [anonymous]);
 });
+
+test('direct document append rejects an equivalent second evidence', () => {
+  const existing = { ...contract, id: 'qa-existing', fileId: 'qa-file' };
+  const duplicate = { ...contract, id: 'qa-duplicate', fileId: 'qa-file' };
+  assert.throws(
+    () => validateWorkerDocumentAppend({ ...worker, workerItems: [existing] }, duplicate),
+    error => error.code === 'DUPLICATE_WORKER_DOCUMENT'
+  );
+})
