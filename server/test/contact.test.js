@@ -119,6 +119,19 @@ test('SMTP delivery succeeds only when the commercial recipient is accepted', as
     smtpMessageIdHash: sha256('<rejected-message@qa.invalid>'),
   });
 
+  // Contradictory provider results must not report a successful delivery.
+  const contradictoryRejected = evaluateSmtpDelivery({
+    accepted: [SALES_EMAIL], rejected: [SALES_EMAIL], responseCode: 250,
+  }, SALES_EMAIL);
+  assert.equal(contradictoryRejected.delivered, false);
+  assert.equal(contradictoryRejected.outcome, 'SMTP_RECIPIENT_REJECTED');
+
+  const contradictoryPending = evaluateSmtpDelivery({
+    accepted: [SALES_EMAIL], pending: [SALES_EMAIL], responseCode: 250,
+  }, SALES_EMAIL);
+  assert.equal(contradictoryPending.delivered, false);
+  assert.equal(contradictoryPending.outcome, 'SMTP_RECIPIENT_PENDING');
+
   const empty = evaluateSmtpDelivery({ accepted: [], responseCode: 250 }, SALES_EMAIL);
   assert.equal(empty.delivered, false);
   assert.equal(empty.outcome, 'SMTP_RECIPIENT_NOT_ACCEPTED');
