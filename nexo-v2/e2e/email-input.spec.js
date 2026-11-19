@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-for (const width of [1440, 375]) {
+for (const width of [1440, 480, 375]) {
   test(`EmailInput opcional, obligatorio y descripción accesible a ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/e2e/fixtures/email-input.html')
