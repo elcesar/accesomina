@@ -91,9 +91,10 @@ export function evaluateSmtpDelivery(result, salesContactEmail) {
     smtpMessageIdHash: messageIdHash(result?.messageId),
   };
 
-  if (accepted.has(recipient)) return { delivered: true, outcome: 'SMTP_ACCEPTED', ...diagnostics };
+  // Fail closed if the SMTP provider reports contradictory recipient states.
   if (rejected.has(recipient)) return { delivered: false, outcome: 'SMTP_RECIPIENT_REJECTED', ...diagnostics };
   if (pending.has(recipient)) return { delivered: false, outcome: 'SMTP_RECIPIENT_PENDING', ...diagnostics };
+  if (accepted.has(recipient)) return { delivered: true, outcome: 'SMTP_ACCEPTED', ...diagnostics };
   return { delivered: false, outcome: 'SMTP_RECIPIENT_NOT_ACCEPTED', ...diagnostics };
 }
 
