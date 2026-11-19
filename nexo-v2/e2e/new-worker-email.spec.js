@@ -20,6 +20,10 @@ async function mockNewWorker(page, { rejectSave = false } = {}) {
     if (path === '/api/auth/me') return json({ user: { id: 'qa-admin', role: 'client_admin', nombre: 'Administrador QA' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' } })
     if (path === '/api/settings') return json({ settings: {} })
     if (path === '/api/state') return json({ state, moduleVersions: { trabajadores: 1, asignaciones: 1 } })
+    if (path.startsWith('/api/state/records/trabajadores/') && request.method() === 'GET') {
+      const workerId = decodeURIComponent(path.split('/').pop())
+      return json({ record: state.trabajadores.find(worker => worker.id === workerId) || null, revision: 1 })
+    }
     if (path === '/api/state/modules' && request.method() === 'PUT') {
       const body = request.postDataJSON()
       writes.push(body)
