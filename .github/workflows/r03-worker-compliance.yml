@@ -1,0 +1,46 @@
+name: R03 worker compliance QA
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/services/worker-document-status.js'
+      - 'nexo-v2/src/pages/AuditoriaPage.jsx'
+      - 'nexo-v2/src/pages/ClientesPage.jsx'
+      - 'nexo-v2/src/pages/FichaTrabajadorPage.jsx'
+      - 'nexo-v2/src/pages/GestionPersonalProyectoPage.jsx'
+      - 'nexo-v2/src/pages/TrabajadoresPage.jsx'
+      - 'nexo-v2/e2e/worker-compliance-parity.spec.js'
+      - 'server/test/worker-document-status.test.js'
+      - '.github/workflows/r03-worker-compliance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r03-worker-compliance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - name: Install server dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Verify canonical compliance policy
+        run: node --test server/test/worker-document-status.test.js
+      - name: Install portal dependencies
+        run: pnpm --dir nexo-v2 install --frozen-lockfile --ignore-scripts
+      - run: pnpm --dir nexo-v2 exec playwright install --with-deps chromium
+      - name: Build the portal
+        run: pnpm --dir nexo-v2 run build
+      - name: Verify cross-surface compliance parity
+        run: pnpm --dir nexo-v2 exec playwright test e2e/worker-compliance-parity.spec.js --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r03-worker-compliance-report
+          path: nexo-v2/playwright-report
+          retention-days: 7
