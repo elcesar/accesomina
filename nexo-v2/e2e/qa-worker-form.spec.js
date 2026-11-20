@@ -3,7 +3,8 @@ const state={trabajadores:[{id:'qa-person',nombre:'José Peña QA',rut:'11.111.1
 test.beforeEach(async({page})=>{
  await page.route('**/api/**',route=>{
  const path=new URL(route.request().url()).pathname
- return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:{}})
+ const record=state.trabajadores.find(worker=>worker.id===path.split('/').at(-1))
+ return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:record?{record,revision:'qa-revision'}:{}})
  })
 })
 test('underage validation has one associated error, and leaving through global actions is guarded',async({page})=>{
