@@ -4,6 +4,7 @@ import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED } from '../src/config/public-pages.
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname
+    if (path === '/api/auth/me') return route.fulfill({ status: 401, json: { error: 'AUTH_REQUIRED' } })
     if (path === '/api/auth/register') return route.fulfill({ status: 400, json: { error: 'INVITE_CODE_INVALID' } })
     return route.fulfill({ json: path === '/api/auth/config' ? { registrationEnabled: true } : {} })
   })
@@ -28,6 +29,21 @@ test('public routes have unique titles, a main heading, canonical URL and crawla
   await expect(page).toHaveURL(/\/beneficios$/)
   await page.goBack()
   await expect(page).toHaveURL(/\/plataforma$/)
+})
+
+test('unknown public route has isolated 404 metadata and is not indexable', async ({ page }) => {
+  await page.goto('/pagina-que-no-existe-qa')
+  await expect(page).toHaveTitle('Nexo Klar · Página no encontrada')
+  await expect(page.getByRole('heading', { name: 'Página no encontrada', exact: true })).toBeVisible()
+  await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', 'https://nexoklar.com/pagina-que-no-existe-qa')
+  await expect(page.locator('meta[name=robots]')).toHaveAttribute('content', 'noindex, follow')
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'https://nexoklar.com/pagina-que-no-existe-qa')
+  await expect(page.getByRole('link', { name: 'Ir al inicio', exact: true })).toHaveAttribute('href', '/')
+
+  await page.goto('/contacto')
+  await expect(page).toHaveTitle('Nexo Klar · Contacto')
+  await expect(page.locator('meta[name=robots]')).toHaveCount(0)
+  await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href', 'https://nexoklar.com/contacto')
 })
 
 test('the public plans route follows the commercial publication gate', async ({ page }) => {
