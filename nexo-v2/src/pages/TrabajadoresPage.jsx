@@ -1,6 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { calendarDaysUntil } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   IconChevronDown,
@@ -148,6 +148,8 @@ export default function TrabajadoresPage() {
   const navigate = useNavigate()
   const [state, setState] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const loadRequestRef = useRef(0)
   const [tab, setTab] = useState('planta')
   const [search, setSearch] = useState('')
   const [specialty, setSpecialty] = useState('')
@@ -160,21 +162,44 @@ export default function TrabajadoresPage() {
   const [sortCol, setSortCol] = useState('nombre')
   const [sortAsc, setSortAsc] = useState(true)
 
-  const loadState = () => {
+  const applyLoadedState = useCallback(result => {
+    const nextState = result?.state || result
+    if (!nextState || typeof nextState !== 'object') return false
+    setState(nextState)
+    setLoadError(null)
+    return true
+  }, [])
+
+  const loadState = useCallback(async () => {
+    const requestId = ++loadRequestRef.current
     setLoading(true)
-    api.get('/state')
-      .then(result => {
-        setState(result?.state || result)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }
+    try {
+      const result = await api.get('/state')
+      if (requestId !== loadRequestRef.current) return
+      applyLoadedState(result)
+    } catch (error) {
+      if (requestId !== loadRequestRef.current) return
+      setLoadError(error)
+    } finally {
+      if (requestId === loadRequestRef.current) setLoading(false)
+    }
+  }, [applyLoadedState])
 
   useEffect(() => {
     loadState()
     window.addEventListener('focus', loadState)
     return () => window.removeEventListener('focus', loadState)
-  }, [])
+  }, [loadState])
+
+  useEffect(() => {
+    const handleStateRetry = event => {
+      // A retry launched by the shared alert is newer than any background refresh.
+      loadRequestRef.current += 1
+      if (applyLoadedState(event.detail?.result)) setLoading(false)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', handleStateRetry)
+    return () => window.removeEventListener('nexo:state-retry-succeeded', handleStateRetry)
+  }, [applyLoadedState])
 
   const personas = state?.trabajadores || []
   const clientes = state?.minas || []
@@ -258,6 +283,16 @@ export default function TrabajadoresPage() {
 
   const secondaryFilters = [projectId, contractId, qualification].filter(Boolean).length
   const activeFilters = [search, specialty, availability, clientId, projectId, contractId, qualification].filter(Boolean).length
+  const hasSnapshot = state !== null
+  const refreshing = loading && hasSnapshot
+  const exportDisabled = loading || !hasSnapshot || filtered.length === 0
+  const exportDisabledReason = loading
+    ? 'Espera mientras se actualiza la lista de personas.'
+    : !hasSnapshot
+      ? 'La lista de personas aún no está disponible. Reintenta la carga antes de exportar.'
+      : personas.length === 0
+        ? 'Aún no hay personas registradas para exportar.'
+        : 'No hay personas en la vista actual para exportar. Ajusta la búsqueda o los filtros.'
 
   const toggleSort = col => {
     if (sortCol === col) setSortAsc(value => !value)
@@ -307,7 +342,7 @@ export default function TrabajadoresPage() {
       : <IconChevronDown className="nk-people-sort-active" size={11} />
   }
 
-  if (loading) {
+  if (loading && !state) {
     return (
       <div className="nk-people-loading">
         <div className="nk-people-loading-content">
@@ -315,6 +350,25 @@ export default function TrabajadoresPage() {
           <span>Cargando personas…</span>
         </div>
       </div>
+    )
+  }
+
+  if (!state && loadError) {
+    const status = loadError.status === 500 ? 500 : 503
+    const unavailable = status === 500 ? 'No pudimos cargar Personas.' : 'El servicio no está disponible temporalmente.'
+    return (
+      <section className="nk-module-page">
+        <header className="nk-module-header">
+          <div>
+            <h1>Personas</h1>
+            <p>No se mostró un estado vacío porque no hay una lista válida que conservar.</p>
+          </div>
+        </header>
+        <p role="alert">{unavailable} Reintenta cuando el servicio esté disponible.</p>
+        <button className="nk-button nk-button-primary" type="button" onClick={loadState} disabled={loading}>
+          {loading ? 'Reintentando…' : 'Volver a intentar'}
+        </button>
+      </section>
     )
   }
 
@@ -330,7 +384,7 @@ export default function TrabajadoresPage() {
             </p>
           </div>
           <div className="nk-actions">
-            <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
+            <ActionButton disabledReason={exportDisabledReason} className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={exportDisabled}>
               <IconDownload size={15} strokeWidth={1.7} /> Exportar
             </ActionButton>
           </div>
@@ -345,6 +399,8 @@ export default function TrabajadoresPage() {
           ))}
         </div>
       </section>
+
+      {refreshing && <p className="nk-people-refreshing" role="status">Actualizando la lista de personas…</p>}
 
       <section className="nk-people-filters" aria-label="Filtros de personas">
         <div className="nk-search nk-people-search">

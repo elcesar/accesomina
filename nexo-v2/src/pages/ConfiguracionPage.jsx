@@ -6,6 +6,7 @@ import { applyTenantBranding } from '../services/theme.js'
 import { setOperationalTimeZone } from '../services/calendar-date.js'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
+import { roleCanReadModule, userCanReadModule } from '../../../shared/role-access.js'
 import '../styles/configuracion.css'
 
 const MODULE_OPTIONS = [
@@ -152,9 +153,9 @@ export default function ConfiguracionPage() {
   const selectableUsers = users.filter(user => user.active && !['client_admin', 'domian_admin'].includes(user.role))
   const selectedUser = selectableUsers.find(user => user.id === selectedUserId)
   const userModules = selectedUser?.permissions?.modules || {}
-  const userCanSee = key => settings.modules?.[key] !== false && userModules[key] !== false
+  const userCanSee = key => settings.modules?.[key] !== false && userCanReadModule({ role: selectedUser?.role, modules: userModules }, key)
   const toggleUserModule = key => {
-    if (!selectedUser || settings.modules?.[key] === false) return
+    if (!selectedUser || settings.modules?.[key] === false || !roleCanReadModule(selectedUser.role, key)) return
     setUsers(current => current.map(user => user.id === selectedUser.id ? {
       ...user,
       permissions: { ...(user.permissions || {}), modules: { ...(user.permissions?.modules || {}), [key]: !userCanSee(key) } },
@@ -225,8 +226,9 @@ export default function ConfiguracionPage() {
         {selectedUser ? <div className="nk-config-modules nk-config-user-module-list">
           {MODULE_OPTIONS.map(([key, label]) => {
             const enabledForCompany = settings.modules?.[key] !== false
+            const enabledForRole = roleCanReadModule(selectedUser.role, key)
             const enabledForUser = userCanSee(key)
-            return <label className={`nk-config-module ${enabledForCompany ? '' : 'disabled'}`} key={key}><input type="checkbox" checked={enabledForUser} disabled={!enabledForCompany} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany && <small>No está habilitado para la empresa</small>}</label>
+            return <label className={`nk-config-module ${enabledForCompany && enabledForRole ? '' : 'disabled'}`} key={key}><input type="checkbox" checked={enabledForUser} disabled={!enabledForCompany || !enabledForRole} onChange={() => toggleUserModule(key)} /><span className="nk-config-module-check">{enabledForUser && <IconCheck size={14}/>}</span><span>{label}</span>{!enabledForCompany ? <small>No está habilitado para la empresa</small> : !enabledForRole && <small>No corresponde al rol de esta cuenta</small>}</label>
           })}
         </div> : <p className="nk-config-note">Los administradores conservan siempre acceso completo. Crea primero una cuenta no administradora desde Usuarios y permisos.</p>}
       </section>
