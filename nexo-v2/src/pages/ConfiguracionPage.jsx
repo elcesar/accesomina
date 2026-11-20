@@ -37,6 +37,7 @@ export default function ConfiguracionPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
   const [smtpValidationRequested, setSmtpValidationRequested] = useState(false)
   const [settings, setSettings] = useState({
     branding: { displayName: '', theme: 'light', logoUrl: '' },
@@ -53,10 +54,19 @@ export default function ConfiguracionPage() {
   })
 
   const specialtiesText = useMemo(() => (settings.catalogs?.specialties || []).join('\n'), [settings.catalogs?.specialties])
+  const showMessage = (type, text) => { setMessageType(type); setMessage(text) }
+  const clearMessage = () => { setMessageType(''); setMessage('') }
+  const isBusy = loading || Boolean(saving)
+  const actionDisabledReason = operation => {
+    if (loading) return 'La configuración se está cargando o actualizando.'
+    if (saving === operation) return 'Esta operación se está guardando. Espera antes de continuar.'
+    if (saving) return 'Hay otra operación de guardado en curso. Espera antes de continuar.'
+    return ''
+  }
 
   const load = async () => {
     setLoading(true)
-    setMessage('')
+    clearMessage()
     try {
       const data = await api.get('/settings')
       const current = data?.settings || {}
@@ -87,7 +97,7 @@ export default function ConfiguracionPage() {
       })
     } catch (error) {
       applyTenantBranding({ theme: 'light' })
-      setMessage(error.message || 'No fue posible cargar la configuración.')
+      showMessage('error', error.message || 'No fue posible cargar la configuración.')
     } finally {
       setLoading(false)
     }
@@ -97,13 +107,13 @@ export default function ConfiguracionPage() {
 
   const saveSettings = async () => {
     if (Number(settings.alerts.criticalDays) > Number(settings.alerts.warningDays)) {
-      setMessage('La alerta crítica no puede tener más días que la alerta preventiva.')
+      showMessage('error', 'La alerta crítica no puede tener más días que la alerta preventiva.')
       return
     }
     setSaving('settings')
-    setMessage('')
+    clearMessage()
     try {
-      const result = await api.put('/settings', settings)
+      const result = await api.put('/settings', settings, { feedback: false })
       const nextBranding = { ...(result?.branding || settings.branding), theme: normalizeTheme(result?.branding?.theme || settings.branding.theme) }
       const nextModules = result?.modules || settings.modules
       setSettings(current => ({ ...current, ...result, modules: nextModules, branding: nextBranding }))
@@ -111,9 +121,9 @@ export default function ConfiguracionPage() {
       applyTenantBranding(nextBranding)
       window.dispatchEvent(new CustomEvent('nexo:branding-changed', { detail: nextBranding }))
       window.dispatchEvent(new CustomEvent('nexo:modules-changed', { detail: { modules: nextModules } }))
-      setMessage('Configuración guardada correctamente.')
+      showMessage('success', 'Configuración guardada correctamente.')
     } catch (error) {
-      setMessage(error.message || 'No fue posible guardar la configuración.')
+      showMessage('error', error.message || 'No fue posible guardar la configuración.')
     } finally {
       setSaving('')
     }
@@ -123,18 +133,18 @@ export default function ConfiguracionPage() {
     const current = integrations[provider]
     if (provider === 'smtp' && validateEmail(current.publicConfig.from || '', { required: false })) {
       setSmtpValidationRequested(true)
-      setMessage('Revisa el correo remitente antes de guardar la integración.')
+      showMessage('error', 'Revisa el correo remitente antes de guardar la integración.')
       return
     }
     setSaving(provider)
-    setMessage('')
+    clearMessage()
     try {
       const payload = { enabled: current.enabled, publicConfig: current.publicConfig, secret: current.secret }
-      const result = await api.put(`/settings/integrations/${provider}`, payload)
+      const result = await api.put(`/settings/integrations/${provider}`, payload, { feedback: false })
       setIntegrations(all => ({ ...all, [provider]: { ...all[provider], ...result, publicConfig: result.public_config || result.publicConfig || all[provider].publicConfig, secret: {} } }))
-      setMessage(`Integración ${provider === 'smtp' ? 'de correo' : provider === 'whatsapp' ? 'WhatsApp' : 'de firma'} guardada.`)
+      showMessage('success', `Integración ${provider === 'smtp' ? 'de correo' : provider === 'whatsapp' ? 'WhatsApp' : 'de firma'} guardada.`)
     } catch (error) {
-      setMessage(error.message || 'No fue posible guardar la integración.')
+      showMessage('error', error.message || 'No fue posible guardar la integración.')
     } finally {
       setSaving('')
     }
@@ -164,14 +174,14 @@ export default function ConfiguracionPage() {
   const saveUserViews = async () => {
     if (!selectedUser) return
     setSaving('user-views')
-    setMessage('')
+    clearMessage()
     try {
       const current = users.find(user => user.id === selectedUser.id) || selectedUser
-      const updated = await api.patch(`/users/${current.id}`, { permissions: current.permissions || { modules: {} } })
+      const updated = await api.patch(`/users/${current.id}`, { permissions: current.permissions || { modules: {} } }, { feedback: false })
       setUsers(all => all.map(user => user.id === updated.id ? { ...user, ...updated } : user))
-      setMessage(`Vistas guardadas para ${updated.full_name}. Tendrá efecto en su próximo acceso.`)
+      showMessage('success', `Vistas guardadas para ${updated.full_name}. Tendrá efecto en su próximo acceso.`)
     } catch (error) {
-      setMessage(error.message || 'No fue posible guardar las vistas del usuario.')
+      showMessage('error', error.message || 'No fue posible guardar las vistas del usuario.')
     } finally {
       setSaving('')
     }
@@ -185,12 +195,12 @@ export default function ConfiguracionPage() {
           <p>Parámetros exclusivos de este sitio privado</p>
         </div>
         <div className="nk-config-header-actions">
-          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={load} disabled={loading}><IconRefresh size={16}/> Actualizar</ActionButton>
-          <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={saveSettings} disabled={loading || saving === 'settings'}><IconDeviceFloppy size={16}/> {saving === 'settings' ? 'Guardando…' : 'Guardar configuración'}</ActionButton>
+          <ActionButton disabledReason={actionDisabledReason('refresh')} className="nk-button nk-button-secondary" onClick={load} disabled={isBusy}><IconRefresh size={16}/> Actualizar</ActionButton>
+          <ActionButton disabledReason={actionDisabledReason('settings')} className="nk-button nk-button-primary" onClick={saveSettings} disabled={isBusy}><IconDeviceFloppy size={16}/> {saving === 'settings' ? 'Guardando…' : 'Guardar configuración'}</ActionButton>
         </div>
       </header>
 
-      {message && <p className="nk-form-message">{message}</p>}
+      {message && <p className={`nk-form-message${messageType === 'error' ? ' nk-form-message-error' : ''}`} role={messageType === 'error' ? 'alert' : 'status'}>{message}</p>}
 
       <div className="nk-config-grid">
         <section className="nk-module-card nk-config-card">
@@ -220,8 +230,8 @@ export default function ConfiguracionPage() {
       <section className="nk-module-card nk-config-card nk-config-user-views">
         <header><div><h2><IconUsers size={18}/> Vistas por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora de esta empresa.</p></div></header>
         <div className="nk-config-user-access">
-          <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={loading || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
-          {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={saving === 'user-views'}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</ActionButton></div>}
+          <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={isBusy || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
+          {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><ActionButton disabledReason={actionDisabledReason('user-views')} className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={isBusy}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</ActionButton></div>}
         </div>
         {selectedUser ? <div className="nk-config-modules nk-config-user-module-list">
           {MODULE_OPTIONS.map(([key, label]) => {
@@ -243,7 +253,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field"><span>Usuario SMTP</span><input className="nk-input" value={integrations.smtp.publicConfig.user || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'user', e.target.value)} /></label>
             <label className="nk-config-field"><span>Clave SMTP nueva</span><input className="nk-input" type="password" value={integrations.smtp.secret.password || ''} onChange={e => updateIntegration('smtp', 'secret', 'password', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.smtp.enabled} onChange={e => setIntegrations(v => ({ ...v, smtp: { ...v.smtp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'smtp'} onClick={() => saveIntegration('smtp')}>{saving === 'smtp' ? 'Guardando…' : 'Guardar correo'}</ActionButton>
+            <ActionButton disabledReason={actionDisabledReason('smtp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('smtp')}>{saving === 'smtp' ? 'Guardando…' : 'Guardar correo'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
@@ -251,7 +261,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field"><span>Phone Number ID</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
             <label className="nk-config-field"><span>Token WhatsApp nuevo</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.whatsapp.enabled} onChange={e => setIntegrations(v => ({ ...v, whatsapp: { ...v.whatsapp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'whatsapp'} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
+            <ActionButton disabledReason={actionDisabledReason('whatsapp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
@@ -259,7 +269,7 @@ export default function ConfiguracionPage() {
             <label className="nk-config-field"><span>URL proveedor firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
             <label className="nk-config-field"><span>Token firma nuevo</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.signature.enabled} onChange={e => setIntegrations(v => ({ ...v, signature: { ...v.signature, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" disabled={saving === 'signature'} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
+            <ActionButton disabledReason={actionDisabledReason('signature')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
           </article>
         </div>
       </section>

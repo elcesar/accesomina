@@ -1,0 +1,38 @@
+name: Settings feedback QA
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/pages/ConfiguracionPage.jsx'
+      - 'nexo-v2/src/components/ui/OperationFeedback.jsx'
+      - 'nexo-v2/src/services/api.js'
+      - 'nexo-v2/e2e/settings-feedback.spec.js'
+      - '.github/workflows/settings-feedback-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  settings-feedback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - run: pnpm exec playwright test e2e/settings-feedback.spec.js --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: settings-feedback-report
+          path: nexo-v2/playwright-report
+          retention-days: 7
