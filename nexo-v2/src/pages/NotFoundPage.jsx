@@ -28,19 +28,15 @@ export default function NotFoundPage() {
     const restores = []
 
     document.title = title
-    for (const [selector, value] of [
-      ['meta[name="description"]', description],
-      ['meta[property="og:title"]', title],
-      ['meta[property="og:description"]', description],
-      ['meta[property="og:url"]', canonical],
-      ['link[rel="canonical"]', canonical],
+    for (const [selector, attribute, value] of [
+      ['meta[name="description"]', 'content', description],
+      ['meta[property="og:title"]', 'content', title],
+      ['meta[property="og:description"]', 'content', description],
+      ['meta[property="og:url"]', 'content', canonical],
+      ['link[rel="canonical"]', 'href', canonical],
     ]) {
       const element = document.querySelector(selector)
-      if (element) restores.push(updateAttribute(element, 'content', value))
-      if (selector === 'link[rel="canonical"]' && element) {
-        restores.pop()
-        restores.push(updateAttribute(element, 'href', value))
-      }
+      if (element) restores.push(updateAttribute(element, attribute, value))
     }
 
     let robots = document.querySelector('meta[name="robots"]')
