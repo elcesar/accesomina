@@ -204,9 +204,13 @@ export default function TurnosPage() {
     load()
     const onRetry = event => {
       const response = event.detail?.result
-      if (!response) return
-      setState(response.state || response)
-      setModuleVersions(response.moduleVersions || {})
+      const recoveredState = response?.state || response
+      if (!recoveredState || !Array.isArray(recoveredState.turnos)) return
+      // A global retry supersedes any slower page-level read.
+      readVersionRef.current += 1
+      setState(recoveredState)
+      setModuleVersions(response?.moduleVersions || {})
+      setLoading(false)
       setLoadError('')
       setConflictBlocked(false)
       setSaveError(current => current === CONFLICT_BLOCKED_REASON
