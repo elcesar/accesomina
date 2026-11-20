@@ -49,6 +49,7 @@ async function mockDashboardApi(page, { failureStatus, failureWaitFor, retryStat
       phase = 'retry'
       refreshRequests += 1
       if (failureWaitFor) await failureWaitFor
+      if (failureStatus === 'network') return route.abort('failed')
       return json({ error: 'QA_TEMPORARY_FAILURE' }, failureStatus)
     }
 
@@ -132,4 +133,34 @@ test('Panel de control: 200 → 503 → 503 conserva datos y permite otro intent
   await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
   await expect(metric(page, 'Personas registradas')).toContainText('2')
   await expect(page).toHaveURL(/\/app$/)
+})
+
+
+test('Panel de control: 200 → error de red → 200 conserva datos y recupera sin duplicar avisos', async ({ page }) => {
+  const api = await mockDashboardApi(page, { failureStatus: 'network' })
+
+  await page.goto('/app')
+  await expect(page.getByRole('heading', { name: 'Estado de la operación' })).toBeVisible()
+  await expect(metric(page, 'Personas registradas')).toContainText('2')
+  const updatedBefore = await page.locator('.nk-dashboard-updated').textContent()
+
+  const update = page.getByRole('button', { name: 'Actualizar', exact: true })
+  api.armRefreshFailure()
+  await update.click()
+  await expect.poll(() => api.refreshRequests()).toBe(1)
+
+  const globalAlert = page.locator('.nk-operation-feedback-error')
+  await expect(globalAlert).toHaveCount(1)
+  await expect(globalAlert).toContainText('Error 503')
+  await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
+  await expect(metric(page, 'Personas registradas')).toContainText('2')
+  await expect(page.locator('.nk-dashboard-updated')).toHaveText(updatedBefore)
+
+  await page.getByRole('button', { name: 'Volver a intentar', exact: true }).click()
+  await expect.poll(() => api.retryRequests()).toBe(1)
+  await expect(globalAlert).toHaveCount(0)
+  await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
+  await expect(metric(page, 'Personas registradas')).toContainText('3')
+  await expect(update).toBeEnabled()
+  await expect(page).toHaveURL(/\\/app$/)
 })
