@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { roleCanWriteStateKey } from '../shared/role-access.js';
 import { OPPORTUNITY_COLLECTIONS, opportunityIdentity, opportunityIsClosed, opportunityRows, opportunityFields } from '../shared/opportunity-domain.js';
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 import { operationalDay } from '../shared/operational-date.js';
@@ -219,12 +220,11 @@ export function summarizeChanges(before, after, path = '', output = []) {
   return output;
 }
 
-const roleScopes={
-  rrhh:new Set(['trabajadores','asignaciones','firmas','callouts','turnos','credenciales','hotelAsig','waGroups','contractTemplates','eppDeliveries','eppMeasurements']),
-  prevencion:new Set(['trabajadores','incidentes','protocolosSalud','permisosTrabajo','vehiculos','turnos','eppCatalog','eppDeliveries','eppMeasurements']),
-  acreditacion:new Set(['trabajadores','empresaDocs','acreditacionesMandante','permisosTrabajo','credenciales','firmas','eppDeliveries','eppMeasurements'])
-};
-export function enforceStateScope(role,before,after){const allowed=roleScopes[role];if(!allowed)return;const changed=new Set([...Object.keys(before||{}),...Object.keys(after||{})].filter(k=>JSON.stringify(before?.[k])!==JSON.stringify(after?.[k])));const forbidden=[...changed].filter(k=>!allowed.has(k));if(forbidden.length)throw Object.assign(new Error(`Role ${role} cannot modify: ${forbidden.join(', ')}`),{status:403,code:'FIELD_PERMISSION_DENIED'});}
+export function enforceStateScope(role,before,after){
+  const changed=new Set([...Object.keys(before||{}),...Object.keys(after||{})].filter(key=>JSON.stringify(before?.[key])!==JSON.stringify(after?.[key])));
+  const forbidden=[...changed].filter(key=>!roleCanWriteStateKey(role,key));
+  if(forbidden.length)throw Object.assign(new Error(`Role ${role} cannot modify: ${forbidden.join(', ')}`),{status:403,code:'FIELD_PERMISSION_DENIED'});
+}
 
 function duplicate(values) { const seen = new Set(); return values.find(v => v && (seen.has(v) || !seen.add(v))); }
 const normalizedText = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
