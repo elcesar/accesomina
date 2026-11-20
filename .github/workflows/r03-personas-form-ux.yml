@@ -28,7 +28,10 @@ jobs:
         with:
           node-version: 22
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
-      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install server dependencies required by the portal bundle
+        run: pnpm --dir .. install --frozen-lockfile --ignore-scripts
+      - name: Install portal dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm run build
       - name: RUT, borrador de oportunidad y correo alineado
