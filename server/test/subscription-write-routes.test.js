@@ -128,10 +128,16 @@ test('CSV append and backup restore cannot exceed capacity or change version, se
   const accepted = await snapshot(auth);
   assert.equal(accepted.data.length, 15);
   const overflow = `nombre,rut\nPersona excedida QA,${rut(40_000_001)}\n`;
-  await assert.rejects(() => invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'trabajadores' }, file: { buffer: Buffer.from(overflow) } }), error => error.code === 'SUBSCRIPTION_WORKER_LIMIT');
+  const rejectedCsv = await invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'trabajadores' }, file: { buffer: Buffer.from(overflow) } });
+  assert.equal(rejectedCsv.statusCode, 409);
+  assert.equal(rejectedCsv.body.error, 'SUBSCRIPTION_WORKER_LIMIT');
+  assert.equal(rejectedCsv.body.persisted, false);
   assert.deepEqual(await snapshot(auth), accepted);
   const backup = { format: BACKUP_FORMAT, version: 2, modules: { trabajadores: workers(16) }, settings: { branding: { displayName: 'No debe persistir' } } };
-  await assert.rejects(() => invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'backup' }, file: { buffer: Buffer.from(JSON.stringify(backup)) } }), error => error.code === 'SUBSCRIPTION_WORKER_LIMIT');
+  const rejectedBackup = await invoke(dataTransferRouter, '/import/:type', 'post', { auth, params: { type: 'backup' }, file: { buffer: Buffer.from(JSON.stringify(backup)) } });
+  assert.equal(rejectedBackup.statusCode, 409);
+  assert.equal(rejectedBackup.body.error, 'SUBSCRIPTION_WORKER_LIMIT');
+  assert.equal(rejectedBackup.body.persisted, false);
   assert.deepEqual(await snapshot(auth), accepted);
 });
 

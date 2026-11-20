@@ -16,7 +16,7 @@ async function mockPortal(page, { suspended = true, role = 'client_admin', profi
     if (path === '/api/subscriptions/admin/catalog') return json({ plans: [], packages: [] })
     if (path === '/api/subscriptions/admin/requests') return json({ requests: [], commercialRequests: [] })
     if (path === '/api/data-transfer/export') return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'content-disposition': 'attachment; filename="nexo-qa.json"' }, body: '{"qa":true}' })
-    if (path === '/api/data-transfer/import/trabajadores') return json({ error: 'SUBSCRIPTION_WORKER_LIMIT', used: 8, limit: 15, available: 7, requested: 28 }, 409)
+    if (path === '/api/data-transfer/import/trabajadores') return json({ error: 'SUBSCRIPTION_WORKER_LIMIT', persisted: false, used: 8, limit: 15, available: 7, requested: 28 }, 409)
     if (path === '/api/data-transfer/import/oportunidades') return json({ imported: 1 })
     return json({})
   })
@@ -76,7 +76,7 @@ test('la licencia independiente conserva su importación sin abrir las del plan 
   await page.getByRole('combobox', { name: 'Tipo de archivo', exact: true }).selectOption('oportunidades')
   await page.locator('input[type=file]').setInputFiles({ name: 'oportunidad-qa.csv', mimeType: 'text/csv', buffer: Buffer.from('tipo,empresa,etapa\nprospecto,Empresa ficticia QA,nueva') })
   await page.getByRole('button', { name: 'Validar e importar', exact: true }).click()
-  await expect(page.getByText('Importación completada: 1 registros procesados.')).toBeVisible()
+  await expect(page.getByText('Importación completada: se agregó 1 registro.')).toBeVisible()
   expect(calls.filter(call => call.method === 'POST' && call.path.includes('/import/'))).toEqual([{ path: '/api/data-transfer/import/oportunidades', method: 'POST' }])
 })
 test('consulta no obtiene transferencia reservada a administradores', async ({ page }) => {
