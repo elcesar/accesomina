@@ -124,8 +124,19 @@ test('explica el prerrequisito real de Programar turno, sin el texto genérico',
   expect(fixture.writes).toHaveLength(0)
 })
 
-test('explica la falta de orden y el permiso del rol de consulta', async ({ page }) => {
-  const fixture = await mockTurnos(page, { role: 'consulta', people: [person], orders: [] })
+test('explica cuando falta una orden de servicio', async ({ page }) => {
+  const fixture = await mockTurnos(page, { people: [person], orders: [] })
+  await page.goto('/app/turnos')
+
+  const program = page.getByRole('button', { name: 'Programar turno', exact: true })
+  await expect(program).toBeDisabled()
+  await expect(program).toHaveAccessibleDescription(/Necesitas una orden de servicio para programar un turno/)
+  await expect(program).not.toHaveAccessibleDescription(/Acción no disponible/)
+  expect(fixture.writes).toHaveLength(0)
+})
+
+test('el rol de consulta no evade el permiso al forzar el botón', async ({ page }) => {
+  const fixture = await mockTurnos(page, { role: 'consulta' })
   await page.goto('/app/turnos')
 
   const program = page.getByRole('button', { name: 'Programar turno', exact: true })
