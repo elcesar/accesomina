@@ -1,6 +1,15 @@
 import { isValidRut, isValidChilePhone, normalizeRut } from './security.js';
-import { isValidEmail } from './validation.js';
+import { isValidEmail, workerBirthDateIssue } from './validation.js';
 import { optionalHistoricalRut } from '../shared/rut.js';
+import {
+  canonicalWorkerAfp,
+  canonicalWorkerCommune,
+  canonicalWorkerHealth,
+  canonicalWorkerRegion,
+  canonicalWorkerSpecialty,
+  workerImportType,
+  workerImportValue,
+} from '../shared/worker-import-policy.js';
 import { opportunityIdentity, opportunityRows } from '../shared/opportunity-domain.js';
 
 const REFERENCE_COLUMNS = {
@@ -126,6 +135,81 @@ export function csvParseIssues(errors = [], collector = null) {
   return sink.issues;
 }
 
+function workerCsvIssues(rows, collector) {
+  const sink = collector || createImportDiagnostics();
+  for (let index = 0; index < rows.length; index += 1) {
+    if (sink.isFull) {
+      sink.markTruncated();
+      break;
+    }
+    const row = rows[index];
+    const line = csvLine(index, sink);
+    const type = workerImportValue(row, 'tipo');
+    if (text(type.value) && !workerImportType(type.value)) {
+      sink.add(importIssue({
+        row: line,
+        column: type.column,
+        value: type.value,
+        code: 'INVALID_WORKER_TYPE',
+        message: 'El tipo de persona no está reconocido.',
+        suggestion: 'Usa permanente, esporadico o disponible. También se aceptan los alias históricos fijo, planta, temporal, proyecto, por proyecto y spot.',
+      }));
+    }
+
+    const birthDate = workerImportValue(row, 'nacimiento', ['fecha_nacimiento', 'fecha_de_nacimiento']);
+    const birthDateProblem = workerBirthDateIssue(birthDate.value);
+    if (birthDateProblem) {
+      sink.add(importIssue({
+        row: line,
+        column: birthDate.column,
+        value: birthDate.value,
+        code: birthDateProblem.code,
+        message: birthDateProblem.message,
+        suggestion: birthDateProblem.suggestion,
+      }));
+    }
+
+    const catalogChecks = [
+      [workerImportValue(row, 'especialidad'), canonicalWorkerSpecialty, 'INVALID_WORKER_SPECIALTY', 'La especialidad no coincide con el catálogo de Personas.', 'Usa una especialidad de la guía de la plantilla o deja el campo vacío si se trata de un archivo histórico.'],
+      [workerImportValue(row, 'afp'), canonicalWorkerAfp, 'INVALID_WORKER_AFP', 'La AFP no coincide con el catálogo de Personas.', 'Usa una AFP de la guía de la plantilla o deja el campo vacío si no corresponde informarla.'],
+      [workerImportValue(row, 'salud'), canonicalWorkerHealth, 'INVALID_WORKER_HEALTH', 'La previsión de salud no coincide con el catálogo de Personas.', 'Usa Fonasa o una Isapre de la guía de la plantilla; también puedes dejar el campo vacío.'],
+    ];
+    for (const [field, canonicalize, code, message, suggestion] of catalogChecks) {
+      if (!text(field.value) || canonicalize(field.value)) continue;
+      sink.add(importIssue({ row: line, column: field.column, value: field.value, code, message, suggestion }));
+    }
+
+    const region = workerImportValue(row, 'region');
+    const canonicalRegion = canonicalWorkerRegion(region.value);
+    if (text(region.value) && !canonicalRegion) {
+      sink.add(importIssue({
+        row: line,
+        column: region.column,
+        value: region.value,
+        code: 'INVALID_WORKER_REGION',
+        message: 'La región no coincide con el catálogo geográfico de Personas.',
+        suggestion: 'Usa una región de Chile indicada en la guía de la plantilla.',
+      }));
+    }
+
+    // A historical CSV may contain only the legacy "ciudad" column. Preserve
+    // that optional shape; when a region is supplied, the comuna is validated
+    // against the same selector used by the individual flow.
+    const commune = workerImportValue(row, 'comuna', ['ciudad']);
+    if (text(commune.value) && canonicalRegion && !canonicalWorkerCommune(canonicalRegion, commune.value)) {
+      sink.add(importIssue({
+        row: line,
+        column: commune.column,
+        value: commune.value,
+        code: 'INVALID_WORKER_COMMUNE',
+        message: 'La comuna no pertenece a la región indicada.',
+        suggestion: 'Selecciona una comuna correspondiente a la región de esta misma fila.',
+      }));
+    }
+  }
+  return sink.issues;
+}
+
 /**
  * Validates every row that can be inspected without tenant state. It deliberately
  * mirrors the already-enforced CSV rules, but accumulates diagnoses instead of
@@ -213,6 +297,7 @@ export function csvFileIssues(type, definition, fields = [], rows = [], collecto
     }
   });
 
+  if (type === 'trabajadores') workerCsvIssues(rows, sink);
   return sink.issues;
 }
 

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconDatabaseExport, IconDatabaseImport, IconDownload, IconUpload } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { useSubscription } from '../services/subscription.jsx'
+import { WORKER_IMPORT_GUIDE } from '../../../shared/worker-import-policy.js'
 import '../styles/data-transfer.css'
 
 const TYPES = [
@@ -19,6 +20,47 @@ const TYPES = [
   { id: 'subcontratos', label: 'Terceros' },
   { id: 'documentos', label: 'Documentos importados' },
 ]
+
+function WorkerImportGuide() {
+  return (
+    <section className="nk-worker-import-guide" id="worker-import-guide" aria-labelledby="worker-import-guide-title">
+      <h3 id="worker-import-guide-title">Guía de plantilla de Personas</h3>
+      <p><strong>Obligatorias:</strong> <code>nombre</code> y <code>rut</code>. Las demás columnas siguen siendo opcionales para conservar archivos históricos.</p>
+      <ul>
+        <li><code>tipo</code>: si se informa, debe ser uno de los valores admitidos. Nunca se convierte un valor desconocido en “disponible”.</li>
+        <li><code>nacimiento</code>: usa una fecha real en formato <code>AAAA-MM-DD</code>; si se informa, la persona debe tener al menos 18 años.</li>
+        <li><code>region</code> y <code>comuna</code>: usa las opciones de Chile. La columna histórica <code>ciudad</code> continúa aceptándose cuando no se incluye región.</li>
+        <li><code>especialidad</code>, <code>afp</code> y <code>salud</code>: cuando se informan, deben coincidir con sus listas.</li>
+      </ul>
+      <p className="nk-worker-import-guide-note">Una persona sin asignación inicia operativamente disponible, pero su categoría e intención de alta se conservan por separado.</p>
+      <details>
+        <summary>Ver valores admitidos</summary>
+        <div className="nk-worker-import-guide-catalogs">
+          <section>
+            <h4>Tipo</h4>
+            <ul>{WORKER_IMPORT_GUIDE.types.map(type => <li key={type.value}><code>{type.value}</code> · {type.label}. Alias: {type.aliases.filter(alias => alias !== type.value).join(', ') || 'sin alias'}.</li>)}</ul>
+          </section>
+          <section>
+            <h4>Especialidad</h4>
+            <ul>{WORKER_IMPORT_GUIDE.specialties.map(item => <li key={item.value}>{item.value}</li>)}</ul>
+          </section>
+          <section>
+            <h4>AFP</h4>
+            <ul>{WORKER_IMPORT_GUIDE.afps.map(item => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section>
+            <h4>Previsión de salud</h4>
+            <ul>{WORKER_IMPORT_GUIDE.healthPlans.map(item => <li key={item}>{item}</li>)}</ul>
+          </section>
+          <section>
+            <h4>Región</h4>
+            <ul>{WORKER_IMPORT_GUIDE.regions.map(item => <li key={item}>{item}</li>)}</ul>
+          </section>
+        </div>
+      </details>
+    </section>
+  )
+}
 
 function download(path) {
   const link = document.createElement('a')
@@ -256,7 +298,7 @@ export default function ImportarExportarPage() {
                 type="file"
                 disabled={sending || importBlocked}
                 accept={backupImport ? '.json,application/json' : '.csv,text/csv'}
-                aria-describedby="import-file-help"
+                aria-describedby={importType === 'trabajadores' ? 'import-file-help worker-import-guide' : 'import-file-help'}
                 onChange={event => { setFile(event.target.files?.[0] || null); clearImportFeedback() }}
               />
               <small id="import-file-help">{file ? file.name : `Selecciona un archivo ${backupImport ? 'JSON de respaldo' : 'CSV'}`}</small>
@@ -272,6 +314,8 @@ export default function ImportarExportarPage() {
                 <IconUpload size={16}/>{sending ? 'Procesando…' : backupImport ? 'Restaurar respaldo' : 'Validar e importar'}
               </ActionButton>
             </div>
+
+            {!backupImport && importType === 'trabajadores' && <WorkerImportGuide />}
 
             {issues.length > 0 && (
               <section className="nk-import-report" ref={validationRef} tabIndex="-1" aria-labelledby="import-report-title">

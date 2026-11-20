@@ -103,12 +103,56 @@ function validateOpportunityEmails(state, previousState) {
 }
 
 export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
-function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
-  if (!worker.nacimiento) return;
-  if (worker.nacimiento > today) throw Object.assign(new Error(`Worker ${worker.id} has a future birth date`), { status: 409, code: 'INVALID_WORKER_BIRTH_DATE' });
+
+function isIsoCalendarDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Returns the user-safe validation problem used by both state writes and CSV
+ * preflight. Birth date is optional, but when it is supplied it must be a real
+ * calendar date and satisfy the same adult rule as the individual high flow.
+ */
+export function workerBirthDateIssue(value, today = new Date().toISOString().slice(0, 10)) {
+  const birthDate = String(value ?? '').trim();
+  if (!birthDate) return null;
+  if (!isIsoCalendarDate(birthDate)) {
+    return {
+      code: 'INVALID_WORKER_BIRTH_DATE',
+      message: 'La fecha de nacimiento debe ser una fecha real en formato AAAA-MM-DD.',
+      suggestion: 'Usa una fecha válida, por ejemplo 1990-05-20.',
+    };
+  }
+  if (birthDate > today) {
+    return {
+      code: 'INVALID_WORKER_BIRTH_DATE',
+      message: 'La fecha de nacimiento no puede ser posterior a hoy.',
+      suggestion: 'Ingresa una fecha igual o anterior a hoy.',
+    };
+  }
   const [year, month, day] = today.split('-').map(Number);
   const cutoff = `${year - MINIMUM_WORKER_AGE}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  if (worker.nacimiento > cutoff) throw Object.assign(new Error(`Worker ${worker.id} is under the minimum age of ${MINIMUM_WORKER_AGE}`), { status: 409, code: 'WORKER_UNDERAGE', minimumAge: MINIMUM_WORKER_AGE });
+  if (birthDate > cutoff) {
+    return {
+      code: 'WORKER_UNDERAGE',
+      message: `La persona debe tener al menos ${MINIMUM_WORKER_AGE} años para ser registrada.`,
+      suggestion: `Registra una persona de al menos ${MINIMUM_WORKER_AGE} años o corrige la fecha de nacimiento.`,
+      minimumAge: MINIMUM_WORKER_AGE,
+    };
+  }
+  return null;
+}
+
+function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
+  const issue = workerBirthDateIssue(worker?.nacimiento, today);
+  if (!issue) return;
+  throw Object.assign(new Error(issue.message), {
+    status: 409,
+    code: issue.code,
+    minimumAge: issue.minimumAge,
+  });
 }
 
 export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: emailSchema, role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });

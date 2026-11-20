@@ -11,7 +11,7 @@ async function installApi(page, result) {
     if (path === '/api/data-transfer/import/trabajadores') return json(route, result.current.body, result.current.status)
     if (path === '/api/auth/me') return json(route, { user: { id: 'qa-admin', role: 'client_admin' }, tenant: { id: 'qa-tenant', name: 'Empresa QA' }, csrfToken: 'qa-csrf' })
     if (path === '/api/settings') return json(route, { settings: {} })
-    if (path === '/api/state') return json(route, { state: {}, moduleVersions: {} })
+    if (path === '/api/state') return json(route, { state: result.state || {}, moduleVersions: {} })
     if (path === '/api/subscription') return json(route, {})
     return json(route, {})
   })
@@ -78,3 +78,85 @@ test('an uncertain import never claims that no records were saved', async ({ pag
   await expect(page.getByText('No se pudo confirmar si la importación se completó. Revisa los registros antes de volver a intentarlo para evitar duplicados.')).toBeVisible()
   await expect(page.getByText('No se guardó ningún registro: corrige el archivo y vuelve a validarlo.')).toHaveCount(0)
 })
+
+test('worker import guide documents canonical values and shows a row-level type correction', async ({ page }) => {
+  const result = {
+    current: {
+      status: 400,
+      body: {
+        error: 'IMPORT_VALIDATION_FAILED',
+        persisted: false,
+        totalIssues: 1,
+        truncated: false,
+        issues: [{
+          row: 2,
+          column: 'tipo',
+          value: 'contratista',
+          code: 'INVALID_WORKER_TYPE',
+          message: 'El tipo de persona no está reconocido.',
+          suggestion: 'Usa permanente, esporadico o disponible.',
+        }],
+      },
+    },
+  };
+  await installApi(page, result);
+  await page.goto('/app/transferencia');
+
+  const guide = page.getByRole('region', { name: 'Guía de plantilla de Personas' });
+  await expect(guide).toContainText('nombre');
+  await expect(guide).toContainText('nacimiento');
+  await expect(guide).toContainText('region');
+  await expect(guide).toContainText('comuna');
+  await expect(guide).toContainText('Nunca se convierte un valor desconocido en “disponible”.');
+  await guide.getByText('Ver valores admitidos', { exact: true }).click();
+  await expect(guide).toContainText('Trabajador por proyecto');
+  await expect(guide).toContainText('AFP Capital');
+  await expect(guide).toContainText('Fonasa');
+  await expect(guide).toContainText('Los Lagos');
+  await expect(page.locator('input[type="file"]')).toHaveAttribute('aria-describedby', /worker-import-guide/);
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'personas-tipo-invalido.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('nombre,rut,tipo\nPersona QA,11.111.111-1,contratista'),
+  });
+  await page.getByRole('button', { name: 'Validar e importar' }).click();
+  const report = page.getByRole('region', { name: 'Informe de validación' });
+  await expect(report.getByRole('table')).toContainText('tipo');
+  await expect(report.getByRole('table')).toContainText('El tipo de persona no está reconocido.');
+
+  await page.setViewportSize({ width: 375, height: 760 });
+  await expect(guide).toBeVisible();
+});
+
+
+test('an imported project worker remains visible under its lifecycle without fabricating an assignment', async ({ page }) => {
+  const result = {
+    current: { status: 200, body: {} },
+    state: {
+      trabajadores: [{
+        id: 'worker-project-qa',
+        nombre: 'Persona QA proyecto',
+        rut: '11.111.111-1',
+        tipo: 'esporadico',
+        employmentProfile: 'esporadico',
+        disponibilidad: 'disponible',
+      }],
+      asignaciones: [],
+      mantenciones: [],
+      restricted: [],
+      minas: [],
+      contratos: [],
+    },
+  };
+  await installApi(page, result);
+  await page.goto('/app/trabajadores');
+
+  await page.getByRole('tab', { name: /Trabajador por proyecto/ }).click();
+  const projectRow = page.getByRole('row').filter({ hasText: 'Persona QA proyecto' });
+  await expect(projectRow).toBeVisible();
+  await expect(projectRow.getByText('Disponible', { exact: true })).toBeVisible();
+
+  await page.getByRole('tab', { name: /Trabajador disponible/ }).click();
+  await expect(page.getByRole('row').filter({ hasText: 'Persona QA proyecto' })).toHaveCount(0);
+});

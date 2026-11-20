@@ -131,6 +131,17 @@ export function operationalStatus(worker, assignments = [], restrictions = [], p
 // Each person belongs to one visible segment. Restrictions take precedence.
 export function workerSegment(worker, assignments = [], projects = [], restrictions = []) {
   if (operationalStatus(worker, assignments, restrictions, projects) === 'restringido') return 'bloqueados'
+
+  // An explicit lifecycle is authoritative and independent from operational
+  // availability. A newly imported project worker can therefore be available
+  // while remaining visible under "Trabajador por proyecto".
+  const explicitProfile = normalized(worker.employmentProfile)
+  if (['permanente', 'fijo', 'planta'].includes(explicitProfile)) return 'planta'
+  if (['esporadico', 'temporal', 'proyecto'].includes(explicitProfile)) return 'esporadico'
+
+  // Preserve the historic interpretation of rows that only carry tipo: fixed
+  // workers belong to Planta; a legacy project type becomes project-visible when
+  // it has an operational assignment, otherwise it remains available.
   if (employmentRelationship(worker) === 'fijo') return 'planta'
   if (hasOperationalProjectAssignment(worker, assignments, projects)) return 'esporadico'
   return 'disponible'
