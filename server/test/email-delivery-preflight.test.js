@@ -112,3 +112,21 @@ test('absent DNS, invalid configuration and transport failures remain actionable
   assert.equal(result.transport.status, 'not_configured')
   assert.equal(JSON.stringify(result).includes('super-secret-password'), false)
 })
+
+test('transport verification reports a safe status without leaking provider error details', async () => {
+  const result = await inspectEmailDeliveryPreflight({
+    emailFrom: smtp.from,
+    dkimSelector: 's1',
+    smtp,
+    resolveTxt,
+    verifyTransport: true,
+    createTransport: () => ({
+      verify: async () => { throw Object.assign(new Error('password super-secret-password rejected'), { code: 'EAUTH' }) },
+      close: () => {},
+    }),
+  })
+  assert.equal(result.ready, true)
+  assert.equal(result.verified, false)
+  assert.deepEqual(result.transport, { checked: true, status: 'authentication_failed' })
+  assert.equal(JSON.stringify(result).includes('super-secret-password'), false)
+})
