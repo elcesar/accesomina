@@ -15,23 +15,54 @@ import { assertModuleAccess, filterAccessibleModules } from '../module-access.js
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
 import { lockSubscriptionForWrite } from '../subscription-access.js';
 import { assertSubscriptionWorkerCapacity } from '../subscriptions.js';
+import {
+  canonicalWorkerAfp,
+  canonicalWorkerCommune,
+  canonicalWorkerHealth,
+  canonicalWorkerRegion,
+  canonicalWorkerSpecialty,
+  workerImportType,
+  workerImportValue,
+} from '../../shared/worker-import-policy.js';
 
 export const dataTransferRouter=Router();
 export const BACKUP_FORMAT='nexo-klar-backup';
 export const LEGACY_BACKUP_FORMAT='accesomina-backup';
 dataTransferRouter.use(allowRoles('domian_admin','client_admin'));
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
-// Worker category and operational availability are independent. A CSV import never
-// creates an assignment, so every imported person starts available without losing
-// the historical category declared in the source file.
-const importedWorkerType=value=>{
-  const normalized=String(value||'').trim().toLowerCase();
-  if(['permanente','fijo','planta'].includes(normalized))return'permanente';
-  if(['esporadico','esporádico','temporal','proyecto','por proyecto','spot'].includes(normalized))return'esporadico';
-  return'esporadico';
-};
+// A CSV import never creates an assignment. Availability therefore starts as
+// "disponible", while the category and high-flow intent remain separate fields.
+function importedWorkerRow(row) {
+  const category = workerImportType(row?.tipo);
+  const birthDate = workerImportValue(row, 'nacimiento', ['fecha_nacimiento', 'fecha_de_nacimiento']).value;
+  const regionInput = workerImportValue(row, 'region').value;
+  const communeInput = workerImportValue(row, 'comuna', ['ciudad']).value;
+  const region = canonicalWorkerRegion(regionInput) || regionInput || '';
+  const commune = canonicalWorkerCommune(region, communeInput) || communeInput || '';
+  return {
+    id: `t_${crypto.randomUUID()}`,
+    nombre: row.nombre,
+    rut: row.rut,
+    nacimiento: birthDate || '',
+    region,
+    ciudad: commune,
+    tipo: category?.tipo || '',
+    employmentProfile: category?.employmentProfile || '',
+    cargo: row.cargo || '',
+    rol: row.rol || '',
+    especialidad: canonicalWorkerSpecialty(row.especialidad) || row.especialidad || '',
+    tel: row.telefono || row.tel || '',
+    email: row.email || '',
+    afp: canonicalWorkerAfp(row.afp) || row.afp || '',
+    salud: canonicalWorkerHealth(row.salud) || row.salud || '',
+    disponibilidad: category?.disponibilidad || 'disponible',
+    mineras: [],
+    bloqueado: false,
+    workerItems: [],
+  };
+}
 export const definitions={
-  trabajadores:{module:'trabajadores',headers:['nombre','rut','tipo','cargo','rol','especialidad','telefono','email','ciudad','afp','salud'],required:['nombre','rut'],map:(r)=>({id:`t_${crypto.randomUUID()}`,nombre:r.nombre,rut:r.rut,tipo:importedWorkerType(r.tipo),cargo:r.cargo||'',rol:r.rol||'',especialidad:r.especialidad||'',tel:r.telefono||r.tel||'',email:r.email||'',ciudad:r.ciudad||'',afp:r.afp||'',salud:r.salud||'',disponibilidad:'disponible',mineras:[],bloqueado:false,workerItems:[]})},
+  trabajadores:{module:'trabajadores',headers:['nombre','rut','nacimiento','telefono','email','region','comuna','tipo','cargo','rol','especialidad','afp','salud'],required:['nombre','rut'],map:importedWorkerRow},
   minas:{module:'minas',headers:['nombre','mandante','region','altura','sistema','contacto'],required:['nombre'],map:(r)=>({id:`mi_${crypto.randomUUID()}`,nombre:r.nombre,mandante:r.mandante||'',region:r.region||'',altura:Number(r.altura)||0,sistema:r.sistema||'Propio',contacto:r.contacto||'',color:'#f07d36'})},
   contratos:{module:'contratos',headers:['nombre','numero','minera','tipo','inicio','termino','estado','alcance'],required:['nombre','numero','minera'],map:(r,state)=>({id:`c_${crypto.randomUUID()}`,nombre:r.nombre,numero:r.numero,minaId:resolveId(state.minas,r.minera),tipo:r.tipo||'permanente',inicio:r.inicio||'',termino:r.termino||'',estado:r.estado||'activo',alcance:r.alcance||''})},
   mantenciones:{module:'mantenciones',headers:['nombre','minera','contrato','tipo','area','inicio','termino','personal_requerido','estado'],required:['nombre','minera'],map:(r,state)=>({id:`mn_${crypto.randomUUID()}`,nombre:r.nombre,minaId:resolveId(state.minas,r.minera),contratoId:resolveId(state.contratos,r.contrato),tipo:r.tipo||'servicio',area:r.area||'',inicio:r.inicio||'',termino:r.termino||'',personalReq:Number(r.personal_requerido)||0,estado:r.estado||'planificada',especialidades:[],zonas:[]})},
@@ -50,7 +81,7 @@ async function moduleRows(client,tenantId,lock=false){const result=await client.
 const aggregate=rows=>Object.fromEntries(rows.map(x=>[x.module_key,x.data]));
 const importValidationResponse=allIssues=>({error:'IMPORT_VALIDATION_FAILED',persisted:false,...boundedImportIssues(allIssues)});
 const sendImportValidation=(res,issues)=>res.status(400).json(importValidationResponse(issues));
-export function csvRows(type,state){const rows=type==='oportunidades'?opportunityRows(state).map(opportunityFields):state[definitions[type].module]||[],ref=(list,id)=>(list||[]).find(x=>String(x.id)===String(id))?.nombre||id||'';if(type==='trabajadores')return rows.map(x=>({nombre:x.nombre,rut:x.rut,tipo:x.tipo,cargo:x.cargo,rol:x.rol,especialidad:x.especialidad,telefono:x.tel,email:x.email,ciudad:x.ciudad,afp:x.afp,salud:x.salud}));if(type==='minas')return rows.map(x=>({nombre:x.nombre,mandante:x.mandante,region:x.region,altura:x.altura,sistema:x.sistema,contacto:x.contacto}));if(type==='contratos')return rows.map(x=>({nombre:x.nombre,numero:x.numero,minera:ref(state.minas,x.minaId),tipo:x.tipo,inicio:x.inicio,termino:x.termino,estado:x.estado,alcance:x.alcance}));if(type==='mantenciones')return rows.map(x=>({nombre:x.nombre,minera:ref(state.minas,x.minaId),contrato:ref(state.contratos,x.contratoId),tipo:x.tipo,area:x.area,inicio:x.inicio,termino:x.termino,personal_requerido:x.personalReq,estado:x.estado}));if(type==='vehiculos')return rows.map(x=>({tipo:x.tipo,nombre:x.nombre,patente:x.patente,serie:x.serie,propiedad:x.propiedad,vencimiento_arriendo:x.arriendoVence||x.arriendoFin||x.arrendadoHasta||'',operador:ref(state.trabajadores,x.operadorId),mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';'),permiso_circulacion:x.permisoCirculacion,revision_tecnica:x.revisionTecnica,seguro:x.seguro,autorizacion_minera:x.autorizacionMinera,certificacion:x.certificacion,estado:x.estado}));if(type==='hoteles')return rows.map(x=>({nombre:x.nombre,direccion:x.direccion,ciudad:x.ciudad,contacto:x.contacto,telefono:x.telefono,email:x.email,piezas:x.piezas,camas_por_pieza:x.camasPorPieza,mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';')}));if(type==='turnos')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),proyecto:ref(state.mantenciones,x.mantId),fecha:x.fecha,regimen:x.regimen,turno:x.turno,ingreso:x.ingreso,salida:x.salida,horas:x.hh,asistencia:x.asistencia}));if(type==='credenciales')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),minera:ref(state.minas,x.minaId),tipo:x.tipo,numero:x.numero,emision:x.emision,vence:x.vence,zona:x.zona,campamento:x.campamento,estado:x.estado}));if(type==='subcontratos')return rows.map(x=>({razon_social:x.razon,rut:x.rut,contrato:ref(state.contratos,x.contratoId),responsable:x.responsable,servicios:x.servicios,estado:x.estado,f30:x.f30,f301:x.f301,cotizaciones:x.cotizaciones,observacion:x.observacion}));if(type==='epp')return rows.map(x=>({trabajador:ref(state.trabajadores,x.workerId),proyecto:ref(state.mantenciones,x.mantId),epp_id:x.itemId,epp:x.itemName,cantidad:x.qty,talla:x.size,condicion:x.condition,estado_entrega:x.deliveryStatus,fecha_entrega:x.deliveredAt,proxima_reposicion:x.nextReplacement,lote_serie:x.lotSerial,observacion:x.notes}));if(type==='oportunidades')return rows.map(x=>({tipo:x.type,empresa:x.company,rut:x.rut,servicio:x.service,contacto:x.contact,cargo:x.role,email:x.email,telefono:x.phone,etapa:x.stage,monto:x.amount,moneda:x.currency,probabilidad:x.probability,cierre_estimado:x.expectedClose,proxima_gestion:x.nextAction,responsable:x.owner,cliente:ref(state.minas,x.clientId),contrato:ref(state.contratos,x.contractId),notas:x.notes}));return rows.map(x=>({entidad_tipo:x.entityType,entidad:x.entityId,tipo_documento:x.documentType,numero:x.documentNumber,emisor:x.issuer,emision:x.issuedAt,vencimiento:x.expiresAt,estado:x.status,observacion:x.observations}));}
+export function csvRows(type,state){const rows=type==='oportunidades'?opportunityRows(state).map(opportunityFields):state[definitions[type].module]||[],ref=(list,id)=>(list||[]).find(x=>String(x.id)===String(id))?.nombre||id||'';if(type==='trabajadores')return rows.map(x=>({nombre:x.nombre,rut:x.rut,nacimiento:x.nacimiento||'',telefono:x.tel,email:x.email,region:x.region||'',comuna:x.ciudad||'',tipo:x.employmentProfile||x.tipo||'',cargo:x.cargo,rol:x.rol,especialidad:x.especialidad,afp:x.afp,salud:x.salud}));if(type==='minas')return rows.map(x=>({nombre:x.nombre,mandante:x.mandante,region:x.region,altura:x.altura,sistema:x.sistema,contacto:x.contacto}));if(type==='contratos')return rows.map(x=>({nombre:x.nombre,numero:x.numero,minera:ref(state.minas,x.minaId),tipo:x.tipo,inicio:x.inicio,termino:x.termino,estado:x.estado,alcance:x.alcance}));if(type==='mantenciones')return rows.map(x=>({nombre:x.nombre,minera:ref(state.minas,x.minaId),contrato:ref(state.contratos,x.contratoId),tipo:x.tipo,area:x.area,inicio:x.inicio,termino:x.termino,personal_requerido:x.personalReq,estado:x.estado}));if(type==='vehiculos')return rows.map(x=>({tipo:x.tipo,nombre:x.nombre,patente:x.patente,serie:x.serie,propiedad:x.propiedad,vencimiento_arriendo:x.arriendoVence||x.arriendoFin||x.arrendadoHasta||'',operador:ref(state.trabajadores,x.operadorId),mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';'),permiso_circulacion:x.permisoCirculacion,revision_tecnica:x.revisionTecnica,seguro:x.seguro,autorizacion_minera:x.autorizacionMinera,certificacion:x.certificacion,estado:x.estado}));if(type==='hoteles')return rows.map(x=>({nombre:x.nombre,direccion:x.direccion,ciudad:x.ciudad,contacto:x.contacto,telefono:x.telefono,email:x.email,piezas:x.piezas,camas_por_pieza:x.camasPorPieza,mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';')}));if(type==='turnos')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),proyecto:ref(state.mantenciones,x.mantId),fecha:x.fecha,regimen:x.regimen,turno:x.turno,ingreso:x.ingreso,salida:x.salida,horas:x.hh,asistencia:x.asistencia}));if(type==='credenciales')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),minera:ref(state.minas,x.minaId),tipo:x.tipo,numero:x.numero,emision:x.emision,vence:x.vence,zona:x.zona,campamento:x.campamento,estado:x.estado}));if(type==='subcontratos')return rows.map(x=>({razon_social:x.razon,rut:x.rut,contrato:ref(state.contratos,x.contratoId),responsable:x.responsable,servicios:x.servicios,estado:x.estado,f30:x.f30,f301:x.f301,cotizaciones:x.cotizaciones,observacion:x.observacion}));if(type==='epp')return rows.map(x=>({trabajador:ref(state.trabajadores,x.workerId),proyecto:ref(state.mantenciones,x.mantId),epp_id:x.itemId,epp:x.itemName,cantidad:x.qty,talla:x.size,condicion:x.condition,estado_entrega:x.deliveryStatus,fecha_entrega:x.deliveredAt,proxima_reposicion:x.nextReplacement,lote_serie:x.lotSerial,observacion:x.notes}));if(type==='oportunidades')return rows.map(x=>({tipo:x.type,empresa:x.company,rut:x.rut,servicio:x.service,contacto:x.contact,cargo:x.role,email:x.email,telefono:x.phone,etapa:x.stage,monto:x.amount,moneda:x.currency,probabilidad:x.probability,cierre_estimado:x.expectedClose,proxima_gestion:x.nextAction,responsable:x.owner,cliente:ref(state.minas,x.clientId),contrato:ref(state.contratos,x.contractId),notas:x.notes}));return rows.map(x=>({entidad_tipo:x.entityType,entidad:x.entityId,tipo_documento:x.documentType,numero:x.documentNumber,emisor:x.issuer,emision:x.issuedAt,vencimiento:x.expiresAt,estado:x.status,observacion:x.observations}));}
 
 dataTransferRouter.get('/export',async(req,res)=>{const payload=await withTenant(req.auth.tenantId,async client=>{const rows=await moduleRows(client,req.auth.tenantId),settings=(await client.query('SELECT branding,modules,alerts,catalogs FROM tenant_settings WHERE tenant_id=$1',[req.auth.tenantId])).rows[0]||{};return{format:BACKUP_FORMAT,version:2,exportedAt:new Date().toISOString(),tenant:{id:req.auth.tenantId,name:req.auth.companyName,rut:req.auth.rut},modules:filterAccessibleModules(req.auth,aggregate(rows)),settings};});res.set({'Content-Type':'application/json','Content-Disposition':`attachment; filename="nexo_klar_${new Date().toISOString().slice(0,10)}.json"`}).send(JSON.stringify(payload,null,2));});
 dataTransferRouter.get('/export/:type',async(req,res)=>{const def=definitions[req.params.type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});assertModuleAccess(req.auth,def.module);const state=await withTenant(req.auth.tenantId,async client=>aggregate(await moduleRows(client,req.auth.tenantId)));const csv=Papa.unparse({fields:def.headers,data:csvRows(req.params.type,state)},{header:true});res.set({'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="${req.params.type}_${new Date().toISOString().slice(0,10)}.csv"`}).send(`\uFEFF${csv}`);});

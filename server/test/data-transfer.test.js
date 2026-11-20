@@ -10,24 +10,24 @@ test('mass import parser supports Excel CSV quoting and maps workers',async()=>{
   const worker=definitions.trabajadores.map(parsed.data[0]);assert.equal(worker.rut,'14.567.890-1');assert.equal(worker.cargo,'Supervisora, turno A');assert.match(worker.id,/^t_/);
 });
 
-test('worker CSV imports keep category separate from availability without an assignment',async()=>{
+test('worker CSV imports keep category, high-flow intent and availability separate',async()=>{
   process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
   const {definitions}=await import('../routes/data-transfer.js');
-  const legacy=definitions.trabajadores.map({nombre:'Persona histórica',rut:'14.567.890-1',tipo:'esporadico'});
   const fixed=definitions.trabajadores.map({nombre:'Persona fija',rut:'12.345.678-5',tipo:'permanente'});
-  const temporary=definitions.trabajadores.map({nombre:'Persona temporal',rut:'11.111.111-1',tipo:'temporal'});
-  assert.equal(legacy.tipo,'esporadico');
-  assert.equal(legacy.disponibilidad,'disponible');
-  assert.equal(fixed.tipo,'permanente');
-  assert.equal(fixed.disponibilidad,'disponible');
-  assert.equal(temporary.tipo,'esporadico');
-  assert.equal(temporary.disponibilidad,'disponible');
+  const project=definitions.trabajadores.map({nombre:'Persona de proyecto',rut:'11.111.111-1',tipo:'proyecto'});
+  const available=definitions.trabajadores.map({nombre:'Persona disponible',rut:'14.567.890-0',tipo:'disponible'});
+  const blank=definitions.trabajadores.map({nombre:'Persona histórica',rut:'15.123.456-7',tipo:''});
+  assert.deepEqual({tipo:fixed.tipo,profile:fixed.employmentProfile,availability:fixed.disponibilidad},{tipo:'permanente',profile:'permanente',availability:'disponible'});
+  assert.deepEqual({tipo:project.tipo,profile:project.employmentProfile,availability:project.disponibilidad},{tipo:'esporadico',profile:'esporadico',availability:'disponible'});
+  assert.deepEqual({tipo:available.tipo,profile:available.employmentProfile,availability:available.disponibilidad},{tipo:'esporadico',profile:'disponible',availability:'disponible'});
+  assert.deepEqual({tipo:blank.tipo,profile:blank.employmentProfile},{tipo:'',profile:''});
 });
 
 test('CSV templates declare required business columns',async()=>{
   process.env.DATABASE_URL||='postgres://test:test@localhost:5432/test';
   const {definitions}=await import('../routes/data-transfer.js');
   assert.deepEqual(definitions.trabajadores.required,['nombre','rut']);
+  for(const column of ['nacimiento','region','comuna','tipo','especialidad','afp','salud']) assert.ok(definitions.trabajadores.headers.includes(column),`missing worker template column ${column}`);
   assert.ok(definitions.contratos.required.includes('minera'));
   for(const type of ['vehiculos','hoteles','turnos','credenciales','subcontratos','epp','documentos','oportunidades']){
     assert.ok(definitions[type],`missing ${type} import`);
@@ -139,4 +139,88 @@ test('CSV diagnostics preserve physical lines, accepted extra columns and bounde
     nombre: 'Contrato QA', numero: 'QA-03', minera: ' mine-qa ',
   }], { minas: [{ id: 'mine-qa', nombre: 'Cliente QA' }] }, 'append');
   assert.equal(exactIdentifier[0].code, 'INVALID_REFERENCE');
+});
+
+
+test('worker CSV validates catalog values and preserves optional historical columns', async () => {
+  process.env.DATABASE_URL ||= 'postgres://test:test@localhost:5432/test';
+  const { definitions } = await import('../routes/data-transfer.js');
+  const { csvFileIssues } = await import('../import-diagnostics.js');
+  const { workerBirthDateIssue } = await import('../validation.js');
+
+  const valid = {
+    nombre: 'Persona QA catálogo',
+    rut: '11.111.111-1',
+    nacimiento: '1990-05-20',
+    region: 'los lagos',
+    comuna: 'puerto octay',
+    tipo: 'proyecto',
+    especialidad: 'Mecánico industrial',
+    afp: 'AFP capital',
+    salud: 'fonasa',
+  };
+  assert.deepEqual(csvFileIssues('trabajadores', definitions.trabajadores, definitions.trabajadores.headers, [valid]), []);
+  const mapped = definitions.trabajadores.map(valid);
+  assert.deepEqual(
+    {
+      nacimiento: mapped.nacimiento,
+      region: mapped.region,
+      comuna: mapped.ciudad,
+      tipo: mapped.tipo,
+      profile: mapped.employmentProfile,
+      specialty: mapped.especialidad,
+      afp: mapped.afp,
+      health: mapped.salud,
+    },
+    {
+      nacimiento: '1990-05-20',
+      region: 'Los Lagos',
+      comuna: 'Puerto Octay',
+      tipo: 'esporadico',
+      profile: 'esporadico',
+      specialty: 'Mecánico Industrial',
+      afp: 'AFP Capital',
+      health: 'Fonasa',
+    },
+  );
+
+  const legacyCityOnly = { nombre: 'Persona histórica QA', rut: '12.345.678-5', ciudad: 'Puerto Octay' };
+  assert.deepEqual(csvFileIssues('trabajadores', definitions.trabajadores, ['nombre', 'rut', 'ciudad'], [legacyCityOnly]), []);
+
+  const invalid = {
+    nombre: 'Persona inválida QA',
+    rut: '14.567.890-0',
+    nacimiento: '2026-02-30',
+    region: 'Región inexistente',
+    comuna: 'Comuna inexistente',
+    tipo: 'contratista',
+    especialidad: 'Especialidad inexistente',
+    afp: 'AFP inexistente',
+    salud: 'Seguro inexistente',
+  };
+  const issues = csvFileIssues('trabajadores', definitions.trabajadores, definitions.trabajadores.headers, [invalid]);
+  assert.deepEqual(
+    issues.map(issue => issue.code).sort(),
+    ['INVALID_WORKER_AFP','INVALID_WORKER_BIRTH_DATE','INVALID_WORKER_HEALTH','INVALID_WORKER_REGION','INVALID_WORKER_SPECIALTY','INVALID_WORKER_TYPE'].sort(),
+  );
+  assert.ok(issues.every(issue => issue.row === 2 && issue.message && issue.suggestion));
+  assert.equal(workerBirthDateIssue('2010-01-01', '2026-11-19').code, 'WORKER_UNDERAGE');
+});
+
+
+test('project-worker CSV category stays visible while operational availability remains separate', async () => {
+  process.env.DATABASE_URL ||= 'postgres://test:test@localhost:5432/test';
+  const { definitions } = await import('../routes/data-transfer.js');
+  const { operationalStatus, workerSegment } = await import('../../nexo-v2/src/services/worker-segments.js');
+
+  const imported = definitions.trabajadores.map({
+    nombre: 'Persona QA proyecto',
+    rut: '11.111.111-1',
+    tipo: 'proyecto',
+  });
+
+  assert.equal(imported.employmentProfile, 'esporadico');
+  assert.equal(operationalStatus(imported, [], [], []), 'disponible');
+  assert.equal(workerSegment(imported, [], [], []), 'esporadico');
+  assert.equal(workerSegment({ ...imported, bloqueado: true }, [], [], []), 'bloqueados');
 });
