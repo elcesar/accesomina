@@ -162,5 +162,5 @@ test('Panel de control: 200 → error de red → 200 conserva datos y recupera s
   await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
   await expect(metric(page, 'Personas registradas')).toContainText('3')
   await expect(update).toBeEnabled()
-  await expect(page).toHaveURL(/\\/app$/)
+  await expect(page).toHaveURL(/\/app$/)
 })
