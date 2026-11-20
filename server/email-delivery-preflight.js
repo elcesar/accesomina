@@ -102,12 +102,13 @@ export async function verifySmtpTransport({ smtp = {}, createTransport = nodemai
 
   let transport
   let timer
+  const milliseconds = timeout(timeoutMs)
   try {
-    transport = createTransport({ ...smtpOptions({ ...smtp, timeoutMs }), connectionTimeout: timeoutMs, greetingTimeout: timeoutMs, socketTimeout: timeoutMs })
+    transport = createTransport(smtpOptions({ ...smtp, timeoutMs: milliseconds }))
     await Promise.race([
       Promise.resolve(transport.verify()),
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(Object.assign(new Error('SMTP verification timed out'), { code: 'ETIMEDOUT' })), timeout(timeoutMs))
+        timer = setTimeout(() => reject(Object.assign(new Error('SMTP verification timed out'), { code: 'ETIMEDOUT' })), milliseconds)
       }),
     ])
     return { checked: true, status: 'reachable' }
