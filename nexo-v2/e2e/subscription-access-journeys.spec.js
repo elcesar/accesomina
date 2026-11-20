@@ -6,7 +6,7 @@ async function mockPortal(page, { suspended = true, role = 'client_admin', profi
     const request = route.request(), path = new URL(request.url()).pathname
     calls.push({ path, method: request.method() })
     const json = (body, status = 200) => route.fulfill({ status, json: body })
-    if (path === '/api/auth/me') return json({ user: { id: 'user-qa', name: 'Persona QA', role, permissions: { modules: {} } }, tenant: { id: 'tenant-qa', name: 'Empresa ficticia QA' }, csrfToken: 'qa-csrf' })
+    if (path === '/api/auth/me') return json({ user: { id: 'user-qa', name: 'Persona QA', role, subscriptionAdminEligible: Boolean(profile) || role === 'domian_admin', permissions: { modules: {} } }, tenant: { id: 'tenant-qa', name: 'Empresa ficticia QA' }, csrfToken: 'qa-csrf' })
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/subscriptions/admin/access') return profile ? json({ profile, capabilities: ['read', profile === 'COMMERCIAL' ? 'commercial' : 'operations'] }) : json({ error: 'SUBSCRIPTION_PERMISSION_DENIED' }, 403)
     if (path === '/api/subscription') return failSummary ? json({ error: 'SERVICE_UNAVAILABLE' }, 503) : json({ legacy: false, managed: true, canOperate: !suspended, contract: { planCode: 'FREE', planName: 'Free', status: suspended ? 'SUSPENDED' : 'ACTIVE', endsAt: '2026-11-01T12:00:00Z', monthlyNetPrice: 0 }, capacity: { used: 8, total: 15, available: 7 }, separateServices: { oportunidades: { enabled: independent } }, requests: [] })
@@ -103,4 +103,23 @@ test('perfil delegado entra a suscripciones sin administración global de client
   await expect(page.getByRole('link', { name: 'Administración de clientes', exact: true })).toHaveCount(0)
   await page.goto('/app/administracion-clientes')
   await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar', exact: true })).toBeVisible()
+})
+
+for (const role of ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']) {
+  test(`perfil ${role} sin elegibilidad global no consulta administración de suscripciones`, async ({ page }) => {
+    const calls = await mockPortal(page, { suspended: false, role })
+    await page.goto('/app')
+    // The dashboard is permission-dependent. Check the auth bootstrap instead
+    // of assuming every non-admin sees the same dashboard heading.
+    await expect.poll(() => calls.filter(call => call.path === '/api/auth/me').length).toBeGreaterThan(0)
+    await expect.poll(() => calls.filter(call => call.path === '/api/subscription').length).toBeGreaterThan(0)
+    expect(calls.filter(call => call.path === '/api/subscriptions/admin/access')).toHaveLength(0)
+  })
+}
+
+test('operador delegado validado por el backend conserva consulta global de suscripciones', async ({ page }) => {
+  const calls = await mockPortal(page, { suspended: false, role: 'rrhh', profile: 'COMMERCIAL' })
+  await page.goto('/app/administracion-planes')
+  await expect(page.getByRole('heading', { name: 'Planes y suscripciones', exact: true })).toBeVisible()
+  expect(calls.filter(call => call.path === '/api/subscriptions/admin/access').length).toBeGreaterThan(0)
 })

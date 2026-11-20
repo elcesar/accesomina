@@ -47,7 +47,7 @@ test('conserva Personas filtradas y recupera relaciones después de un 503 sin r
   unavailable = true
   await page.evaluate(() => window.dispatchEvent(new Event('focus')))
   const failure = page.getByRole('alert')
-  await expect(failure).toContainText('Servicio temporalmente no disponible')
+  await expect(failure).toContainText('El servicio no está disponible temporalmente')
   await expect(page.locator('.nk-people-row').filter({ hasText: 'QA recuperable inicial' })).toBeVisible()
   await expect(search).toHaveValue('QA recuperable')
   await expect(clientFilter).toHaveValue('qa-client')
