@@ -30,8 +30,12 @@ test('administration denial renders a clear 403 page with a return action',async
  await expect(page.getByRole('link',{name:'Ir al panel',exact:true})).toBeVisible()
 })
 for(const code of [500,503])test(`state load failure shows a nonblocking ${code} alert without technical jargon and allows retry`,async({page})=>{
- status=code
+ // Load a valid snapshot first: Personas correctly renders a dedicated
+ // initial-load error view when there is no prior state to preserve.
  await page.goto('/app/trabajadores')
+ await expect(page.locator('.nk-people-page')).toBeVisible()
+ status=code
+ await page.evaluate(() => window.dispatchEvent(new Event('focus')))
  const alert=page.locator('.nk-operation-feedback-error')
  await expect(alert).toBeVisible()
  await expect(alert).toContainText(code===500?'No pudimos cargar la información':'El servicio no está disponible temporalmente')
@@ -42,7 +46,7 @@ for(const code of [500,503])test(`state load failure shows a nonblocking ${code}
  // The module remains mounted; the error is an inline alert, not a full-page replacement.
  await expect(page.locator('.nk-people-page')).toBeVisible()
  status=200
- await page.getByRole('button',{name:'Volver a intentar'}).click()
+ await alert.getByRole('button',{name:'Volver a intentar'}).click()
  await expect(alert).toHaveCount(0)
  await expect(page.locator('.nk-people-page')).toBeVisible()
 })
