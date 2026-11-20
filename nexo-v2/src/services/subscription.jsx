@@ -14,10 +14,10 @@ export function SubscriptionProvider({ children }) {
   const [administrationError, setAdministrationError] = useState('')
   const summaryGeneration = useRef(0)
   const accessGeneration = useRef(0)
-  // This endpoint is reserved for the Nexo Klar subscription team. A company
-  // administrator has no global profile, so do not create an expected 403 on
-  // every portal load; the server remains authoritative for all access.
-  const canReadAdministration = Boolean(session?.user?.id) && !authLoading && session.user.role !== 'client_admin'
+  // Only probe global subscription access for server-identified platform
+  // administrators and active delegated operators; never for company users.
+  // The protected backend endpoint remains the authority for each request.
+  const canReadAdministration = Boolean(session?.user?.id) && !authLoading && (session.user.role === 'domian_admin' || session.user.subscriptionAdminEligible === true)
   const refresh = useCallback(async () => {
     const generation = ++summaryGeneration.current
     setLoading(true)

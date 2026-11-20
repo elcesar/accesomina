@@ -216,7 +216,9 @@ export default function TurnosPage() {
     const onRetry = event => {
       const response = event.detail?.result
       const recoveredState = response?.state || response
-      if (!recoveredState || !Array.isArray(recoveredState.turnos)) return
+      // A global retry may succeed for another module without a usable Turnos version.
+      // Keep a blocked draft blocked until both the data and its exact version are valid.
+      if (!recoveredState || !Array.isArray(recoveredState.turnos) || !Number.isSafeInteger(response?.moduleVersions?.turnos) || response.moduleVersions.turnos < 0) return
       // A global retry supersedes any slower page-level read.
       readVersionRef.current += 1
       setState(recoveredState)

@@ -229,3 +229,41 @@ test('bloquea el reenvío si falla la recarga del conflicto y permite recuperarl
   expect(fixture.writes).toHaveLength(2)
   expect(fixture.writes[1].changes.turnos.version).toBe(2)
 })
+
+test('el reintento global no desbloquea un conflicto sin versión válida de turnos', async ({ page }) => {
+  const fixture = await mockTurnos(page)
+  await openModal(page)
+  await page.getByLabel('Fecha', { exact: true }).fill('2026-11-07')
+  fixture.conflictNextWrite = true
+  fixture.failRefreshAfterConflict = true
+
+  const save = page.getByRole('button', { name: 'Guardar jornada', exact: true })
+  await save.click()
+  await expect(save).toBeDisabled()
+  expect(fixture.writes).toHaveLength(1)
+
+  // A shared retry may report success with a partial response but no Turnos version.
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', {
+    detail: { result: { state: { turnos: [] }, moduleVersions: {} } },
+  })))
+  await expect(save).toBeDisabled()
+  await expect(page.getByLabel('Fecha', { exact: true })).toHaveValue('2026-11-07')
+  expect(fixture.writes).toHaveLength(1)
+
+  // Invalid version types and negative values must not bypass conflict protection.
+  for (const badVersion of ['2', -1]) {
+    await page.evaluate(version => window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', {
+      detail: { result: { state: { turnos: [] }, moduleVersions: { turnos: version } } },
+    })), badVersion)
+    await expect(save).toBeDisabled()
+  }
+
+  await page.evaluate(({ rows, version, person, order }) => window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', {
+    detail: { result: { state: { turnos: rows, trabajadores: [person], mantenciones: [order], minas: [], asignaciones: [] }, moduleVersions: { turnos: version } } },
+  })), { rows: fixture.turnos, version: fixture.version, person, order })
+  await expect(save).toBeEnabled()
+  await save.click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(fixture.writes).toHaveLength(2)
+  expect(fixture.writes[1].changes.turnos.version).toBe(2)
+})

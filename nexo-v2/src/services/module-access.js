@@ -1,4 +1,7 @@
+import { userCanReadModule } from '../../../shared/role-access.js'
+
 export const ROUTE_MODULES = [
+  ['/app/alertas', 'alertas'],
   ['/app/clientes', 'minas'],
   ['/app/trabajadores', 'trabajadores'],
   ['/app/reclutamiento', 'trabajadores'],
@@ -12,6 +15,9 @@ export const ROUTE_MODULES = [
   ['/app/servicios', 'mantenciones'],
   ['/app/ordenes-servicio', 'mantenciones'],
   ['/app/operaciones', 'mantenciones'],
+  ['/app/acreditacion-empresa', 'auditoria'],
+  ['/app/habilitacion-cliente', 'auditoria'],
+  ['/app/acreditacion-mandante', 'auditoria'],
   ['/app/hoteleria', 'hoteleria'],
   ['/app/llamados', 'llamados'],
   ['/app/comunicaciones', 'llamados'],
@@ -35,7 +41,9 @@ export const ROUTE_MODULES = [
   ['/app/incidentes', 'incidentes'],
   ['/app/auditoria', 'auditoria'],
   ['/app/reportes', 'reportes'],
-  ['/app/transferencia', 'reportes'],
+  ['/app/transferencia', 'transferencia'],
+  ['/app/libro-obra', 'libroObra'],
+  ['/app/oportunidades', 'prospectos'],
   ['/app/contratos', 'contratos'],
   ['/app/configuracion', 'configuracion'],
   ['/app/usuarios', 'usuarios'],
@@ -48,7 +56,8 @@ export function moduleForPath(pathname = '') {
   return ROUTE_MODULES.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1] || null
 }
 
-export function moduleIsEnabled(companyModules = {}, moduleKey, userModules = {}) {
+export function moduleIsEnabled(companyModules = {}, moduleKey, userModules = {}, role) {
   if (!moduleKey) return true
-  return companyModules?.[moduleKey] !== false && userModules?.[moduleKey] !== false
+  if (role == null) return companyModules?.[moduleKey] !== false && userModules?.[moduleKey] !== false
+  return companyModules?.[moduleKey] !== false && userCanReadModule({ role, modules: userModules }, moduleKey)
 }
