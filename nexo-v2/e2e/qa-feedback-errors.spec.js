@@ -19,8 +19,12 @@ test('disabled primary action explains its prerequisite',async({page})=>{
 test('saving confirms success and route navigation clears feedback',async({page})=>{
  await page.goto('/app/configuracion')
  await page.getByRole('button',{name:'Guardar configuración',exact:true}).click()
- await expect(page.locator('.nk-operation-feedback')).toContainText('Información guardada correctamente.')
+ const confirmation=page.locator('.nk-form-message')
+ await expect(confirmation).toHaveAttribute('role','status')
+ await expect(confirmation).toContainText('Configuración guardada correctamente.')
+ await expect(page.locator('.nk-operation-feedback')).toHaveCount(0)
  await page.goto('/app/turnos')
+ await expect(confirmation).toHaveCount(0)
  await expect(page.locator('.nk-operation-feedback')).toHaveCount(0)
 })
 test('administration denial renders a clear 403 page with a return action',async({page})=>{
