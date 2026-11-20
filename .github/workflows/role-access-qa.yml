@@ -16,6 +16,23 @@ jobs:
   role-access-policy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://qa:qa@localhost:5432/accesomina_qa
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: accesomina_qa
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa -d accesomina_qa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
