@@ -105,15 +105,17 @@ test('perfil delegado entra a suscripciones sin administración global de client
   await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar', exact: true })).toBeVisible()
 })
 
-test('administrador de empresa y roles operativos no consultan acceso global sin perfil', async ({ page }) => {
-  for (const role of ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']) {
+for (const role of ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']) {
+  test(`perfil ${role} sin elegibilidad global no consulta administración de suscripciones`, async ({ page }) => {
     const calls = await mockPortal(page, { suspended: false, role })
     await page.goto('/app')
-    await expect(page.getByRole('heading', { name: 'Estado de la operación', exact: true })).toBeVisible()
+    // The dashboard is permission-dependent. Check the auth bootstrap instead
+    // of assuming every non-admin sees the same dashboard heading.
+    await expect.poll(() => calls.filter(call => call.path === '/api/auth/me').length).toBeGreaterThan(0)
+    await expect.poll(() => calls.filter(call => call.path === '/api/subscription').length).toBeGreaterThan(0)
     expect(calls.filter(call => call.path === '/api/subscriptions/admin/access')).toHaveLength(0)
-    await page.unrouteAll({ behavior: 'wait' })
-  }
-})
+  })
+}
 
 test('operador delegado validado por el backend conserva consulta global de suscripciones', async ({ page }) => {
   const calls = await mockPortal(page, { suspended: false, role: 'rrhh', profile: 'COMMERCIAL' })

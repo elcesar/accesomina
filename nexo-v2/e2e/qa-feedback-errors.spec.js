@@ -37,8 +37,8 @@ for(const code of [500,503])test(`state load failure shows a nonblocking ${code}
  await expect(alert).toContainText(code===500?'No pudimos cargar la información':'El servicio no está disponible temporalmente')
  await expect(alert).not.toContainText(`Error ${code}`)
  await expect(alert).toHaveCSS('border-color', /rgb\(/)
- await expect(page.getByRole('button',{name:'Volver a intentar'})).toBeVisible()
- await expect(page.getByRole('button',{name:'Cerrar aviso'})).toBeVisible()
+ await expect(alert.getByRole('button',{name:'Volver a intentar'})).toBeVisible()
+ await expect(alert.getByRole('button',{name:'Cerrar aviso'})).toBeVisible()
  // The module remains mounted; the error is an inline alert, not a full-page replacement.
  await expect(page.locator('.nk-people-page')).toBeVisible()
  status=200
