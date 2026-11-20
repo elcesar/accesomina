@@ -27,5 +27,7 @@ jobs:
           node-version: 22
       - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
       - run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Validate DNS, configuration and non-sending SMTP preflight
-        run: node --test server/test/email-delivery-preflight.test.js
+      - name: Validate command syntax and non-sending SMTP preflight
+        run: >-
+          node --check server/scripts/check-email-delivery-preflight.js
+          && node --test server/test/email-delivery-preflight.test.js
