@@ -1,0 +1,26 @@
+name: Role access QA
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/**'
+      - 'server/**'
+      - 'shared/role-access.js'
+      - '.github/workflows/role-access-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  role-access-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec node --test server/test/module-access.test.js server/test/subscription-entitlements.test.js
