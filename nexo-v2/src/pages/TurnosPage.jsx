@@ -102,43 +102,43 @@ function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, reco
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} disabled={saving || !canSchedule} onChange={e => set('trabId', e.target.value)}>
+            <select className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
               <option value="">Selecciona una persona</option>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} disabled={saving || !canSchedule} onChange={e => set('mantId', e.target.value)}>
+            <select className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
               <option value="">Selecciona una orden de servicio</option>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </Field>
           <Field label="Régimen">
-            <select className="nk-select" value={form.regimen} disabled={saving || !canSchedule} onChange={e => set('regimen', e.target.value)}>
+            <select className="nk-select" value={form.regimen} disabled={busy || !canSchedule} onChange={e => set('regimen', e.target.value)}>
               {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Turno">
-            <select className="nk-select" value={form.turno} disabled={saving || !canSchedule} onChange={e => set('turno', e.target.value)}>
+            <select className="nk-select" value={form.turno} disabled={busy || !canSchedule} onChange={e => set('turno', e.target.value)}>
               {WORKER_ASSIGNMENT_SHIFTS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Fecha">
-            <input className="nk-input" type="date" value={form.fecha} disabled={saving || !canSchedule} onChange={e => set('fecha', e.target.value)} />
+            <input className="nk-input" type="date" value={form.fecha} disabled={busy || !canSchedule} onChange={e => set('fecha', e.target.value)} />
           </Field>
           <Field label="Asistencia">
-            <select className="nk-select" value={form.asistencia} disabled={saving || !canSchedule} onChange={e => set('asistencia', e.target.value)}>
+            <select className="nk-select" value={form.asistencia} disabled={busy || !canSchedule} onChange={e => set('asistencia', e.target.value)}>
               {ASISTENCIAS.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </Field>
           <Field label="Ingreso">
-            <input className="nk-input" type="time" value={form.ingreso} disabled={saving || !canSchedule} onChange={e => set('ingreso', e.target.value)} />
+            <input className="nk-input" type="time" value={form.ingreso} disabled={busy || !canSchedule} onChange={e => set('ingreso', e.target.value)} />
           </Field>
           <Field label="Salida">
-            <input className="nk-input" type="time" value={form.salida} disabled={saving || !canSchedule} onChange={e => set('salida', e.target.value)} />
+            <input className="nk-input" type="time" value={form.salida} disabled={busy || !canSchedule} onChange={e => set('salida', e.target.value)} />
           </Field>
           <Field label="HH reales" wide>
-            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} disabled={saving || !canSchedule} onChange={e => set('hh', e.target.value)} />
+            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} disabled={busy || !canSchedule} onChange={e => set('hh', e.target.value)} />
           </Field>
         </div>
 
