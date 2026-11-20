@@ -7,7 +7,7 @@ import { EMAIL_ERROR, normalizeEmail, validateEmail } from '../../services/email
  */
 export function EmailInput({
   value = '', onChange, id, name, required = false, disabled = false,
-  error, validationRequested = false, onBlur, normalizeOnBlur = true, className = '',
+  error, validationRequested = false, onBlur, normalizeOnBlur = true, reserveErrorSpace = false, className = '',
   'aria-describedby': describedBy, ...props
 }) {
   const generatedId = useId()
@@ -40,10 +40,8 @@ export function EmailInput({
         onBlur?.(event)
       }}
     />
-    {/* Reserve the wrapped error line so validation on blur cannot move the
-        submit button between pointer down and click. Hidden text is not read. */}
-    <p id={message ? errorId : undefined} className="nk-field-error"
+    {(message || reserveErrorSpace) && <p id={message ? errorId : undefined} className="nk-field-error"
       role={message ? 'alert' : undefined} aria-hidden={message ? undefined : true}
-      style={{ visibility: message ? 'visible' : 'hidden' }}>{message || EMAIL_ERROR}</p>
+      style={message ? undefined : { visibility: 'hidden' }}>{message || EMAIL_ERROR}</p>}
   </>
 }

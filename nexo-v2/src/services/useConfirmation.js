@@ -42,6 +42,7 @@ export function useConfirmation() {
       title: request?.title,
       description: request?.description,
       confirmLabel: request?.confirmLabel,
+      cancelLabel: request?.cancelLabel,
       variant: request?.variant,
       loading,
       error,
