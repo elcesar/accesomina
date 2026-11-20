@@ -57,15 +57,16 @@ test('opportunity CSV import writes the portal module, retains history and can b
  await seed({opportunities:[legacy]});const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa,monto,probabilidad\nnuevo_cliente,Empresa importada QA,prospecto,50,25\n',mode:'append'});
  assert.equal(res.statusCode,200);assert.deepEqual(res.body.modules,['prospectos','oportunidades','opportunities']);const state=await stored();assert.deepEqual(state.opportunities,[]);assert.deepEqual(state.oportunidades,[]);assert.equal(state.prospectos.some(item=>item.id==='legacy'),true);assert.equal(state.prospectos.some(item=>item.company==='Empresa importada QA'),true);assert.equal(opportunityRows(state).length,2);
  const exported=await invoke('/export/:type','get');assert.match(exported.body,/Empresa importada QA/);assert.match(exported.body,/Empresa histórica QA/);
- const log=await db.query('SELECT * FROM audit_log');assert.equal(log.rows.length,1);assert.equal(log.rows[0].entity_type,'prospectos');
+ const log=await db.query('SELECT * FROM audit_log');assert.equal(log.rows.length,3);assert.deepEqual(new Set(log.rows.map(row=>row.entity_type)),new Set(['prospectos','oportunidades','opportunities']));assert.ok(log.rows.every(row=>row.action==='module.imported'));
 });
 test('explicit replacement clears historical aliases atomically instead of showing deleted old rows',async()=>{
  await seed({prospectos:[current],oportunidades:[legacy],opportunities:[{id:'other',company:'Otro QA'}]});
- const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace'});assert.equal(res.statusCode,200);
+ const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace',confirmReplace:'REEMPLAZAR'});assert.equal(res.statusCode,200);
  const state=await stored();assert.deepEqual(state.oportunidades,[]);assert.deepEqual(state.opportunities,[]);assert.equal(opportunityRows(state).length,1);assert.equal(opportunityRows(state)[0].company,'Reemplazo QA');
 });
-test('invalid references roll back CSV import and audit without affecting existing opportunities',async()=>{
- await seed({prospectos:[current]});await assert.rejects(()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa,cliente\nnuevo_cliente,Importación QA,prospecto,missing\n',mode:'append'}),e=>e.code==='INVALID_REFERENCE');
+test('invalid references return structured CSV diagnostics without affecting existing opportunities',async()=>{
+ await seed({prospectos:[current]});const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa,cliente\nnuevo_cliente,Importación QA,prospecto,missing\n',mode:'append'});
+ assert.equal(res.statusCode,400);assert.equal(res.body.error,'IMPORT_VALIDATION_FAILED');assert.equal(res.body.persisted,false);assert.ok(res.body.issues.some(issue=>issue.row===2&&issue.column==='cliente'&&issue.code==='INVALID_REFERENCE'));
  assert.deepEqual((await stored()).prospectos,[current]);assert.equal((await db.query('SELECT * FROM audit_log')).rows.length,0);
 });
 test('read-only accounts cannot access the export or import administrative routes',async()=>{
@@ -78,16 +79,18 @@ test('CSV output preserves order, accents, commas and multiline notes',async()=>
 
 test('the backend rejects duplicate active opportunities without RUT across legacy and canonical collections',async()=>{
   await seed({opportunities:[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]});
-  await assert.rejects(
-    ()=>invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa Sur QA,prospecto\\n',mode:'append'}),
-    error=>error.code==='DUPLICATE_OPPORTUNITY'
-  );
+  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Empresa Sur QA,prospecto\n',mode:'append'});
+  assert.equal(res.statusCode,400);
+  assert.equal(res.body.error,'IMPORT_VALIDATION_FAILED');
+  assert.equal(res.body.persisted,false);
+  assert.ok(res.body.issues.some(issue=>issue.code==='DUPLICATE_OPPORTUNITY'));
+
   assert.deepEqual((await stored()).opportunities,[{id:'legacy-without-rut',company:'Empresa Sur QA',type:'nuevo_cliente',stage:'prospecto'}]);
 });
 
 test('replace requires explicit confirmation and reports its operational impact without writing',async()=>{
   await seed({prospectos:[current],opportunities:[legacy]});
-  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Reemplazo QA,prospecto\\n',mode:'replace'});
+  const res=await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Reemplazo QA,prospecto\n',mode:'replace'});
   assert.equal(res.statusCode,409);
   assert.equal(res.body.error,'OPPORTUNITY_REPLACE_CONFIRMATION_REQUIRED');
   assert.equal(res.body.existingRows,2);
@@ -107,7 +110,7 @@ test('legacy records without type or stage remain visibly incomplete instead of 
 
 test('canonical imports retain archived records in the audit log for restoration',async()=>{
   await seed({opportunities:[legacy]});
-  await invoke('/import/:type','post',{file:'tipo,empresa,etapa\\nnuevo_cliente,Empresa nueva QA,prospecto\\n',mode:'append'});
+  await invoke('/import/:type','post',{file:'tipo,empresa,etapa\nnuevo_cliente,Empresa nueva QA,prospecto\n',mode:'append'});
   const audit=(await db.query("SELECT old_value,new_value FROM audit_log WHERE entity_type='opportunities'")).rows[0];
   assert.deepEqual(audit.old_value.records,[legacy]);
   assert.equal(audit.new_value.canonicalStore,'prospectos');
