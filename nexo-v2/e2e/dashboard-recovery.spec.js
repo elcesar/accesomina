@@ -93,7 +93,7 @@ for (const status of [500, 503]) {
     pendingFailure.resolve()
     const globalAlert = page.locator('.nk-operation-feedback-error')
     await expect(globalAlert).toHaveCount(1)
-    await expect(globalAlert).toContainText('Error ' + status)
+    await expect(globalAlert).toContainText(status === 500 ? 'No pudimos cargar la información' : 'El servicio no está disponible temporalmente')
     await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
     await expect(metric(page, 'Personas registradas')).toContainText('2')
 
@@ -128,7 +128,7 @@ test('Panel de control: 200 → 503 → 503 conserva datos y permite otro intent
   await retry.click()
   await expect.poll(() => api.retryRequests()).toBe(1)
   await expect(globalAlert).toHaveCount(1)
-  await expect(globalAlert).toContainText('Error 503')
+  await expect(globalAlert).toContainText('El servicio no está disponible temporalmente')
   await expect(retry).toBeEnabled()
   await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
   await expect(metric(page, 'Personas registradas')).toContainText('2')
@@ -151,7 +151,7 @@ test('Panel de control: 200 → error de red → 200 conserva datos y recupera s
 
   const globalAlert = page.locator('.nk-operation-feedback-error')
   await expect(globalAlert).toHaveCount(1)
-  await expect(globalAlert).toContainText('Error 503')
+  await expect(globalAlert).toContainText('El servicio no está disponible temporalmente')
   await expect(page.locator('.nk-control-feedback')).toHaveCount(0)
   await expect(metric(page, 'Personas registradas')).toContainText('2')
   await expect(page.locator('.nk-dashboard-updated')).toHaveText(updatedBefore)
