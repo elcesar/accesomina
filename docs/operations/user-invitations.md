@@ -25,7 +25,6 @@ El comando consulta sólo SPF, DMARC y el DKIM indicado, valida que la configura
 
 Después de un resultado `verified`, QA debe hacer la prueba real con buzones autorizados de Microsoft 365 y Gmail: invitación, recuperación, bandeja de entrada, spam, enlace de un solo uso y reenvío. Esa prueba confirma entrega final; el preflight no puede medir reputación ni clasificación antispam.
 
-
 ## Flujo y contrato
 
 - `POST /api/users`: sólo administradores. Crea el usuario y una invitación pendiente en una transacción; después intenta la entrega. Responde `201 { user, invitation }` incluso cuando SMTP falla, para que la cuenta persistida no se cree nuevamente. Un correo duplicado en la misma empresa responde `409 USER_ALREADY_EXISTS`.
