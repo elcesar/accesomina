@@ -258,9 +258,9 @@ test('el reintento global no desbloquea un conflicto sin versión válida de tur
     await expect(save).toBeDisabled()
   }
 
-  await page.evaluate(({ rows, version }) => window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', {
+  await page.evaluate(({ rows, version, person, order }) => window.dispatchEvent(new CustomEvent('nexo:state-retry-succeeded', {
     detail: { result: { state: { turnos: rows, trabajadores: [person], mantenciones: [order], minas: [], asignaciones: [] }, moduleVersions: { turnos: version } } },
-  })), { rows: fixture.turnos, version: fixture.version })
+  })), { rows: fixture.turnos, version: fixture.version, person, order })
   await expect(save).toBeEnabled()
   await save.click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
