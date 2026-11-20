@@ -1,6 +1,6 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
-import { documentStatus, requirementStatus, requirementSummary } from '../services/worker-document-status.js'
+import { documentStatus, workerComplianceRequirements, workerComplianceSummary, workerRequirementStatus } from '../services/worker-document-status.js'
 import { localDate } from '../services/calendar-date.js'
 import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -45,28 +45,6 @@ const ITEM_TYPES = {
   cv: 'Currículum / antecedentes',
 }
 
-const REQUIRED_ITEMS = [
-  { type: 'documento', documentType: 'IDENTITY_CARD', name: 'Cédula de identidad' },
-  { type: 'contrato', documentType: 'EMPLOYMENT_CONTRACT', name: 'Contrato de trabajo' },
-  { type: 'contrato', documentType: 'SERVICE_ANNEX', name: 'Anexo asociado al servicio' },
-  { type: 'documento', documentType: 'AFP_CERTIFICATE', name: 'Certificado AFP' },
-  { type: 'documento', documentType: 'AFC_CERTIFICATE', name: 'Certificado AFC' },
-  { type: 'documento', documentType: 'HEALTH_INSURANCE_CERTIFICATE', name: 'Certificado Fonasa/Isapre' },
-  { type: 'examen', documentType: 'MEDICAL_EXAM', name: 'Examen preocupacional' },
-  { type: 'curso', documentType: 'ODI_ACKNOWLEDGMENT', name: 'ODI / Derecho a Saber' },
-  { type: 'curso', documentType: 'INTERNAL_REGULATION_ACKNOWLEDGMENT', name: 'Reglamento Interno' },
-  { type: 'documento', documentType: 'CV', name: 'CV actualizado' },
-]
-
-const REQUIRED_BY_SPECIALTY = {
-  Eléctrico: [{ type: 'curso', name: 'Arc Flash' }, { type: 'certificacion', name: 'Certificación eléctrica' }],
-  Instrumentista: [{ type: 'curso', name: 'LOTO / Bloqueo y Etiquetado' }],
-  'Mecánico Industrial': [{ type: 'curso', name: 'LOTO / Bloqueo y Etiquetado' }],
-  'Soldador 6G': [{ type: 'curso', name: 'Trabajos en caliente' }, { type: 'certificacion', name: 'Calificación soldador 6G' }],
-  Rigger: [{ type: 'certificacion', name: 'Certificación Rigger' }, { type: 'curso', name: 'Izaje de cargas' }],
-  'Maestro Andamios': [{ type: 'curso', name: 'Trabajo en altura física' }],
-}
-
 const TABS = [
   { key: 'datos', label: 'Resumen', icon: IconUser },
   { key: 'docs', label: 'Documentos y aptitudes', icon: IconFileText },
@@ -81,27 +59,6 @@ const documentOptionsForTab = tabKey => DOCUMENT_TYPE_OPTIONS.filter(option => t
 function initials(name) {
   const parts = (name || '').trim().split(' ')
   return `${parts[0]?.[0] || ''}${parts[1]?.[0] || ''}`.toUpperCase()
-}
-
-function matchItem(item, req) {
-  if (req.documentType && item.documentType) return req.documentType === item.documentType
-  const expectedName = req.name.toLowerCase().split('/')[0].trim()
-  const isCvRequirement = req.type === 'documento' && expectedName.startsWith('cv')
-  const typeMatches = item.type === req.type || (isCvRequirement && item.type === 'cv')
-  return typeMatches && item.name?.toLowerCase().includes(expectedName)
-}
-
-function getRequiredItems(worker) {
-  return [...REQUIRED_ITEMS, ...(REQUIRED_BY_SPECIALTY[worker.especialidad] || [])]
-}
-
-function reqStatus(worker, req) {
-  return requirementStatus((worker.workerItems || []).filter(current => matchItem(current, req)))
-}
-
-function acreditacionPct(worker) {
-  const reqs = getRequiredItems(worker)
-  return requirementSummary(reqs.map(req => (worker.workerItems || []).filter(current => matchItem(current, req)))).percentage
 }
 
 function statusClass(pct) {
@@ -230,7 +187,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
   const [deleteError, setDeleteError] = useState(null)
 
   const docs = (worker.workerItems || []).filter(d => tabKey === 'cursos' ? ['curso', 'certificacion'].includes(d.type) : !['curso'].includes(d.type))
-  const reqs = getRequiredItems(worker)
+  const reqs = workerComplianceRequirements(worker)
   const reqsFiltrados = tabKey === 'cursos' ? reqs.filter(r => ['curso', 'certificacion'].includes(r.type)) : reqs.filter(r => !['curso'].includes(r.type))
   const rule = documentRule(form.documentType, form.name)
   const evidenceMissing = rule.twoSided ? (!frontFile || !backFile || !form.vence) : !selectedFile
@@ -346,7 +303,7 @@ function DocsTab({ worker, tabKey, onAppendItem, onRemoveItem, onError }) {
     <CardSection title="Requisitos de documentos y aptitudes" subtitle="Requisitos base y por especialidad. Los faltantes pueden cargarse directamente desde esta tabla.">
       <input ref={checklistFileRef} type="file" hidden accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xlsx" onChange={uploadRequirement} />
       <div className="nk-table-wrapper nk-person-table"><table className="nk-table"><thead><tr><th>Requisito</th><th>Tipo</th><th>Estado</th><th>Fuente</th><th /></tr></thead><tbody>
-        {reqsFiltrados.map((req, i) => { const st = reqStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.className}`}>{st.label}</span></td><td className="nk-person-text-muted">{st.source}</td><td>{!st.ok && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</ActionButton>}</td></tr> })}
+        {reqsFiltrados.map((req, i) => { const st = workerRequirementStatus(worker, req); const isUploading = uploading && pendingRequirement?.type === req.type && pendingRequirement?.name === req.name; const evidenceRule = documentRule(req.type, req.name, req.documentType); return <tr key={`${req.type}-${req.name}-${i}`}><td className="nk-person-text-strong">{req.name}</td><td>{ITEM_TYPES[req.type] || req.type}</td><td><span className={`nk-badge ${st.className}`}>{st.label}</span></td><td className="nk-person-text-muted">{st.source}</td><td>{!st.ok && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-quiet" type="button" disabled={uploading} onClick={() => chooseRequirementFile(req)}>{isUploading ? <IconLoader2 size={14} className="animate-spin" /> : <IconPaperclip size={14} />}{isUploading ? 'Cargando…' : evidenceRule.twoSided ? 'Completar' : 'Cargar'}</ActionButton>}</td></tr> })}
       </tbody></table></div>
     </CardSection>
 
@@ -596,7 +553,7 @@ export default function FichaTrabajadorPage() {
 
   if (!stateData) return <div className="nk-person-state"><IconLoader2 size={28} className="animate-spin" /><span>Cargando ficha…</span></div>
   if (!worker) return <div className="nk-person-state">Persona no encontrada.</div>
-  const pct = acreditacionPct(worker); const clientes = stateData?.minas || []; const proyectos = stateData?.mantenciones || []; const contratos = stateData?.contratos || []; const deliveries = stateData?.eppDeliveries || []
+  const pct = workerComplianceSummary(worker).percentage; const clientes = stateData?.minas || []; const proyectos = stateData?.mantenciones || []; const contratos = stateData?.contratos || []; const deliveries = stateData?.eppDeliveries || []
   const restrictions = stateData?.restricted || []
   const isRestricted = operationalStatus(worker, assignments, restrictions, proyectos) === 'restringido'
   const availability = operationalStatus(worker, assignments, restrictions, proyectos)
