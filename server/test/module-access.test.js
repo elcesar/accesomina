@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { moduleForPath, moduleIsEnabled } from '../../nexo-v2/src/services/module-access.js'
+import { roleCanReadModule, roleCanWriteStateKey, userCanReadModule, userCanWriteModule } from '../../shared/role-access.js'
 import { assertEntityTypeAccess, assertModuleAccess, canAccessEntityType, canAccessModule, filterAccessibleModules, moduleForEntityType } from '../module-access.js'
 import { stateRouter } from '../routes/state.js'
+import { enforceStateScope } from '../validation.js'
 
 test('a disabled module blocks every route in its mapped functional area', () => {
   const modules = { trabajadores: false, minas: false, vehiculos: false }
@@ -29,6 +31,46 @@ test('administration routes have stable module identities for route protection',
   assert.equal(moduleForPath('/app/configuracion'), 'configuracion')
   assert.equal(moduleForPath('/app/usuarios'), 'usuarios')
   assert.equal(moduleForPath('/app/administracion-clientes'), 'administracion-clientes')
+  assert.equal(moduleForPath('/app/transferencia'), 'transferencia')
+  assert.equal(moduleForPath('/app/acreditacion-empresa'), 'auditoria')
+  assert.equal(moduleForPath('/app/bodegas'), 'vehiculos')
+})
+
+test('role policy filters navigation and keeps explicit module restrictions additive', () => {
+  assert.equal(roleCanReadModule('rrhh', 'trabajadores'), true)
+  assert.equal(roleCanReadModule('rrhh', 'vehiculos'), false)
+  assert.equal(roleCanReadModule('prevencion', 'vehiculos'), true)
+  assert.equal(roleCanReadModule('acreditacion', 'auditoria'), true)
+  assert.equal(roleCanReadModule('consulta', 'reportes'), true)
+  assert.equal(roleCanReadModule('consulta', 'configuracion'), false)
+  assert.equal(userCanReadModule({ role: 'rrhh', modules: { trabajadores: false } }, 'trabajadores'), false)
+  assert.equal(moduleIsEnabled({}, 'vehiculos', {}, 'rrhh'), false)
+  assert.equal(moduleIsEnabled({}, 'vehiculos', {}, 'prevencion'), true)
+  assert.equal(canAccessModule({ role: 'rrhh', permissions: { modules: {} } }, 'vehiculos'), false)
+  assert.equal(canAccessModule({ role: 'prevencion', permissions: { modules: {} } }, 'vehiculos'), true)
+  assert.equal(canAccessModule({ role: 'rrhh', permissions: { modules: {} } }, 'transferencia'), false)
+  assert.equal(canAccessModule({ role: 'consulta', permissions: { modules: {} } }, 'configuracion'), false)
+})
+
+test('read-only accounts can consult their role scope but cannot receive write actions', () => {
+  assert.equal(userCanWriteModule({ role: 'consulta', modules: {} }, 'trabajadores'), false)
+  assert.equal(userCanWriteModule({ role: 'rrhh', modules: {} }, 'trabajadores'), true)
+  assert.equal(userCanWriteModule({ role: 'rrhh', modules: {} }, 'vehiculos'), false)
+  assert.equal(roleCanWriteStateKey('rrhh', 'asignaciones'), true)
+  assert.equal(roleCanWriteStateKey('rrhh', 'contratos'), false)
+  assert.equal(roleCanWriteStateKey('consulta', 'trabajadores'), false)
+})
+
+test('state write policy rejects read-only changes before persistence', () => {
+  assert.throws(
+    () => enforceStateScope('consulta', { trabajadores: [] }, { trabajadores: [{ id: 'qa-person' }] }),
+    error => error.status === 403 && error.code === 'FIELD_PERMISSION_DENIED',
+  )
+  assert.doesNotThrow(() => enforceStateScope('rrhh', { trabajadores: [] }, { trabajadores: [{ id: 'qa-person' }] }))
+  assert.throws(
+    () => enforceStateScope('rrhh', { contratos: [] }, { contratos: [{ id: 'qa-contract' }] }),
+    error => error.status === 403 && error.code === 'FIELD_PERMISSION_DENIED',
+  )
 })
 
 test('backend rejects an explicit worker restriction while administrators retain full access', () => {
@@ -45,7 +87,7 @@ test('specialized file and transfer access resolves to the protected module', ()
   assert.equal(moduleForEntityType('contract_document'), 'contratos')
   assert.equal(moduleForEntityType('order_document'), 'mantenciones')
   assert.equal(moduleForEntityType('company_document'), 'auditoria')
-  assert.deepEqual(filterAccessibleModules({ role: 'rrhh', permissions: { modules: { trabajadores: false } } }, { trabajadores: [{ id: 'p1' }], vehiculos: [{ id: 'v1' }] }), { vehiculos: [{ id: 'v1' }] })
+  assert.deepEqual(filterAccessibleModules({ role: 'rrhh', permissions: { modules: { trabajadores: false } } }, { trabajadores: [{ id: 'p1' }], vehiculos: [{ id: 'v1' }] }), {})
 })
 
 test('unknown file entity types are denied by default while administrators retain explicit access', () => {
