@@ -4,6 +4,7 @@ import { moduleForPath, moduleIsEnabled } from '../../nexo-v2/src/services/modul
 import { roleCanReadModule, roleCanWriteStateKey, userCanReadModule, userCanWriteModule } from '../../shared/role-access.js'
 import { assertEntityTypeAccess, assertModuleAccess, canAccessEntityType, canAccessModule, filterAccessibleModules, moduleForEntityType } from '../module-access.js'
 import { stateRouter } from '../routes/state.js'
+import { enforceStateScope } from '../validation.js'
 
 test('a disabled module blocks every route in its mapped functional area', () => {
   const modules = { trabajadores: false, minas: false, vehiculos: false }
@@ -58,6 +59,18 @@ test('read-only accounts can consult their role scope but cannot receive write a
   assert.equal(roleCanWriteStateKey('rrhh', 'asignaciones'), true)
   assert.equal(roleCanWriteStateKey('rrhh', 'contratos'), false)
   assert.equal(roleCanWriteStateKey('consulta', 'trabajadores'), false)
+})
+
+test('state write policy rejects read-only changes before persistence', () => {
+  assert.throws(
+    () => enforceStateScope('consulta', { trabajadores: [] }, { trabajadores: [{ id: 'qa-person' }] }),
+    error => error.status === 403 && error.code === 'FIELD_PERMISSION_DENIED',
+  )
+  assert.doesNotThrow(() => enforceStateScope('rrhh', { trabajadores: [] }, { trabajadores: [{ id: 'qa-person' }] }))
+  assert.throws(
+    () => enforceStateScope('rrhh', { contratos: [] }, { contratos: [{ id: 'qa-contract' }] }),
+    error => error.status === 403 && error.code === 'FIELD_PERMISSION_DENIED',
+  )
 })
 
 test('backend rejects an explicit worker restriction while administrators retain full access', () => {
