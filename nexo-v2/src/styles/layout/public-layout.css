@@ -30,6 +30,8 @@
   align-items: center;
   justify-content: flex-start;
   flex: 0 0 auto;
+  min-width: var(--nk-touch-min);
+  min-height: var(--nk-touch-min);
   padding: var(--nk-space-0);
   border: 0;
   background: transparent;
@@ -74,7 +76,7 @@
 
 .nk-public-section-tabs a {
   flex: 0 0 auto;
-  min-height: var(--nk-space-10);
+  min-height: var(--nk-touch-min);
   margin-block: var(--nk-space-1);
   padding: var(--nk-space-0) var(--nk-space-4);
   border: var(--nk-stroke-thin) solid transparent;
@@ -82,12 +84,28 @@
   background: transparent;
   color: var(--nk-ink-2);
   font: var(--nk-font-label);
+  font-size: var(--nk-text-base);
   white-space: nowrap;
   scroll-snap-align: start;
   transition:
     color var(--nk-motion-normal) var(--nk-motion-curve),
     border-color var(--nk-motion-normal) var(--nk-motion-curve),
     background-color var(--nk-motion-normal) var(--nk-motion-curve);
+}
+
+/* Public navigation is read and tapped before a visitor enters the portal.
+   Keep its labels and hit areas at the public accessibility baseline without
+   changing the denser typography used by the private application. */
+.nk-public-topbar .nk-button,
+.nk-public-menu-toggle,
+.nk-public-mobile-menu a,
+.nk-public-mobile-menu .nk-button {
+  min-height: var(--nk-touch-min);
+}
+
+.nk-public-menu-toggle {
+  width: var(--nk-touch-min);
+  height: var(--nk-touch-min);
 }
 
 .nk-public-section-tabs a:hover {
@@ -143,7 +161,7 @@
 
   .nk-public-nav-cta > .nk-public-menu-toggle {
     display: inline-flex;
-    flex: 0 0 var(--nk-row-compact);
+    flex: 0 0 var(--nk-touch-min);
   }
 
   .nk-public-mobile-menu {
@@ -161,13 +179,14 @@
 
   .nk-public-mobile-menu a:not(.nk-button),
   .nk-public-mobile-menu a {
-    min-height: var(--nk-row-compact);
+    min-height: var(--nk-touch-min);
     padding: var(--nk-space-2) var(--nk-space-3);
     border: var(--nk-stroke-thin) solid var(--nk-line);
     border-radius: var(--nk-radius-md);
     background: var(--nk-surface);
     color: var(--nk-ink);
     font: var(--nk-font-label);
+    font-size: var(--nk-text-base);
     text-align: left;
   }
 
