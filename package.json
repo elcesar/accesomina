@@ -12,7 +12,8 @@
     "migrate": "node server/scripts/migrate.js",
     "seed:admin": "node server/scripts/seed-admin.js",
     "test": "node --test server/test/*.test.js",
-    "check": "node --check server/index.js && node --check public/cloud-client.js && node --test server/test/*.test.js"
+    "check": "node --check server/index.js && node --check public/cloud-client.js && node --test server/test/*.test.js",
+    "email:delivery:preflight": "node server/scripts/check-email-delivery-preflight.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.830.0",
