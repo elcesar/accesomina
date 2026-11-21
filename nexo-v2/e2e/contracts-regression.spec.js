@@ -131,7 +131,10 @@ for (const width of [375, 1440]) {
       const fixture = await mockContracts(page, { role: 'consulta' })
       await page.goto('/app/contratos')
       await expect(page.getByRole('button', { name: '+ Contrato', exact: true })).toHaveCount(0)
-      await page.getByRole('button', { name: 'Abrir contrato Mantención industrial QA' }).click()
+      // El control transversal de solo lectura deshabilita los botones dentro del fieldset.
+      // Comprobamos la fila sin intentar pulsarla y validamos la ficha por URL directa.
+      await expect(page.getByRole('button', { name: 'Abrir contrato Mantención industrial QA' })).toBeDisabled()
+      await page.goto('/app/contratos/contract-one')
       await expect(page.getByLabel('Nombre del contrato', { exact: true })).toBeDisabled()
       await expect(page.getByLabel('Cliente', { exact: true })).toBeDisabled()
       await expect(page.getByRole('button', { name: 'Guardar cambios', exact: true })).toHaveCount(0)
