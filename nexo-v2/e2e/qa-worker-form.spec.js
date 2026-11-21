@@ -3,7 +3,8 @@ const state={trabajadores:[{id:'qa-person',nombre:'José Peña QA',rut:'11.111.1
 test.beforeEach(async({page})=>{
  await page.route('**/api/**',route=>{
  const path=new URL(route.request().url()).pathname
- return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:{}})
+ const record=state.trabajadores.find(worker=>worker.id===path.split('/').at(-1))
+ return route.fulfill({json:path==='/api/auth/me'?{user:{role:'client_admin'},tenant:{id:'qa'}}:path==='/api/settings'?{settings:{}}:path==='/api/state'?{state,moduleVersions:{}}:record?{record,revision:'qa-revision'}:{}})
  })
 })
 test('underage validation has one associated error, and leaving through global actions is guarded',async({page})=>{
@@ -20,6 +21,25 @@ test('underage validation has one associated error, and leaving through global a
  await page.getByRole('button',{name:'+ Cliente',exact:true}).click()
  await page.getByRole('button',{name:'Salir y descartar'}).click()
  await expect(page).toHaveURL(/\/app\/clientes\/nuevo$/)
+})
+test('invalid worker RUT is reported on blur before advancing and preserves the visible step position', async ({ page }) => {
+ await page.goto('/app/trabajadores/nuevo')
+ const rut = page.locator('#worker-rut')
+ const next = page.getByRole('button', { name: 'Siguiente' })
+ const before = await next.boundingBox()
+ await rut.fill('11.111.111-2')
+ await rut.press('Tab')
+ await expect(page.getByText('El RUT ingresado no es válido. Revisa sus números y dígito verificador.', { exact: true })).toHaveCount(1)
+ await expect(rut).toHaveAttribute('aria-invalid', 'true')
+ expect(await page.evaluate(() => window.scrollY)).toBe(0)
+ await expect(next).toBeVisible()
+ const after = await next.boundingBox()
+ expect(Math.abs((after?.y || 0) - (before?.y || 0))).toBeLessThanOrEqual(2)
+ await rut.fill('12.345.678-5')
+ await rut.press('Tab')
+ await expect(rut).toHaveAttribute('aria-invalid', 'false')
+ const recovered = await next.boundingBox()
+ expect(Math.abs((recovered?.y || 0) - (before?.y || 0))).toBeLessThanOrEqual(2)
 })
 test('person document form has one type selector and no redundant classification',async({page})=>{
  await page.goto('/app/trabajadores/qa-person')
