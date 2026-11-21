@@ -9,6 +9,12 @@ test('a legacy project type remains available when its lifecycle says available'
   assert.equal(workerSegment(available, [], [order]), 'disponible')
 })
 
+test('an explicit project lifecycle stays in its project segment while available', () => {
+  const projectWorker = { ...available, employmentProfile: 'esporadico', tipo: 'esporadico' }
+  assert.equal(operationalStatus(projectWorker, [], [], [order]), 'disponible')
+  assert.equal(workerSegment(projectWorker, [], [order]), 'esporadico')
+})
+
 test('a fixed worker remains in the fixed segment without an operational assignment', () => {
   assert.equal(workerSegment({ ...available, employmentProfile: 'permanente', tipo: 'permanente' }, [], [order]), 'planta')
 })
@@ -23,7 +29,7 @@ test('employment relationship and operational availability remain independent', 
   const fixedWorker = { ...available, employmentProfile: 'permanente', tipo: 'permanente' }
   const assignment = [{ trabId: fixedWorker.id, mantId: order.id, estado: 'confirmado' }]
   assert.equal(employmentRelationship(fixedWorker), 'fijo')
-  assert.equal(operationalStatus(fixedWorker, assignment), 'asignado')
+  assert.equal(operationalStatus(fixedWorker, assignment, [], [order]), 'asignado')
 
   const projectWorker = { ...available, employmentProfile: 'esporadico', tipo: 'esporadico' }
   assert.equal(employmentRelationship(projectWorker), 'proyecto')

@@ -15,8 +15,6 @@ import { useAuth } from '../../services/auth.jsx'
 import { useModuleAccess } from '../../services/module-access.jsx'
 import '../../styles/layout/header.css'
 
-const CONTRACT_EDIT_ROLES = new Set(['domian_admin', 'client_admin'])
-
 const roleLabel = value => String(value || 'usuario')
   .replaceAll('_', ' ')
   .replace(/\b\w/g, letter => letter.toUpperCase())
@@ -34,10 +32,8 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
   const navigate = useNavigate()
   const location = useLocation()
   const { session, logout } = useAuth()
-  const { isEnabled } = useModuleAccess()
+  const { canWrite } = useModuleAccess()
   const role = session?.user?.role
-  const canCreateGeneral = role !== 'consulta'
-  const canCreateCommercial = CONTRACT_EDIT_ROLES.has(role)
   const legalTenantName = session?.tenant?.name || 'Nexo Klar'
   const tenantName = String(branding?.displayName || '').trim() || legalTenantName
   const tenantLogo = String(branding?.logoUrl || '').trim()
@@ -75,7 +71,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
 
       <button className="nk-mobile-actions-toggle" type="button" aria-label="Mostrar acciones de creación" aria-expanded={mobileActionsOpen} aria-controls="nk-mobile-create-actions" onClick={() => setMobileActionsOpen(value => !value)}><IconPlus size={22} /></button>
       <div id="nk-mobile-create-actions" className={`nk-global-actions ${mobileActionsOpen ? 'nk-global-actions-open' : ''}`} aria-label="Acciones globales">
-        {canCreateGeneral && isEnabled('trabajadores') && (
+        {canWrite('trabajadores') && (
           <button
             className={createClass('trabajadores')}
             type="button"
@@ -86,7 +82,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
           </button>
         )}
 
-        {canCreateGeneral && isEnabled('minas') && (
+        {canWrite('minas') && (
           <button
             className={createClass('minas')}
             type="button"
@@ -97,7 +93,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
           </button>
         )}
 
-        {canCreateCommercial && isEnabled('contratos') && (
+        {canWrite('contratos') && (
           <button
             className={createClass('contratos')}
             type="button"
@@ -108,7 +104,7 @@ export default function Header({ branding = {}, menuOpen = false, onToggleMenu, 
           </button>
         )}
 
-        {canCreateCommercial && isEnabled('mantenciones') && (
+        {canWrite('mantenciones') && (
           <button
             className={createClass('mantenciones')}
             type="button"

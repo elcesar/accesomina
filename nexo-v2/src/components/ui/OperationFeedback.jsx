@@ -59,8 +59,8 @@ export default function OperationFeedback({ children }) {
     {failure && <section className="nk-operation-feedback nk-operation-feedback-error" role="alert" aria-live="assertive">
       <IconAlertTriangle size={20} aria-hidden="true" />
       <div>
-        <strong>Error {failure.status === 500 ? 500 : 503}: {failure.status === 500 ? 'No pudimos cargar la información' : 'Servicio temporalmente no disponible'}</strong>
-        <p>No fue posible actualizar los datos. Puedes seguir trabajando con la información que ya está visible. Evita recargar la página si tienes cambios sin guardar.</p>
+        <strong>{failure.status === 500 ? 'No pudimos cargar la información' : 'El servicio no está disponible temporalmente'}</strong>
+        <p>No fue posible actualizar la información. Puedes seguir trabajando con los datos ya visibles. Evita recargar la página si tienes cambios sin guardar.</p>
       </div>
       <button type="button" className="nk-button nk-button-primary" onClick={retryLoad} disabled={retrying}>{retrying ? 'Reintentando…' : 'Volver a intentar'}</button>
       <button type="button" className="nk-button nk-button-quiet" onClick={() => setFailure(null)}>Cerrar aviso</button>

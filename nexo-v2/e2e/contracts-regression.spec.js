@@ -173,7 +173,7 @@ for (const status of [500, 503]) {
     const fixture = await mockContracts(page, { firstLoadError: status })
     await page.goto('/app/contratos')
     const globalFeedback = page.locator('.nk-operation-feedback-error')
-    await expect(globalFeedback).toContainText(`Error ${status}`)
+    await expect(globalFeedback).toContainText(status === 500 ? 'No pudimos cargar la información' : 'El servicio no está disponible temporalmente')
     await expect(page.getByRole('alert').filter({ hasText: 'No fue posible cargar los contratos' })).toBeVisible()
 
     fixture.failReads = false
