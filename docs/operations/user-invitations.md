@@ -25,6 +25,15 @@ El comando consulta sólo SPF, DMARC y el DKIM indicado, valida que la configura
 
 Después de un resultado `verified`, QA debe hacer la prueba real con buzones autorizados de Microsoft 365 y Gmail: invitación, recuperación, bandeja de entrada, spam, enlace de un solo uso y reenvío. Esa prueba confirma entrega final; el preflight no puede medir reputación ni clasificación antispam.
 
+
+### Límites de la prevalidación
+
+- **SPF**: se comprueba que exista al menos un TXT con `v=spf1`; no se evalúa si el mecanismo autoriza al IP real de salida, el envelope-from/Return-Path, los límites de búsquedas DNS ni la alineación SPF con DMARC.
+- **DKIM**: se consulta el selector indicado como TXT y se reconoce `v=DKIM1`; no se verifica ninguna firma criptográfica ni la alineación del dominio `d=` en un mensaje real. Algunos proveedores publican el selector mediante **CNAME**; si la resolución TXT del alias no funciona en el entorno, un resultado negativo requiere comprobar la cadena CNAME en DNS, no asumir ausencia de DKIM.
+- **DMARC**: se comprueba la presencia de `v=DMARC1`, no la validez integral de su sintaxis, política efectiva, alineación ni los resultados de autenticación de mensajes.
+- **SMTP**: `verify()` comprueba la conexión/autenticación del transporte; no verifica identidad del remitente autorizada por el proveedor, aceptación de destinatario, reputación, colas, entrega final ni clasificación de spam.
+- **Alcance operacional**: `verified` significa que estas comprobaciones limitadas tuvieron éxito, **no** que los correos vayan a bandeja de entrada. Probar encabezados Authentication-Results y entrega de invitación/recuperación en Microsoft 365 y Gmail con buzones QA; conservar evidencia sin secretos ni enlaces activos. DNS, ECS, configuración del proveedor y política de remitente requieren acción de Infraestructura.
+
 ## Flujo y contrato
 
 - `POST /api/users`: sólo administradores. Crea el usuario y una invitación pendiente en una transacción; después intenta la entrega. Responde `201 { user, invitation }` incluso cuando SMTP falla, para que la cuenta persistida no se cree nuevamente. Un correo duplicado en la misma empresa responde `409 USER_ALREADY_EXISTS`.

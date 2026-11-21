@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { query, withTenant } from '../db.js';
+import { getSubscriptionAccess } from '../subscription-permissions.js';
 import { config } from '../config.js';
 import { loginSchema, registerSchema } from '../validation.js';
 import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotpSecret, hashPassword, hashRecoveryCode, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256, timingSafeEqualString, validatePassword, verifyPassword, verifyTotp } from '../security.js';
@@ -10,6 +11,16 @@ import { PASSWORD_RESET_GENERIC_MESSAGE, createPasswordReset, deliverPasswordRes
 import { completeUserInvitation } from '../user-invitations.js';
 
 export const authRouter = Router();
+// A UI hint only. All subscription-admin endpoints still recheck the server-side
+// profile and capabilities; failed lookups never block ordinary sign-in.
+async function eligibleForGlobalSubscriptionAccess(tenantId, userId) {
+  try {
+    const access = await getSubscriptionAccess({ tenantId, userId });
+    return access?.capabilities?.includes('read') === true;
+  } catch {
+    return false;
+  }
+}
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
 const passwordResetLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -82,7 +93,8 @@ authRouter.post('/login', limiter, async (req, res) => {
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'session', action: 'session.login', newValue: { ip: clientIp(req),mfaVerified } });
   });
   setSessionCookie(res, token);
-  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password,mfaEnabled:user.mfa_enabled,mfaEnrollmentRequired }, tenant: { id: tenant.id, name: tenant.company_name } });
+  const subscriptionAdminEligible = await eligibleForGlobalSubscriptionAccess(tenant.id, user.id);
+  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, subscriptionAdminEligible, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password,mfaEnabled:user.mfa_enabled,mfaEnrollmentRequired }, tenant: { id: tenant.id, name: tenant.company_name } });
 });
 
 authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
@@ -193,7 +205,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
   return res.status(204).end();
 });
 
-authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0]||{};res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password||false,mfaEnabled:user.mfa_enabled||false,mfaEnrollmentRequired:config.mfaRequired&&!user.mfa_enabled }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
+authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0]||{};const subscriptionAdminEligible=await eligibleForGlobalSubscriptionAccess(req.auth.tenantId, req.auth.userId);res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, subscriptionAdminEligible, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password||false,mfaEnabled:user.mfa_enabled||false,mfaEnrollmentRequired:config.mfaRequired&&!user.mfa_enabled }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
 
 authRouter.post('/mfa/setup',authenticate,requireCsrf,async(req,res)=>{const {currentPassword}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt,email,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(user.mfa_enabled)return res.status(409).json({error:'MFA_ALREADY_ENABLED'});const secret=generateTotpSecret(),encrypted=encryptJson({secret});await withTenant(req.auth.tenantId,client=>client.query('UPDATE app_users SET mfa_pending_secret_encrypted=$1,updated_at=now() WHERE id=$2',[encrypted,req.auth.userId]));const issuer=encodeURIComponent('Nexo Klar'),account=encodeURIComponent(`${req.auth.companyName}:${user.email}`);res.json({secret,otpauthUri:`otpauth://totp/${issuer}:${account}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`});});
 

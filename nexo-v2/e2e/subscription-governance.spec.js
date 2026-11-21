@@ -12,7 +12,7 @@ async function fixture(page, { profile = 'SUPER_ADMIN', capped = false, policies
     const payload = request.postData() && request.headers()['content-type']?.includes('application/json') ? request.postDataJSON() : null
     state.calls.push({ path, method, payload })
     const json = (body, status = 200) => route.fulfill({ status, json: body })
-    if (path === '/api/auth/me') return json({ user: { id: 'self', name: 'Responsable QA', role: profile === 'SUPER_ADMIN' ? 'domian_admin' : 'consulta', permissions: { modules: {} } }, tenant: { id: 'global-qa', name: 'Nexo QA' }, csrfToken: 'qa-csrf' })
+    if (path === '/api/auth/me') return json({ user: { id: 'self', name: 'Responsable QA', role: profile === 'SUPER_ADMIN' ? 'domian_admin' : 'consulta', subscriptionAdminEligible: Boolean(profile), permissions: { modules: {} } }, tenant: { id: 'global-qa', name: 'Nexo QA' }, csrfToken: 'qa-csrf' })
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/state') return json({ state: { trabajadores: [], mantenciones: [], restricted: [], asignaciones: [], prospectos: [] } })
     if (path === '/api/subscription') return json({ legacy: true, managed: false, canOperate: true, capacity: { base: 15, additional: 0, total: 15, used: 0, available: 15 }, requests: [], packages: [], separateServices: {} })

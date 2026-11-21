@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { documentStatus, daysUntilExpiry, requirementStatus, requirementSummary } from '../../nexo-v2/src/services/worker-document-status.js'
+import { documentStatus, daysUntilExpiry, requirementStatus, requirementSummary, workerComplianceIssues, workerComplianceRequirements, workerComplianceSummary, workerRequirementStatus } from '../../nexo-v2/src/services/worker-document-status.js'
 
 const today = new Date(2026, 0, 15, 12)
 const regularFile = { type: 'contrato', documentType: 'EMPLOYMENT_CONTRACT', fileId: 'file-1' }
@@ -52,4 +52,37 @@ test('two documents for one requirement count once and keep their individual sta
   assert.equal(documentStatus(current, today).label, 'Vigente')
   assert.deepEqual(requirementSummary([[expired, current]], today), { total: 1, fulfilled: 1, percentage: 100 })
   assert.equal(requirementStatus([expired, current], today).label, 'Vigente')
+})
+
+test('worker compliance shares specialty-aware requirements and evidence policy across surfaces', () => {
+  const validIdentity = { type: 'documento', documentType: 'IDENTITY_CARD', files: identityFiles, vence: '2030-01-01' }
+  const worker = {
+    especialidad: 'Mecánico Industrial',
+    workerItems: [
+      validIdentity,
+      { ...regularFile, type: 'contrato', documentType: 'EMPLOYMENT_CONTRACT', name: 'Contrato de trabajo' },
+      { ...regularFile, type: 'contrato', documentType: 'SERVICE_ANNEX', name: 'Anexo asociado al servicio' },
+      { ...regularFile, type: 'documento', documentType: 'AFP_CERTIFICATE', name: 'Certificado AFP' },
+      { ...regularFile, type: 'documento', documentType: 'AFC_CERTIFICATE', name: 'Certificado AFC' },
+      { ...regularFile, type: 'documento', documentType: 'HEALTH_INSURANCE_CERTIFICATE', name: 'Certificado Fonasa/Isapre' },
+      { ...regularFile, type: 'examen', documentType: 'MEDICAL_EXAM', name: 'Examen preocupacional' },
+      { ...regularFile, type: 'curso', documentType: 'ODI_ACKNOWLEDGMENT', name: 'ODI / Derecho a Saber' },
+      { ...regularFile, type: 'curso', documentType: 'INTERNAL_REGULATION_ACKNOWLEDGMENT', name: 'Reglamento Interno' },
+      { type: 'cv', documentType: 'CV', name: 'CV actualizado', fileId: 'cv-file' },
+      { ...regularFile, type: 'curso', name: 'LOTO / Bloqueo y Etiquetado' },
+    ],
+  }
+
+  const requirements = workerComplianceRequirements(worker)
+  assert.equal(requirements.length, 11)
+  assert.equal(workerComplianceSummary(worker, today).percentage, 100)
+  assert.deepEqual(workerComplianceIssues(worker, today), [])
+
+  const loto = requirements.find(requirement => requirement.name === 'LOTO / Bloqueo y Etiquetado')
+  assert.equal(workerRequirementStatus(worker, loto, today).label, 'Vigente')
+
+  worker.workerItems = worker.workerItems.filter(item => item.name !== 'Anexo asociado al servicio')
+  const incomplete = workerComplianceSummary(worker, today)
+  assert.deepEqual({ total: incomplete.total, fulfilled: incomplete.fulfilled, percentage: incomplete.percentage }, { total: 11, fulfilled: 10, percentage: 91 })
+  assert.deepEqual(workerComplianceIssues(worker, today).map(issue => issue.message), ['Falta: Anexo asociado al servicio'])
 })

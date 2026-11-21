@@ -6,7 +6,7 @@ async function mockPortal(page, { suspended = true, role = 'client_admin', profi
     const request = route.request(), path = new URL(request.url()).pathname
     calls.push({ path, method: request.method() })
     const json = (body, status = 200) => route.fulfill({ status, json: body })
-    if (path === '/api/auth/me') return json({ user: { id: 'user-qa', name: 'Persona QA', role, permissions: { modules: {} } }, tenant: { id: 'tenant-qa', name: 'Empresa ficticia QA' }, csrfToken: 'qa-csrf' })
+    if (path === '/api/auth/me') return json({ user: { id: 'user-qa', name: 'Persona QA', role, subscriptionAdminEligible: Boolean(profile) || role === 'domian_admin', permissions: { modules: {} } }, tenant: { id: 'tenant-qa', name: 'Empresa ficticia QA' }, csrfToken: 'qa-csrf' })
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
     if (path === '/api/subscriptions/admin/access') return profile ? json({ profile, capabilities: ['read', profile === 'COMMERCIAL' ? 'commercial' : 'operations'] }) : json({ error: 'SUBSCRIPTION_PERMISSION_DENIED' }, 403)
     if (path === '/api/subscription') return failSummary ? json({ error: 'SERVICE_UNAVAILABLE' }, 503) : json({ legacy: false, managed: true, canOperate: !suspended, contract: { planCode: 'FREE', planName: 'Free', status: suspended ? 'SUSPENDED' : 'ACTIVE', endsAt: '2026-11-01T12:00:00Z', monthlyNetPrice: 0 }, capacity: { used: 8, total: 15, available: 7 }, separateServices: { oportunidades: { enabled: independent } }, requests: [] })
@@ -16,7 +16,7 @@ async function mockPortal(page, { suspended = true, role = 'client_admin', profi
     if (path === '/api/subscriptions/admin/catalog') return json({ plans: [], packages: [] })
     if (path === '/api/subscriptions/admin/requests') return json({ requests: [], commercialRequests: [] })
     if (path === '/api/data-transfer/export') return route.fulfill({ status: 200, headers: { 'content-type': 'application/json', 'content-disposition': 'attachment; filename="nexo-qa.json"' }, body: '{"qa":true}' })
-    if (path === '/api/data-transfer/import/trabajadores') return json({ error: 'SUBSCRIPTION_WORKER_LIMIT', used: 8, limit: 15, available: 7, requested: 28 }, 409)
+    if (path === '/api/data-transfer/import/trabajadores') return json({ error: 'SUBSCRIPTION_WORKER_LIMIT', persisted: false, used: 8, limit: 15, available: 7, requested: 28 }, 409)
     if (path === '/api/data-transfer/import/oportunidades') return json({ imported: 1 })
     return json({})
   })
@@ -76,7 +76,7 @@ test('la licencia independiente conserva su importación sin abrir las del plan 
   await page.getByRole('combobox', { name: 'Tipo de archivo', exact: true }).selectOption('oportunidades')
   await page.locator('input[type=file]').setInputFiles({ name: 'oportunidad-qa.csv', mimeType: 'text/csv', buffer: Buffer.from('tipo,empresa,etapa\nprospecto,Empresa ficticia QA,nueva') })
   await page.getByRole('button', { name: 'Validar e importar', exact: true }).click()
-  await expect(page.getByText('Importación completada: 1 registros procesados.')).toBeVisible()
+  await expect(page.getByText('Importación completada: se agregó 1 registro.')).toBeVisible()
   expect(calls.filter(call => call.method === 'POST' && call.path.includes('/import/'))).toEqual([{ path: '/api/data-transfer/import/oportunidades', method: 'POST' }])
 })
 test('consulta no obtiene transferencia reservada a administradores', async ({ page }) => {
@@ -103,4 +103,23 @@ test('perfil delegado entra a suscripciones sin administración global de client
   await expect(page.getByRole('link', { name: 'Administración de clientes', exact: true })).toHaveCount(0)
   await page.goto('/app/administracion-clientes')
   await expect(page.getByRole('heading', { name: 'Acceso reservado a Nexo Klar', exact: true })).toBeVisible()
+})
+
+for (const role of ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']) {
+  test(`perfil ${role} sin elegibilidad global no consulta administración de suscripciones`, async ({ page }) => {
+    const calls = await mockPortal(page, { suspended: false, role })
+    await page.goto('/app')
+    // The dashboard is permission-dependent. Check the auth bootstrap instead
+    // of assuming every non-admin sees the same dashboard heading.
+    await expect.poll(() => calls.filter(call => call.path === '/api/auth/me').length).toBeGreaterThan(0)
+    await expect.poll(() => calls.filter(call => call.path === '/api/subscription').length).toBeGreaterThan(0)
+    expect(calls.filter(call => call.path === '/api/subscriptions/admin/access')).toHaveLength(0)
+  })
+}
+
+test('operador delegado validado por el backend conserva consulta global de suscripciones', async ({ page }) => {
+  const calls = await mockPortal(page, { suspended: false, role: 'rrhh', profile: 'COMMERCIAL' })
+  await page.goto('/app/administracion-planes')
+  await expect(page.getByRole('heading', { name: 'Planes y suscripciones', exact: true })).toBeVisible()
+  expect(calls.filter(call => call.path === '/api/subscriptions/admin/access').length).toBeGreaterThan(0)
 })

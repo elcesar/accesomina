@@ -27,3 +27,24 @@
   overflow-y: auto;
   background: var(--nk-base);
 }
+
+.nk-read-only-notice {
+  margin: var(--nk-space-4) var(--nk-page-padding) 0;
+  padding: var(--nk-space-3) var(--nk-space-4);
+  border: 1px solid var(--nk-warning-border, #d39a20);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-warning-bg, #fff7df);
+  color: var(--nk-ink);
+  font-size: var(--nk-font-size-sm);
+}
+
+.nk-read-only-surface {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nk-read-only-surface :disabled {
+  cursor: not-allowed;
+}
