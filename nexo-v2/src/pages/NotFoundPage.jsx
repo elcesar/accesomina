@@ -26,6 +26,12 @@ export default function NotFoundPage() {
     const canonical = new URL(location.pathname, SITE_URL).toString()
     const previousTitle = document.title
     const restores = []
+    // Unknown URLs should not advertise themselves as canonical resources.
+    // Restore the existing link when leaving this route for a valid SPA page.
+    const canonicalLink = document.querySelector('link[rel="canonical"]')
+    const canonicalParent = canonicalLink?.parentNode
+    const canonicalNextSibling = canonicalLink?.nextSibling
+    canonicalLink?.remove()
 
     document.title = title
     for (const [selector, attribute, value] of [
@@ -33,7 +39,6 @@ export default function NotFoundPage() {
       ['meta[property="og:title"]', 'content', title],
       ['meta[property="og:description"]', 'content', description],
       ['meta[property="og:url"]', 'content', canonical],
-      ['link[rel="canonical"]', 'href', canonical],
     ]) {
       const element = document.querySelector(selector)
       if (element) restores.push(updateAttribute(element, attribute, value))
@@ -51,6 +56,7 @@ export default function NotFoundPage() {
     return () => {
       document.title = previousTitle
       restores.reverse().forEach(restore => restore())
+      if (canonicalLink && canonicalParent) canonicalParent.insertBefore(canonicalLink, canonicalNextSibling?.parentNode === canonicalParent ? canonicalNextSibling : null)
       restoreRobots()
       if (createdRobots) robots.remove()
     }
