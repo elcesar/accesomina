@@ -19,7 +19,7 @@ for (const width of [1440, 375]) {
     await page.goto('/app/oportunidades')
     await page.getByRole('button', { name: 'Nueva oportunidad', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Nueva oportunidad', exact: true })
-    const email = dialog.getByLabel('Correo electrónico', { exact: true })
+    const email = dialog.locator('#opportunity-email')
     const phone = dialog.getByLabel('Teléfono', { exact: true })
     await expect(email).toBeVisible()
     await expect(dialog.locator('#opportunity-email + .nk-field-error')).toHaveCount(0)

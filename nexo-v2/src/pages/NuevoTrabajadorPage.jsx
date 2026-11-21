@@ -95,11 +95,12 @@ function validationError(message, suggestion) {
 
 function Field({ label, required, hint, error, fieldId, children, full = false, reserveRutError = false }) {
   const errorId = error && fieldId ? `${fieldId}-error` : undefined
+  const feedbackId = reserveRutError && fieldId ? `${fieldId}-feedback` : errorId
   const control = fieldId
     ? cloneElement(children, {
         id: fieldId,
         'aria-invalid': error ? true : undefined,
-        'aria-describedby': errorId,
+        'aria-describedby': feedbackId,
         ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
     : children
@@ -110,8 +111,9 @@ function Field({ label, required, hint, error, fieldId, children, full = false, 
         {label}{required && <span className="nk-person-field-required"> *</span>}
       </label>
       {control}
-      {(error || reserveRutError) && <p id={errorId} className="nk-field-error" role={error ? "alert" : undefined} aria-hidden={error ? undefined : true} style={error ? undefined : { visibility: "hidden" }}>{error || "El RUT ingresado no es válido. Revisa sus números y dígito verificador."}</p>}
-      {!error && hint && <p className="nk-field-help">{hint}</p>}
+      {reserveRutError
+        ? <p id={feedbackId} className={`nk-person-rut-feedback ${error ? "nk-field-error" : "nk-field-help"}`} role={error ? "alert" : undefined}>{error || "Formato: números, guion y dígito verificador (X.XXX.XXX-X)."}</p>
+        : <>{error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}{!error && hint && <p className="nk-field-help">{hint}</p>}</>}
     </div>
   )
 }
@@ -154,7 +156,7 @@ function StepIdentidad({ data, onChange, onRutBlur, errors }) {
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
       <Field label="RUT" required fieldId="worker-rut" error={errors.rut} reserveRutError>
-        <RutInput value={data.rut} onChange={value => onChange('rut', value)} onBlur={onRutBlur} required />
+        <RutInput value={data.rut} onChange={value => onChange('rut', value)} onBlur={onRutBlur} showHint={false} required />
       </Field>
       <Field label="Fecha de nacimiento" fieldId="worker-birth-date" error={errors.nacimiento}>
         <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />

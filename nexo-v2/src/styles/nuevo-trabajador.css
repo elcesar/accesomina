@@ -245,8 +245,8 @@
   .nk-person-summary-label { width: auto; }
 }
 
-/* Reserve feedback height in the identity step so RUT validation on blur does not
-   move following controls. All dimensions use canonical typography tokens. */
-.nk-person-field-rut > .nk-field-error {
-  min-height: calc(3 * var(--nk-text-base) * var(--nk-leading-normal));
+/* One permanent feedback row (hint or validation error) prevents layout shifts. */
+.nk-person-field-rut > .nk-person-rut-feedback {
+  min-height: calc(4 * var(--nk-text-base) * var(--nk-leading-normal));
+  margin: 0;
 }
