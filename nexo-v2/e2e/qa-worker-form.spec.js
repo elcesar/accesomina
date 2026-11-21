@@ -34,7 +34,12 @@ test('invalid worker RUT is reported on blur before advancing and preserves the 
  expect(await page.evaluate(() => window.scrollY)).toBe(0)
  await expect(next).toBeVisible()
  const after = await next.boundingBox()
- expect(Math.abs((after?.y || 0) - (before?.y || 0))).toBeLessThan(80)
+ expect(Math.abs((after?.y || 0) - (before?.y || 0))).toBeLessThanOrEqual(2)
+ await rut.fill('12.345.678-5')
+ await rut.press('Tab')
+ await expect(rut).toHaveAttribute('aria-invalid', 'false')
+ const recovered = await next.boundingBox()
+ expect(Math.abs((recovered?.y || 0) - (before?.y || 0))).toBeLessThanOrEqual(2)
 })
 test('person document form has one type selector and no redundant classification',async({page})=>{
  await page.goto('/app/trabajadores/qa-person')
