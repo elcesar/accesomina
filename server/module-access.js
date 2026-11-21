@@ -1,4 +1,5 @@
 import { separateServiceEnabled, separateServiceForModule, separateServiceForEntity } from './subscription-entitlements.js';
+import { isAdministrator, userCanReadModule } from '../shared/role-access.js';
 
 const ENTITY_MODULES = new Map([
   ['worker', 'trabajadores'], ['person', 'trabajadores'], ['persona', 'trabajadores'],
@@ -13,8 +14,6 @@ const ENTITY_MODULES = new Map([
   ['incident_evidence', 'incidentes'], ['alerta', 'auditoria'],
 ])
 
-const ADMIN_ROLES = new Set(['domian_admin', 'client_admin'])
-
 export function moduleForEntityType(entityType) {
   return ENTITY_MODULES.get(String(entityType || '').trim().toLowerCase()) || null
 }
@@ -22,7 +21,7 @@ export function moduleForEntityType(entityType) {
 export function canAccessModule(auth, moduleKey) {
   const service=separateServiceForModule(moduleKey);
   if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
-  return Boolean(moduleKey) && (ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false)
+  return Boolean(moduleKey) && userCanReadModule({ role: auth?.role, modules: auth?.permissions?.modules }, moduleKey)
 }
 
 export function assertModuleAccess(auth, moduleKey) {
@@ -36,7 +35,7 @@ export function assertModuleAccess(auth, moduleKey) {
 export function canAccessEntityType(auth, entityType) {
   const service=separateServiceForEntity(entityType);
   if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
-  return ADMIN_ROLES.has(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
+  return isAdministrator(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
 }
 
 export function assertEntityTypeAccess(auth, entityType) {

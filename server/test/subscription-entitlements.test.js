@@ -23,7 +23,7 @@ test('service expiry uses the exact instant and invalid dates do not grant acces
 test('service ownership does not grant any other modules or ignore role permissions',()=>{
   const user={...auth,role:'rrhh',subscriptionServices:{oportunidades:{enabled:true}},permissions:{modules:{prospectos:false}}};
   assert.equal(canAccessModule(user,'prospectos'),false);
-  assert.equal(canAccessModule({...user,permissions:{modules:{}}},'prospectos'),true);
+  assert.equal(canAccessModule({...user,permissions:{modules:{}}},'prospectos'),false);
   assert.equal(canAccessModule(user,'libroObra'),false);
 });
 test('a mixed operational change cannot be classified as an independent service request',()=>{
