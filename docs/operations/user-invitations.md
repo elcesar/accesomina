@@ -6,6 +6,25 @@ Aplicar `database/postgres/024_user_invitations.sql` mediante el proceso de migr
 
 La bienvenida usa la configuración SMTP global del backend (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`) y `APP_ORIGIN` para el enlace. La configuración de Comunicaciones por empresa no sustituye esta configuración de acceso. No guardar credenciales en el repositorio ni en evidencias de QA.
 
+## Entregabilidad antes de producción
+
+La aceptación del proveedor SMTP no demuestra que Microsoft 365 o Gmail deposite una invitación en bandeja de entrada. Antes de liberar, Infraestructura debe dejar publicada y alineada la autenticación del dominio exacto de `EMAIL_FROM`:
+
+- SPF que autorice al proveedor SMTP que entrega invitaciones, recuperación y avisos;
+- DKIM activo, con el selector público configurado en `EMAIL_DKIM_SELECTOR`;
+- DMARC para ese dominio, inicialmente monitorizado y endurecido de acuerdo con la política de correo;
+- remitente, dominio de retorno e identidad verificada del proveedor alineados.
+
+El repositorio incorpora una prevalidación segura; no configura DNS, ECS ni el proveedor y no envía mensajes. En una tarea única que ya tenga los secretos de producción, ejecutar:
+
+```bash
+npm run email:delivery:preflight -- --verify-smtp
+```
+
+El comando consulta sólo SPF, DMARC y el DKIM indicado, valida que la configuración SMTP esté completa y hace un `verify()` autenticado sin destinatario ni `sendMail`. La salida no contiene host, usuario, contraseña, enlace ni cuerpo de mensaje. Debe terminar con `"status": "verified"`. Si muestra `not_ready`, `ready_pending_transport_verification` o un estado de DNS/transport distinto de `present`/`reachable`, César o Infraestructura debe corregir la dependencia externa antes de liberar la funcionalidad de invitaciones.
+
+Después de un resultado `verified`, QA debe hacer la prueba real con buzones autorizados de Microsoft 365 y Gmail: invitación, recuperación, bandeja de entrada, spam, enlace de un solo uso y reenvío. Esa prueba confirma entrega final; el preflight no puede medir reputación ni clasificación antispam.
+
 ## Flujo y contrato
 
 - `POST /api/users`: sólo administradores. Crea el usuario y una invitación pendiente en una transacción; después intenta la entrega. Responde `201 { user, invitation }` incluso cuando SMTP falla, para que la cuenta persistida no se cree nuevamente. Un correo duplicado en la misma empresa responde `409 USER_ALREADY_EXISTS`.
@@ -31,4 +50,4 @@ Los clientes API existentes todavía pueden suministrar el `password` opcional a
 
 El restablecimiento administrativo anterior mantiene su contrato con contraseña temporal y queda fuera de este cambio. La recuperación pública conserva sus respuestas genéricas y su plazo de 30 minutos. Registrar una Persona en el módulo operacional sigue siendo una operación distinta de dar acceso a un usuario; no crea accesos automáticamente.
 
-Antes de liberar: ejecutar migración y pruebas en un entorno aislado, comprobar recepción con una casilla QA autorizada, probar enlace vencido/reenviado/usado, aislamiento por empresa, fallos SMTP, cambio personal y recuperación. No publicar enlaces activos, credenciales ni datos reales en capturas o issues.
+Antes de liberar: ejecutar migración y pruebas en un entorno aislado, ejecutar la prevalidación SMTP/DNS con credenciales ya inyectadas en una tarea única, comprobar recepción con casillas QA autorizadas de Microsoft 365 y Gmail, probar enlace vencido/reenviado/usado, aislamiento por empresa, fallos SMTP, cambio personal y recuperación. No publicar enlaces activos, credenciales ni datos reales en capturas o issues.
