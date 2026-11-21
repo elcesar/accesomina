@@ -1,0 +1,33 @@
+name: Email delivery preflight QA
+
+on:
+  pull_request:
+    paths:
+      - '.env.example'
+      - 'package.json'
+      - 'server/email-delivery-preflight.js'
+      - 'server/scripts/check-email-delivery-preflight.js'
+      - 'server/test/email-delivery-preflight.test.js'
+      - 'docs/PRODUCTION_RUNBOOK.md'
+      - 'docs/operations/user-invitations.md'
+      - '.github/workflows/email-delivery-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  email-delivery-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate command syntax and non-sending SMTP preflight
+        run: >-
+          node --check server/scripts/check-email-delivery-preflight.js
+          && node --test server/test/email-delivery-preflight.test.js
