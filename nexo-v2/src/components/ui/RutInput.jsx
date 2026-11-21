@@ -1,14 +1,14 @@
 import { useId } from 'react'
 import { formatRut, OPTIONAL_RUT_ERROR } from '../../services/rut.js'
 
-export function RutInput({ value = '', onChange, required = false, disabled = false, id, error, formatOnBlur = true, ...props }) {
+export function RutInput({ value = '', onChange, required = false, disabled = false, id, error, formatOnBlur = true, showHint = true, ...props }) {
   const generatedId = useId()
   const inputId = id || generatedId
   const hintId = `${inputId}-rut-hint`
   const errorId = `${inputId}-error`
 
   const hasError = Boolean(error || props['aria-invalid'])
-  const describedBy = [props['aria-describedby'], !hasError ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
+  const describedBy = [props['aria-describedby'], !hasError && showHint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
 
 
   return <>
@@ -37,7 +37,7 @@ export function RutInput({ value = '', onChange, required = false, disabled = fa
       }}
     />
 
-    {!hasError && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
+    {!hasError && showHint && <p id={hintId} className="nk-field-help">Formato: números, guion y dígito verificador (X.XXX.XXX-X).</p>}
 
     {error !== undefined && <p id={error ? errorId : undefined} className="nk-field-error"
       role={error ? 'alert' : undefined} aria-hidden={error ? undefined : true}

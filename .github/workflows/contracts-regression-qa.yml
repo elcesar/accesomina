@@ -1,0 +1,37 @@
+name: Contracts regression QA
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/pages/ContratosPage.jsx'
+      - 'nexo-v2/src/styles/contratos.css'
+      - 'nexo-v2/e2e/contracts-regression.spec.js'
+      - '.github/workflows/contracts-regression-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - run: pnpm exec playwright test e2e/contracts-regression.spec.js --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts-regression-report
+          path: nexo-v2/playwright-report
+          retention-days: 7

@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { IconDownload, IconMessageCircle, IconPlus, IconRefresh, IconSearch, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { assignmentIsOperational, hasActiveRestriction } from '../services/worker-segments.js'
+import { workerComplianceIssues, workerComplianceSummary } from '../services/worker-document-status.js'
 import { STAFFING_FLOW, staffingAssignmentStage, staffingCoverage } from '../services/staffing-coverage.js'
 import '../styles/control-workspaces.css'
 
@@ -18,10 +19,13 @@ const workerTypeValue = worker => String(worker?.tipoTrabajador || worker?.tipoC
 const typeFor = worker => /proyecto|temporal|plazo|esporadic/.test(workerTypeValue(worker)) ? 'Trabajador por proyecto' : 'Trabajador fijo'
 function validation(worker, restricted) {
   if (restricted) return { label: 'Restringido', cls: 'nk-badge-error', pct: 0, issues: ['Persona restringida'], ready: false }
-  const all = rows(worker.workerItems).filter(item => ['documento', 'examen', 'curso', 'certificacion', 'contrato'].includes(item.type))
-  const issues = all.filter(item => item.estado === 'rechazado' || item.estado === 'faltante' || (item.vence && new Date(item.vence) < new Date())).map(item => item.nombre || item.name || 'Antecedente pendiente')
-  const pct = all.length ? Math.round(((all.length - issues.length) / all.length) * 100) : 0
-  return issues.length ? { label: 'Requiere revisión', cls: 'nk-badge-warn', pct, issues, ready: false } : { label: all.length ? 'Habilitada' : 'Sin información', cls: all.length ? 'nk-badge-ok' : 'nk-badge-neutral', pct, issues: all.length ? [] : ['Sin antecedentes cargados'], ready: all.length > 0 }
+  const summary = workerComplianceSummary(worker)
+  const evidence = rows(worker.workerItems)
+  if (!evidence.length) return { label: 'Sin información', cls: 'nk-badge-neutral', pct: summary.percentage, issues: ['Sin antecedentes cargados'], ready: false }
+  const issues = workerComplianceIssues(worker).map(issue => issue.message)
+  return issues.length
+    ? { label: 'Requiere revisión', cls: 'nk-badge-warn', pct: summary.percentage, issues, ready: false }
+    : { label: 'Habilitada', cls: 'nk-badge-ok', pct: summary.percentage, issues: [], ready: true }
 }
 function csv(name, data) { const text = data.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n'); const url = URL.createObjectURL(new Blob([`\uFEFF${text}`], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url) }
 

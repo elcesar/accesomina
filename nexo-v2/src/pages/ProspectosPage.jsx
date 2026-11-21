@@ -37,14 +37,30 @@ function normalize(item){item=opportunityFields(item);return{...empty(),...item,
 async function saveModule(reason,transform){const response=await api.get('/state'),state=response?.state||response||{},versions=response?.moduleVersions||{},current=opportunityRows(state),data=transform(current);await api.put('/state/modules',{reason,opportunityVersions:{prospectos:versions.prospectos??0,oportunidades:versions.oportunidades??0,opportunities:versions.opportunities??0},changes:{prospectos:{version:versions.prospectos??0,data}}})}
 
 function OpportunityDialog({opportunity,clients,contracts,onClose,onSaved}){
-const [form, setForm] = useState(() =>
+const [initialForm] = useState(() =>
   opportunity ? normalize(opportunity) : empty()
 )
+const [form, setForm] = useState(initialForm)
 const [saving, setSaving] = useState(false)
 const [error, setError] = useState('')
 const [emailError, setEmailError] = useState('')
 const [rutTouched, setRutTouched] = useState(false)
 const [rutServerError, setRutServerError] = useState('')
+const discardConfirmation = useConfirmation()
+const isDirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initialForm), [form, initialForm])
+
+function requestClose() {
+  if (saving) return
+  if (!isDirty) { onClose(); return }
+  discardConfirmation.ask({
+    title: 'Descartar cambios sin guardar',
+    description: 'Hay información de esta oportunidad que aún no se ha guardado. Si cierras ahora, se perderá.',
+    confirmLabel: 'Descartar cambios',
+    cancelLabel: 'Seguir editando',
+    variant: 'danger',
+    onConfirm: onClose,
+  })
+}
 
 const rutResult = optionalHistoricalRut(form.rut, {
   hasPrevious: Boolean(opportunity?.id),
@@ -155,8 +171,8 @@ async function save(event) {
     setSaving(false)
   }
 }
- return <div className="nk-dialog-backdrop" onMouseDown={onClose}><form className="nk-dialog nk-opportunity-dialog" role="dialog" aria-modal="true" aria-labelledby="nk-opportunity-dialog-title" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
-  <header className="nk-dialog-header"><div><h2 id="nk-opportunity-dialog-title" className="nk-dialog-title">{opportunity?'Editar oportunidad':'Nueva oportunidad'}</h2><p className="nk-opportunity-subtle">Registra primero lo esencial de la oportunidad y completa el seguimiento comercial.</p></div><button className="nk-icon-button" type="button" onClick={onClose} aria-label="Cerrar"><IconX size={18}/></button></header>
+ return <><div className="nk-dialog-backdrop" onMouseDown={event=>{if(event.target===event.currentTarget)requestClose()}}><form className="nk-dialog nk-opportunity-dialog" role="dialog" aria-modal="true" aria-labelledby="nk-opportunity-dialog-title" onSubmit={save} onMouseDown={event=>event.stopPropagation()}>
+  <header className="nk-dialog-header"><div><h2 id="nk-opportunity-dialog-title" className="nk-dialog-title">{opportunity?'Editar oportunidad':'Nueva oportunidad'}</h2><p className="nk-opportunity-subtle">Registra primero lo esencial de la oportunidad y completa el seguimiento comercial.</p></div><button className="nk-icon-button" type="button" onClick={requestClose} aria-label="Cerrar"><IconX size={18}/></button></header>
   <div className="nk-dialog-body"><p className="nk-opportunity-dialog-note">Los campos de Cliente y Contrato son opcionales. La oportunidad puede existir antes de formalizar la relación comercial.</p>
    <section className="nk-opportunity-section nk-opportunity-section-primary"><div className="nk-opportunity-section-header"><div><strong>Oportunidad</strong><span>Información principal para identificar y calificar el negocio.</span></div></div><div className="nk-opportunity-form-grid">
     <label className="nk-field nk-opportunity-wide nk-opportunity-field-emphasis"><span className="nk-label">Empresa</span><input className="nk-input" required autoFocus value={form.company} onChange={e=>setForm({...form,company:e.target.value})}/></label>
@@ -165,7 +181,7 @@ async function save(event) {
     <label className="nk-field nk-opportunity-wide nk-opportunity-field-emphasis"><span className="nk-label">Necesidad / dolor detectado</span><textarea className="nk-textarea" rows="2" value={form.need} onChange={e=>setForm({...form,need:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Contacto</strong><span>Persona con quien se gestiona la oportunidad.</span></div></div><div className="nk-opportunity-form-grid">
-    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Email</span><EmailInput id="opportunity-email" value={form.email} error={emailError} normalizeOnBlur={!historicalEmailUnchanged} onChange={value=>{setEmailError('');setForm({...form,email:value})}} placeholder="contacto@empresa.cl"/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
+    <label className="nk-field"><span className="nk-label">Contacto</span><input className="nk-input" value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Cargo</span><input className="nk-input" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Correo electrónico</span><EmailInput id="opportunity-email" value={form.email} error={emailError} normalizeOnBlur={!historicalEmailUnchanged} onChange={value=>{setEmailError('');setForm({...form,email:value})}} placeholder="contacto@empresa.cl"/></label><label className="nk-field"><span className="nk-label">Teléfono</span><input className="nk-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
    </div></section>
    <section className="nk-opportunity-section"><div className="nk-opportunity-section-header"><div><strong>Gestión comercial</strong><span>Etapa, responsable, valor y próximas acciones del pipeline.</span></div></div><div className="nk-opportunity-form-grid">
     <label className="nk-field"><span className="nk-label">Etapa</span><select className="nk-select" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{!form.stage&&<option value="" disabled>Sin etapa (histórico)</option>}{STAGES.map(([key,value])=><option key={key} value={key}>{value}</option>)}</select></label><label className="nk-field"><span className="nk-label">Responsable</span><input className="nk-input" value={form.owner} onChange={e=>setForm({...form,owner:e.target.value})}/></label>
@@ -176,8 +192,8 @@ async function save(event) {
     <div className="nk-field"><label className="nk-label" htmlFor="opportunity-rut">RUT (opcional)</label><RutInput id="opportunity-rut" maxLength={20} value={form.rut} formatOnBlur={false} error={rutError} aria-invalid={Boolean(rutError)} onBlur={()=>setRutTouched(true)} onChange={value=>{setRutServerError('');setForm(current=>({...current,rut:value}))}}/></div><label className="nk-field"><span className="nk-label">Industria</span><input className="nk-input" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Origen</span><input className="nk-input" value={form.source} onChange={e=>setForm({...form,source:e.target.value})}/></label><label className="nk-field"><span className="nk-label">Región</span><select className="nk-select" value={form.region} onChange={updateRegion}><option value="">Seleccionar región</option>{form.region&&!regionesChile.includes(form.region)&&<option value={form.region}>{form.region}</option>}{regionesChile.map(region=><option key={region} value={region}>{region}</option>)}</select></label><label className="nk-field"><span className="nk-label">Comuna o ciudad</span><select className="nk-select" value={form.commune} disabled={!form.region} onChange={e=>setForm({...form,commune:e.target.value})}><option value="">{form.region?'Seleccionar comuna o ciudad':'Primero selecciona una región'}</option>{form.commune&&!comunas.includes(form.commune)&&<option value={form.commune}>{form.commune}</option>}{comunas.map(comuna=><option key={comuna} value={comuna}>{comuna}</option>)}</select></label>
     <label className="nk-field"><span className="nk-label">Cliente existente</span><select className="nk-select" value={form.clientId} onChange={e=>setForm({...form,clientId:e.target.value,contractId:''})}><option value="">Sin cliente asociado</option>{clients.map(item=><option key={item.id} value={item.id}>{item.razon||item.nombre||item.name||item.id}</option>)}</select></label><label className="nk-field"><span className="nk-label">Contrato existente</span><select className="nk-select" value={form.contractId} onChange={e=>setForm({...form,contractId:e.target.value})}><option value="">Sin contrato asociado</option>{clientContracts.map(item=><option key={item.id} value={item.id}>{item.codigo||item.numero||item.nombre||item.id}</option>)}</select></label><label className="nk-field nk-opportunity-wide"><span className="nk-label">Notas</span><textarea className="nk-textarea" rows="3" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
    </div></section>{error&&<p className="nk-form-error">{error}</p>}
-  </div><footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" disabled={saving}>{saving?'Guardando…':'Guardar oportunidad'}</ActionButton></footer>
- </form></div>
+  </div><footer className="nk-dialog-footer"><button className="nk-button nk-button-secondary" type="button" onClick={requestClose}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" disabled={saving}>{saving?'Guardando…':'Guardar oportunidad'}</ActionButton></footer>
+ </form></div><ConfirmDialog {...discardConfirmation.dialogProps} /></>
 }
 
 function FollowDialog({opportunity,onClose,onSaved}){

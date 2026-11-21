@@ -12,7 +12,7 @@ function summaryFixture(code = 'PURRANQUE') {
 }
 async function fixture(page, { role = 'domian_admin', profile = 'SUPER_ADMIN', summary = summaryFixture(), initiallyLoggedIn = true } = {}) {
   const state = { catalog: catalogFixture(), summary, loggedIn: initiallyLoggedIn, calls: [], uploads: 0, companies: [{ id: 'company-qa', name: 'Empresa QA', rut: '11.111.111-1', managed: true }] }
-  const session = () => ({ user: { id: 'user-qa', name: 'Persona QA', email: 'qa@ejemplo.test', role, permissions: { modules: {} } }, tenant: { id: 'company-qa', name: 'Empresa QA', rut: '11.111.111-1' }, csrfToken: 'qa-csrf' })
+  const session = () => ({ user: { id: 'user-qa', name: 'Persona QA', email: 'qa@ejemplo.test', role, subscriptionAdminEligible: Boolean(profile), permissions: { modules: {} } }, tenant: { id: 'company-qa', name: 'Empresa QA', rut: '11.111.111-1' }, csrfToken: 'qa-csrf' })
   await page.route('**/api/**', async route => {
     const request = route.request(), method = request.method(), path = new URL(request.url()).pathname
     const payload = request.headers()['content-type']?.includes('application/json') && request.postData() ? request.postDataJSON() : null
