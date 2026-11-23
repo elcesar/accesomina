@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { localDate } from '../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
@@ -203,7 +204,7 @@ export default function AsignacionesPrestamosPage() {
         const due = move.expectedReturnAt ? String(move.expectedReturnAt).slice(0, 10) : ''
         const overdue = due && due < today()
         return <tr key={move.id}><td><strong className="nk-assign-primary">{item?.name || 'Recurso'}</strong><small className="nk-assign-secondary">{item?.code || item?.serial || 'Sin código'}</small></td><td><span className="nk-assign-primary">{workerLabel(worker)}</span></td><td><span className="nk-assign-primary">{orderLabel(order)}</span></td><td>{Number(move.qty || 1)}</td><td>{String(move.at || '').slice(0, 10) || '—'}</td><td><div className="nk-assign-due"><span>{due || 'Sin fecha'}</span>{overdue && <span className="nk-badge nk-badge-error">Vencida</span>}</div></td><td><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" onClick={() => returnLoan(move)} disabled={saving}>Devolver</ActionButton></td></tr>
-      }) : <tr><td colSpan="7" className="nk-assign-empty">No hay préstamos activos para este filtro.</td></tr>}</tbody></table></div></section>
+      }) : <tr><td colSpan="7" className="nk-assign-empty"><EmptyState title="No hay resultados para estos criterios." filtered description="Ajusta la búsqueda o limpia los filtros para ver más resultados." /></td></tr>}</tbody></table></div></section>
 
       {formOpen && <section className="nk-card nk-assign-editor"><div className="nk-assign-editor-head"><h2>Asignar recurso</h2><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setFormOpen(false)}>Cerrar</button></div><div className="nk-assign-form">
         <label><span>Recurso</span><select className="nk-select" value={form.itemId} onChange={event => setForm({ ...form, itemId: event.target.value })}><option value="">Seleccionar</option>{assignableItems.map(item => <option key={item.id} value={item.id}>{item.name} · stock {Number(item.stock || 0)}</option>)}</select></label>
