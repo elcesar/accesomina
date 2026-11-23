@@ -73,11 +73,25 @@ test('state write policy rejects read-only changes before persistence', () => {
   )
 })
 
-test('backend rejects an explicit worker restriction while administrators retain full access', () => {
+test('backend rejects an explicit worker restriction while company administrators retain their complete user scope', () => {
   const restricted = { role: 'rrhh', permissions: { modules: { trabajadores: false } } }
   assert.equal(canAccessModule(restricted, 'trabajadores'), false)
   assert.throws(() => assertModuleAccess(restricted, 'trabajadores'), error => error.code === 'MODULE_PERMISSION_DENIED')
   assert.equal(canAccessModule({ role: 'client_admin', permissions: { modules: { trabajadores: false } } }, 'trabajadores'), true)
+})
+
+test('company module restrictions are enforced by the API while Nexo Klar support retains its audited exception', () => {
+  const disabledForCompany = { tenantModules: { trabajadores: false }, permissions: { modules: {} } }
+  const companyAdministrator = { ...disabledForCompany, role: 'client_admin' }
+  const operationalUser = { ...disabledForCompany, role: 'rrhh' }
+  const supportAdministrator = { ...disabledForCompany, role: 'domian_admin' }
+
+  assert.equal(canAccessModule(companyAdministrator, 'trabajadores'), false)
+  assert.equal(canAccessModule(operationalUser, 'trabajadores'), false)
+  assert.throws(() => assertModuleAccess(companyAdministrator, 'trabajadores'), error => error.code === 'MODULE_PERMISSION_DENIED')
+  assert.equal(canAccessEntityType(companyAdministrator, 'worker_document'), false)
+  assert.equal(canAccessModule(supportAdministrator, 'trabajadores'), true)
+  assert.equal(canAccessEntityType(supportAdministrator, 'worker_document'), true)
 })
 
 test('specialized file and transfer access resolves to the protected module', () => {
@@ -103,7 +117,7 @@ test('state module updates reject disabled modules with a controlled 403 before 
   const route = stateRouter.stack.find(layer => layer.route?.path === '/modules' && layer.route.methods.put)
   const handler = route.route.stack.at(-1).handle
   const req = {
-    auth: { role: 'rrhh', permissions: { modules: { trabajadores: false } } },
+    auth: { role: 'client_admin', tenantModules: { trabajadores: false }, permissions: { modules: {} } },
     body: { changes: { trabajadores: { version: 0, data: [] } } },
   }
   const res = { status() { throw new Error('The restricted request must not write or return a success response') } }
