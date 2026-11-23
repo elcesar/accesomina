@@ -205,7 +205,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
 
             <div className="nk-field nk-compliance-dialog-wide">
               <label className="nk-label" htmlFor="nk-saludocupacional-2">Protocolo / seguimiento</label>
-              <input id="nk-saludocupacional-2" className="nk-input" required value={form.protocolo} onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))} placeholder="Ej.: Vigilancia por exposición a ruido" />
+              <input aria-label="Ej.: Vigilancia por exposición a ruido" id="nk-saludocupacional-2" className="nk-input" required value={form.protocolo} onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))} placeholder="Ej.: Vigilancia por exposición a ruido" />
             </div>
 
             <div className="nk-field">
@@ -437,7 +437,7 @@ export default function SaludOcupacionalPage() {
         <div className="nk-compliance-toolbar">
           <label className="nk-search">
             <IconSearch size={16} />
-            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
+            <input aria-label="Buscar persona, protocolo o riesgo" value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
           </label>
           <div className="nk-field">
             <label className="nk-label" htmlFor="nk-saludocupacional-7">Estado</label>
