@@ -1,4 +1,4 @@
-import EmptyState from '../components/ui/EmptyState.jsx'
+import EmptyState from '../ui/EmptyState.jsx'
 import { includesSearch } from '../../services/search.js'
 import { isCalendarDateExpired, localDate } from '../../services/calendar-date.js'
 import { useEffect, useMemo, useState } from 'react'
