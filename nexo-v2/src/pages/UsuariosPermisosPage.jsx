@@ -6,6 +6,8 @@ import { api } from '../services/api.js'
 import { useAuth } from '../services/auth.jsx'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
+import { ASSIGNABLE_MODULES, emptyAssignableModulePermissions } from '../../../shared/access-modules.js'
+import { roleCanReadModule } from '../../../shared/role-access.js'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/users-admin.css'
@@ -20,6 +22,7 @@ const ROLE_LABEL = {
 }
 
 const EDITABLE_ROLES = ['client_admin', 'rrhh', 'prevencion', 'acreditacion', 'consulta']
+const createDraft = () => ({ fullName: '', email: '', role: 'consulta', permissions: { modules: emptyAssignableModulePermissions() } })
 
 const INVITATION_FAILURES = {
   SMTP_NOT_CONFIGURED: 'El correo de invitación no está configurado. Contacta al administrador de Nexo Klar y vuelve a intentar el envío.',
@@ -57,9 +60,11 @@ export default function UsuariosPermisosPage() {
   const [messageTone, setMessageTone] = useState('status')
   const [busy, setBusy] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [draft, setDraft] = useState({ fullName: '', email: '', role: 'consulta' })
+  const [draft, setDraft] = useState(createDraft)
+  const [companyModules, setCompanyModules] = useState({})
   const [nameError, setNameError] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [moduleError, setModuleError] = useState('')
   const [createError, setCreateError] = useState('')
   const [createNeedsRefresh, setCreateNeedsRefresh] = useState(false)
   const creating = useRef(false)
@@ -67,11 +72,45 @@ export default function UsuariosPermisosPage() {
   const nameInputRef = useRef(null)
   const admin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
 
+  const updateDraftRole = role => {
+    setDraft(current => ({
+      ...current,
+      role,
+      permissions: {
+        modules: Object.fromEntries(ASSIGNABLE_MODULES.map(({ key }) => [
+          key,
+          current.permissions?.modules?.[key] === true
+            && companyModules?.[key] !== false
+            && roleCanReadModule(role, key),
+        ])),
+      },
+    }))
+    setModuleError('')
+  }
+
+  const toggleDraftModule = key => {
+    if (companyModules?.[key] === false || !roleCanReadModule(draft.role, key)) return
+    setDraft(current => ({
+      ...current,
+      permissions: {
+        modules: {
+          ...(current.permissions?.modules || {}),
+          [key]: current.permissions?.modules?.[key] !== true,
+        },
+      },
+    }))
+    setModuleError('')
+  }
+
   const load = async () => {
     setLoading(true)
     setMessage('')
     setMessageTone('status')
-    try { setUsers(await api.get('/users')) }
+    try {
+      const [accountUsers, companySettings] = await Promise.all([api.get('/users'), api.get('/settings')])
+      setUsers(accountUsers)
+      setCompanyModules(companySettings?.settings?.modules || {})
+    }
     catch (error) { setMessageTone('alert'); setMessage(error.message || 'No fue posible cargar los usuarios.') }
     finally { setLoading(false) }
   }
@@ -107,12 +146,22 @@ export default function UsuariosPermisosPage() {
     const fullName = draft.fullName.trim()
     const nextNameError = fullName.length < 3 || fullName.length > 160 ? 'Ingresa un nombre de entre 3 y 160 caracteres, sin contar los espacios al inicio o al final.' : ''
     const nextEmailError = validateEmail(draft.email, { required: true })
+    const selectedModules = ASSIGNABLE_MODULES.filter(({ key }) => (
+      companyModules?.[key] !== false
+      && roleCanReadModule(draft.role, key)
+      && draft.permissions?.modules?.[key] === true
+    ))
+    const nextModuleError = draft.role !== 'client_admin' && selectedModules.length === 0
+      ? 'Selecciona al menos un módulo para esta cuenta.'
+      : ''
     setNameError(nextNameError)
     setEmailError(nextEmailError || '')
+    setModuleError(nextModuleError)
     setCreateError('')
-    if (nextNameError || nextEmailError) {
+    if (nextNameError || nextEmailError || nextModuleError) {
       if (nextNameError) nameInputRef.current?.focus()
-      else document.getElementById('create-user-email')?.focus()
+      else if (nextEmailError) document.getElementById('create-user-email')?.focus()
+      else document.getElementById('create-user-module-access')?.focus()
       return
     }
     creating.current = true
@@ -120,12 +169,19 @@ export default function UsuariosPermisosPage() {
     setMessage('')
     setCreateError('')
     try {
-      const result = await api.post('/users', { ...draft, fullName }, { feedback: false })
+      const payload = {
+        fullName,
+        email: draft.email,
+        role: draft.role,
+        ...(draft.role === 'client_admin' ? {} : { permissions: draft.permissions }),
+      }
+      const result = await api.post('/users', payload, { feedback: false })
       setUsers(current => [...current.filter(user => user.id !== result.user.id), { ...result.user, invitation: result.invitation }])
       setShowCreate(false)
-      setDraft({ fullName: '', email: '', role: 'consulta' })
+      setDraft(createDraft())
       setNameError('')
       setEmailError('')
+      setModuleError('')
       setMessageTone(result?.invitation?.status === 'failed' ? 'alert' : 'status')
       setMessage(invitationResultMessage(result, true))
     } catch (error) {
@@ -191,7 +247,7 @@ export default function UsuariosPermisosPage() {
           <h1>Usuarios y permisos</h1>
           <p>{session?.tenant?.name || 'Empresa'} · información separada por empresa</p>
         </div>
-        {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setCreateError(''); setNameError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
+        {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setDraft(createDraft()); setCreateError(''); setNameError(''); setEmailError(''); setModuleError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
       </header>
 
       {message && <p className="nk-form-message" role={messageTone}>{message}</p>}
@@ -258,7 +314,35 @@ export default function UsuariosPermisosPage() {
             <form noValidate onSubmit={createUser}>
               <div className="nk-field"><label className="nk-label" htmlFor="create-user-name">Nombre</label><input ref={nameInputRef} id="create-user-name" className="nk-input" minLength={3} maxLength={160} disabled={busy === 'create'} value={draft.fullName} onChange={e => { setDraft({ ...draft, fullName: e.target.value }); setNameError('') }} aria-invalid={Boolean(nameError)} aria-describedby={nameError ? 'create-user-name-error' : undefined} required />{nameError && <p id="create-user-name-error" className="nk-field-error" role="alert">{nameError}</p>}</div>
               <div className="nk-field"><label className="nk-label" htmlFor="create-user-email">Correo de acceso</label><EmailInput id="create-user-email" required disabled={busy === 'create'} value={draft.email} error={emailError} onChange={value => { setDraft({ ...draft, email: value }); setEmailError('') }} placeholder="persona@empresa.cl" /></div>
-              <div className="nk-field"><label className="nk-label" htmlFor="create-user-role">Permiso</label><select id="create-user-role" className="nk-input" disabled={busy === 'create'} value={draft.role} onChange={e => setDraft({ ...draft, role: e.target.value })}>{EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}</select></div>
+              <div className="nk-field">
+                <label className="nk-label" htmlFor="create-user-role">Permiso</label>
+                <select id="create-user-role" className="nk-input" disabled={busy === 'create'} value={draft.role} onChange={event => updateDraftRole(event.target.value)}>
+                  {EDITABLE_ROLES.map(role => <option value={role} key={role}>{ROLE_LABEL[role]}</option>)}
+                </select>
+              </div>
+              {draft.role === 'client_admin' ? (
+                <p className="nk-user-module-note">Los administradores de empresa conservan acceso completo a los módulos disponibles para su empresa.</p>
+              ) : (
+                <fieldset id="create-user-module-access" className="nk-user-module-access" tabIndex="-1" disabled={busy === 'create'} aria-describedby={moduleError ? 'create-user-module-access-error' : undefined}>
+                  <legend>Accesos iniciales</legend>
+                  <p>Selecciona los módulos que esta persona podrá consultar según su rol.</p>
+                  <div className="nk-user-module-grid">
+                    {ASSIGNABLE_MODULES.map(({ key, label }) => {
+                      const enabledForCompany = companyModules?.[key] !== false
+                      const enabledForRole = roleCanReadModule(draft.role, key)
+                      const disabled = !enabledForCompany || !enabledForRole
+                      return (
+                        <label className={`nk-user-module-option${disabled ? ' disabled' : ''}`} key={key}>
+                          <input type="checkbox" checked={draft.permissions?.modules?.[key] === true} disabled={disabled} onChange={() => toggleDraftModule(key)} />
+                          <span>{label}</span>
+                          {!enabledForCompany ? <small>No disponible para la empresa</small> : !enabledForRole && <small>No corresponde al rol</small>}
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {moduleError && <p id="create-user-module-access-error" className="nk-field-error" role="alert">{moduleError}</p>}
+                </fieldset>
+              )}
               {createError && <p className="nk-field-error" role="alert">{createError}</p>}
               {createNeedsRefresh && <button type="button" className="nk-button nk-button-secondary" onClick={() => { setShowCreate(false); load() }}>Actualizar usuarios</button>}
               <div className="nk-user-dialog-actions"><button type="button" className="nk-button nk-button-secondary" disabled={busy === 'create'} onClick={() => setShowCreate(false)}>Cancelar</button><ActionButton disabledReason={createNeedsRefresh ? 'Actualiza la lista para comprobar si la cuenta ya fue creada.' : 'Espera mientras se completa la operación en curso.'} className="nk-button nk-button-primary" disabled={busy === 'create' || createNeedsRefresh}>{busy === 'create' ? 'Creando…' : 'Crear acceso'}</ActionButton></div>
