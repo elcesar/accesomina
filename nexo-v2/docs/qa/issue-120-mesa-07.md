@@ -14,6 +14,7 @@ Los **estados de un proceso** (`pendiente`, `seguimiento`, `cerrado`, `borrador`
 | --- | --- | --- | --- |
 | Salud ocupacional | Resultado de cumplimiento del protocolo | Etapa de protocolo (seguimiento, pendiente, cerrado) | Inputs separados; badge, filtro y contador usan solo cuatro estados |
 | Habilitaciones y cumplimiento | Estado del requisito, por empresa | Alta/seguimiento administrativo | Badge, filtro y agregado calculados con catálogo común; faltantes no son automáticamente aprobados |
+| Habilitación del cliente | Estado de cumplimiento de la acreditación, condicionado a evidencia | Pendiente, enviado, observado, corregido, rechazado, aprobado, pase emitido | Badge y filtro normados, filtro editable de proceso separado; no inferir habilitación solo por emitir credencial |
 | Exámenes y aptitudes | Resultado y vigencia | Registro de examen | Conserva apto/no apto como resultado del examen; badge normado; apto con restricción no es habilitación sin decisión explícita |
 | EPP | Vigencia de reposición | Entrega y movimiento | Badge normado según fecha; el proceso conserva sus propias etapas |
 | Contratos | Vigencia documental cuando aplica | Borrador, vigente contractual, finalizado | **No convertir automáticamente** borrador/finalizado en aptitud; se mantiene el indicador de estado contractual |
@@ -29,6 +30,7 @@ La solución **no migra ni reescribe datos persistidos**. Los valores histórico
 1. Si `apto_con_restriccion` puede equipararse con `Vigente` condicionado, y qué contexto / restricciones exige.
 2. Si un requisito ausente o histórico parcial en Habilitaciones se clasifica como `No habilitado` o `Sin información`. Este PR usa `Sin información` por prudencia.
 3. Definir qué pruebas de evidencia/documento permiten considerar `Vigente` un protocolo de Salud ocupacional.
-4. Validar semántica por módulo en ambiente real (Personas, Contratos, EPP, Turnos, Órdenes, Alertas y Cumplimiento) y registrar retest QA R03.
+4. Revisar si una acreditación aprobada **sin** archivo o enlace de evidencia puede considerarse vigente. En este PR se conserva como Sin información.
+5. Validar semántica por módulo en ambiente real (Personas, Contratos, EPP, Turnos, Órdenes, Alertas y Cumplimiento) y registrar retest QA R03.
 
 **Importante:** mientras la mesa no resuelva esos puntos, este PR no puede certificar por sí solo cierre completo del issue. Los ajustes conservadores evitan habilitaciones falsas.
