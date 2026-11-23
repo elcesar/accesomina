@@ -19,6 +19,7 @@ test('workflow states never attest compliance automatically', () => {
 test('explicit status and expiry use conservative precedence', () => {
   const today = new Date('2026-11-23T15:00:00Z')
   expect(complianceStatus({ outcome:'no_apto', expiresOn:'2027-01-01',today }).key).toBe('error')
+  expect(complianceStatus({ outcome:'rechazado', hasEvidence:false, today }).key).toBe('error')
   expect(complianceStatus({ outcome:'vigente', expiresOn:'2026-11-22',today }).key).toBe('error')
   expect(complianceStatus({ outcome:'apto', expiresOn:'2026-12-01',today }).key).toBe('warn')
   expect(complianceStatus({ outcome:'apto', expiresOn:'2027-03-01',today }).key).toBe('ok')
