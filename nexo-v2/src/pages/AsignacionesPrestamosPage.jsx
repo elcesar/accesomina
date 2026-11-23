@@ -197,7 +197,7 @@ export default function AsignacionesPrestamosPage() {
 
       <section className="nk-assign-kpis"><article><strong>{summary.active}</strong><span>Préstamos activos</span></article><article><strong>{summary.units}</strong><span>Unidades asignadas</span></article><article><strong>{summary.overdue}</strong><span>Devoluciones vencidas</span></article><article><strong>{summary.returned}</strong><span>Devoluciones registradas</span></article></section>
 
-      <section className="nk-card nk-assign-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-assign-table"><thead><tr><th>Recurso</th><th>Persona responsable</th><th>Orden de servicio</th><th>Cantidad</th><th>Entrega</th><th>Devolución esperada</th><th></th></tr></thead><tbody>{loading ? <tr><td colSpan="7">Cargando asignaciones…</td></tr> : filtered.length ? filtered.map(move => {
+      <section className="nk-card nk-assign-table-card"><div className="nk-table-wrapper"><table className="nk-table nk-assign-table"><caption className="nk-visually-hidden">Asignaciones y préstamos</caption><thead><tr><th scope="col">Recurso</th><th scope="col">Persona responsable</th><th scope="col">Orden de servicio</th><th scope="col">Cantidad</th><th scope="col">Entrega</th><th scope="col">Devolución esperada</th><th scope="col"></th></tr></thead><tbody>{loading ? <tr><td colSpan="7">Cargando asignaciones…</td></tr> : filtered.length ? filtered.map(move => {
         const item = items.find(entry => String(entry.id) === String(move.itemId))
         const worker = workers.find(entry => String(entry.id) === String(move.workerId))
         const order = orders.find(entry => String(entry.id) === String(move.projectId || move.mantId))
