@@ -52,7 +52,7 @@ const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpp
 
 const PERSON_ERRORS = {
   INCOMPLETE_WORKER: {
-    title: 'Faltan datos obligatorios',
+    title: 'Falta información obligatoria',
     message: 'No es posible crear la persona porque falta información requerida.',
     suggestion: 'Revisa que Nombre y RUT estén informados y vuelve a intentar.',
   },
@@ -78,7 +78,7 @@ const PERSON_ERRORS = {
   },
   MODULE_VERSION_CONFLICT: {
     title: 'La información cambió',
-    message: 'Los datos fueron modificados mientras estabas creando la persona.',
+    message: 'La información fue modificada mientras estabas creando la persona.',
     suggestion: 'Actualiza la información y vuelve a intentar guardar.',
   },
 }

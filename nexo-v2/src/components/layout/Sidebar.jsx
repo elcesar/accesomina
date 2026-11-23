@@ -108,7 +108,7 @@ const NAV = [
   },
   {
     key: 'reportes-datos',
-    label: 'Reportes y datos',
+    label: 'Reportes e información',
     items: [
       { to: '/app/reportes', label: 'Reportes', icon: IconChartBar },
       { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },

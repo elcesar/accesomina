@@ -306,7 +306,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
 
         <footer className="nk-dialog-footer">
           <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
+          <ActionButton disabledReason="Completa la información obligatoria y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" disabled={saving || !form.workerId || !form.protocolo.trim()}>
             {saving ? 'Guardando…' : 'Guardar protocolo'}
           </ActionButton>
         </footer>
