@@ -40,3 +40,10 @@ test('las validaciones generales usan información y mantienen claves de negocio
   expect(workers).toContain('La información fue modificada')
   expect(workers).toContain('bloqueado: false')
 })
+
+test('D-060 fila 105: Falta dotación mantiene su navegación al módulo correspondiente', () => {
+  const operations = source('pages/CentroOperativoPage.jsx')
+  expect(operations).toContain("gaps.push('Falta dotación')")
+  expect(operations).toContain("'Falta dotación':")
+  expect(operations).not.toContain('Falta personal')
+})
