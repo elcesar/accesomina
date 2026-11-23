@@ -17,6 +17,7 @@ Los **estados de un proceso** (`pendiente`, `seguimiento`, `cerrado`, `borrador`
 | Habilitación del cliente | Estado de cumplimiento de la acreditación, condicionado a evidencia | Pendiente, enviado, observado, corregido, rechazado, aprobado, pase emitido | Badge y filtro normados, filtro editable de proceso separado; no inferir habilitación solo por emitir credencial |
 | Exámenes y aptitudes | Resultado y vigencia | Registro de examen | Conserva apto/no apto como resultado del examen; badge normado; apto con restricción no es habilitación sin decisión explícita |
 | EPP | Vigencia de reposición | Entrega y movimiento | Badge normado según fecha; el proceso conserva sus propias etapas |
+| Órdenes de servicio | Estado de preparación de personas asignadas obtenido de evidencias y vigencias | Estado de la orden y asignaciones | Nunca marcar como preparado un protocolo por estar cerrado/en seguimiento; lo desconocido queda Sin información |
 | Contratos | Vigencia documental cuando aplica | Borrador, vigente contractual, finalizado | **No convertir automáticamente** borrador/finalizado en aptitud; se mantiene el indicador de estado contractual |
 | Turnos | Vigencia de habilitación de persona, si aplica | Asistencia/cobertura del turno | Ausente, licencia, cobertura completa y brecha son **estados operativos**, no estados normativos de aptitud |
 | Clientes, Órdenes y otros | Evidencia de cumplimiento específica | Activo, prospecto, en revisión, cancelado | No homologar estados comerciales o del proceso con aptitud |
