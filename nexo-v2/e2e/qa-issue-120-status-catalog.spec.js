@@ -59,3 +59,10 @@ test('client accreditation preserves workflow but exposes normative compliance s
   expect(content).toContain('COMPLIANCE_FILTERS.map')
   expect(content).toContain('hasEvidence: Boolean(rec.fileId || rec.evidenceUrl)')
 })
+
+test('order worker readiness never becomes valid from a mere follow-up state', () => {
+  const content=source('OrdenesServicioPage.jsx')
+  expect(content).toContain('const healthStatus=item=>complianceStatus(')
+  expect(content).toContain('unknownCount||!signals.length')
+  expect(content).toContain('COMPLIANCE_STATES[prep.status]')
+})
