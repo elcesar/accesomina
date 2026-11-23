@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconRefresh } from '@tabler/icons-react'
@@ -122,7 +123,7 @@ export default function BitacoraCambiosPage() {
               {loading && rows.length === 0 ? (
                 <tr><td colSpan="5" className="nk-audit-empty">Cargando eventos…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan="5" className="nk-audit-empty">No hay eventos registrados.</td></tr>
+                <tr><td colSpan="5" className="nk-audit-empty"><EmptyState title="Todavía no hay eventos registrados." /></td></tr>
               ) : rows.map(row => (
                 <tr key={row.id}>
                   <td>{formatDate(row.created_at)}</td>
