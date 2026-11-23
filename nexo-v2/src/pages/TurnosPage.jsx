@@ -411,10 +411,10 @@ export default function TurnosPage() {
             </div>
 
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
-              <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por cliente" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por proyecto o servicio" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por régimen" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por turno" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
