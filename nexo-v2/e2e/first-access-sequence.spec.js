@@ -242,7 +242,7 @@ test('el perfil Solo lectura no recibe escrituras aunque una página no tenga va
 test('RRHH no recibe navegación ni ruta de administración o transferencia', async ({ page }) => {
   await mockFirstAccess(page, { role: 'rrhh', change: false, mfa: false })
   await page.goto('/app')
-  await page.getByRole('button', { name: 'Reportes y datos' }).click()
+  await page.getByRole('button', { name: 'Reportes e información' }).click()
   await expect(page.locator('a[href="/app/reportes"]')).toHaveCount(1)
   await expect(page.locator('a[href="/app/transferencia"]')).toHaveCount(0)
   await page.getByRole('button', { name: 'Gestión y Administración' }).click()
