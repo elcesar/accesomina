@@ -31,6 +31,8 @@ jobs:
       - name: Install server dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Run branding/backend tests
+        env:
+          DATABASE_URL: postgres://qa:qa@localhost:5432/nexoklar_qa
         run: node --test server/test/branding-issue-133.test.js
       - name: Install UI dependencies
         working-directory: nexo-v2
