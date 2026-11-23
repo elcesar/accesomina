@@ -1,3 +1,4 @@
+import { COMPLIANCE_FILTERS, COMPLIANCE_STATES, complianceStatus } from '../services/semantic-status.js'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
@@ -48,14 +49,20 @@ const isCurrentEvaluation = (item, records) => {
 }
 
 const statusFor = (item, records = []) => {
-  if (item.referenceIssue) return { label: 'Requiere regularización', cls: 'nk-badge-warn', key: 'regularize' }
-  if (!isCurrentEvaluation(item, records)) return { label: 'Histórico', cls: 'nk-badge-none', key: 'history' }
-  if (item.vence && item.vence < operationalDayString()) return { label: 'Vencido', cls: 'nk-badge-error', key: 'expired' }
-  const raw = String(item.estado || '').toLowerCase()
-  if (/cerrad|finalizad|resuelt|vigente/.test(raw)) return { label: 'Vigente', cls: 'nk-badge-ok', key: 'ok' }
-  if (/alert|pendiente|restric|seguimiento/.test(raw)) return { label: 'Requiere revisión', cls: 'nk-badge-warn', key: 'warn' }
-  return { label: item.estado || 'Sin información', cls: 'nk-badge-none', key: 'none' }
+  // El proceso puede estar cerrado aunque no se haya acreditado su resultado.
+  // No convertir seguimiento/pendiente/cerrado en una aptitud o habilitación.
+  if (item.referenceIssue || !isCurrentEvaluation(item, records)) return COMPLIANCE_STATES.none
+  return complianceStatus({
+    outcome: item.resultadoCumplimiento || item.resultado || item.aptitud || item.condicion || '',
+    expiresOn: item.vence,
+  })
 }
+
+const workflowLabel = value => ({
+  seguimiento: 'En seguimiento',
+  pendiente: 'Pendiente',
+  cerrado: 'Cerrado',
+}[String(value || '').toLowerCase()] || value || 'Sin etapa registrada')
 
 async function uploadHealthFile(workerId, file) {
   const formData = new FormData()
@@ -89,6 +96,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
     protocolo: '',
     riesgo: '',
     estado: 'seguimiento',
+    resultadoCumplimiento: 'sin_informacion',
     scope: 'global',
     minaId: '',
     evaluatedOn: operationalDayString(),
@@ -136,6 +144,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
         protocolo: form.protocolo.trim(),
         riesgo: form.riesgo.trim(),
         estado: form.estado,
+        resultadoCumplimiento: form.resultadoCumplimiento,
         responsable: form.responsable.trim(),
         notes: form.notes.trim(),
         scope: form.scope,
@@ -236,7 +245,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
             </div>
 
             <div className="nk-field">
-              <label className="nk-label">Estado</label>
+              <label className="nk-label">Etapa del proceso</label>
               <select
                 className="nk-select"
                 value={form.estado}
@@ -248,6 +257,18 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
               </select>
             </div>
 
+            <div className="nk-field">
+              <label className="nk-label" htmlFor="health-compliance-result">Estado de cumplimiento</label>
+              <select id="health-compliance-result" className="nk-select"
+                value={form.resultadoCumplimiento}
+                onChange={event => setForm(current => ({ ...current, resultadoCumplimiento: event.target.value }))}>
+                <option value="sin_informacion">Sin información</option>
+                <option value="vigente">Vigente</option>
+                <option value="por_vencer">Por vencer</option>
+                <option value="no_habilitado">No habilitado</option>
+              </select>
+              <small className="nk-field-help">El estado del proceso no acredita el cumplimiento. Selecciona el resultado según la evidencia.</small>
+            </div>
             <div className="nk-field">
               <label className="nk-label">Responsable</label>
               <input
@@ -380,9 +401,10 @@ export default function SaludOcupacionalPage() {
     const key = statusFor(item, records).key
     if (key === 'ok') acc.ok += 1
     if (key === 'warn') acc.warn += 1
+    if (key === 'error') acc.error += 1
     if (key === 'none') acc.none += 1
     return acc
-  }, { total: 0, ok: 0, warn: 0, none: 0 }), [records])
+  }, { total: 0, ok: 0, warn: 0, error: 0, none: 0 }), [records])
 
   return (
     <div className="nk-compliance-page">
@@ -405,9 +427,10 @@ export default function SaludOcupacionalPage() {
 
       <section className="nk-compliance-summary">
         <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.total}</strong><span>Protocolos registrados</span></article>
-        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.ok}</strong><span>Cerrados</span></article>
-        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.warn}</strong><span>En revisión</span></article>
-        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.none}</strong><span>Sin clasificación</span></article>
+        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.ok}</strong><span>Vigentes</span></article>
+        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.warn}</strong><span>Por vencer</span></article>
+        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.error}</strong><span>No habilitados</span></article>
+        <article className="nk-compliance-kpi"><strong>{loading ? '…' : summary.none}</strong><span>Sin información</span></article>
       </section>
 
       <section className="nk-card">
@@ -420,12 +443,7 @@ export default function SaludOcupacionalPage() {
             <label className="nk-label">Estado</label>
             <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
               <option value="todos">Todos</option>
-              <option value="warn">Requiere revisión</option>
-              <option value="ok">Cerrado</option>
-              <option value="none">Sin información</option>
-              <option value="history">Histórico</option>
-              <option value="expired">Vencido</option>
-              <option value="regularize">Requiere regularización</option>
+              {COMPLIANCE_FILTERS.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
             </select>
           </div>
         </div>
@@ -451,7 +469,8 @@ export default function SaludOcupacionalPage() {
                   <th>Protocolo</th>
                   <th>Riesgo / exposición</th>
                   <th>Responsable</th>
-                  <th>Estado</th>
+                  <th>Estado de cumplimiento</th>
+                  <th>Etapa del proceso</th>
                   <th>Evidencia</th>
                 </tr>
               </thead>
@@ -477,6 +496,7 @@ export default function SaludOcupacionalPage() {
                       <td>{item.riesgo || '—'}</td>
                       <td>{item.responsable || '—'}</td>
                       <td><span className={'nk-badge ' + status.cls}>{status.label}</span></td>
+                      <td>{workflowLabel(item.estado)}{!isCurrentEvaluation(item, records) ? ' · Histórico' : ''}{item.referenceIssue ? ' · Revisar referencia' : ''}</td>
                       <td>{item.fileId ? (
                         unavailableEvidence[item.fileId]
                           ? <span className="nk-person-text-muted" role="status" title={unavailableEvidence[item.fileId]}>Evidencia no disponible</span>
