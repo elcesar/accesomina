@@ -50,3 +50,12 @@ test('contractor, exams and EPP use the same canonical status service', () => {
   expect(source('ExamenesPage.jsx')).toContain('expiryComplianceStatus(date)')
   expect(source('ProteccionEppPage.jsx')).toContain('expiryComplianceStatus(date)')
 })
+
+test('client accreditation preserves workflow but exposes normative compliance separately', () => {
+  const content=source('HabilitacionClientePage.jsx')
+  expect(content).toContain('accreditationCompliance')
+  expect(content).toContain('Estado de cumplimiento')
+  expect(content).toContain('Etapa del proceso')
+  expect(content).toContain('COMPLIANCE_FILTERS.map')
+  expect(content).toContain('hasEvidence: Boolean(rec.fileId || rec.evidenceUrl)')
+})
