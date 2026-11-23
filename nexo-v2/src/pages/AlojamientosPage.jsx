@@ -182,7 +182,7 @@ export default function AlojamientosPage() {
         <label className="nk-search"><IconSearch size={16}/><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar alojamiento..." aria-label="Buscar alojamientos"/></label>
       </div>
       <div className="nk-lodging-cards">
-        {loading ? <div className="nk-card nk-lodging-empty">Cargando…</div> : !visibleHotels.length ? <div className="nk-card nk-lodging-empty"><EmptyState title="Todavía no hay alojamientos para mostrar." /></div> : visibleHotels.map(hotel => {
+        {loading ? <div className="nk-card nk-lodging-empty">Cargando…</div> : !visibleHotels.length ? <div className="nk-card nk-lodging-empty"><EmptyState title="Todavía no hay alojamientos registrados." /></div> : visibleHotels.map(hotel => {
           const rooms = rows(hotel.rooms).filter(room => room.active !== false)
           const beds = rooms.reduce((sum, room) => sum + Number(room.beds || 0), 0)
           const active = hotelActiveStays(hotel.id)
