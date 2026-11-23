@@ -1,5 +1,8 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { SubscriptionCard } from '../components/ui/SubscriptionComponents.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconAlertTriangle, IconArrowRight, IconClipboardCheck, IconRefresh, IconShield, IconUsers } from '@tabler/icons-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api.js'
@@ -15,6 +18,10 @@ function Metric({ icon: Icon, label, value, tone = '', onClick }) {
   return onClick
     ? <button className={`nk-dashboard-metric nk-dashboard-metric-action ${tone}`} type="button" onClick={onClick}>{content}</button>
     : <article className={`nk-dashboard-metric ${tone}`}>{content}</article>
+}
+
+function isGlobalStateFailure(cause) {
+  return Number(cause?.status) >= 500 || cause?.code === 'NETWORK_ERROR'
 }
 
 function assignmentStage(assignment) {
@@ -39,17 +46,49 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatedAt, setUpdatedAt] = useState(null)
+  const requestId = useRef(0)
 
   async function load() {
+    const currentRequest = ++requestId.current
     setLoading(true)
     setError('')
-    try { setResponse(await api.get('/state')); setUpdatedAt(new Date()) }
-    catch (cause) { setError(cause.message || 'No fue posible cargar el panel de control.') }
-    finally { setLoading(false) }
+    try {
+      const next = await api.get('/state')
+      if (currentRequest !== requestId.current) return
+      setResponse(next)
+      setUpdatedAt(new Date())
+    } catch (cause) {
+      // The application feedback owns 5xx/network recovery. Keep a page-level
+      // message only for failures that do not produce that global alert.
+      if (currentRequest === requestId.current && !isGlobalStateFailure(cause)) {
+        setError(cause.message || 'No fue posible cargar el panel de control.')
+      }
+    } finally {
+      if (currentRequest === requestId.current) setLoading(false)
+    }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    const recovered = event => {
+      const next = event.detail?.result
+      if (!next) return
+      // Invalidate a prior page request and apply the same state returned by the
+      // global retry without reloading or remounting the dashboard.
+      requestId.current += 1
+      setResponse(next)
+      setUpdatedAt(new Date())
+      setError('')
+      setLoading(false)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', recovered)
+    load()
+    return () => {
+      requestId.current += 1
+      window.removeEventListener('nexo:state-retry-succeeded', recovered)
+    }
+  }, [])
   const state = response?.state || response || {}
+  const hasRetainedData = response !== null
 
   const derived = useMemo(() => {
     const people = rows(state.trabajadores)
@@ -106,11 +145,12 @@ export default function DashboardPage() {
     consulta: { title: 'Consulta de operación', copy: 'Revisa el estado actualizado de personas, órdenes y alertas.', action: 'Ver alertas', to: '/app/alertas' },
   }[role] || { title: 'Control de la empresa', copy: 'Revisa brechas y prioridades operativas.', action: 'Ver centro operativo', to: '/app/operaciones' }
 
-  return <section className="nk-dashboard">
-    <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p>{updatedAt && <small className="nk-dashboard-updated">Actualizado a las {updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small>}</div><button className="nk-button nk-button-secondary" type="button" onClick={load} disabled={loading}><IconRefresh size={16}/>Actualizar</button></header>
-    {error && <div className="nk-control-feedback"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
-    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={loading ? '…' : derived.people.length} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas no habilitadas" value={loading ? '…' : derived.restricted} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={loading ? '…' : derived.orders} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={loading ? '…' : derived.alerts.length} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
+  return <section className="nk-dashboard" aria-busy={loading}>
+    <SubscriptionCard compact />
+    <header className="nk-module-header"><div><h1>Estado de la operación</h1><p>Identifica rápidamente la capacidad operativa, las restricciones y las alertas que requieren atención.</p>{updatedAt && <small className="nk-dashboard-updated">Actualizado a las {updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small>}{loading && hasRetainedData && <small className="nk-dashboard-updating" role="status">Actualizando indicadores…</small>}</div><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" onClick={() => load()} disabled={loading}><IconRefresh size={16}/>Actualizar</ActionButton></header>
+    {error && <div className="nk-control-feedback" role="alert" aria-live="assertive"><span>{error}</span><button className="nk-button nk-button-quiet" type="button" onClick={load}>Reintentar</button></div>}
+    <div className="nk-dashboard-grid"><Metric icon={IconUsers} label="Personas registradas" value={hasRetainedData ? derived.people.length : '…'} onClick={() => navigate('/app/trabajadores')}/><Metric icon={IconShield} label="Personas no habilitadas" value={hasRetainedData ? derived.restricted : '…'} tone="error" onClick={() => navigate('/app/bloqueados')}/><Metric icon={IconClipboardCheck} label="OS activas" value={hasRetainedData ? derived.orders : '…'} tone="teal" onClick={() => navigate('/app/operaciones')}/><Metric icon={IconAlertTriangle} label="Alertas pendientes" value={hasRetainedData ? derived.alerts.length : '…'} tone="amber" onClick={() => navigate('/app/alertas')}/></div>
     <section className="nk-role-focus"><div><p className="nk-module-kicker">Tu prioridad hoy</p><h2>{roleFocus.title}</h2><span>{roleFocus.copy}</span></div><button className="nk-button nk-button-primary" type="button" onClick={() => navigate(roleFocus.to)}>{roleFocus.action}<IconArrowRight size={16}/></button></section>
-    <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <div className="nk-module-empty"><IconClipboardCheck size={26}/><b>Sin brechas críticas detectadas</b><span>Las restricciones, vencimientos y reposiciones aparecerán aquí.</span></div>}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
+    <div className="nk-dashboard-columns"><article className="nk-module-card"><h2>Requiere atención</h2><p>Brechas derivadas desde Alertas, Personas y EPP.</p>{priorities.length ? <ul className="nk-dashboard-list">{priorities.map(item => <li key={item.label}><button className="nk-button nk-button-quiet" type="button" onClick={() => navigate(item.to)}>{item.label}<IconArrowRight size={14}/></button></li>)}</ul> : <div className="nk-module-empty"><EmptyState title="No hay brechas críticas detectadas." description="Las restricciones, vencimientos y reposiciones aparecerán aquí." /></div>}</article><article className="nk-module-card"><h2>Operación hoy</h2><p>Indicadores rápidos de dotación y ejecución.</p><ol className="nk-dashboard-route"><li>{derived.assigned} personas asignadas o habilitadas</li><li>{derived.presentToday} personas presentes registradas hoy</li><li>{derived.orders} órdenes de servicio activas</li><li>{derived.eppDue} reposiciones EPP próximas o vencidas</li></ol></article></div>
   </section>
 }

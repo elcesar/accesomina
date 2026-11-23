@@ -3,10 +3,12 @@ export default function ContactSection({ openDemo, openCompanyRegistration }) {
     <section id="contacto" className="nk-public-section nk-final-cta">
       <div>
         <p className="nk-eyebrow">Conversemos</p>
-        <h2>Conecta tu operación sobre una sola base de información.</h2>
+        <h1>Conecta tu operación sobre una sola base de información.</h1>
         <p className="nk-lead">
           Cuéntanos cómo administras hoy personas, documentos, recursos y cumplimiento. Revisaremos contigo qué módulos necesita tu empresa para comenzar.
         </p>
+        <p className="nk-lead">Correo comercial: <a href="mailto:contacto@nexoklar.com">contacto@nexoklar.com</a></p>
+        <p>Solicita una demostración para coordinar una conversación con nuestro equipo.</p>
         <div className="nk-actions">
           <button className="nk-button nk-button-primary" type="button" onClick={openDemo}>
             Solicitar demostración

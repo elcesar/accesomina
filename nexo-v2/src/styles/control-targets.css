@@ -1,0 +1,78 @@
+/*
+ * NEXO KLAR · QA #123 · Interactive geometry contract
+ * Manual §24: controls >=40px; pointer/touch hit areas >=44px.
+ *
+ * Loaded AFTER page styles via the main entrypoint. A larger hit area does
+ * not change font hierarchy, color or semantics of individual components.
+ * Checkboxes/radios remain visually compact: their associated label is
+ * the 44px hit target.
+ */
+
+.nk-app-main :is(
+  button:not([hidden]),
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+  select,
+  textarea,
+  [role="button"],
+  [role="tab"],
+  [role="combobox"],
+  [role="spinbutton"]
+) {
+  min-height: var(--nk-touch-min);
+}
+
+/* Icon-only controls need a minimum WIDTH as well as height. */
+.nk-app-main :is(
+  .nk-icon-button,
+  .nk-report-download,
+  button[aria-label]:not(:has(> span, > strong, > b)),
+  .nk-button-icon,
+  [role="button"][aria-label]
+) {
+  min-width: var(--nk-touch-min);
+  min-height: var(--nk-touch-min);
+}
+
+/* Visually small native checkboxes/radios; labels provide a full hit area. */
+.nk-app-main label:has(input:is([type="checkbox"], [type="radio"])),
+.nk-app-main :is(.nk-config-module, .nk-config-toggle) {
+  min-height: var(--nk-touch-min);
+}
+
+/* Unlabelled custom check controls need their own accessible hit target.
+   Do not enlarge the visible glyph or overlay adjacent controls. */
+.nk-app-main :is(
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"]
+) {
+  min-width: var(--nk-touch-min);
+  min-height: var(--nk-touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Navigation and breadcrumbs are pointer targets, not tiny text links. */
+.nk-app-main :is(
+  [aria-label="Breadcrumb"] a,
+  [aria-label="breadcrumb"] a,
+  .nk-breadcrumb a,
+  .nk-breadcrumbs a,
+  [role="tablist"] > a,
+  [role="tablist"] > button
+),
+.nk-sidebar :is(.nk-side-link, .nk-side-group-title, .nk-sidebar-mobile-close) {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--nk-touch-min);
+}
+
+/* Preserve layout in dense tables and responsive toolbars. */
+.nk-app-main :is(.nk-table-wrapper, .nk-report-categories) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.nk-app-main :is(button, input, select, textarea, [role="button"], [role="tab"]) {
+  box-sizing: border-box;
+}

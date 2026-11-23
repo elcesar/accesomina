@@ -104,7 +104,7 @@ test('worker document append is not blocked by unrelated legacy data',()=>{
   const current=validState();
   current.asignaciones=[{id:'legacy-assignment',trabId:'missing-worker',mantId:'p1'}];
   const proposed=structuredClone(current);
-  proposed.trabajadores[0].workerItems=[{id:'doc-1',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01'}];
+  proposed.trabajadores[0].workerItems=[{id:'doc-1',type:'documento',name:'Contrato de trabajo',vence:'2027-01-01',fileId:'qa-contract-file'}];
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
 });
@@ -137,7 +137,7 @@ test('a legacy document inconsistency does not block a later valid document appe
     {id:'doc-legacy-2',type:'documento',name:' contrato  de trabajo ',vence:'2027-01-01'},
   ];
   const proposed=structuredClone(current);
-  proposed.trabajadores[0].workerItems.push({id:'doc-cv',type:'documento',name:'Currículum vitae'});
+  proposed.trabajadores[0].workerItems.push({id:'doc-cv',type:'documento',name:'Currículum vitae',fileId:'qa-cv-file'});
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
 });
@@ -149,7 +149,7 @@ test('contract and service annex remain distinct evidence even when their refere
   }];
   const proposed=structuredClone(current);
   proposed.trabajadores[0].workerItems.push({
-    id:'doc-annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Contrato de trabajo',vence:'',
+    id:'doc-annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Contrato de trabajo',vence:'',fileId:'qa-annex-file',
   });
   assert.throws(()=>validateTenantState(proposed),error=>error.code==='INVALID_REFERENCE');
   assert.equal(validateAppendChanges(current,proposed,['trabajadores']),true);
@@ -169,7 +169,7 @@ test('worker document fallback never accepts a duplicate worker row',()=>{
 });
 test('direct document append accepts a second evidence despite an underage legacy worker',()=>{
   const worker={id:'w1',nombre:'Sophia',nacimiento:'2016-01-01',workerItems:[{id:'contract',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}]};
-  assert.doesNotThrow(()=>validateWorkerDocumentAppend(worker,{id:'annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Anexo asociado al servicio'}));
+  assert.doesNotThrow(()=>validateWorkerDocumentAppend(worker,{id:'annex',type:'contrato',documentType:'SERVICE_ANNEX',name:'Anexo asociado al servicio',fileId:'qa-annex-file'}));
   assert.throws(()=>validateWorkerDocumentAppend(worker,{id:'duplicate',type:'contrato',documentType:'EMPLOYMENT_CONTRACT',name:'Contrato de trabajo'}),error=>error.code==='DUPLICATE_WORKER_DOCUMENT');
 });
 test('atomic worker document removal permits a later replacement despite legacy worker data',()=>{

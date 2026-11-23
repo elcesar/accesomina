@@ -1,6 +1,8 @@
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { cloneElement, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { cloneElement, useId, useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
   IconUser, IconFileText, IconHeart, IconShield, IconClipboardCheck,
@@ -17,14 +19,9 @@ import { RutInput } from '../components/ui/RutInput.jsx'
 import { VisibleFeedback } from '../components/ui/VisibleFeedback.jsx'
 import { AFP_CHILE, PREVISION_SALUD_CHILE } from '../services/chile-social-security.js'
 import { comunasDeRegion, regionesChile } from '../config/chile-geography.js'
+import { WORKER_REGIMENS, WORKER_SPECIALTIES } from '../config/worker-catalogs.js'
+import { PPE_SIZE_FIELDS } from '../config/ppe-catalog.js'
 import '../styles/nuevo-trabajador.css'
-
-const ESPECIALIDADES = [
-  'Mecánico Industrial','Soldador 6G','Eléctrico','Instrumentista',
-  'Rigger','Calderero','Maestro Andamios','Operador de equipos',
-  'Prevencionista','Supervisor','Técnico electrónico','Pintor industrial',
-  'Operadora','Enfermero/a','Paramédico','Conductor','Administrativo','Otro',
-]
 
 const TIPOS = [
   { value:'permanente', label:'Trabajador fijo', desc:'Vínculo laboral permanente en la empresa' },
@@ -47,14 +44,15 @@ const INITIAL = {
   cargo:'', rol:'', especialidad:'',
   mantId:'',
   afp:'', salud:'',
-  eppCasco:'Talla única', eppPolera:'', eppPantalon:'', eppZapato:'',
+  eppCasco:'Talla única', eppCamisa:'', eppPantalon:'', eppCalzado:'',
+  eppGuante:'', eppArnes:'', eppFitTest:false,
 }
 
 const normalizeRut = value => String(value || '').replace(/[^0-9kK]/g, '').toUpperCase()
 
 const PERSON_ERRORS = {
   INCOMPLETE_WORKER: {
-    title: 'Faltan datos obligatorios',
+    title: 'Falta información obligatoria',
     message: 'No es posible crear la persona porque falta información requerida.',
     suggestion: 'Revisa que Nombre y RUT estén informados y vuelve a intentar.',
   },
@@ -80,7 +78,7 @@ const PERSON_ERRORS = {
   },
   MODULE_VERSION_CONFLICT: {
     title: 'La información cambió',
-    message: 'Los datos fueron modificados mientras estabas creando la persona.',
+    message: 'La información fue modificada mientras estabas creando la persona.',
     suggestion: 'Actualiza la información y vuelve a intentar guardar.',
   },
 }
@@ -95,24 +93,27 @@ function validationError(message, suggestion) {
   return { title: 'Revisa la información', message, suggestion }
 }
 
-function Field({ label, required, hint, error, fieldId, children, full = false }) {
-  const errorId = error && fieldId ? `${fieldId}-error` : undefined
-  const control = fieldId
-    ? cloneElement(children, {
-        id: fieldId,
+function Field({ label, required, hint, error, fieldId, children, full = false, reserveRutError = false }) {
+  const generatedId = useId()
+  const resolvedId = fieldId || generatedId
+  const errorId = error && resolvedId ? `${resolvedId}-error` : undefined
+  const feedbackId = reserveRutError && resolvedId ? `${resolvedId}-feedback` : errorId
+  const control = children.type === 'label' ? children : cloneElement(children, {
+        id: resolvedId,
         'aria-invalid': error ? true : undefined,
-        'aria-describedby': errorId,
+        'aria-describedby': feedbackId,
+        ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
-    : children
 
   return (
-    <div className={`nk-field ${full ? 'nk-person-field-full' : ''}`} data-state={error ? 'error' : undefined}>
-      <label className="nk-label" htmlFor={fieldId}>
+    <div className={`nk-field ${full ? 'nk-person-field-full' : ''} ${reserveRutError ? 'nk-person-field-rut' : ''}`} data-state={error ? 'error' : undefined}>
+      <label className="nk-label" htmlFor={resolvedId}>
         {label}{required && <span className="nk-person-field-required"> *</span>}
       </label>
       {control}
-      {error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}
-      {!error && hint && <p className="nk-field-help">{hint}</p>}
+      {reserveRutError
+        ? <p id={feedbackId} className={`nk-person-rut-feedback ${error ? "nk-field-error" : "nk-field-help"}`} role={error ? "alert" : undefined}>{error || "Formato: números, guion y dígito verificador (X.XXX.XXX-X)."}</p>
+        : <>{error && <p id={errorId} className="nk-field-error" role="alert">{error}</p>}{!error && hint && <p className="nk-field-help">{hint}</p>}</>}
     </div>
   )
 }
@@ -143,7 +144,7 @@ function Stepper({ current }) {
   )
 }
 
-function StepIdentidad({ data, onChange, errors }) {
+function StepIdentidad({ data, onChange, onRutBlur, errors }) {
   const comunas = comunasDeRegion(data.region)
   const updateRegion = event => {
     onChange('region', event.target.value)
@@ -154,8 +155,8 @@ function StepIdentidad({ data, onChange, errors }) {
       <Field label="Nombre completo" required full fieldId="worker-name" error={errors.nombre}>
         <FInput autoComplete="name" value={data.nombre} onChange={e => onChange('nombre', e.target.value)} placeholder="Nombre Apellido Apellido" />
       </Field>
-      <Field label="RUT" required fieldId="worker-rut" error={errors.rut}>
-        <RutInput value={data.rut} onChange={value => onChange('rut', value)} required />
+      <Field label="RUT" required fieldId="worker-rut" error={errors.rut} reserveRutError>
+        <RutInput value={data.rut} onChange={value => onChange('rut', value)} onBlur={onRutBlur} showHint={false} required />
       </Field>
       <Field label="Fecha de nacimiento" fieldId="worker-birth-date" error={errors.nacimiento}>
         <BirthDateInput value={data.nacimiento} onChange={value => onChange('nacimiento', value)} />
@@ -202,7 +203,7 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
 
       <Field label="Turno / jornada habitual">
         <FSelect value={data.regimen} onChange={e => onChange('regimen', e.target.value)}>
-          <option value="5x2">5x2</option><option value="4x3">4x3</option><option value="7x7">7x7</option><option value="6x1">6x1</option><option value="turno_especial">Turno especial</option>
+          {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </FSelect>
       </Field>
 
@@ -215,7 +216,7 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
       <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full fieldId="worker-specialty" error={errors.especialidad}>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
           <option value="">Seleccionar especialidad</option>
-          {ESPECIALIDADES.map(item => <option key={item} value={item}>{item}</option>)}
+          {WORKER_SPECIALTIES.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </FSelect>
       </Field>
       <Field label="Proyecto / servicio inicial" hint="Opcional. También puedes asignarlo posteriormente desde la ficha de la persona." full>
@@ -239,14 +240,16 @@ function StepSalud({ data, onChange }) {
 }
 
 function StepEPP({ data, onChange }) {
-  const fields = [
-    ['eppCasco', 'Casco', 'Talla única'], ['eppPolera', 'Polera / Camisa', 'Ej.: L'],
-    ['eppPantalon', 'Pantalón', 'Ej.: 44'], ['eppZapato', 'Zapato de seguridad', 'Ej.: 42'],
-  ]
   return (
     <div className="nk-person-form-grid">
       <p className="nk-person-step-intro">Registra tallas de referencia para la entrega de EPP. Deben confirmarse antes de la primera entrega.</p>
-      {fields.map(([key, label, placeholder]) => <Field key={key} label={label}>{key === 'eppCasco' ? <FInput value="Talla única" disabled aria-label="Casco talla única" /> : <FInput value={data[key]} onChange={e => onChange(key, e.target.value)} placeholder={placeholder} />}</Field>)}
+      {PPE_SIZE_FIELDS.map(field => <Field key={field.key} label={field.label}>
+        <FSelect value={data[field.draftKey] ?? ''} disabled={field.fixed} onChange={event => onChange(field.draftKey, event.target.value)}>
+          {!field.fixed && <option value="">Seleccionar talla</option>}
+          {field.sizes.map(size => <option key={size} value={size}>{size}</option>)}
+        </FSelect>
+      </Field>)}
+      <Field label="Fit Test"><label><input type="checkbox" checked={Boolean(data.eppFitTest)} onChange={event => onChange('eppFitTest', event.target.checked)} /> Fit Test aprobado</label></Field>
     </div>
   )
 }
@@ -259,7 +262,8 @@ function StepResumen({ data, mantenciones }) {
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
     ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
-    ['Casco', data.eppCasco], ['Polera / Camisa', data.eppPolera], ['Pantalón', data.eppPantalon], ['Zapato de seguridad', data.eppZapato],
+    ['Casco', data.eppCasco], ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
+    ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Fit Test', data.eppFitTest ? 'Aprobado' : 'No aprobado'],
   ].filter(([, value]) => value)
 
   return (
@@ -285,6 +289,9 @@ export default function NuevoTrabajadorPage() {
     [data],
   )
 
+  const allowNavigation = useRef(false)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => hasUnsavedChanges && !allowNavigation.current && currentLocation.pathname !== nextLocation.pathname)
+
   useEffect(() => {
     const warnBeforeUnload = event => {
       if (!hasUnsavedChanges) return
@@ -302,11 +309,6 @@ export default function NuevoTrabajadorPage() {
   const mantenciones = stateData?.mantenciones || []
   const existingWorkers = stateData?.trabajadores || []
 
-  const duplicateRut = useMemo(() => {
-    const rut = normalizeRut(data.rut)
-    return rut && existingWorkers.some(worker => normalizeRut(worker.rut) === rut)
-  }, [data.rut, existingWorkers])
-
   function onChange(field, value) {
     setData(current => ({ ...current, [field]: value }))
     setError(null)
@@ -318,13 +320,30 @@ export default function NuevoTrabajadorPage() {
     })
   }
 
+  function rutValidationError(value) {
+    if (!String(value || '').trim()) return 'Ingresa el RUT de la persona.'
+    if (!isValidRut(value)) return 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
+    if (existingWorkers.some(worker => normalizeRut(worker.rut) === normalizeRut(value))) return 'Ya existe una persona registrada con este RUT.'
+    return ''
+  }
+
+  function validateRutOnBlur(event) {
+    const rutError = rutValidationError(event.currentTarget.value)
+    setFieldErrors(current => {
+      if (!rutError && !current.rut) return current
+      const next = { ...current }
+      if (rutError) next.rut = rutError
+      else delete next.rut
+      return next
+    })
+  }
+
   function validationErrors() {
     const errors = {}
     if (step === 0) {
       if (!data.nombre.trim()) errors.nombre = 'Ingresa el nombre completo de la persona.'
-      if (!data.rut.trim()) errors.rut = 'Ingresa el RUT de la persona.'
-      else if (!isValidRut(data.rut)) errors.rut = 'El RUT ingresado no es válido. Revisa sus números y dígito verificador.'
-      else if (duplicateRut) errors.rut = 'Ya existe una persona registrada con este RUT.'
+      const rutError = rutValidationError(data.rut)
+      if (rutError) errors.rut = rutError
       const birthError = birthDateError(data.nacimiento)
       if (birthError) errors.nacimiento = birthError
       if (data.tel && !isValidChilePhone(data.tel)) errors.tel = 'El teléfono debe comenzar con + y contener 11 dígitos, por ejemplo +56912345678.'
@@ -348,7 +367,6 @@ export default function NuevoTrabajadorPage() {
   }
 
   function leaveCreateFlow() {
-    if (hasUnsavedChanges && !window.confirm('Tienes cambios sin guardar. ¿Quieres salir y descartar la información ingresada?')) return
     navigate('/app/trabajadores')
   }
 
@@ -385,7 +403,7 @@ export default function NuevoTrabajadorPage() {
         cargo: data.cargo.trim(), rol: data.rol.trim() || undefined, especialidad: data.especialidad,
         disponibilidad,
         afp: data.afp.trim() || undefined, salud: data.salud.trim() || undefined,
-        epp: { casco: data.eppCasco.trim() || undefined, polera: data.eppPolera.trim() || undefined, pantalon: data.eppPantalon.trim() || undefined, zapato: data.eppZapato.trim() || undefined },
+        epp: { casco: data.eppCasco || 'Talla única', camisa: data.eppCamisa || undefined, pantalon: data.eppPantalon || undefined, calzado: data.eppCalzado || undefined, guante: data.eppGuante || undefined, arnes: data.eppArnes || undefined, fitTest: Boolean(data.eppFitTest) },
         bloqueado: false, mineras: [], workerItems: [], creado: localDate(),
       }
 
@@ -400,6 +418,7 @@ export default function NuevoTrabajadorPage() {
       }
 
       await api.put('/state/modules', { reason: `Alta de persona: ${nuevo.nombre}`, changes })
+      allowNavigation.current = true
       navigate(`/app/trabajadores/${newId}`)
     } catch (cause) {
       setError(personError(cause.code, cause.message))
@@ -409,7 +428,7 @@ export default function NuevoTrabajadorPage() {
   }
 
   const stepContent = [
-    <StepIdentidad key="identidad" data={data} onChange={onChange} errors={fieldErrors} />,
+    <StepIdentidad key="identidad" data={data} onChange={onChange} onRutBlur={validateRutOnBlur} errors={fieldErrors} />,
     <StepVinculacion key="vinculacion" data={data} onChange={onChange} mantenciones={mantenciones} errors={fieldErrors} />,
     <StepSalud key="salud" data={data} onChange={onChange} />,
     <StepEPP key="epp" data={data} onChange={onChange} />,
@@ -418,6 +437,7 @@ export default function NuevoTrabajadorPage() {
 
   return (
     <div className="nk-person-create-page">
+      <ConfirmDialog open={blocker.state === 'blocked'} title="Salir sin guardar" description="Tienes cambios sin guardar. Si sales, se perderá la información de esta persona." confirmLabel="Salir y descartar" cancelLabel="Seguir editando" variant="danger" onConfirm={()=>blocker.proceed?.()} onCancel={()=>blocker.reset?.()} />
       <div className="nk-person-create-breadcrumb">
         <button className="nk-button nk-button-quiet" type="button" onClick={leaveCreateFlow}><IconArrowLeft size={15} strokeWidth={2} />Personas</button>
         <span className="nk-person-create-breadcrumb-separator" aria-hidden="true">/</span>
@@ -444,19 +464,19 @@ export default function NuevoTrabajadorPage() {
           )}
 
           <div className="nk-person-create-actions">
-            <button className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
+            <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" type="button" disabled={loading} onClick={() => step > 0 ? setStep(current => current - 1) : leaveCreateFlow()}>
               <IconArrowLeft size={14} strokeWidth={2} />{step === 0 ? 'Cancelar' : 'Anterior'}
-            </button>
+            </ActionButton>
 
             {step < STEPS.length - 1 ? (
-              <button className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={goNext} disabled={loading}>
                 Siguiente<IconArrowRight size={14} strokeWidth={2} />
-              </button>
+              </ActionButton>
             ) : (
-              <button className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
+              <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? <IconLoader2 size={15} className="animate-spin" aria-hidden="true" /> : <IconCheck size={15} strokeWidth={2.5} aria-hidden="true" />}
                 {loading ? 'Guardando…' : 'Guardar persona'}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>

@@ -16,14 +16,15 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async ({ preserveSessionOnTransientError = false } = {}) => {
     try {
       const data = await api.get('/auth/me')
       setCsrf(data.csrfToken)
       setSession(data)
       await configureOperationalCalendar(data)
       return data
-    } catch {
+    } catch (error) {
+      if (preserveSessionOnTransientError && (!error.status || error.status >= 500 || error.status === 429)) throw error
       setSession(null)
       return null
     } finally {
@@ -35,15 +36,21 @@ export function AuthProvider({ children }) {
 
   const login = async ({ rut, email, password, mfaCode }) => {
     const data = await api.post('/auth/login', { rut, email, password, mfaCode })
+    try { sessionStorage.setItem('nexo:login-instance', globalThis.crypto?.randomUUID?.() || String(Date.now())) } catch {}
     setCsrf(data.csrfToken)
     setSession(data)
     await configureOperationalCalendar(data)
     return data
   }
 
-  const logout = async () => {
-    try { await api.post('/auth/logout') } catch {}
+  const logout = async ({ requireSuccess = false } = {}) => {
+    try { await api.post('/auth/logout') }
+    catch (error) {
+      // A 401 confirms there is no server session left to close.
+      if (requireSuccess && error.status !== 401) throw error
+    }
     setCsrf(null)
+    try { sessionStorage.removeItem('nexo:login-instance') } catch {}
     setSession(null)
   }
 

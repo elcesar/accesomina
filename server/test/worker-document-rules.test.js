@@ -7,15 +7,20 @@ test('CV does not require an expiry date', () => {
   assert.equal(documentRule('documento', 'Currículum Vitae').expiration, 'never')
 })
 
-test('identity and driver documents require both sides and an expiry date', () => {
+test('identity and driver documents require both sides, while expiry remains an input rule', () => {
   const incomplete = { type: 'documento', name: 'Cédula de identidad', files: [{ side: 'front', fileId: 'front' }], vence: '' }
   assert.equal(documentRule(incomplete.type, incomplete.name).twoSided, true)
   assert.equal(hasRequiredEvidence(incomplete), false)
   assert.match(documentEvidenceMessage(incomplete), /reverso/)
-  assert.match(documentEvidenceMessage(incomplete), /fecha de vencimiento/)
 
-  const complete = { ...incomplete, vence: '2030-01-01', files: [...incomplete.files, { side: 'back', fileId: 'back' }] }
+  const complete = { ...incomplete, files: [...incomplete.files, { side: 'back', fileId: 'back' }] }
   assert.equal(hasRequiredEvidence(complete), true)
+})
+
+test('a legacy filename without a stored file is not evidence', () => {
+  const legacy = { type: 'contrato', name: 'Contrato de trabajo', fileName: 'contrato-legacy.pdf' }
+  assert.equal(hasRequiredEvidence(legacy), false)
+  assert.equal(documentEvidenceMessage(legacy), 'archivo no disponible')
 })
 
 test('semantic document codes take precedence over display names', () => {

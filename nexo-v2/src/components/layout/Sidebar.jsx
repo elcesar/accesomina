@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../services/auth.jsx'
 import { useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
+import { useSubscription } from '../../services/subscription.jsx'
 import {
   IconLayoutDashboard, IconBell, IconBook, IconServer,
   IconUsers, IconClipboardList, IconClock, IconShield, IconSchool,
@@ -107,7 +108,7 @@ const NAV = [
   },
   {
     key: 'reportes-datos',
-    label: 'Reportes y datos',
+    label: 'Reportes e información',
     items: [
       { to: '/app/reportes', label: 'Reportes', icon: IconChartBar },
       { to: '/app/transferencia', label: 'Importar y exportar', icon: IconArrowsUpDown },
@@ -121,6 +122,7 @@ const NAV = [
       { to: '/app/usuarios', label: 'Usuarios y permisos', icon: IconUsersGroup },
       { to: '/app/bitacora', label: 'Bitácora de cambios', icon: IconHistory },
       { to: '/app/privacidad', label: 'Privacidad y datos', icon: IconShieldLock },
+      { to: '/app/mi-plan', label: 'Mi plan Nexo Klar', icon: IconPackage },
     ],
   },
 ]
@@ -130,11 +132,11 @@ const NEXO_ADMIN_NAV = {
   label: 'Administración Nexo Klar',
   items: [
     { to: '/app/administracion-clientes', label: 'Administración de clientes', icon: IconBuildingCommunity },
+    { to: '/app/administracion-planes', label: 'Planes y suscripciones', icon: IconPackage },
   ],
 }
 
 function NavItem({ to, icon: Icon, label, badge, exact, badgeCount }) {
-  if(to==='/app/libro-obra')return <span className="nk-side-link nk-feature-unavailable" aria-disabled="true"><Icon size={15}/><span>{label}<small> · Próximamente</small></span></span>
   return (
     <NavLink
       to={to}
@@ -194,6 +196,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
   const { pathname } = useLocation()
   const navRef = useRef(null)
   const { session } = useAuth()
+  const { summary, administration } = useSubscription()
   const { loading, isEnabled } = useModuleAccess()
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
@@ -238,7 +241,14 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
 
       <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal" onClick={event => { if (event.target.closest('a')) onClose() }}>
         {!loading && NAV.map(group => {
-          const items = group.items.filter(item => isEnabled(moduleForPath(item.to)))
+          const items = group.items.filter(item => {
+            if (item.to === '/app/mi-plan') return true
+            if (summary?.managed && ['/app/libro-obra', '/app/oportunidades'].includes(item.to)) {
+              const service = summary.separateServices?.[item.to === '/app/libro-obra' ? 'libroObra' : 'oportunidades']
+              if (!service?.enabled || (service.endsAt && Date.parse(service.endsAt) <= Date.now())) return false
+            }
+            return isEnabled(moduleForPath(item.to))
+          })
           return items.length ? <NavGroup
             key={group.key}
             group={{ ...group, items }}
@@ -248,9 +258,9 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
           /> : null
         })}
 
-        {isNexoAdmin && (
+        {(isNexoAdmin || administration?.capabilities?.includes('read')) && (
           <NavGroup
-            group={NEXO_ADMIN_NAV}
+            group={{ ...NEXO_ADMIN_NAV, items: NEXO_ADMIN_NAV.items.filter(item => isNexoAdmin || item.to === '/app/administracion-planes') }}
             badges={badges}
             pathname={pathname}
             defaultOpen

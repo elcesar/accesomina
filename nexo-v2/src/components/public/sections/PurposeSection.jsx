@@ -37,7 +37,7 @@ export default function PurposeSection() {
     <section id="proposito" className="nk-public-section">
       <div>
         <p className="nk-eyebrow">Nuestro propósito</p>
-        <h2>Creemos que las mejores decisiones nacen de información confiable, conectada y accesible para todos.</h2>
+        <h1>Creemos que las mejores decisiones nacen de información confiable, conectada y accesible para todos.</h1>
 
         <div className="nk-card-grid nk-statements">
           {statements.map(({ label, body }) => (

@@ -1,0 +1,32 @@
+name: Portal module names QA #130
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/config/page-domains.js'
+      - 'nexo-v2/src/pages/ConfiguracionPage.jsx'
+      - 'nexo-v2/src/pages/ReportesPage.jsx'
+      - 'nexo-v2/src/pages/EppInventarioPage.jsx'
+      - 'nexo-v2/e2e/qa-issue-130-module-names.spec.js'
+      - '.github/workflows/qa-issue-130-module-names.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  module-names:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm run build
+      - run: pnpm exec playwright test e2e/qa-issue-130-module-names.spec.js --workers=1

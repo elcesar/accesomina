@@ -23,6 +23,8 @@ function clearLegacyShellBranding(shell) {
   if (!shell) return
   shell.style.removeProperty('--pri')
   shell.style.removeProperty('--action')
+  shell.style.removeProperty('--nk-primary')
+  shell.style.removeProperty('--nk-on-primary')
 }
 
 function normalizeTheme(value) {
@@ -67,12 +69,11 @@ export function applyTenantBranding(branding = {}) {
 
   const shell = document.querySelector('.nk-app-shell')
   clearLegacyShellBranding(shell)
-
-  if(shell && /^#[0-9a-f]{6}$/i.test(branding.primaryColor||'')){
+  if(shell && /^#[0-9a-f]{6}$/i.test(branding.primaryColor || '')) {
     shell.style.setProperty('--nk-primary',branding.primaryColor)
     shell.style.setProperty('--pri',branding.primaryColor)
     shell.style.setProperty('--nk-on-primary',accessibleBrandText(branding.primaryColor))
-  }else if(shell){shell.style.removeProperty('--nk-primary');shell.style.removeProperty('--nk-on-primary')}
+  }
 
   const themePreference = normalizeTheme(branding.theme)
   applyResolvedTheme(themePreference, shell)
@@ -83,7 +84,7 @@ export function applyTenantBranding(branding = {}) {
 }
 
 export function accessibleBrandText(hex) {
- const values=hex.slice(1).match(/../g).map(value=>parseInt(value,16)/255).map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4)
- const luminance=values[0]*0.2126+values[1]*0.7152+values[2]*0.0722
- return (1.05/(luminance+0.05))>=((luminance+0.05)/0.05)?'#FFFFFF':'#000000'
+  const values=hex.slice(1).match(/../g).map(value=>parseInt(value,16)/255).map(value=>value<=0.04045?value/12.92:((value+0.055)/1.055)**2.4)
+  const luminance=values[0]*0.2126+values[1]*0.7152+values[2]*0.0722
+  return (1.05/(luminance+0.05))>=((luminance+0.05)/0.05)?'#FFFFFF':'#000000'
 }

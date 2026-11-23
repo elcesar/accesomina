@@ -52,3 +52,12 @@ Se ejecutan en orden desde `database/postgres/` y quedan registradas en `schema_
 6. Ejecutar pruebas de aislamiento con al menos tres empresas.
 
 Ver [arquitectura cloud](docs/CLOUD_ARCHITECTURE.md) y [despliegue AWS](docs/AWS_RDS_DEPLOY.md).
+
+
+### Issue #132 — piloto de actualización individual de Personas
+
+La ficha consulta `GET /api/state/records/trabajadores/:id` y sólo los módulos auxiliares requeridos con `GET /api/state?modules=...`. Guarda únicamente los campos de perfil modificados mediante `PATCH /api/state/records/trabajadores/:id` con la revisión original; un conflicto de concurrencia responde `409 RECORD_VERSION_CONFLICT` sin sobrescribir la edición previa.
+
+Se mantienen los endpoints documentales actuales de `main`, la auditoría y el aislamiento por empresa. La colección sigue persistida como JSONB y las escrituras siguen bloqueando la fila de módulo: no se ha implantado todavía persistencia física por persona ni paginación desde base de datos. Altas, listados y otros módulos permanecen fuera de este piloto. No cerrar #132 sólo por integrar esta etapa.
+
+Conciliación desde `main` del PR #306; pruebas existentes del piloto requieren ejecución de CI y QA sobre la nueva rama.

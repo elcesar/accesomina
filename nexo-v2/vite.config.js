@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { PUBLIC_PAGES } from './src/config/public-pages.js'
 
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8')
@@ -23,7 +24,27 @@ function getCommitHash() {
 }
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), {
+    name: 'public-route-metadata',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      const source = bundle['index.html'].source
+      const escape = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;')
+      for (const page of Object.values(PUBLIC_PAGES)) {
+        const title = escape(`Nexo Klar · ${page.title}`)
+        const html = source
+          .replace(/<title>.*?<\/title>/, `<title>${title}</title>`)
+          .replace(/(<meta name="description" content=")[^"]*/, `$1${escape(page.description)}`)
+          .replace(/(<meta property="og:title" content=")[^"]*/, `$1${title}`)
+          .replace(/(<meta property="og:description" content=")[^"]*/, `$1${escape(page.description)}`)
+          .replace(/(<link rel="canonical" href=")[^"]*/, `$1https://nexoklar.com${page.path}`)
+          .replace(/(<meta property="og:url" content=")[^"]*/, `$1https://nexoklar.com${page.path}`)
+        if (page.path === '/') bundle['index.html'].source = html
+        else this.emitFile({ type: 'asset', fileName: `${page.path.slice(1)}/index.html`, source: html })
+      }
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${Object.values(PUBLIC_PAGES).filter(page => page.path !== '/crear-empresa').map(page => `<url><loc>https://nexoklar.com${page.path}</loc></url>`).join('')}</urlset>` })
+    },
+  }],
   base: '/',
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),

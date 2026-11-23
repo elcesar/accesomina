@@ -1,11 +1,66 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../services/auth.jsx'
 import { IconArrowLeft, IconLayoutDashboard, IconMapOff } from '@tabler/icons-react'
 import { ErrorPage } from '../components/ui/ErrorPage.jsx'
 
+const SITE_URL = 'https://nexoklar.com'
+
+function updateAttribute(element, attribute, value) {
+  const previous = element.getAttribute(attribute)
+  element.setAttribute(attribute, value)
+  return () => {
+    if (previous === null) element.removeAttribute(attribute)
+    else element.setAttribute(attribute, previous)
+  }
+}
+
 export default function NotFoundPage() {
   const { session } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const title = 'Nexo Klar · Página no encontrada'
+    const description = 'La dirección solicitada no existe o fue movida. Vuelve al inicio de Nexo Klar para continuar.'
+    const canonical = new URL(location.pathname, SITE_URL).toString()
+    const previousTitle = document.title
+    const restores = []
+    // Unknown URLs should not advertise themselves as canonical resources.
+    // Restore the existing link when leaving this route for a valid SPA page.
+    const canonicalLink = document.querySelector('link[rel="canonical"]')
+    const canonicalParent = canonicalLink?.parentNode
+    const canonicalNextSibling = canonicalLink?.nextSibling
+    canonicalLink?.remove()
+
+    document.title = title
+    for (const [selector, attribute, value] of [
+      ['meta[name="description"]', 'content', description],
+      ['meta[property="og:title"]', 'content', title],
+      ['meta[property="og:description"]', 'content', description],
+      ['meta[property="og:url"]', 'content', canonical],
+    ]) {
+      const element = document.querySelector(selector)
+      if (element) restores.push(updateAttribute(element, attribute, value))
+    }
+
+    let robots = document.querySelector('meta[name="robots"]')
+    const createdRobots = !robots
+    if (!robots) {
+      robots = document.createElement('meta')
+      robots.setAttribute('name', 'robots')
+      document.head.appendChild(robots)
+    }
+    const restoreRobots = updateAttribute(robots, 'content', 'noindex, follow')
+
+    return () => {
+      document.title = previousTitle
+      restores.reverse().forEach(restore => restore())
+      if (canonicalLink && canonicalParent) canonicalParent.insertBefore(canonicalLink, canonicalNextSibling?.parentNode === canonicalParent ? canonicalNextSibling : null)
+      restoreRobots()
+      if (createdRobots) robots.remove()
+    }
+  }, [location.pathname])
 
   return (
     <ErrorPage

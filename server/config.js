@@ -7,7 +7,7 @@ validateRuntimeEnvironment(process.env);
 export const config = Object.freeze({
   env: process.env.NODE_ENV || 'development',
   serviceName: 'nexo-klar',
-  version: '7.7.0',
+  version: '7.8.0',
   commit: (process.env.GIT_SHA || 'unknown').slice(0, 7),
   port: Number(process.env.PORT || 8088),
   origin: (process.env.APP_ORIGIN || 'http://localhost:8088').replace(/\/$/, ''),

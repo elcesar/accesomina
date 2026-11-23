@@ -1,5 +1,8 @@
+import OperationFeedback from '../ui/OperationFeedback.jsx'
+import { ErrorPage } from '../ui/ErrorPage.jsx'
+import { IconLock } from '@tabler/icons-react'
 import { useEffect, useRef, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Header from './Header.jsx'
 import { api } from '../../services/api.js'
@@ -8,31 +11,60 @@ import { pageDomain } from '../../config/page-domains.js'
 import { ModuleAccessProvider, useModuleAccess } from '../../services/module-access.jsx'
 import { moduleForPath } from '../../services/module-access.js'
 import { useAuth } from '../../services/auth.jsx'
+import { SubscriptionProvider, useSubscription } from '../../services/subscription.jsx'
+import { FreePlanNotice } from '../ui/SubscriptionComponents.jsx'
 import '../../styles/layout/app-layout.css'
 
 function ModuleOutlet() {
   const { pathname } = useLocation()
-  const { loading, isEnabled } = useModuleAccess()
+  const { loading, isEnabled, readOnly } = useModuleAccess()
   const { session } = useAuth()
+  const { summary, loading: subscriptionLoading, error: subscriptionError, refresh, administration, administrationLoading, administrationError, refreshAdministration } = useSubscription()
   const moduleKey = moduleForPath(pathname)
   const isCompanyAdmin = ['client_admin', 'domian_admin'].includes(session?.user?.role)
   const isNexoAdmin = session?.user?.role === 'domian_admin'
+  const canAdministerSubscriptions = isNexoAdmin || administration?.capabilities?.includes('read')
+  const retainedRead = isCompanyAdmin && ['/app/transferencia', '/app/privacidad', '/app/bitacora'].includes(pathname)
 
-  if(pathname==='/app/libro-obra')return <section className="nk-module-page"><h1>Libro de obra</h1><p role="status">Este módulo aún no está disponible. Nexo Klar comunicará su habilitación cuando corresponda.</p></section>
   if (loading) return <div className="nk-module-empty">Cargando configuración de módulos…</div>
+  if (pathname === '/app/administracion-planes' && administrationLoading && !administration) return <p role="status">Verificando permisos de administración…</p>
+  if (pathname === '/app/administracion-planes' && administrationError) return <section className="nk-module-page"><p role="alert">No fue posible verificar los permisos de planes. {administrationError}</p><button className="nk-button nk-button-secondary" onClick={refreshAdministration}>Reintentar permisos</button></section>
+  if (pathname === '/app/administracion-planes' && !canAdministerSubscriptions) {
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="La administración de planes requiere un permiso global." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
+  if (subscriptionLoading && !summary) return <p role="status">Verificando el estado del plan…</p>
+  if (subscriptionError && !summary) return <section className="nk-module-page"><p role="alert">No fue posible verificar el estado de tu plan. {subscriptionError}</p><button className="nk-button nk-button-secondary" onClick={refresh}>Reintentar plan</button></section>
+  const separateCode = pathname.startsWith('/app/libro-obra') ? 'libroObra' : pathname.startsWith('/app/oportunidades') ? 'oportunidades' : null
+  const separateService = separateCode && summary?.separateServices?.[separateCode]
+  const separateAllowed = separateService?.enabled && (!separateService.endsAt || Date.parse(separateService.endsAt) > Date.now())
+  if (summary?.managed && separateCode && !separateAllowed && !isNexoAdmin) {
+    return <ErrorPage as="section" title="Este servicio requiere contratación independiente" description="Libro de Obra y Gestor de Oportunidades tienen condiciones propias. Consulta a tu administrador para habilitar el servicio." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app/mi-plan">Ver mi plan</Link>} />
+  }
+  if (summary?.managed && summary.canOperate === false && pathname !== '/app/mi-plan' && !pathname.startsWith('/app/administracion-') && !separateAllowed && !retainedRead) {
+    const freeEnded = summary.contract?.planCode === 'FREE'
+    return <section className="nk-module-page"><header className="nk-module-header"><div><h1>{freeEnded ? 'Tu período gratuito de Nexo Klar ha finalizado' : summary.contract ? 'Tu plan requiere renovación' : 'Tu plan está pendiente de activación'}</h1><p>Tu información permanece registrada. Gestiona la contratación o renovación desde Mi plan.</p></div></header>{freeEnded && <Link className="nk-button nk-button-primary" to="/planes">Ver planes</Link>} <Link className="nk-button nk-button-secondary" to="/app/mi-plan">Ir a Mi plan</Link></section>
+  }
+  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="Acceso reservado a Nexo Klar" description="Esta vista está reservada para la administración global. Solicita ayuda a soporte si necesitas gestionar tu empresa." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
+  const restrictedAdministration = ['configuracion', 'usuarios', 'bitacora', 'privacidad', 'transferencia'].includes(moduleKey)
+  if (moduleKey && !isEnabled(moduleKey) && restrictedAdministration) {
+    return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
+  }
   if (moduleKey && !isEnabled(moduleKey)) {
     return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Módulo no habilitado</b><span>Este módulo no está disponible para esta empresa. Solicita su habilitación desde Configuración de la empresa.</span></div></section>
   }
-  if (['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) && !isCompanyAdmin) {
-    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración</b><span>Esta vista está disponible sólo para administradores de la empresa.</span></div></section>
+  if ((['configuracion', 'usuarios', 'bitacora', 'privacidad'].includes(moduleKey) || pathname === '/app/transferencia') && !isCompanyAdmin) {
+    return <ErrorPage as="section" code="Error 403" title="No tienes permiso para acceder" description="Esta vista está disponible sólo para administradores de la empresa. Solicita acceso a tu administrador." icon={IconLock} actions={<Link className="nk-button nk-button-primary" to="/app">Ir al panel</Link>} />
   }
-  if (moduleKey === 'administracion-clientes' && !isNexoAdmin) {
-    return <section className="nk-module-page"><div className="nk-module-empty" role="alert"><b>Sin acceso a administración Nexo Klar</b><span>Esta vista está reservada para el administrador global de Nexo Klar.</span></div></section>
-  }
+  if (readOnly) return <>
+    <p id="nk-read-only-notice" className="nk-read-only-notice" role="status">Modo de solo lectura: puedes consultar la información disponible, pero no crear, modificar, importar ni eliminar registros.</p>
+    <fieldset className="nk-read-only-surface" disabled aria-describedby="nk-read-only-notice"><Outlet /></fieldset>
+  </>
   return <Outlet />
 }
 
-export default function AppLayout() {
+function AppLayoutContent() {
   const { pathname } = useLocation()
   const { session } = useAuth()
   const domain = pageDomain(pathname)
@@ -113,7 +145,7 @@ export default function AppLayout() {
   }, [mobileMenuOpen])
 
   return (
-    <ModuleAccessProvider modules={modules} userModules={['client_admin', 'domian_admin'].includes(session?.user?.role) ? {} : (session?.user?.permissions?.modules || {})} loading={loadingModules}>
+    <ModuleAccessProvider modules={modules} userModules={['client_admin', 'domian_admin'].includes(session?.user?.role) ? {} : (session?.user?.permissions?.modules || {})} role={session?.user?.role} loading={loadingModules}>
       <div className="nk-app-shell">
         {mobileMenuOpen && <button className="nk-mobile-backdrop" type="button" aria-label="Cerrar navegación" onClick={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />}
         <Sidebar mobileOpen={mobileMenuOpen} onClose={() => { setMobileMenuOpen(false); menuButtonRef.current?.focus() }} />
@@ -121,10 +153,13 @@ export default function AppLayout() {
           <Header branding={branding} menuOpen={mobileMenuOpen} menuButtonRef={menuButtonRef} onToggleMenu={() => setMobileMenuOpen(value => !value)} />
           <main className="nk-app-main" data-page-domain={domain || undefined}>
             {domain && <div className="nk-page-domain nk-app-page-domain">{domain}</div>}
-            <ModuleOutlet />
+            <OperationFeedback><ModuleOutlet /></OperationFeedback>
+            <FreePlanNotice />
           </main>
         </div>
       </div>
     </ModuleAccessProvider>
   )
 }
+
+export default function AppLayout() { return <SubscriptionProvider><AppLayoutContent /></SubscriptionProvider> }

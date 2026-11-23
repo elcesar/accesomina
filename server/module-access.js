@@ -1,3 +1,6 @@
+import { separateServiceEnabled, separateServiceForModule, separateServiceForEntity } from './subscription-entitlements.js';
+import { isAdministrator, userCanReadModule } from '../shared/role-access.js';
+
 const ENTITY_MODULES = new Map([
   ['worker', 'trabajadores'], ['person', 'trabajadores'], ['persona', 'trabajadores'],
   ['worker_document', 'trabajadores'], ['worker_health', 'trabajadores'], ['health_protocol', 'trabajadores'],
@@ -11,14 +14,14 @@ const ENTITY_MODULES = new Map([
   ['incident_evidence', 'incidentes'], ['alerta', 'auditoria'],
 ])
 
-const ADMIN_ROLES = new Set(['domian_admin', 'client_admin'])
-
 export function moduleForEntityType(entityType) {
   return ENTITY_MODULES.get(String(entityType || '').trim().toLowerCase()) || null
 }
 
 export function canAccessModule(auth, moduleKey) {
-  return Boolean(moduleKey) && (ADMIN_ROLES.has(auth?.role) || auth?.permissions?.modules?.[moduleKey] !== false)
+  const service=separateServiceForModule(moduleKey);
+  if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
+  return Boolean(moduleKey) && userCanReadModule({ role: auth?.role, modules: auth?.permissions?.modules }, moduleKey)
 }
 
 export function assertModuleAccess(auth, moduleKey) {
@@ -30,7 +33,9 @@ export function assertModuleAccess(auth, moduleKey) {
 // Unknown types are denied to non-administrators rather than silently bypassing
 // module permissions. Administrators retain their explicit full-tenant access.
 export function canAccessEntityType(auth, entityType) {
-  return ADMIN_ROLES.has(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
+  const service=separateServiceForEntity(entityType);
+  if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
+  return isAdministrator(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
 }
 
 export function assertEntityTypeAccess(auth, entityType) {

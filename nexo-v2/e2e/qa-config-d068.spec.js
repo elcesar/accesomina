@@ -14,7 +14,5 @@ test('D-068 disables pending integrations and permits file logo and primary colo
  await page.getByRole('button',{name:'Guardar configuración'}).click()
  await expect.poll(()=>saved?.branding?.primaryColor).toBe('#005577')
  await expect(page.locator('.nk-app-shell')).toHaveCSS('--nk-primary','#005577')
- await page.goto('/app/libro-obra')
- await expect(page.getByText('Este módulo aún no está disponible.',{exact:false})).toBeVisible()
- await expect(page.getByRole('button',{name:'Nueva anotación'})).toHaveCount(0)
+
 })

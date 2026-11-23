@@ -1,13 +1,32 @@
 import { z } from 'zod';
-import { opportunityIdentity, opportunityIsClosed, opportunityRows, opportunityFields } from '../shared/opportunity-domain.js';
+import { roleCanWriteStateKey } from '../shared/role-access.js';
+import { OPPORTUNITY_COLLECTIONS, opportunityIdentity, opportunityIsClosed, opportunityRows, opportunityFields } from '../shared/opportunity-domain.js';
 import { isValidChilePhone, isValidRut, normalizeChilePhone, normalizeRut } from './security.js';
 import { operationalDay } from '../shared/operational-date.js';
+import { validateOptionalHistoricalEmail } from './email-policy.js';
+import { optionalHistoricalRut } from '../shared/rut.js';
+import {
+  changedWorkerDocuments,
+  requireWorkerDocumentEvidence,
+} from './worker-document-evidence.js';
 
-export const loginSchema = z.object({ rut: z.string().min(8).max(20), email: z.string().email().max(254), password: z.string().min(1).max(128), mfaCode:z.string().trim().min(6).max(20).optional() });
+export const emailSchema = z.string().trim().email().max(254);
+
+export function isValidEmail(value) {
+  return emailSchema.safeParse(value).success;
+}
+
+export const loginSchema = z.object({
+  rut: z.string().min(8).max(20),
+  email: emailSchema,
+  password: z.string().min(1).max(128),
+  mfaCode: z.string().trim().min(6).max(20).optional(),
+});
 export const registerSchema = z.object({
   companyName: z.string().trim().min(3).max(160), rut: z.string().min(8).max(20),
-  adminName: z.string().trim().min(3).max(160), email: z.string().email().max(254),
-  phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200)
+  adminName: z.string().trim().min(3).max(160), email: emailSchema,
+  phone: z.string().max(40).optional().default(''), password: z.string().min(12).max(128), inviteCode: z.string().max(200),
+  acceptedTerms: z.literal(true), termsVersion: z.literal('2026-11-05'),
 });
 
 const workerEmailSchema = z.string().trim().max(254).email();
@@ -25,47 +44,159 @@ function validateWorkerEmail(worker, previousWorker) {
   worker.email = result.data;
 }
 
-export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
-function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
-  if (!worker.nacimiento) return;
-  if (worker.nacimiento > today) throw Object.assign(new Error(`Worker ${worker.id} has a future birth date`), { status: 409, code: 'INVALID_WORKER_BIRTH_DATE' });
-  const [year, month, day] = today.split('-').map(Number);
-  const cutoff = `${year - MINIMUM_WORKER_AGE}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  if (worker.nacimiento > cutoff) throw Object.assign(new Error(`Worker ${worker.id} is under the minimum age of ${MINIMUM_WORKER_AGE}`), { status: 409, code: 'WORKER_UNDERAGE', minimumAge: MINIMUM_WORKER_AGE });
+function legacyContactKey(contact) {
+  const name = normalizedText(contact?.nombre);
+  const phone = normalizedText(contact?.telefono);
+  return name && phone ? `${name}|${phone}` : '';
 }
 
-export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: z.string().email().max(254), role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
+function previousContactFor(contact, previousContacts) {
+  if (contact?.id != null && String(contact.id).trim()) {
+    return previousContacts.find(item => item?.id != null && String(item.id) === String(contact.id));
+  }
+
+  // Legacy contacts can be retained only when a stable name/phone fingerprint
+  // identifies exactly one prior contact. Position in the array is never identity.
+  const key = legacyContactKey(contact);
+  if (!key) return undefined;
+  const matches = previousContacts.filter(item => item?.id == null && legacyContactKey(item) === key);
+  return matches.length === 1 ? matches[0] : undefined;
+}
+
+function validateClientEmails(client, previousClient) {
+  client.emailMandante = validateOptionalHistoricalEmail(client.emailMandante, previousClient?.emailMandante, {
+    code: 'INVALID_CLIENT_EMAIL',
+    hasPreviousRecord: Boolean(previousClient),
+  });
+  const previousContacts = Array.isArray(previousClient?.contactos) ? previousClient.contactos : [];
+  client.contactos = (Array.isArray(client.contactos) ? client.contactos : []).map(contact => {
+    const previous = previousContactFor(contact, previousContacts);
+    return {
+      ...contact,
+      email: validateOptionalHistoricalEmail(contact?.email, previous?.email, {
+        code: 'INVALID_CLIENT_CONTACT_EMAIL',
+        hasPreviousRecord: Boolean(previous),
+      }),
+    };
+  });
+}
+
+function validateOpportunityEmails(state, previousState) {
+  const previous = new Map(
+    ['prospectos', 'oportunidades', 'opportunities']
+      .flatMap(key => Array.isArray(previousState?.[key]) ? previousState[key] : [])
+      .filter(row => row?.id != null)
+      .map(row => [String(row.id), row]),
+  );
+  for (const key of ['prospectos', 'oportunidades', 'opportunities']) {
+    if (!Array.isArray(state[key])) continue;
+    state[key] = state[key].map(row => {
+      const previousRecord = previous.get(String(row?.id || ''));
+      return {
+        ...row,
+        email: validateOptionalHistoricalEmail(row?.email, previousRecord?.email, {
+          code: 'INVALID_OPPORTUNITY_EMAIL',
+          hasPreviousRecord: Boolean(previousRecord),
+        }),
+      };
+    });
+  }
+}
+
+export const MINIMUM_WORKER_AGE = Number(process.env.MINIMUM_WORKER_AGE || 18);
+
+function isIsoCalendarDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Returns the user-safe validation problem used by both state writes and CSV
+ * preflight. Birth date is optional, but when it is supplied it must be a real
+ * calendar date and satisfy the same adult rule as the individual high flow.
+ */
+export function workerBirthDateIssue(value, today = new Date().toISOString().slice(0, 10)) {
+  const birthDate = String(value ?? '').trim();
+  if (!birthDate) return null;
+  if (!isIsoCalendarDate(birthDate)) {
+    return {
+      code: 'INVALID_WORKER_BIRTH_DATE',
+      message: 'La fecha de nacimiento debe ser una fecha real en formato AAAA-MM-DD.',
+      suggestion: 'Usa una fecha válida, por ejemplo 1990-05-20.',
+    };
+  }
+  if (birthDate > today) {
+    return {
+      code: 'INVALID_WORKER_BIRTH_DATE',
+      message: 'La fecha de nacimiento no puede ser posterior a hoy.',
+      suggestion: 'Ingresa una fecha igual o anterior a hoy.',
+    };
+  }
+  const [year, month, day] = today.split('-').map(Number);
+  const cutoff = `${year - MINIMUM_WORKER_AGE}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (birthDate > cutoff) {
+    return {
+      code: 'WORKER_UNDERAGE',
+      message: `La persona debe tener al menos ${MINIMUM_WORKER_AGE} años para ser registrada.`,
+      suggestion: `Registra una persona de al menos ${MINIMUM_WORKER_AGE} años o corrige la fecha de nacimiento.`,
+      minimumAge: MINIMUM_WORKER_AGE,
+    };
+  }
+  return null;
+}
+
+function validateWorkerBirthDate(worker, today = new Date().toISOString().slice(0, 10)) {
+  const issue = workerBirthDateIssue(worker?.nacimiento, today);
+  if (!issue) return;
+  throw Object.assign(new Error(issue.message), {
+    status: 409,
+    code: issue.code,
+    minimumAge: issue.minimumAge,
+  });
+}
+
+export const userSchema = z.object({ fullName: z.string().trim().min(3).max(160), email: emailSchema, role: z.enum(['client_admin','rrhh','prevencion','acreditacion','consulta']), password: z.string().min(12).max(128).optional(), permissions:z.object({modules:z.record(z.string(),z.boolean()).default({})}).optional() });
 
 const blockedKeys = new Set(['__proto__', 'prototype', 'constructor']);
 export function sanitizeJson(value, key = '', parentKey = '', context = {}) {
+  // Only state paths that subsequently validate the typed RUT opt in. Generic
+  // sanitization still cleans object properties and blocked keys everywhere else.
+  if (context.preserveOpportunityRut && context.preserveOpportunityRutValues) return structuredClone(value);
   if (Array.isArray(value)) {
     const collectionKey = key || context.collectionKey || '';
     return value.map(item => sanitizeJson(item, '', collectionKey, {
       ...context,
       collectionKey,
+      depth: (context.depth || 0) + 1,
       directWorkerRecord: collectionKey === 'trabajadores',
+      directOpportunityRecord: Boolean(context.opportunityCollection),
+      opportunityCollection: false,
+      preserveOpportunityRut: false,
       preserveWorkerEmail: false,
     }));
   }
   if (value && typeof value === 'object') {
-    const childContext = { ...context, directWorkerRecord: false, preserveWorkerEmail: false };
+    const childContext = { ...context, depth: (context.depth || 0) + 1, directWorkerRecord: false, directOpportunityRecord: false, preserveWorkerEmail: false, preserveOpportunityRut: false };
     const out = {};
     for (const [k, v] of Object.entries(value)) {
       if (blockedKeys.has(k)) continue;
       out[k] = sanitizeJson(v, k, key, {
         ...childContext,
-        // Preserve only the direct email field of an item in trabajadores.
-        // Nested objects and other entities still use generic sanitization.
+        // Typed address/identifier fields have their own strict validation.
+        // Preserve their raw value for comparison with persisted history.
         preserveWorkerEmail: Boolean(context.directWorkerRecord && k === 'email'),
+        preserveOpportunityRut: Boolean(context.directOpportunityRecord && k === 'rut'),
+        directOpportunityRecord: Boolean(context.opportunityCollection),
+        opportunityCollection: !context.depth && OPPORTUNITY_COLLECTIONS.includes(k),
       });
     }
     return out;
   }
   if (typeof value !== 'string') return value;
-  // Worker emails are validated separately, including their original format
-  // and length. Typography replacement/truncation would change valid addresses
-  // or turn invalid input into a different, apparently valid address.
-  if (context.preserveWorkerEmail) return value;
+  // Typography replacement, stripping or truncation must not turn an invalid
+  // address/identifier into a different valid value or rewrite persisted history.
+  if (context.preserveWorkerEmail || context.preserveOpportunityRut) return value;
   if (['fileData'].includes(key)) return null;
   if (['cloudUrl','inviteUrl'].includes(key)) {
     try { const url = new URL(value); return url.protocol === 'https:' ? url.toString() : ''; } catch { return ''; }
@@ -89,12 +220,11 @@ export function summarizeChanges(before, after, path = '', output = []) {
   return output;
 }
 
-const roleScopes={
-  rrhh:new Set(['trabajadores','asignaciones','firmas','callouts','turnos','credenciales','hotelAsig','waGroups','contractTemplates','eppDeliveries','eppMeasurements']),
-  prevencion:new Set(['trabajadores','incidentes','protocolosSalud','permisosTrabajo','vehiculos','turnos','eppCatalog','eppDeliveries','eppMeasurements']),
-  acreditacion:new Set(['trabajadores','empresaDocs','acreditacionesMandante','permisosTrabajo','credenciales','firmas','eppDeliveries','eppMeasurements'])
-};
-export function enforceStateScope(role,before,after){const allowed=roleScopes[role];if(!allowed)return;const changed=new Set([...Object.keys(before||{}),...Object.keys(after||{})].filter(k=>JSON.stringify(before?.[k])!==JSON.stringify(after?.[k])));const forbidden=[...changed].filter(k=>!allowed.has(k));if(forbidden.length)throw Object.assign(new Error(`Role ${role} cannot modify: ${forbidden.join(', ')}`),{status:403,code:'FIELD_PERMISSION_DENIED'});}
+export function enforceStateScope(role,before,after){
+  const changed=new Set([...Object.keys(before||{}),...Object.keys(after||{})].filter(key=>JSON.stringify(before?.[key])!==JSON.stringify(after?.[key])));
+  const forbidden=[...changed].filter(key=>!roleCanWriteStateKey(role,key));
+  if(forbidden.length)throw Object.assign(new Error(`Role ${role} cannot modify: ${forbidden.join(', ')}`),{status:403,code:'FIELD_PERMISSION_DENIED'});
+}
 
 function duplicate(values) { const seen = new Set(); return values.find(v => v && (seen.has(v) || !seen.add(v))); }
 const normalizedText = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -114,6 +244,28 @@ function assertUnique(values, message, code = 'DUPLICATE_DATA') {
 
 const collection = (state, key) => Array.isArray(state?.[key]) ? state[key] : [];
 const sameRecord = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+// Health protocols read historical aliases, but every write is resolved against
+// the canonical trabajadores[].id before reference and duplicate validation.
+function healthProtocolScope(row) {
+  if (row?.scope === 'global') return 'global';
+  return row?.scope === 'cliente' || row?.minaId ? 'cliente' : 'global';
+}
+
+function healthProtocolReferenceSignature(row) {
+  return [row?.workerId || '', row?.trabId || '', row?.personaId || '', row?.scope || '', row?.minaId || '']
+    .map(value => String(value)).join('|');
+}
+
+function resolveHealthProtocolWorkerId(row, workerIds) {
+  const references = [row?.workerId, row?.trabId, row?.personaId]
+    .filter(value => value !== undefined && value !== null && String(value).trim() !== '')
+    .map(value => String(value).trim());
+  if (new Set(references).size !== 1 || !workerIds.has(references[0])) {
+    throw Object.assign(new Error('Health protocol references an unknown or ambiguous worker'), { status: 409, code: 'INVALID_REFERENCE' });
+  }
+  return references[0];
+}
+
 // The fallback is intentionally narrow. A module can only opt in once its
 // append validation covers every strict validation rule for new records.
 export const APPEND_FALLBACK_MODULES = new Set([
@@ -199,7 +351,7 @@ function ensureUniqueNew(rows, existing, key, message, code) {
   }
 }
 
-function validateWorkerItems(worker, reject = conflict) {
+function validateWorkerItems(worker, reject = conflict, previousWorker = null) {
   const items = collection(worker, 'workerItems');
   const duplicateId = duplicate(items.map(item => String(item.id || '')));
   if (duplicateId) reject(`Documento duplicado para la persona ${worker.id}.`, 'DUPLICATE_WORKER_DOCUMENT_ID');
@@ -210,6 +362,7 @@ function validateWorkerItems(worker, reject = conflict) {
       reject(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
     }
   }
+  for (const item of changedWorkerDocuments(previousWorker ? [previousWorker] : [], [worker], sanitizeJson)) requireWorkerDocumentEvidence(item);
 }
 
 function validateAppendedWorkerItems(worker, previous, additions) {
@@ -225,6 +378,7 @@ function validateAppendedWorkerItems(worker, previous, additions) {
     if (item?.emision && item?.vence && item.emision > item.vence) {
       conflict(`El documento ${item.id || item.name || 'sin nombre'} tiene fechas inválidas.`, 'INVALID_DATES');
     }
+    requireWorkerDocumentEvidence(item);
   }
 }
 
@@ -373,18 +527,20 @@ function requiresAvailabilityValidation(assignment, previousAssignments) {
 
 export function validateTenantState(input, { previousState = null } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('State must be an object'), { status: 400 });
-  const state = sanitizeJson(input);
+  const state = sanitizeJson(input, '', '', { preserveOpportunityRutValues: true });
   const previousAssignments = previousState
     ? new Map(collection(previousState, 'asignaciones').map(assignment => [assignmentIdentity(assignment), assignment]))
     : null;
   const workers = Array.isArray(state.trabajadores) ? state.trabajadores : [];
   const previousWorkers = new Map((Array.isArray(previousState?.trabajadores) ? previousState.trabajadores : []).map(worker => [String(worker.id), worker]));
+  const previousClients = new Map((Array.isArray(previousState?.minas) ? previousState.minas : []).filter(client => client?.id != null).map(client => [String(client.id), client]));
   const projects = Array.isArray(state.mantenciones) ? state.mantenciones : [];
   const mines = Array.isArray(state.minas) ? state.minas : [];
   const contracts = Array.isArray(state.contratos) ? state.contratos : [];
   for (const client of mines) {
     if (!client.id || !String(client.nombre || '').trim()) throw Object.assign(new Error('Client requires id and name'), { status: 409, code: 'INCOMPLETE_CLIENT' });
     if (client.rut && !isValidRut(client.rut)) throw Object.assign(new Error(`Client ${client.id} has invalid RUT`), { status: 409, code: 'INVALID_CLIENT_RUT' });
+    validateClientEmails(client, previousClients.get(String(client.id)));
   }
   for (const worker of workers) {
     if (!worker.id || !String(worker.nombre || '').trim() || !worker.rut) throw Object.assign(new Error('Worker requires id, name and RUT'), { status: 409, code: 'INCOMPLETE_WORKER' });
@@ -405,7 +561,6 @@ export function validateTenantState(input, { previousState = null } = {}) {
   assertUnique((state.hoteles || []).map(h => `${normalizedText(h.nombre)}|${normalizedText(h.ciudad)}`), 'Duplicate hotel', 'DUPLICATE_HOTEL');
   assertUnique((state.subcontratos || []).map(s => normalizeRut(s.rut)), 'Duplicate subcontractor RUT', 'DUPLICATE_SUBCONTRACTOR_RUT');
   assertUnique((state.vehiculos || []).flatMap(v => [v.patente ? `p:${normalizedText(v.patente).replace(/[^a-z0-9]/g, '')}` : '', v.serie ? `s:${normalizedText(v.serie)}` : '']), 'Duplicate vehicle plate or serial', 'DUPLICATE_VEHICLE');
-  assertUnique((state.protocolosSalud || []).map(x => `${x.trabId}|${x.minaId}|${normalizedText(x.tipo)}|${x.vence || ''}`), 'Duplicate health protocol', 'DUPLICATE_HEALTH_PROTOCOL');
   assertUnique((state.incidentes || []).map(x => `${x.mantId}|${x.fecha || ''}|${normalizedText(x.tipo)}|${normalizedText(x.descripcion)}`), 'Duplicate incident', 'DUPLICATE_INCIDENT');
   assertUnique((state.permisosTrabajo || []).map(x => `${x.mantId}|${normalizedText(x.nombre)}`), 'Duplicate work permit', 'DUPLICATE_WORK_PERMIT');
   assertUnique((state.waGroups || []).map(x => `${x.minaId || ''}|${x.mantId || ''}|${normalizedText(x.nombre)}`), 'Duplicate WhatsApp group', 'DUPLICATE_WHATSAPP_GROUP');
@@ -421,6 +576,22 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if (duplicateId) throw Object.assign(new Error(`Duplicate entity id: ${duplicateId}`), { status: 409, code: 'DUPLICATE_ID' });
   }
   const workerIds = new Set(workers.map(x => String(x.id)));
+  const healthProtocols = collection(state, 'protocolosSalud');
+  const previousHealthProtocols = new Map(
+    collection(previousState, 'protocolosSalud').filter(row => row?.id).map(row => [String(row.id), row])
+  );
+  const resolvedHealthProtocols = healthProtocols.map(row => {
+    try {
+      return { row, workerId: resolveHealthProtocolWorkerId(row, workerIds), legacyReference: false };
+    } catch (error) {
+      const before = previousHealthProtocols.get(String(row?.id || ''));
+      // Retain unchanged legacy contradictions for audit, but reject any new or edited invalid reference.
+      if (error?.code === 'INVALID_REFERENCE' && before && healthProtocolReferenceSignature(before) === healthProtocolReferenceSignature(row)) {
+        return { row, workerId: null, legacyReference: true };
+      }
+      throw error;
+    }
+  });
   const projectIds = new Set(projects.map(x => String(x.id)));
   const mineIds = new Set(mines.map(x => String(x.id)));
   const contractIds = new Set(contracts.map(x => String(x.id)));
@@ -470,8 +641,27 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Credential references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   assertUnique((state.credenciales || []).map(x => x.numero ? `${x.minaId}|${normalizedText(x.numero)}` : ''), 'Duplicate credential number', 'DUPLICATE_CREDENTIAL');
-  for (const row of Array.isArray(state.protocolosSalud) ? state.protocolosSalud : []) {
-    if (!workerIds.has(String(row.trabId)) || !mineIds.has(String(row.minaId))) throw Object.assign(new Error('Health protocol references an unknown worker or mine'), { status: 409, code: 'INVALID_REFERENCE' });
+  for (const { row, legacyReference } of resolvedHealthProtocols) {
+    if (legacyReference) continue;
+    if (row.scope && !['global', 'cliente'].includes(row.scope)) {
+      throw Object.assign(new Error('Health protocol has an invalid scope'), { status: 409, code: 'INVALID_HEALTH_PROTOCOL_SCOPE' });
+    }
+    const scope = healthProtocolScope(row);
+    if (scope === 'cliente') {
+      if (!row.minaId || !mineIds.has(String(row.minaId))) {
+        throw Object.assign(new Error('A client-scoped health protocol requires a known client'), { status: 409, code: 'INVALID_REFERENCE' });
+      }
+    } else if (row.minaId) {
+      throw Object.assign(new Error('A global health protocol cannot include a client reference'), { status: 409, code: 'INVALID_REFERENCE' });
+    }
+    for (const field of ['evaluatedOn', 'vence']) {
+      if (row[field] && !/^\d{4}-\d{2}-\d{2}$/.test(row[field])) {
+        throw Object.assign(new Error('Health protocol has an invalid ' + field + ' date'), { status: 409, code: 'INVALID_DATES' });
+      }
+    }
+    if (row.evaluatedOn && row.vence && row.evaluatedOn > row.vence) {
+      throw Object.assign(new Error('Health protocol has invalid evaluation and expiry dates'), { status: 409, code: 'INVALID_DATES' });
+    }
   }
   for (const row of Array.isArray(state.incidentes) ? state.incidentes : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Incident references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
   for (const row of Array.isArray(state.subcontratos) ? state.subcontratos : []) if (row.contratoId && !contractIds.has(String(row.contratoId))) throw Object.assign(new Error('Subcontractor references an unknown contract'), { status: 409, code: 'INVALID_REFERENCE' });
@@ -490,6 +680,64 @@ export function validateTenantState(input, { previousState = null } = {}) {
     if ((row.trabIds || []).some(id => !workerIds.has(String(id)))) throw Object.assign(new Error('WhatsApp group references an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
   for (const row of Array.isArray(state.permisosTrabajo) ? state.permisosTrabajo : []) if (!projectIds.has(String(row.mantId))) throw Object.assign(new Error('Work permit references an unknown project'), { status: 409, code: 'INVALID_REFERENCE' });
+validateOpportunityEmails(state, previousState);
+
+// An overlapping ID can have distinct persisted values in legacy stores.
+// Existing rows compare within their own collection. Only migration into the
+// canonical store may use the previously resolved winner for that identity.
+const recordsFor = (source, key) =>
+  Array.isArray(source?.[key])
+    ? source[key]
+    : source?.[key] && typeof source[key] === 'object'
+      ? Object.values(source[key])
+      : [];
+
+const identified = rows =>
+  new Map(
+    rows
+      .filter(row => row?.id != null && String(row.id).trim())
+      .map(row => [String(row.id), row])
+  );
+
+const previousByCollection = new Map(
+  OPPORTUNITY_COLLECTIONS.map(key => [
+    key,
+    identified(recordsFor(previousState, key))
+  ])
+);
+
+const previousCanonical = identified(opportunityRows(previousState));
+
+for (const key of OPPORTUNITY_COLLECTIONS) {
+  for (const row of recordsFor(state, key)) {
+    const id = row?.id != null ? String(row.id) : '';
+
+    const previous =
+      previousByCollection.get(key).get(id) ||
+      (key === 'prospectos'
+        ? previousCanonical.get(id)
+        : undefined);
+
+    const result = optionalHistoricalRut(row.rut, {
+      hasPrevious: Boolean(previous),
+      previousValue: previous?.rut
+    });
+
+    if (result.error) {
+      throw Object.assign(
+        new Error('Opportunity RUT is invalid'),
+        {
+          status: 409,
+          code: 'INVALID_OPPORTUNITY_RUT'
+        }
+      );
+    }
+
+    if (Object.hasOwn(row, 'rut') || result.value !== undefined) {
+      row.rut = result.value;
+    }
+  }
+}
   const opportunities=opportunityRows(state).map(opportunityFields);
   assertUnique(opportunities.filter(x=>!opportunityIsClosed(x)).map(opportunityIdentity),'Duplicate active opportunity','DUPLICATE_OPPORTUNITY');
   for(const row of opportunities){if(row.clientId&&!mineIds.has(String(row.clientId)))throw Object.assign(new Error('Opportunity references an unknown client'),{status:409,code:'INVALID_REFERENCE'});if(row.contractId&&!contractIds.has(String(row.contractId)))throw Object.assign(new Error('Opportunity references an unknown contract'),{status:409,code:'INVALID_REFERENCE'});if(!Number.isFinite(Number(row.amount))||!Number.isFinite(Number(row.probability))||Number(row.amount)<0||Number(row.probability)<0||Number(row.probability)>100)throw Object.assign(new Error('Opportunity has invalid amount or probability'),{status:409,code:'INVALID_OPPORTUNITY'});}
@@ -507,7 +755,7 @@ export function validateTenantState(input, { previousState = null } = {}) {
   for (const workerId of Object.keys(state.eppMeasurements || {})) {
     if (!workerIds.has(String(workerId))) throw Object.assign(new Error('EPP measurements reference an unknown worker'), { status: 409, code: 'INVALID_REFERENCE' });
   }
-  for (const worker of workers) validateWorkerItems(worker);
+  for (const worker of workers) validateWorkerItems(worker, conflict, previousWorkers.get(String(worker.id)));
   const workBookEntries=Array.isArray(state.workBookEntries)?state.workBookEntries:[];
   assertUnique(workBookEntries.map(row=>`${normalizedText(row.folio)}|${Number(row.entryNumber)||1}`),'Duplicate work book entry','DUPLICATE_WORK_BOOK_ENTRY');
   for(const row of workBookEntries){

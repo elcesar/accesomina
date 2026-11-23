@@ -5,27 +5,64 @@ import Papa from 'papaparse';
 import { withTenant } from '../db.js';
 import { allowRoles } from '../middleware.js';
 import { appendAudit } from '../audit.js';
-import { isValidRut } from '../security.js';
+import { boundedImportIssues, createImportDiagnostics, csvDataRowLines, csvFileIssues, csvParseIssues, csvTenantIssues, globalImportIssue } from '../import-diagnostics.js';
+import {
+  assertWorkerDocumentFileReferences,
+  changedWorkerDocuments,
+} from '../worker-document-evidence.js';
 import { sanitizeJson, validateTenantState } from '../validation.js';
 import { assertModuleAccess, filterAccessibleModules } from '../module-access.js';
 import { canonicalizeOpportunityState, OPPORTUNITY_COLLECTIONS, opportunityRows, opportunityFields } from '../../shared/opportunity-domain.js';
+import { lockSubscriptionForWrite } from '../subscription-access.js';
+import { assertSubscriptionWorkerCapacity } from '../subscriptions.js';
+import {
+  canonicalWorkerAfp,
+  canonicalWorkerCommune,
+  canonicalWorkerHealth,
+  canonicalWorkerRegion,
+  canonicalWorkerSpecialty,
+  workerImportType,
+  workerImportValue,
+} from '../../shared/worker-import-policy.js';
 
 export const dataTransferRouter=Router();
 export const BACKUP_FORMAT='nexo-klar-backup';
 export const LEGACY_BACKUP_FORMAT='accesomina-backup';
 dataTransferRouter.use(allowRoles('domian_admin','client_admin'));
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
-// Worker category and operational availability are independent. A CSV import never
-// creates an assignment, so every imported person starts available without losing
-// the historical category declared in the source file.
-const importedWorkerType=value=>{
-  const normalized=String(value||'').trim().toLowerCase();
-  if(['permanente','fijo','planta'].includes(normalized))return'permanente';
-  if(['esporadico','esporádico','temporal','proyecto','por proyecto','spot'].includes(normalized))return'esporadico';
-  return'esporadico';
-};
+// A CSV import never creates an assignment. Availability therefore starts as
+// "disponible", while the category and high-flow intent remain separate fields.
+function importedWorkerRow(row) {
+  const category = workerImportType(row?.tipo);
+  const birthDate = workerImportValue(row, 'nacimiento', ['fecha_nacimiento', 'fecha_de_nacimiento']).value;
+  const regionInput = workerImportValue(row, 'region').value;
+  const communeInput = workerImportValue(row, 'comuna', ['ciudad']).value;
+  const region = canonicalWorkerRegion(regionInput) || regionInput || '';
+  const commune = canonicalWorkerCommune(region, communeInput) || communeInput || '';
+  return {
+    id: `t_${crypto.randomUUID()}`,
+    nombre: row.nombre,
+    rut: row.rut,
+    nacimiento: birthDate || '',
+    region,
+    ciudad: commune,
+    tipo: category?.tipo || '',
+    employmentProfile: category?.employmentProfile || '',
+    cargo: row.cargo || '',
+    rol: row.rol || '',
+    especialidad: canonicalWorkerSpecialty(row.especialidad) || row.especialidad || '',
+    tel: row.telefono || row.tel || '',
+    email: row.email || '',
+    afp: canonicalWorkerAfp(row.afp) || row.afp || '',
+    salud: canonicalWorkerHealth(row.salud) || row.salud || '',
+    disponibilidad: category?.disponibilidad || 'disponible',
+    mineras: [],
+    bloqueado: false,
+    workerItems: [],
+  };
+}
 export const definitions={
-  trabajadores:{module:'trabajadores',headers:['nombre','rut','tipo','cargo','rol','especialidad','telefono','email','ciudad','afp','salud'],required:['nombre','rut'],map:(r)=>({id:`t_${crypto.randomUUID()}`,nombre:r.nombre,rut:r.rut,tipo:importedWorkerType(r.tipo),cargo:r.cargo||'',rol:r.rol||'',especialidad:r.especialidad||'',tel:r.telefono||r.tel||'',email:r.email||'',ciudad:r.ciudad||'',afp:r.afp||'',salud:r.salud||'',disponibilidad:'disponible',mineras:[],bloqueado:false,workerItems:[]})},
+  trabajadores:{module:'trabajadores',headers:['nombre','rut','nacimiento','telefono','email','region','comuna','tipo','cargo','rol','especialidad','afp','salud'],required:['nombre','rut'],map:importedWorkerRow},
   minas:{module:'minas',headers:['nombre','mandante','region','altura','sistema','contacto'],required:['nombre'],map:(r)=>({id:`mi_${crypto.randomUUID()}`,nombre:r.nombre,mandante:r.mandante||'',region:r.region||'',altura:Number(r.altura)||0,sistema:r.sistema||'Propio',contacto:r.contacto||'',color:'#f07d36'})},
   contratos:{module:'contratos',headers:['nombre','numero','minera','tipo','inicio','termino','estado','alcance'],required:['nombre','numero','minera'],map:(r,state)=>({id:`c_${crypto.randomUUID()}`,nombre:r.nombre,numero:r.numero,minaId:resolveId(state.minas,r.minera),tipo:r.tipo||'permanente',inicio:r.inicio||'',termino:r.termino||'',estado:r.estado||'activo',alcance:r.alcance||''})},
   mantenciones:{module:'mantenciones',headers:['nombre','minera','contrato','tipo','area','inicio','termino','personal_requerido','estado'],required:['nombre','minera'],map:(r,state)=>({id:`mn_${crypto.randomUUID()}`,nombre:r.nombre,minaId:resolveId(state.minas,r.minera),contratoId:resolveId(state.contratos,r.contrato),tipo:r.tipo||'servicio',area:r.area||'',inicio:r.inicio||'',termino:r.termino||'',personalReq:Number(r.personal_requerido)||0,estado:r.estado||'planificada',especialidades:[],zonas:[]})},
@@ -42,7 +79,9 @@ function resolveId(rows,value){const key=String(value||'').trim().toLowerCase();
 function splitRefs(rows,value){return String(value||'').split(/[;,]/).map(x=>resolveId(rows,x.trim())).filter(Boolean);}
 async function moduleRows(client,tenantId,lock=false){const result=await client.query(`SELECT module_key,data,version FROM tenant_module_state WHERE tenant_id=$1 ${lock?'FOR UPDATE':''}`,[tenantId]);return result.rows;}
 const aggregate=rows=>Object.fromEntries(rows.map(x=>[x.module_key,x.data]));
-export function csvRows(type,state){const rows=type==='oportunidades'?opportunityRows(state).map(opportunityFields):state[definitions[type].module]||[],ref=(list,id)=>(list||[]).find(x=>String(x.id)===String(id))?.nombre||id||'';if(type==='trabajadores')return rows.map(x=>({nombre:x.nombre,rut:x.rut,tipo:x.tipo,cargo:x.cargo,rol:x.rol,especialidad:x.especialidad,telefono:x.tel,email:x.email,ciudad:x.ciudad,afp:x.afp,salud:x.salud}));if(type==='minas')return rows.map(x=>({nombre:x.nombre,mandante:x.mandante,region:x.region,altura:x.altura,sistema:x.sistema,contacto:x.contacto}));if(type==='contratos')return rows.map(x=>({nombre:x.nombre,numero:x.numero,minera:ref(state.minas,x.minaId),tipo:x.tipo,inicio:x.inicio,termino:x.termino,estado:x.estado,alcance:x.alcance}));if(type==='mantenciones')return rows.map(x=>({nombre:x.nombre,minera:ref(state.minas,x.minaId),contrato:ref(state.contratos,x.contratoId),tipo:x.tipo,area:x.area,inicio:x.inicio,termino:x.termino,personal_requerido:x.personalReq,estado:x.estado}));if(type==='vehiculos')return rows.map(x=>({tipo:x.tipo,nombre:x.nombre,patente:x.patente,serie:x.serie,propiedad:x.propiedad,vencimiento_arriendo:x.arriendoVence||x.arriendoFin||x.arrendadoHasta||'',operador:ref(state.trabajadores,x.operadorId),mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';'),permiso_circulacion:x.permisoCirculacion,revision_tecnica:x.revisionTecnica,seguro:x.seguro,autorizacion_minera:x.autorizacionMinera,certificacion:x.certificacion,estado:x.estado}));if(type==='hoteles')return rows.map(x=>({nombre:x.nombre,direccion:x.direccion,ciudad:x.ciudad,contacto:x.contacto,telefono:x.telefono,email:x.email,piezas:x.piezas,camas_por_pieza:x.camasPorPieza,mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';')}));if(type==='turnos')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),proyecto:ref(state.mantenciones,x.mantId),fecha:x.fecha,regimen:x.regimen,turno:x.turno,ingreso:x.ingreso,salida:x.salida,horas:x.hh,asistencia:x.asistencia}));if(type==='credenciales')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),minera:ref(state.minas,x.minaId),tipo:x.tipo,numero:x.numero,emision:x.emision,vence:x.vence,zona:x.zona,campamento:x.campamento,estado:x.estado}));if(type==='subcontratos')return rows.map(x=>({razon_social:x.razon,rut:x.rut,contrato:ref(state.contratos,x.contratoId),responsable:x.responsable,servicios:x.servicios,estado:x.estado,f30:x.f30,f301:x.f301,cotizaciones:x.cotizaciones,observacion:x.observacion}));if(type==='epp')return rows.map(x=>({trabajador:ref(state.trabajadores,x.workerId),proyecto:ref(state.mantenciones,x.mantId),epp_id:x.itemId,epp:x.itemName,cantidad:x.qty,talla:x.size,condicion:x.condition,estado_entrega:x.deliveryStatus,fecha_entrega:x.deliveredAt,proxima_reposicion:x.nextReplacement,lote_serie:x.lotSerial,observacion:x.notes}));if(type==='oportunidades')return rows.map(x=>({tipo:x.type,empresa:x.company,rut:x.rut,servicio:x.service,contacto:x.contact,cargo:x.role,email:x.email,telefono:x.phone,etapa:x.stage,monto:x.amount,moneda:x.currency,probabilidad:x.probability,cierre_estimado:x.expectedClose,proxima_gestion:x.nextAction,responsable:x.owner,cliente:ref(state.minas,x.clientId),contrato:ref(state.contratos,x.contractId),notas:x.notes}));return rows.map(x=>({entidad_tipo:x.entityType,entidad:x.entityId,tipo_documento:x.documentType,numero:x.documentNumber,emisor:x.issuer,emision:x.issuedAt,vencimiento:x.expiresAt,estado:x.status,observacion:x.observations}));}
+const importValidationResponse=allIssues=>({error:'IMPORT_VALIDATION_FAILED',persisted:false,...boundedImportIssues(allIssues)});
+const sendImportValidation=(res,issues)=>res.status(400).json(importValidationResponse(issues));
+export function csvRows(type,state){const rows=type==='oportunidades'?opportunityRows(state).map(opportunityFields):state[definitions[type].module]||[],ref=(list,id)=>(list||[]).find(x=>String(x.id)===String(id))?.nombre||id||'';if(type==='trabajadores')return rows.map(x=>({nombre:x.nombre,rut:x.rut,nacimiento:x.nacimiento||'',telefono:x.tel,email:x.email,region:x.region||'',comuna:x.ciudad||'',tipo:x.employmentProfile||x.tipo||'',cargo:x.cargo,rol:x.rol,especialidad:x.especialidad,afp:x.afp,salud:x.salud}));if(type==='minas')return rows.map(x=>({nombre:x.nombre,mandante:x.mandante,region:x.region,altura:x.altura,sistema:x.sistema,contacto:x.contacto}));if(type==='contratos')return rows.map(x=>({nombre:x.nombre,numero:x.numero,minera:ref(state.minas,x.minaId),tipo:x.tipo,inicio:x.inicio,termino:x.termino,estado:x.estado,alcance:x.alcance}));if(type==='mantenciones')return rows.map(x=>({nombre:x.nombre,minera:ref(state.minas,x.minaId),contrato:ref(state.contratos,x.contratoId),tipo:x.tipo,area:x.area,inicio:x.inicio,termino:x.termino,personal_requerido:x.personalReq,estado:x.estado}));if(type==='vehiculos')return rows.map(x=>({tipo:x.tipo,nombre:x.nombre,patente:x.patente,serie:x.serie,propiedad:x.propiedad,vencimiento_arriendo:x.arriendoVence||x.arriendoFin||x.arrendadoHasta||'',operador:ref(state.trabajadores,x.operadorId),mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';'),permiso_circulacion:x.permisoCirculacion,revision_tecnica:x.revisionTecnica,seguro:x.seguro,autorizacion_minera:x.autorizacionMinera,certificacion:x.certificacion,estado:x.estado}));if(type==='hoteles')return rows.map(x=>({nombre:x.nombre,direccion:x.direccion,ciudad:x.ciudad,contacto:x.contacto,telefono:x.telefono,email:x.email,piezas:x.piezas,camas_por_pieza:x.camasPorPieza,mineras:(x.minaIds||[]).map(id=>ref(state.minas,id)).join(';')}));if(type==='turnos')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),proyecto:ref(state.mantenciones,x.mantId),fecha:x.fecha,regimen:x.regimen,turno:x.turno,ingreso:x.ingreso,salida:x.salida,horas:x.hh,asistencia:x.asistencia}));if(type==='credenciales')return rows.map(x=>({trabajador:ref(state.trabajadores,x.trabId),minera:ref(state.minas,x.minaId),tipo:x.tipo,numero:x.numero,emision:x.emision,vence:x.vence,zona:x.zona,campamento:x.campamento,estado:x.estado}));if(type==='subcontratos')return rows.map(x=>({razon_social:x.razon,rut:x.rut,contrato:ref(state.contratos,x.contratoId),responsable:x.responsable,servicios:x.servicios,estado:x.estado,f30:x.f30,f301:x.f301,cotizaciones:x.cotizaciones,observacion:x.observacion}));if(type==='epp')return rows.map(x=>({trabajador:ref(state.trabajadores,x.workerId),proyecto:ref(state.mantenciones,x.mantId),epp_id:x.itemId,epp:x.itemName,cantidad:x.qty,talla:x.size,condicion:x.condition,estado_entrega:x.deliveryStatus,fecha_entrega:x.deliveredAt,proxima_reposicion:x.nextReplacement,lote_serie:x.lotSerial,observacion:x.notes}));if(type==='oportunidades')return rows.map(x=>({tipo:x.type,empresa:x.company,rut:x.rut,servicio:x.service,contacto:x.contact,cargo:x.role,email:x.email,telefono:x.phone,etapa:x.stage,monto:x.amount,moneda:x.currency,probabilidad:x.probability,cierre_estimado:x.expectedClose,proxima_gestion:x.nextAction,responsable:x.owner,cliente:ref(state.minas,x.clientId),contrato:ref(state.contratos,x.contractId),notas:x.notes}));return rows.map(x=>({entidad_tipo:x.entityType,entidad:x.entityId,tipo_documento:x.documentType,numero:x.documentNumber,emisor:x.issuer,emision:x.issuedAt,vencimiento:x.expiresAt,estado:x.status,observacion:x.observations}));}
 
 dataTransferRouter.get('/export',async(req,res)=>{const payload=await withTenant(req.auth.tenantId,async client=>{const rows=await moduleRows(client,req.auth.tenantId),settings=(await client.query('SELECT branding,modules,alerts,catalogs FROM tenant_settings WHERE tenant_id=$1',[req.auth.tenantId])).rows[0]||{};return{format:BACKUP_FORMAT,version:2,exportedAt:new Date().toISOString(),tenant:{id:req.auth.tenantId,name:req.auth.companyName,rut:req.auth.rut},modules:filterAccessibleModules(req.auth,aggregate(rows)),settings};});res.set({'Content-Type':'application/json','Content-Disposition':`attachment; filename="nexo_klar_${new Date().toISOString().slice(0,10)}.json"`}).send(JSON.stringify(payload,null,2));});
 dataTransferRouter.get('/export/:type',async(req,res)=>{const def=definitions[req.params.type];if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});assertModuleAccess(req.auth,def.module);const state=await withTenant(req.auth.tenantId,async client=>aggregate(await moduleRows(client,req.auth.tenantId)));const csv=Papa.unparse({fields:def.headers,data:csvRows(req.params.type,state)},{header:true});res.set({'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="${req.params.type}_${new Date().toISOString().slice(0,10)}.csv"`}).send(`\uFEFF${csv}`);});
@@ -56,29 +95,43 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});
     assertModuleAccess(req.auth,def.module);
   }
-  let importModules={},importSettings=null,rowCount=0;
+  let importModules={},importSettings=null,rowCount=0,importDiagnostics=null;
   if(type==='backup'){
     let parsed;
     try{parsed=JSON.parse(req.file.buffer.toString('utf8'));}catch{return res.status(400).json({error:'INVALID_JSON'});}
     if(![BACKUP_FORMAT,LEGACY_BACKUP_FORMAT].includes(parsed?.format)||!parsed.modules)return res.status(400).json({error:'INVALID_BACKUP_FORMAT'});
-    importModules=sanitizeJson(parsed.modules);
+    // Keep typed RUT values intact until the authoritative state validation
+    // compares them with persisted history inside this tenant's transaction.
+    importModules=sanitizeJson(parsed.modules,'','',{preserveOpportunityRutValues:true});
     Object.keys(importModules).forEach(key=>assertModuleAccess(req.auth,key));
     importSettings=sanitizeJson(parsed.settings||{});
     rowCount=Object.values(importModules).reduce((n,v)=>n+(Array.isArray(v)?v.length:1),0);
   }else{
     const def=definitions[type];
     if(!def)return res.status(404).json({error:'UNKNOWN_IMPORT_TYPE'});
-    const parsed=Papa.parse(req.file.buffer.toString('utf8').replace(/^\uFEFF/,''),{header:true,skipEmptyLines:'greedy',transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_')});
-    if(parsed.errors.length)return res.status(400).json({error:'INVALID_CSV',details:parsed.errors.slice(0,10)});
-    if(parsed.data.length>10000)return res.status(413).json({error:'TOO_MANY_ROWS'});
-    const missing=def.required.filter(k=>!parsed.meta.fields.includes(k)),invalid=parsed.data.findIndex(r=>def.required.some(k=>!String(r[k]||'').trim())),rutType=['trabajadores','subcontratos'].includes(type),invalidRut=rutType?parsed.data.findIndex(r=>!isValidRut(r.rut)):-1;
-    if(missing.length||invalid>=0)return res.status(400).json({error:'MISSING_REQUIRED_FIELDS',missing,invalidRow:invalid>=0?invalid+2:null});
-    if(invalidRut>=0)return res.status(400).json({error:'INVALID_RUT',invalidRow:invalidRut+2});
+    const csvSource=req.file.buffer.toString('utf8').replace(/^\uFEFF/,'');
+    const parsed=Papa.parse(csvSource,{header:true,skipEmptyLines:'greedy',transformHeader:h=>h.trim().toLowerCase().replace(/\s+/g,'_')});
+    importDiagnostics=createImportDiagnostics(undefined,csvDataRowLines(csvSource));
+    csvParseIssues(parsed.errors,importDiagnostics);
+    if(importDiagnostics.totalIssues)return sendImportValidation(res,importDiagnostics);
+    if(!parsed.data.length)return sendImportValidation(res,[{row:1,column:'archivo',value:'',code:'EMPTY_CSV',message:'El archivo no contiene registros para importar.',suggestion:'Agrega al menos una fila debajo de la cabecera de la plantilla.'}]);
+    if(parsed.data.length>10000)return res.status(413).json({error:'TOO_MANY_ROWS',persisted:false});
+    csvFileIssues(type,def,parsed.meta.fields||[],parsed.data,importDiagnostics);
+    if(importDiagnostics.truncated)return sendImportValidation(res,importDiagnostics);
     rowCount=parsed.data.length;
     importModules[def.module]={rawRows:parsed.data,definition:def};
   }
-  const result=await withTenant(req.auth.tenantId,async client=>{
+  let result;
+  try{result=await withTenant(req.auth.tenantId,async client=>{
+    // Follow the established write lock order: subscription/tenant first, then
+    // tenant module state. This avoids deadlocks with ordinary state writes.
+    const subscriptionTenant=await lockSubscriptionForWrite(client,req.auth,{modules:type==='backup'?undefined:Object.keys(importModules)});
     const rows=await moduleRows(client,req.auth.tenantId,true),state=aggregate(rows),before={};
+    if(type!=='backup'){
+      const entry=importModules[definitions[type].module];
+      csvTenantIssues(type,entry.definition,entry.rawRows,state,mode,importDiagnostics);
+      if(importDiagnostics.totalIssues)return {validationDiagnostics:importDiagnostics};
+    }
     if(type!=='backup'){
       const entry=importModules[definitions[type].module],mapped=entry.rawRows.map(r=>entry.definition.map(r,state));
       importModules={[definitions[type].module]:mapped};
@@ -105,9 +158,22 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
     const next={...state};
     for(const[key,value]of Object.entries(importModules)){
       before[key]=state[key];
-      next[key]=mode==='append'&&Array.isArray(value)?[...(state[key]||[]),...value]:value;
+      next[key]=mode==='append'&&Array.isArray(value)&&!OPPORTUNITY_COLLECTIONS.includes(key)?[...(state[key]||[]),...value]:value;
     }
-    const clean=validateTenantState(next);
+const clean = validateTenantState(next, { previousState: state });
+if(subscriptionTenant && Object.hasOwn(importModules,'trabajadores'))await assertSubscriptionWorkerCapacity(client,req.auth.tenantId,state.trabajadores,clean.trabajadores);
+
+if (Object.hasOwn(importModules, 'trabajadores')) {
+  await assertWorkerDocumentFileReferences(
+    client,
+    req.auth,
+    changedWorkerDocuments(
+      state.trabajadores,
+      clean.trabajadores,
+      sanitizeJson
+    )
+  );
+}
     for(const key of Object.keys(importModules)){
       await client.query(`INSERT INTO tenant_module_state(tenant_id,module_key,data,version,updated_by)
         VALUES($1,$2,$3::jsonb,1,$4)
@@ -127,8 +193,16 @@ dataTransferRouter.post('/import/:type',upload.single('file'),async(req,res)=>{
       VALUES($1,$2,$3,$4,$5,$6)
       ON CONFLICT(tenant_id) DO UPDATE SET branding=$2,modules=$3,alerts=$4,catalogs=$5,updated_by=$6,updated_at=now()`,
       [req.auth.tenantId,importSettings.branding||{},importSettings.modules||{},importSettings.alerts||{},importSettings.catalogs||{},req.auth.userId]);
-    return{modules:Object.keys(importModules),rows:rowCount,mode};
-  });
+    return{modules:Object.keys(importModules),rows:rowCount,imported:rowCount,mode};
+  });}catch(error){
+    if(error?.code==='SUBSCRIPTION_WORKER_LIMIT')return res.status(error.status||409).json({
+      error:error.code,message:error.message,persisted:false,...(error.details||{})
+    });
+    const issue=type==='backup'?null:globalImportIssue(error);
+    if(issue)return sendImportValidation(res,[issue]);
+    throw error;
+  }
+  if(result.validationDiagnostics)return sendImportValidation(res,result.validationDiagnostics);
   if(result.confirmationRequired)return res.status(409).json({
     error:'OPPORTUNITY_REPLACE_CONFIRMATION_REQUIRED',
     message:'Esta importación reemplazará todas las oportunidades existentes. Confirma con REEMPLAZAR para continuar.',

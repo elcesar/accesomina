@@ -26,7 +26,7 @@ export default function BenefitsSection() {
     <section id="resultados" className="nk-public-section nk-centered">
       <div>
         <p className="nk-eyebrow">Resultados para tu operación</p>
-        <h2>Menos búsqueda. Más control. Mejores decisiones.</h2>
+        <h1>Menos búsqueda. Más control. Mejores decisiones.</h1>
         <p className="nk-lead">
           Todos trabajan sobre una misma base de información para anticipar brechas y mantener cada orden de servicio preparada.
         </p>

@@ -3,6 +3,8 @@ import { config } from './config.js';
 import { query, withTenant } from './db.js';
 import { appendAudit } from './audit.js';
 import { tenantIntegration } from './routes/settings.js';
+import { processDueSubscriptionRequests, refreshSubscriptionLifecycle } from './subscriptions.js';
+import { processSubscriptionNotifications, runSubscriptionNotificationTick } from './subscription-notifications.js';
 
 const nextDate=(rule,from=new Date())=>{const d=new Date(from);if(rule==='daily')d.setUTCDate(d.getUTCDate()+1);else if(rule==='weekly')d.setUTCDate(d.getUTCDate()+7);else if(rule==='monthly')d.setUTCMonth(d.getUTCMonth()+1);else return null;return d;};
 const list=value=>[...(Array.isArray(value)?value:String(value||'').split(/[;,]/))].map(x=>String(x).trim()).filter(Boolean);
@@ -45,7 +47,18 @@ async function processTenant(tenantId){
 
 export function startJobRunner(){
   let running=false,stopped=false;
-  const tick=async()=>{if(running||stopped)return;running=true;try{const tenants=await query("SELECT id FROM tenants WHERE status='active'");for(const tenant of tenants.rows)await processTenant(tenant.id);}catch(error){console.error('job runner failed',error);}finally{running=false;}};
+  const tick=async()=>{if(running||stopped)return;running=true;try{
+    // Legacy jobs remain independent of billing lifecycle failures.
+    try{const tenants=await query("SELECT id FROM tenants WHERE status='active'");for(const tenant of tenants.rows)await processTenant(tenant.id);}catch(error){console.error('job runner failed',error);}
+    try{await runSubscriptionNotificationTick({processTenant:async tenantId=>{
+      try{
+        const now=new Date();
+        await processDueSubscriptionRequests(tenantId,{now});
+        await withTenant(tenantId,client=>refreshSubscriptionLifecycle(client,tenantId,{now}));
+        await processSubscriptionNotifications(tenantId,{now});
+      }catch{console.error(JSON.stringify({event:'subscription.maintenance.failed',tenantId,code:'SUBSCRIPTION_MAINTENANCE_FAILED'}));}
+    }});}catch{console.error(JSON.stringify({event:'subscription.maintenance.failed',code:'SUBSCRIPTION_TENANT_LIST_FAILED'}));}
+  }finally{running=false;}};
   const timer=setInterval(tick,config.jobPollSeconds*1000);timer.unref();tick();
   return()=>{stopped=true;clearInterval(timer);};
 }

@@ -1,10 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import AppErrorBoundary from './components/ui/AppErrorBoundary.jsx'
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './services/auth.jsx'
 import AppLayout from './components/layout/AppLayout.jsx'
 import LandingPage from './pages/LandingPage.jsx'
+import { PUBLIC_PAGES, PUBLIC_PLANS_APPROVED } from './config/public-pages.js'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import AcceptInvitationPage from './pages/AcceptInvitationPage.jsx'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import MfaSetupPage from './pages/MfaSetupPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
@@ -57,6 +60,8 @@ import BitacoraCambiosPage from './pages/BitacoraCambiosPage.jsx'
 import PrivacidadDatosPage from './pages/PrivacidadDatosPage.jsx'
 import ConfiguracionPage from './pages/ConfiguracionPage.jsx'
 import AdministracionClientesPage from './pages/AdministracionClientesPage.jsx'
+import MiPlanPage from './pages/MiPlanPage.jsx'
+import AdministracionPlanesPage from './pages/AdministracionPlanesPage.jsx'
 
 function ProtectedRoute({ children, allowPasswordChange = false, allowMfaEnrollment = false }) {
   const { session, loading } = useAuth()
@@ -69,7 +74,10 @@ function ProtectedRoute({ children, allowPasswordChange = false, allowMfaEnrollm
     </div>
   )
   if (!session) return <Navigate to="/login" replace />
-  if (session.user?.mustChangePassword && !allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+  if (session.user?.mustChangePassword) {
+    if (!allowPasswordChange) return <Navigate to="/cambiar-password" replace />
+    return children
+  }
   if (session.user?.mfaEnrollmentRequired && !allowMfaEnrollment) return <Navigate to="/configurar-mfa" replace />
   return children
 }
@@ -92,20 +100,32 @@ function LegacyClientAccreditationRedirect() {
   return <Navigate to="/app/habilitacion-cliente" replace />
 }
 
-export default function App() {
+
+function AuthShell() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
+    <AuthProvider>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <AppErrorBoundary><Outlet /></AppErrorBoundary>
+    </AuthProvider>
+  )
+}
+
+const router = createBrowserRouter(createRoutesFromElements(
+  <Route element={<AuthShell />}>
+
+          {Object.values(PUBLIC_PAGES).filter(page => PUBLIC_PLANS_APPROVED || page.path !== '/planes').map(page => <Route key={page.path} path={page.path} element={<LandingPage />} />)}
+          {!PUBLIC_PLANS_APPROVED && <Route path="/planes" element={<Navigate to="/contacto" replace />} />}
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/recuperar-contrasena" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
           <Route path="/restablecer-contrasena" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+          <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
           <Route path="/cambiar-password" element={<ProtectedRoute allowPasswordChange><ChangePasswordPage /></ProtectedRoute>} />
           <Route path="/configurar-mfa" element={<ProtectedRoute allowMfaEnrollment><MfaSetupPage /></ProtectedRoute>} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
+            <Route path="mi-plan" element={<MiPlanPage />} />
+            <Route path="mi-suscripcion" element={<Navigate to="/app/mi-plan" replace />} />
+            <Route path="administracion-planes" element={<AdministracionPlanesPage />} />
             <Route path="alertas" element={<AlertasPage />} />
             <Route path="reclutamiento" element={<GestionPersonalProyectoPage />} />
             <Route path="operaciones" element={<CentroOperativoPage />} />
@@ -168,8 +188,6 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  )
-}
+  </Route>
+))
+export default function App() { return <RouterProvider router={router} /> }

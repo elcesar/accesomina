@@ -1,6 +1,6 @@
-export function ErrorPage({ code, title, description, icon: Icon, actions }) {
+export function ErrorPage({ code, title, description, icon: Icon, actions, as: Container = 'main' }) {
   return (
-    <main className="nk-error-page">
+    <Container className="nk-error-page">
       <section className="nk-error-page-panel" aria-labelledby="error-page-title">
         <img className="nk-error-page-logo" src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
         <div className="nk-error-page-icon" aria-hidden="true"><Icon size={32} strokeWidth={1.5} /></div>
@@ -9,6 +9,6 @@ export function ErrorPage({ code, title, description, icon: Icon, actions }) {
         <p className="nk-error-page-description">{description}</p>
         <div className="nk-error-page-actions">{actions}</div>
       </section>
-    </main>
+    </Container>
   )
 }

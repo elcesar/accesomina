@@ -3,6 +3,7 @@ import { IconX } from '@tabler/icons-react'
 import { PhoneInput } from '../ui/PhoneInput.jsx'
 import { EmailInput } from '../ui/EmailInput.jsx'
 import { validateEmail } from '../../services/email-validation.js'
+import { isValidChilePhone } from '../../services/chile-phone.js'
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -145,6 +146,7 @@ export function DemoRequestDialog({ onClose }) {
     if (!form.nombre.trim()) nextErrors.nombre = 'Ingresa tu nombre.'
     const emailError = validateEmail(form.correo, { required: true })
     if (emailError) nextErrors.correo = emailError
+    if (form.telefono && !isValidChilePhone(form.telefono)) nextErrors.telefono = 'Ingresa un teléfono chileno válido.'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setSubmitting(true)
@@ -174,12 +176,13 @@ export function DemoRequestDialog({ onClose }) {
       {submitted ? <div className="nk-public-form" role="status">
         <p className="nk-dialog-copy">Recibimos tu solicitud. El equipo de Nexo Klar te contactará pronto.</p>
         <footer><button className="nk-button nk-button-primary" type="button" onClick={onClose}>Cerrar</button></footer>
-      </div> : <form className="nk-public-form" onSubmit={submit}>
+      </div> : <form className="nk-public-form" noValidate onSubmit={submit}>
         {BASIC_FIELDS.map(([key, label, placeholder]) => (
           <label key={key}>
             {label}{(key === 'nombre' || key === 'correo') ? ' (obligatorio)' : ''}
             {key === 'telefono' ? (
               <PhoneInput
+                error={errors.telefono}
                 value={form.telefono}
                 onChange={value => updateField('telefono', value)}
               />
@@ -205,7 +208,7 @@ export function DemoRequestDialog({ onClose }) {
                 placeholder={placeholder}
               />
             )}
-            {errors[key] && key !== 'correo' && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
+            {errors[key] && !['correo', 'telefono'].includes(key) && <span id={`demo-${key}-error`} className="nk-field-error">{errors[key]}</span>}
           </label>
         ))}
 

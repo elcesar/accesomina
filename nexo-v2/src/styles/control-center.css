@@ -10,6 +10,7 @@
 .nk-module-header h1{margin:0 0 var(--nk-space-2);color:var(--nk-ink);font:var(--nk-font-title-1)}
 .nk-module-header>div>p{max-width:calc((var(--nk-space-20)*8) + var(--nk-space-10));margin:0;color:var(--nk-ink-2);font:var(--nk-font-body-sm)}
 .nk-dashboard-updated{display:block;margin-top:var(--nk-space-2);color:var(--nk-ink-2);font:var(--nk-font-caption)}
+.nk-dashboard-updating{display:block;margin-top:var(--nk-space-1);color:var(--nk-primary);font:var(--nk-font-caption)}
 .nk-module-card{min-width:0;padding:var(--nk-space-5);background:var(--nk-surface);border:var(--nk-stroke-thin) solid var(--nk-line);border-radius:var(--nk-radius-lg);box-shadow:var(--nk-elev-1)}
 .nk-module-card h2{margin:0 0 var(--nk-space-1);color:var(--nk-ink);font:var(--nk-font-title-2)}
 .nk-module-card>p{margin:0;color:var(--nk-ink-2);font:var(--nk-font-body-sm)}

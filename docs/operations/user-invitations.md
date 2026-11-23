@@ -1,0 +1,62 @@
+# Invitación de primer acceso
+
+## Preparación de la liberación
+
+Aplicar `database/postgres/024_user_invitations.sql` mediante el proceso de migración habitual antes de iniciar la versión corregida. La tabla conserva el hash del único enlace vigente de cada usuario y utiliza RLS por empresa. No modifica roles, permisos ni contraseñas de cuentas existentes.
+
+La bienvenida usa la configuración SMTP global del backend (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`) y `APP_ORIGIN` para el enlace. La configuración de Comunicaciones por empresa no sustituye esta configuración de acceso. No guardar credenciales en el repositorio ni en evidencias de QA.
+
+## Entregabilidad antes de producción
+
+La aceptación del proveedor SMTP no demuestra que Microsoft 365 o Gmail deposite una invitación en bandeja de entrada. Antes de liberar, Infraestructura debe dejar publicada y alineada la autenticación del dominio exacto de `EMAIL_FROM`:
+
+- SPF que autorice al proveedor SMTP que entrega invitaciones, recuperación y avisos;
+- DKIM activo, con el selector público configurado en `EMAIL_DKIM_SELECTOR`;
+- DMARC para ese dominio, inicialmente monitorizado y endurecido de acuerdo con la política de correo;
+- remitente, dominio de retorno e identidad verificada del proveedor alineados.
+
+El repositorio incorpora una prevalidación segura; no configura DNS, ECS ni el proveedor y no envía mensajes. En una tarea única que ya tenga los secretos de producción, ejecutar:
+
+```bash
+npm run email:delivery:preflight -- --verify-smtp
+```
+
+El comando consulta sólo SPF, DMARC y el DKIM indicado, valida que la configuración SMTP esté completa y hace un `verify()` autenticado sin destinatario ni `sendMail`. La salida no contiene host, usuario, contraseña, enlace ni cuerpo de mensaje. Debe terminar con `"status": "verified"`. Si muestra `not_ready`, `ready_pending_transport_verification` o un estado de DNS/transport distinto de `present`/`reachable`, César o Infraestructura debe corregir la dependencia externa antes de liberar la funcionalidad de invitaciones.
+
+Después de un resultado `verified`, QA debe hacer la prueba real con buzones autorizados de Microsoft 365 y Gmail: invitación, recuperación, bandeja de entrada, spam, enlace de un solo uso y reenvío. Esa prueba confirma entrega final; el preflight no puede medir reputación ni clasificación antispam.
+
+
+### Límites de la prevalidación
+
+- **SPF**: se comprueba que exista al menos un TXT con `v=spf1`; no se evalúa si el mecanismo autoriza al IP real de salida, el envelope-from/Return-Path, los límites de búsquedas DNS ni la alineación SPF con DMARC.
+- **DKIM**: se consulta el selector indicado como TXT y se reconoce `v=DKIM1`; no se verifica ninguna firma criptográfica ni la alineación del dominio `d=` en un mensaje real. Algunos proveedores publican el selector mediante **CNAME**; si la resolución TXT del alias no funciona en el entorno, un resultado negativo requiere comprobar la cadena CNAME en DNS, no asumir ausencia de DKIM.
+- **DMARC**: se comprueba la presencia de `v=DMARC1`, no la validez integral de su sintaxis, política efectiva, alineación ni los resultados de autenticación de mensajes.
+- **SMTP**: `verify()` comprueba la conexión/autenticación del transporte; no verifica identidad del remitente autorizada por el proveedor, aceptación de destinatario, reputación, colas, entrega final ni clasificación de spam.
+- **Alcance operacional**: `verified` significa que estas comprobaciones limitadas tuvieron éxito, **no** que los correos vayan a bandeja de entrada. Probar encabezados Authentication-Results y entrega de invitación/recuperación en Microsoft 365 y Gmail con buzones QA; conservar evidencia sin secretos ni enlaces activos. DNS, ECS, configuración del proveedor y política de remitente requieren acción de Infraestructura.
+
+## Flujo y contrato
+
+- `POST /api/users`: sólo administradores. Crea el usuario y una invitación pendiente en una transacción; después intenta la entrega. Responde `201 { user, invitation }` incluso cuando SMTP falla, para que la cuenta persistida no se cree nuevamente. Un correo duplicado en la misma empresa responde `409 USER_ALREADY_EXISTS`.
+- `GET /api/users`: añade `invitation: null | { status, expiresAt, lastSentAt, failureCode }`. Los estados son `pending`, `sent`, `failed` y `accepted`; un enlace puede estar vencido además de haber sido enviado. No expone el token ni su hash.
+- `POST /api/users/:id/resend-invitation`: sólo administradores de la empresa. Conserva el usuario, rol, permisos y contraseña; reemplaza primero el hash, invalidando el enlace anterior, y luego intenta enviar una nueva invitación. No admite cuentas aceptadas, desactivadas ni cuentas antiguas sin invitación pendiente.
+- La URL pública es `/aceptar-invitacion?tenant=...&token=...`.
+- `POST /api/auth/invitations/verify`, cuerpo `{ tenant, token }`: valida empresa y usuario activos, vigencia y uso del enlace; devuelve `{ companyName, companyRut, email, fullName, expiresAt }` sólo al poseedor de un enlace válido.
+- `POST /api/auth/invitations/accept`, cuerpo `{ tenant, token, newPassword, confirmPassword }`: exige una contraseña de 12–128 caracteres con mayúscula, minúscula y número; devuelve `204` al consumir el enlace y establecer la contraseña personal. No inicia sesión. El próximo ingreso normal conserva el requisito de MFA.
+
+La invitación vence a las 24 horas, es de un solo uso y sólo se persiste su SHA-256. Aceptarla deja `must_change_password=false` porque el usuario acaba de elegir su contraseña. Revoca sesiones y tokens de recuperación anteriores. Establecer una contraseña mediante recuperación o cambio personal también retira una invitación previa. Las operaciones serializan el bloqueo del usuario y vuelven a comprobar el enlace dentro de la transacción.
+
+## Entrega y diagnóstico seguro
+
+`sent` significa que SMTP aceptó al destinatario esperado; no certifica recepción final ni lectura. El envío tiene un límite total de 25 segundos. Las causas persistidas son únicamente `SMTP_NOT_CONFIGURED`, `SMTP_AUTH_FAILED`, `SMTP_CONNECTION_FAILED` y `DELIVERY_FAILED`.
+
+La invitación queda `pending` antes de enviar; si el proceso se interrumpe o falla la persistencia posterior, el administrador puede consultar la cuenta y reenviar. No se ejecuta un reintento automático que pueda duplicar cuentas o mensajes. Un resultado tardío de SMTP sólo actualiza el hash de la generación que lo originó y no revierte una aceptación ni un reenvío posterior.
+
+Los eventos de auditoría son `user.invitation.created`, `user.invitation.delivery.sent`, `user.invitation.delivery.failed` y `user.invitation.accepted`. No contienen token, URL, contraseña ni cuerpo/respuesta SMTP. Un fallo al persistir la entrega genera únicamente el código operativo `DELIVERY_STATUS_WRITE_FAILED`, sin secretos del proveedor.
+
+## Compatibilidad y límites
+
+Los clientes API existentes todavía pueden suministrar el `password` opcional a `POST /api/users`; se valida y guarda como antes, y la invitación se intenta igualmente. No se devuelve una contraseña temporal ni se incluye una contraseña en el correo de bienvenida. La interfaz de alta no envía ese campo.
+
+El restablecimiento administrativo anterior mantiene su contrato con contraseña temporal y queda fuera de este cambio. La recuperación pública conserva sus respuestas genéricas y su plazo de 30 minutos. Registrar una Persona en el módulo operacional sigue siendo una operación distinta de dar acceso a un usuario; no crea accesos automáticamente.
+
+Antes de liberar: ejecutar migración y pruebas en un entorno aislado, ejecutar la prevalidación SMTP/DNS con credenciales ya inyectadas en una tarea única, comprobar recepción con casillas QA autorizadas de Microsoft 365 y Gmail, probar enlace vencido/reenviado/usado, aislamiento por empresa, fallos SMTP, cambio personal y recuperación. No publicar enlaces activos, credenciales ni datos reales en capturas o issues.

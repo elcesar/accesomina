@@ -1,3 +1,5 @@
+import { normalizeSearch } from './search.js'
+import { includesSearch } from './search.js'
 import { workerOperationalAssignments } from './worker-segments.js'
 
 export function workerClientIds(worker, assignments = [], projects = []) {
@@ -10,9 +12,9 @@ export function workerClientIds(worker, assignments = [], projects = []) {
 }
 
 export function matchesWorkerSearch(worker, query) {
-  const term = String(query || '').trim().toLocaleLowerCase()
+  const term = normalizeSearch(query)
   if (!term) return true
-  if (String(worker.nombre || '').toLocaleLowerCase().includes(term)) return true
+  if (includesSearch(String(worker.nombre || ''), term)) return true
   if (!/^[\d.k\s-]+$/i.test(term)) return false
   const normalizeRut = value => String(value || '').replace(/[.\s-]/g, '').toUpperCase()
   const rut = normalizeRut(term)

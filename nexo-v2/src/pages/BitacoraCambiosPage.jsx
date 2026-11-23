@@ -1,6 +1,9 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { IconRefresh } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { auditActionLabel, auditEntityLabel, auditFieldLabel } from '../services/ui-labels.js'
 import '../styles/audit-log.css'
 
 const PAGE_SIZE = 200
@@ -15,42 +18,17 @@ function formatDate(value) {
   }).format(date)
 }
 
-function actionLabel(value = '') {
-  const labels = {
-    'tenant.created': 'Empresa creada',
-    'session.login': 'Inicio de sesión',
-    'session.logout': 'Cierre de sesión',
-    'user.created': 'Usuario creado',
-    'user.updated': 'Usuario actualizado',
-    'user.password_reset_by_company_admin': 'Acceso restablecido',
-    'user.mfa_reset_by_admin': 'MFA restablecido',
-    'user.password_changed': 'Contraseña modificada',
-    'user.mfa_enabled': 'MFA activado',
-    'user.mfa_disabled': 'MFA desactivado',
-  }
-  return labels[value] || value.replaceAll('.', ' · ')
-}
-
-function entityLabel(value = '') {
-  const labels = {
-    tenant: 'Empresa',
-    session: 'Sesión',
-    user: 'Usuario',
-  }
-  return labels[value] || value || '—'
-}
-
 function changedSummary(row) {
   const before = row.old_value && typeof row.old_value === 'object' ? row.old_value : null
   const after = row.new_value && typeof row.new_value === 'object' ? row.new_value : null
 
   if (!before && !after) return 'Evento registrado'
-  if (!before && after) return Object.keys(after).slice(0, 3).join(', ') || 'Registro creado'
+  if (!before && after) return [...new Set(Object.keys(after).slice(0, 3).map(auditFieldLabel))].join(', ') || 'Registro creado'
   if (before && !after) return 'Registro actualizado'
 
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])]
   const changed = keys.filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-  return changed.slice(0, 3).join(', ') || 'Sin cambios de campos visibles'
+  return [...new Set(changed.slice(0, 3).map(auditFieldLabel))].join(', ') || 'Sin cambios de campos visibles'
 }
 
 export default function BitacoraCambiosPage() {
@@ -87,9 +65,9 @@ export default function BitacoraCambiosPage() {
           <h1>Bitácora de cambios</h1>
           <p>Quién cambió qué, cuándo y dentro de la empresa actual.</p>
         </div>
-        <button className="nk-button nk-button-secondary" onClick={loadAudit} disabled={loading}>
+        <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={loadAudit} disabled={loading}>
           <IconRefresh size={16}/>{loading ? 'Actualizando…' : 'Actualizar'}
-        </button>
+        </ActionButton>
       </header>
 
       {error && <p className="nk-form-message">{error}</p>}
@@ -107,21 +85,21 @@ export default function BitacoraCambiosPage() {
         </header>
 
         <div className="nk-audit-table-wrap">
-          <table className="nk-audit-table">
+          <table className="nk-audit-table"><caption className="nk-visually-hidden">Bitácora de cambios</caption>
             <thead>
               <tr>
-                <th>Fecha y hora</th>
-                <th>Usuario</th>
-                <th>Evento</th>
-                <th>Entidad</th>
-                <th>Detalle</th>
+                <th scope="col">Fecha y hora</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Evento</th>
+                <th scope="col">Entidad</th>
+                <th scope="col">Detalle</th>
               </tr>
             </thead>
             <tbody>
               {loading && rows.length === 0 ? (
                 <tr><td colSpan="5" className="nk-audit-empty">Cargando eventos…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan="5" className="nk-audit-empty">No hay eventos registrados.</td></tr>
+                <tr><td colSpan="5" className="nk-audit-empty"><EmptyState title="Todavía no hay eventos registrados." /></td></tr>
               ) : rows.map(row => (
                 <tr key={row.id}>
                   <td>{formatDate(row.created_at)}</td>
@@ -129,10 +107,10 @@ export default function BitacoraCambiosPage() {
                     <strong>{row.user_name || row.user_email || 'Sistema'}</strong>
                     {row.user_name && row.user_email && <small>{row.user_email}</small>}
                   </td>
-                  <td><span className="nk-audit-action">{actionLabel(row.action)}</span></td>
+                  <td><span className="nk-audit-action">{auditActionLabel(row.action)}</span></td>
                   <td>
-                    <strong>{entityLabel(row.entity_type)}</strong>
-                    {row.entity_id && <small>{row.entity_id}</small>}
+                    <strong>{auditEntityLabel(row.entity_type)}</strong>
+                    {/* Los identificadores internos permanecen en el registro y la API; no son una descripción para usuarios. */}
                   </td>
                   <td>{changedSummary(row)}</td>
                 </tr>

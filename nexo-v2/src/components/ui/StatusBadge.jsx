@@ -1,3 +1,4 @@
+import { complianceStatus } from '../../services/semantic-status.js'
 const STATUS_MAP = {
   disponible: ['Disponible', 'nk-badge-ok'],
   asignado: ['Asignado', 'nk-badge-none'],
@@ -15,7 +16,11 @@ const STATUS_MAP = {
   sin_informacion: ['Sin información', 'nk-badge-none'],
 }
 
-export function StatusBadge({ value }) {
+export function StatusBadge({ value, domain = 'workflow', expiresOn, hasEvidence = true }) {
+  if (domain === 'compliance') {
+    const status = complianceStatus({ outcome: value, expiresOn, hasEvidence })
+    return <span className={`nk-badge ${status.cls}`}>{status.label}</span>
+  }
   const normalized = String(value || '').trim().toLowerCase()
   const [label, className] = STATUS_MAP[normalized] || [value || 'Sin información', 'nk-badge-none']
 

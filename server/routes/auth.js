@@ -1,14 +1,26 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { query, withTenant } from '../db.js';
+import { getSubscriptionAccess } from '../subscription-permissions.js';
 import { config } from '../config.js';
 import { loginSchema, registerSchema } from '../validation.js';
 import { clientIp, decryptJson, encryptJson, generateRecoveryCodes, generateTotpSecret, hashPassword, hashRecoveryCode, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256, timingSafeEqualString, validatePassword, verifyPassword, verifyTotp } from '../security.js';
 import { appendAudit } from '../audit.js';
 import { authenticate, clearSessionCookie, requireCsrf, setSessionCookie } from '../middleware.js';
-import { createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation } from '../password-reset.js';
+import { PASSWORD_RESET_GENERIC_MESSAGE, createPasswordReset, deliverPasswordReset, deliverPasswordResetConfirmation, logPasswordResetOperationalEvent, recordPasswordResetDelivery, validatePasswordResetRequest } from '../password-reset.js';
+import { completeUserInvitation } from '../user-invitations.js';
 
 export const authRouter = Router();
+// A UI hint only. All subscription-admin endpoints still recheck the server-side
+// profile and capabilities; failed lookups never block ordinary sign-in.
+async function eligibleForGlobalSubscriptionAccess(tenantId, userId) {
+  try {
+    const access = await getSubscriptionAccess({ tenantId, userId });
+    return access?.capabilities?.includes('read') === true;
+  } catch {
+    return false;
+  }
+}
 const limiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false });
 const passwordResetLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -18,7 +30,7 @@ const passwordResetLimiter = rateLimit({
   message: { message: 'Espera unos minutos antes de solicitar otro enlace.' },
 });
 
-authRouter.get('/config',(req,res)=>res.json({registrationEnabled:config.registrationEnabled,mfaRequired:config.mfaRequired}));
+authRouter.get('/config',(req,res)=>res.json({registrationEnabled:config.registrationEnabled,mfaRequired:config.mfaRequired,registrationTermsVersion:'2026-11-05'}));
 
 authRouter.post('/register', limiter, async (req, res) => {
   if(!config.registrationEnabled)return res.status(403).json({error:'REGISTRATION_CLOSED',message:'El registro público está cerrado. Solicite una invitación a Nexo Klar.'});
@@ -30,8 +42,8 @@ authRouter.post('/register', limiter, async (req, res) => {
   const client = await (await import('../db.js')).pool.connect();
   try {
     await client.query('BEGIN');
-    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone,status)
-      VALUES ($1,$2,$3,$4,$5,'pending') RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
+    const tenantResult = await client.query(`INSERT INTO tenants (tenant_code,company_name,rut,admin_email,phone,status,subscription_managed)
+      VALUES ($1,$2,$3,$4,$5,'pending',true) RETURNING id,company_name,rut`, [rutKey, body.companyName, body.rut, email, body.phone]);
     const tenant = tenantResult.rows[0];
     await client.query("SELECT set_config('app.current_tenant_id', $1, true)", [tenant.id]);
     const userResult = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt)
@@ -41,6 +53,9 @@ authRouter.post('/register', limiter, async (req, res) => {
     await client.query('INSERT INTO tenant_state (tenant_id,state,updated_by) VALUES ($1,$2::jsonb,$3)', [tenant.id, JSON.stringify(initialState), user.id]);
     await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) e",[tenant.id,JSON.stringify(initialState),user.id]);
     await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:body.companyName,theme:'light',accent:'#2a2a8c'}),user.id]);
+    await client.query(`INSERT INTO privacy_consents(tenant_id,subject_ref,subject_name,purpose,notice_version,status,source,evidence,granted_at,created_by)
+      VALUES($1,$2,$3,'Registro de empresa y condiciones informadas del plan Free',$4,'otorgado','registro_publico',$5::jsonb,now(),$6)`,
+      [tenant.id,user.id,body.adminName,body.termsVersion,JSON.stringify({acceptedTerms:true,noticeVersion:body.termsVersion,channel:'public_registration'}),user.id]);
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'tenant', entityId: tenant.id, action: 'tenant.created', newValue: { companyName: body.companyName, rut: body.rut, adminEmail: email } });
     await client.query('COMMIT');
     res.status(201).json({ companyName: tenant.company_name, rut: tenant.rut, status:'pending', message:'Cuenta creada y pendiente de aprobación por Nexo Klar. Recibirás un correo cuando el acceso sea aprobado.' });
@@ -78,21 +93,22 @@ authRouter.post('/login', limiter, async (req, res) => {
     await appendAudit(client, { tenantId: tenant.id, userId: user.id, entityType: 'session', action: 'session.login', newValue: { ip: clientIp(req),mfaVerified } });
   });
   setSessionCookie(res, token);
-  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password,mfaEnabled:user.mfa_enabled,mfaEnrollmentRequired }, tenant: { id: tenant.id, name: tenant.company_name } });
+  const subscriptionAdminEligible = await eligibleForGlobalSubscriptionAccess(tenant.id, user.id);
+  res.json({ csrfToken: csrf, user: { id: user.id, email: user.email, name: user.full_name, role: user.role, subscriptionAdminEligible, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password,mfaEnabled:user.mfa_enabled,mfaEnrollmentRequired }, tenant: { id: tenant.id, name: tenant.company_name } });
 });
 
 authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   const startedAt = Date.now();
-  const email = normalizeEmail(req.body?.email);
-  const rutKey = normalizeRut(req.body?.rut);
-  const generic = { message: 'Si los datos corresponden a una cuenta activa, recibirás un enlace para restablecer tu contraseña.' };
+  const input = validatePasswordResetRequest(req.body);
+  if (input.error) return res.status(400).json({ error: input.error, message: input.message });
+  const { email, rutKey } = input;
+  const generic = { message: PASSWORD_RESET_GENERIC_MESSAGE };
   const reply = async extra => {
     const wait = Math.max(0, 300 - (Date.now() - startedAt));
     if (wait) await new Promise(resolve => setTimeout(resolve, wait));
     return res.json({ ...generic, ...(extra || {}) });
   };
 
-  if (!email || !rutKey) return reply();
   const tenant = (await query("SELECT id,status FROM tenants WHERE regexp_replace(lower(rut),'[^0-9k]','','g')=$1", [rutKey])).rows[0];
   if (!tenant || tenant.status !== 'active') return reply();
 
@@ -102,8 +118,33 @@ authRouter.post('/forgot-password', passwordResetLimiter, async (req, res) => {
   if (!user?.active) return reply();
 
   const request = await createPasswordReset({ tenantId: tenant.id, user, ip: clientIp(req) });
-  const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url })
-    .catch(() => ({ delivered: false, reason: 'DELIVERY_FAILED' }));
+  const delivery = await deliverPasswordReset({ email: user.email, fullName: user.full_name, url: request.url });
+  if (!delivery.delivered) {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.smtp_delivery',
+      outcome: 'failed',
+      code: delivery.reason,
+      requestId: req.requestId,
+    });
+  } else {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.smtp_delivery',
+      outcome: 'accepted_by_smtp',
+      code: 'SMTP_ACCEPTED',
+      requestId: req.requestId,
+    });
+  }
+
+  try {
+    await recordPasswordResetDelivery({ tenantId: tenant.id, user, delivery });
+  } catch {
+    logPasswordResetOperationalEvent({
+      event: 'password_reset.audit_delivery',
+      outcome: 'failed',
+      code: 'AUDIT_WRITE_FAILED',
+      requestId: req.requestId,
+    });
+  }
 
   if (config.env !== 'production' && !delivery.delivered) return reply({ previewUrl: request.url });
   return reply();
@@ -131,6 +172,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
   const credentials = await hashPassword(newPassword);
   const changed = await withTenant(tenantId, async client => {
+    await client.query('SELECT id FROM app_users WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[reset.user_id,tenantId]);
     const used = (await client.query(
       'UPDATE password_reset_tokens SET used_at=now() WHERE id=$1 AND tenant_id=$2 AND used_at IS NULL AND expires_at>now() RETURNING id',
       [reset.id, tenantId],
@@ -141,6 +183,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
       'UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,failed_login_count=0,locked_until=NULL,updated_at=now() WHERE id=$3 AND tenant_id=$4',
       [credentials.hash, credentials.salt, reset.user_id, tenantId],
     );
+    await completeUserInvitation(client,tenantId,reset.user_id);
     await client.query(
       'UPDATE user_sessions SET revoked_at=now() WHERE user_id=$1 AND tenant_id=$2 AND revoked_at IS NULL',
       [reset.user_id, tenantId],
@@ -162,7 +205,7 @@ authRouter.post('/reset-password', passwordResetLimiter, async (req, res) => {
   return res.status(204).end();
 });
 
-authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0]||{};res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password||false,mfaEnabled:user.mfa_enabled||false,mfaEnrollmentRequired:config.mfaRequired&&!user.mfa_enabled }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
+authRouter.get('/me', authenticate, async (req, res) => {const result=await withTenant(req.auth.tenantId,client=>client.query('SELECT must_change_password,permissions,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0]||{};const subscriptionAdminEligible=await eligibleForGlobalSubscriptionAccess(req.auth.tenantId, req.auth.userId);res.json({ csrfToken: req.auth.csrfToken, user: { id: req.auth.userId, email: req.auth.email, name: req.auth.name, role: req.auth.role, subscriptionAdminEligible, permissions:user.permissions||{modules:{}}, mustChangePassword:user.must_change_password||false,mfaEnabled:user.mfa_enabled||false,mfaEnrollmentRequired:config.mfaRequired&&!user.mfa_enabled }, tenant: { id: req.auth.tenantId, name: req.auth.companyName, rut: req.auth.rut } });});
 
 authRouter.post('/mfa/setup',authenticate,requireCsrf,async(req,res)=>{const {currentPassword}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt,email,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(user.mfa_enabled)return res.status(409).json({error:'MFA_ALREADY_ENABLED'});const secret=generateTotpSecret(),encrypted=encryptJson({secret});await withTenant(req.auth.tenantId,client=>client.query('UPDATE app_users SET mfa_pending_secret_encrypted=$1,updated_at=now() WHERE id=$2',[encrypted,req.auth.userId]));const issuer=encodeURIComponent('Nexo Klar'),account=encodeURIComponent(`${req.auth.companyName}:${user.email}`);res.json({secret,otpauthUri:`otpauth://totp/${issuer}:${account}?secret=${secret}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`});});
 
@@ -170,6 +213,21 @@ authRouter.post('/mfa/enable',authenticate,requireCsrf,async(req,res)=>{const {c
 
 authRouter.post('/mfa/disable',authenticate,requireCsrf,async(req,res)=>{const {currentPassword,code}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt,mfa_secret_encrypted,mfa_enabled FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(!user.mfa_enabled)return res.status(409).json({error:'MFA_NOT_ENABLED'});const secret=decryptJson(user.mfa_secret_encrypted).secret;if(!verifyTotp(secret,code))return res.status(400).json({error:'MFA_CODE_INVALID'});await withTenant(req.auth.tenantId,async client=>{await client.query('UPDATE app_users SET mfa_enabled=false,mfa_secret_encrypted=NULL,mfa_pending_secret_encrypted=NULL,mfa_recovery_code_hashes=\'[]\'::jsonb,mfa_enrolled_at=NULL,updated_at=now() WHERE id=$1',[req.auth.userId]);await client.query('UPDATE user_sessions SET mfa_verified=false WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.mfa_disabled'});});res.status(204).end();});
 
-authRouter.post('/change-password',authenticate,requireCsrf,async(req,res)=>{const {currentPassword,newPassword}=req.body||{},result=await withTenant(req.auth.tenantId,client=>client.query('SELECT password_hash,password_salt FROM app_users WHERE id=$1',[req.auth.userId])),user=result.rows[0];if(!user||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return res.status(401).json({error:'INVALID_CREDENTIALS'});if(!validatePassword(newPassword))return res.status(400).json({error:'WEAK_PASSWORD'});const credentials=await hashPassword(newPassword);await withTenant(req.auth.tenantId,async client=>{await client.query('UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,updated_at=now() WHERE id=$3',[credentials.hash,credentials.salt,req.auth.userId]);await client.query('UPDATE user_sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.password_changed'});});res.status(204).end();});
+authRouter.post('/change-password',authenticate,requireCsrf,async(req,res)=>{
+  const {currentPassword,newPassword}=req.body||{};
+  const rejected=await withTenant(req.auth.tenantId,async client=>{
+    const user=(await client.query('SELECT password_hash,password_salt FROM app_users WHERE id=$1 AND tenant_id=$2 FOR UPDATE',[req.auth.userId,req.auth.tenantId])).rows[0];
+    if(!user?.password_hash||typeof currentPassword!=='string'||!await verifyPassword(currentPassword,user.password_salt,user.password_hash))return {status:401,error:'INVALID_CREDENTIALS'};
+    if(!validatePassword(newPassword))return {status:400,error:'WEAK_PASSWORD'};
+    const credentials=await hashPassword(newPassword);
+    await client.query('UPDATE app_users SET password_hash=$1,password_salt=$2,must_change_password=false,updated_at=now() WHERE id=$3 AND tenant_id=$4',[credentials.hash,credentials.salt,req.auth.userId,req.auth.tenantId]);
+    await completeUserInvitation(client,req.auth.tenantId,req.auth.userId);
+    await client.query('UPDATE user_sessions SET revoked_at=now() WHERE tenant_id=$1 AND user_id=$2 AND id<>$3 AND revoked_at IS NULL',[req.auth.tenantId,req.auth.userId,req.auth.sessionId]);
+    await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.auth.userId,action:'user.password_changed'});
+    return null;
+  });
+  if(rejected)return res.status(rejected.status).json({error:rejected.error});
+  res.status(204).end();
+});
 
 authRouter.post('/logout',authenticate,requireCsrf,async(req,res)=>{await query('UPDATE user_sessions SET revoked_at=now() WHERE id=$1',[req.auth.sessionId]);clearSessionCookie(res);res.status(204).end();});

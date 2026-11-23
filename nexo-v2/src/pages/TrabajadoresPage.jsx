@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { calendarDaysUntil } from '../services/calendar-date.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   IconChevronDown,
@@ -13,50 +16,21 @@ import {
 } from '@tabler/icons-react'
 import { api } from '../services/api.js'
 import { operationalStatus, workerOperationalAssignments, workerSegment } from '../services/worker-segments.js'
+import { workerComplianceSummary } from '../services/worker-document-status.js'
 import { matchesWorkerSearch, workerClientIds, workerListCsv } from '../services/worker-list.js'
 import { StatusBadge } from '../components/ui/StatusBadge.jsx'
 import '../styles/trabajadores.css'
 
-function diasHasta(fecha) {
-  if (!fecha) return null
-  return Math.floor((new Date(fecha) - new Date()) / 86400000)
-}
-
-const REQUIRED_ITEMS = [
-  { type: 'documento', name: 'Cédula de identidad' },
-  { type: 'contrato', name: 'Contrato de trabajo' },
-  { type: 'documento', name: 'Certificado AFP' },
-  { type: 'documento', name: 'Certificado Fonasa/Isapre' },
-  { type: 'examen', name: 'Examen preocupacional' },
-  { type: 'curso', name: 'ODI / Derecho a Saber' },
-  { type: 'curso', name: 'Reglamento Interno' },
-]
-
 function acreditacionPct(persona) {
-  const items = persona.workerItems || []
-  if (!items.length) return 0
-
-  const ok = REQUIRED_ITEMS.filter(req => (
-    items.some(item => (
-      item.type === req.type &&
-      item.name?.toLowerCase().includes(req.name.toLowerCase().split('/')[0].trim()) &&
-      item.estado !== 'rechazado' &&
-      !(item.vence && diasHasta(item.vence) < 0)
-    ))
-  )).length
-
-  return Math.round((ok / REQUIRED_ITEMS.length) * 100)
+  return workerComplianceSummary(persona).percentage
 }
 
 function nextExpiry(persona) {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const dates = (persona.workerItems || [])
     .map(item => item.vence)
-    .filter(Boolean)
-    .map(value => new Date(`${value}T00:00:00`))
-    .filter(date => !Number.isNaN(date.getTime()) && date >= today)
+    .filter(value => calendarDaysUntil(value) !== null && calendarDaysUntil(value) >= 0)
+    .map(value => new Date(`${value}T12:00:00`))
+    .filter(date => !Number.isNaN(date.getTime()))
     .sort((a, b) => a - b)
 
   return dates[0] || null
@@ -138,7 +112,7 @@ const TABS = [
   { key: 'planta', label: 'Trabajador fijo', icon: IconUserCheck },
   { key: 'esporadico', label: 'Trabajador por proyecto', icon: IconUsers },
   { key: 'disponible', label: 'Trabajador disponible', icon: IconUserCheck },
-  { key: 'bloqueados', label: 'Restringidos', icon: IconUserOff },
+  { key: 'bloqueados', label: 'No habilitados', icon: IconUserOff },
 ]
 
 const TAB_LABELS = {
@@ -152,6 +126,8 @@ export default function TrabajadoresPage() {
   const navigate = useNavigate()
   const [state, setState] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const loadRequestRef = useRef(0)
   const [tab, setTab] = useState('planta')
   const [search, setSearch] = useState('')
   const [specialty, setSpecialty] = useState('')
@@ -164,21 +140,44 @@ export default function TrabajadoresPage() {
   const [sortCol, setSortCol] = useState('nombre')
   const [sortAsc, setSortAsc] = useState(true)
 
-  const loadState = () => {
+  const applyLoadedState = useCallback(result => {
+    const nextState = result?.state || result
+    if (!nextState || typeof nextState !== 'object') return false
+    setState(nextState)
+    setLoadError(null)
+    return true
+  }, [])
+
+  const loadState = useCallback(async () => {
+    const requestId = ++loadRequestRef.current
     setLoading(true)
-    api.get('/state')
-      .then(result => {
-        setState(result?.state || result)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }
+    try {
+      const result = await api.get('/state')
+      if (requestId !== loadRequestRef.current) return
+      applyLoadedState(result)
+    } catch (error) {
+      if (requestId !== loadRequestRef.current) return
+      setLoadError(error)
+    } finally {
+      if (requestId === loadRequestRef.current) setLoading(false)
+    }
+  }, [applyLoadedState])
 
   useEffect(() => {
     loadState()
     window.addEventListener('focus', loadState)
     return () => window.removeEventListener('focus', loadState)
-  }, [])
+  }, [loadState])
+
+  useEffect(() => {
+    const handleStateRetry = event => {
+      // A retry launched by the shared alert is newer than any background refresh.
+      loadRequestRef.current += 1
+      if (applyLoadedState(event.detail?.result)) setLoading(false)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', handleStateRetry)
+    return () => window.removeEventListener('nexo:state-retry-succeeded', handleStateRetry)
+  }, [applyLoadedState])
 
   const personas = state?.trabajadores || []
   const clientes = state?.minas || []
@@ -262,6 +261,16 @@ export default function TrabajadoresPage() {
 
   const secondaryFilters = [projectId, contractId, qualification].filter(Boolean).length
   const activeFilters = [search, specialty, availability, clientId, projectId, contractId, qualification].filter(Boolean).length
+  const hasSnapshot = state !== null
+  const refreshing = loading && hasSnapshot
+  const exportDisabled = loading || !hasSnapshot || filtered.length === 0
+  const exportDisabledReason = loading
+    ? 'Espera mientras se actualiza la lista de personas.'
+    : !hasSnapshot
+      ? 'La lista de personas aún no está disponible. Reintenta la carga antes de exportar.'
+      : personas.length === 0
+        ? 'Aún no hay personas registradas para exportar.'
+        : 'No hay personas en la vista actual para exportar. Ajusta la búsqueda o los filtros.'
 
   const toggleSort = col => {
     if (sortCol === col) setSortAsc(value => !value)
@@ -311,7 +320,7 @@ export default function TrabajadoresPage() {
       : <IconChevronDown className="nk-people-sort-active" size={11} />
   }
 
-  if (loading) {
+  if (loading && !state) {
     return (
       <div className="nk-people-loading">
         <div className="nk-people-loading-content">
@@ -319,6 +328,25 @@ export default function TrabajadoresPage() {
           <span>Cargando personas…</span>
         </div>
       </div>
+    )
+  }
+
+  if (!state && loadError) {
+    const status = loadError.status === 500 ? 500 : 503
+    const unavailable = status === 500 ? 'No pudimos cargar Personas.' : 'El servicio no está disponible temporalmente.'
+    return (
+      <section className="nk-module-page">
+        <header className="nk-module-header">
+          <div>
+            <h1>Personas</h1>
+            <p>La lista de personas no está disponible temporalmente.</p>
+          </div>
+        </header>
+        <p role="alert">{unavailable} Reintenta cuando el servicio esté disponible.</p>
+        <button className="nk-button nk-button-primary" type="button" onClick={loadState} disabled={loading}>
+          {loading ? 'Reintentando…' : 'Volver a intentar'}
+        </button>
+      </section>
     )
   }
 
@@ -334,9 +362,9 @@ export default function TrabajadoresPage() {
             </p>
           </div>
           <div className="nk-actions">
-            <button className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={filtered.length === 0}>
+            <ActionButton disabledReason={exportDisabledReason} className="nk-button nk-button-secondary" type="button" onClick={exportVisible} disabled={exportDisabled}>
               <IconDownload size={15} strokeWidth={1.7} /> Exportar
-            </button>
+            </ActionButton>
           </div>
         </div>
 
@@ -349,6 +377,8 @@ export default function TrabajadoresPage() {
           ))}
         </div>
       </section>
+
+      {refreshing && <p className="nk-people-refreshing" role="status">Actualizando la lista de personas…</p>}
 
       <section className="nk-people-filters" aria-label="Filtros de personas">
         <div className="nk-search nk-people-search">
@@ -431,16 +461,16 @@ export default function TrabajadoresPage() {
 
       <main className="nk-people-content">
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-people-table">
+          <table className="nk-table nk-people-table"><caption className="nk-visually-hidden">Personas</caption>
             <thead>
               <tr>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
-                <th>Tipo</th>
-                <th>Contexto operacional</th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
-                <th><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
-                <th aria-label="Acciones" />
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('nombre')}>Persona <SortIcon col="nombre" /></button></th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('especialidad')}>Especialidad <SortIcon col="especialidad" /></button></th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Contexto operacional</th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('disponibilidad')}>Disponibilidad <SortIcon col="disponibilidad" /></button></th>
+                <th scope="col"><button className="nk-people-sort-button" type="button" onClick={() => toggleSort('acreditacion')}>Cumplimiento <SortIcon col="acreditacion" /></button></th>
+                <th scope="col" aria-label="Acciones" />
               </tr>
             </thead>
 
@@ -450,8 +480,16 @@ export default function TrabajadoresPage() {
                   <td className="nk-people-empty-cell" colSpan={7}>
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
-                      <p className="nk-empty-title">Sin personas en esta vista</p>
-                      <p className="nk-empty-description">Ajusta los filtros o utiliza la acción + Persona del Header para registrar una nueva persona.</p>
+                      {personas.length === 0 ? <>
+                        <EmptyState objectLabel="personas registradas" description="Usa + Persona en el encabezado para crear la primera." />
+                        
+                      </> : activeFilters > 0 ? <>
+                        <EmptyState filtered onAction={clearFilters} actionLabel="Limpiar filtros" />
+                        
+                      </> : <>
+                        <EmptyState title={`Todavía no hay personas en ${TAB_LABELS[tab]}.`} description="Cambia de vista para revisar personas registradas en otros segmentos." />
+                        
+                      </>}
                     </div>
                   </td>
                 </tr>

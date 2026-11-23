@@ -1,13 +1,28 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
+import { ActionButton } from '../components/ui/ActionButton.jsx'
+import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
-import { useEffect, useMemo, useState } from 'react'
+import { cloneElement, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconClock, IconPlus, IconX } from '@tabler/icons-react'
 import { api } from '../services/api.js'
+import { useAuth } from '../services/auth.jsx'
+import { WORKER_ASSIGNMENT_SHIFTS, WORKER_REGIMENS, workerRegimenLabel, workerRegimenMatches } from '../config/worker-catalogs.js'
 import '../styles/turnos.css'
 
-const REGIMENES = ['5x2', '4x3', '7x7', '10x10', '14x14', 'Otro tipo de turno']
-const TURNOS = ['día', 'noche', 'ambos']
-const ASISTENCIAS = ['presente', 'ausente', 'licencia', 'permiso', 'observado']
+const ASISTENCIAS = [
+  { value: 'presente', label: 'Presente' },
+  { value: 'ausente', label: 'Ausente' },
+  { value: 'licencia', label: 'Licencia' },
+  { value: 'permiso', label: 'Permiso' },
+  { value: 'observado', label: 'Observado' },
+]
+// Match stateRouter editors and enforceStateScope: acreditacion cannot write turnos.
+const SCHEDULE_ROLES = new Set(['domian_admin', 'client_admin', 'rrhh', 'prevencion'])
+const PERMISSION_REASON = 'Tu perfil no permite programar jornadas. Solicita ayuda al administrador de tu empresa.'
+const SAVING_REASON = 'Se está guardando la jornada. Espera a que termine la operación.'
+const RECOVERING_REASON = 'Se están actualizando las jornadas después de un conflicto. Espera a que termine la consulta.'
+const CONFLICT_BLOCKED_REASON = 'No fue posible actualizar las jornadas. Actualiza los datos antes de volver a guardar; tu formulario se conserva.'
 
 const hoy = () => localDate()
 
@@ -26,7 +41,12 @@ function AsistenciaBadge({ value }) {
     permiso: 'nk-badge-warn',
     observado: 'nk-badge-none',
   }
-  return <span className={`nk-badge ${classes[value] || 'nk-badge-none'}`}>{value || 'Sin información'}</span>
+  const label = ASISTENCIAS.find(item => item.value === value)?.label || value || 'Sin información'
+  return <span className={`nk-badge ${classes[value] || 'nk-badge-none'}`}>{label}</span>
+}
+
+function turnoLabel(value) {
+  return WORKER_ASSIGNMENT_SHIFTS.find(item => item.value === value)?.label || value || '—'
 }
 
 function CoberturaBadge({ status }) {
@@ -49,15 +69,16 @@ function KPI({ value, label, tone = '' }) {
 }
 
 function Field({ label, children, wide = false }) {
+  const id = useId()
   return (
     <div className={`nk-field ${wide ? 'nk-turnos-modal-wide' : ''}`}>
-      <label className="nk-label">{label}</label>
-      {children}
+      <label className="nk-label" htmlFor={id}>{label}</label>
+      {cloneElement(children, { id })}
     </div>
   )
 }
 
-function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, onClose }) {
+function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, recovering, conflictBlocked, error, onSave, onClose, onRefresh }) {
   const [form, setForm] = useState({
     trabId: trabajadores[0]?.id || '',
     mantId: mantenciones[0]?.id || '',
@@ -71,67 +92,77 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
   })
 
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }))
-  const canSave = form.trabId && form.mantId && form.fecha
+  const missingFields = [!form.trabId && 'persona', !form.mantId && 'orden de servicio', !form.fecha && 'fecha'].filter(Boolean)
+  const canSave = canSchedule && !conflictBlocked && !recovering && missingFields.length === 0
+  const busy = saving || recovering
+  const busyReason = recovering ? RECOVERING_REASON : SAVING_REASON
+  const disabledReason = !canSchedule ? PERMISSION_REASON : busy ? busyReason : conflictBlocked ? CONFLICT_BLOCKED_REASON : `Completa ${missingFields.join(', ')} antes de guardar la jornada.`
+  const close = () => { if (!busy) onClose() }
 
   return (
-    <div className="nk-dialog-backdrop" role="presentation" onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className="nk-dialog" role="dialog" aria-modal="true" aria-labelledby="nuevo-turno-title">
+    <div className="nk-dialog-backdrop" role="presentation" onMouseDown={e => e.target === e.currentTarget && close()}>
+      <div className="nk-dialog" role="dialog" aria-modal="true" aria-labelledby="nuevo-turno-title" aria-busy={busy}>
         <div className="nk-dialog-header">
           <div>
             <h2 id="nuevo-turno-title" className="nk-dialog-title">Programar jornada</h2>
             <p className="nk-card-description">Registra la jornada de una persona dentro de su proyecto o servicio.</p>
           </div>
-          <button className="nk-icon-button nk-turnos-close" type="button" onClick={onClose} aria-label="Cerrar">
+          <button className="nk-icon-button nk-turnos-close" type="button" onClick={close} disabled={busy} aria-describedby={busy ? 'turno-saving-status' : undefined} title={busy ? busyReason : undefined} aria-label="Cerrar">
             <IconX size={18} />
           </button>
         </div>
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} onChange={e => set('trabId', e.target.value)}>
+            <select aria-label="Selecciona una persona — Turnos" className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
+              <option value="">Selecciona una persona</option>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} onChange={e => set('mantId', e.target.value)}>
+            <select aria-label="Selecciona una orden de servicio — Turnos" className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
+              <option value="">Selecciona una orden de servicio</option>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </Field>
           <Field label="Régimen">
-            <select className="nk-select" value={form.regimen} onChange={e => set('regimen', e.target.value)}>
-              {REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}
+            <select className="nk-select" value={form.regimen} disabled={busy || !canSchedule} onChange={e => set('regimen', e.target.value)}>
+              {WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Turno">
-            <select className="nk-select" value={form.turno} onChange={e => set('turno', e.target.value)}>
-              {TURNOS.map(t => <option key={t} value={t}>{t}</option>)}
+            <select className="nk-select" value={form.turno} disabled={busy || !canSchedule} onChange={e => set('turno', e.target.value)}>
+              {WORKER_ASSIGNMENT_SHIFTS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Fecha">
-            <input className="nk-input" type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+            <input className="nk-input" type="date" value={form.fecha} disabled={busy || !canSchedule} onChange={e => set('fecha', e.target.value)} />
           </Field>
           <Field label="Asistencia">
-            <select className="nk-select" value={form.asistencia} onChange={e => set('asistencia', e.target.value)}>
-              {ASISTENCIAS.map(a => <option key={a} value={a}>{a}</option>)}
+            <select className="nk-select" value={form.asistencia} disabled={busy || !canSchedule} onChange={e => set('asistencia', e.target.value)}>
+              {ASISTENCIAS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </Field>
           <Field label="Ingreso">
-            <input className="nk-input" type="time" value={form.ingreso} onChange={e => set('ingreso', e.target.value)} />
+            <input className="nk-input" type="time" value={form.ingreso} disabled={busy || !canSchedule} onChange={e => set('ingreso', e.target.value)} />
           </Field>
           <Field label="Salida">
-            <input className="nk-input" type="time" value={form.salida} onChange={e => set('salida', e.target.value)} />
+            <input className="nk-input" type="time" value={form.salida} disabled={busy || !canSchedule} onChange={e => set('salida', e.target.value)} />
           </Field>
-          <Field label="HH reales" wide>
-            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} onChange={e => set('hh', e.target.value)} />
+          <Field label="Horas-persona reales" wide>
+            <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} disabled={busy || !canSchedule} onChange={e => set('hh', e.target.value)} />
           </Field>
         </div>
 
-        {error && <p className="nk-form-error">{error}</p>}
+        {error && <p className="nk-form-error" role="alert">{error}</p>}
+        {busy && <p id="turno-saving-status" className="nk-field-help" role="status">{busyReason}</p>}
+        {conflictBlocked && !busy && <p className="nk-field-help">Conserva esta ventana abierta y utiliza “Actualizar jornadas” para recuperar los datos sin perder el formulario. Si necesitas recargar toda la página, copia antes lo ingresado.</p>}
         <div className="nk-dialog-footer">
-          <button className="nk-button nk-button-secondary" type="button" onClick={onClose}>Cancelar</button>
-          <button className="nk-button nk-button-primary" type="button" disabled={!canSave || saving} onClick={() => onSave(form)}>
-            {saving ? 'Guardando…' : 'Guardar jornada'}
-          </button>
+          <button className="nk-button nk-button-secondary" type="button" onClick={close} disabled={busy} title={busy ? busyReason : undefined} aria-describedby={busy ? 'turno-saving-status' : undefined}>Cancelar</button>
+          {conflictBlocked && <ActionButton className="nk-button nk-button-secondary" type="button" disabled={busy} disabledReason={busyReason} onClick={onRefresh}>Actualizar jornadas</ActionButton>}
+          <ActionButton disabledReason={busy ? undefined : disabledReason} aria-describedby={busy ? 'turno-saving-status' : undefined} className="nk-button nk-button-primary" type="button" disabled={!canSave || busy} onClick={() => { if (canSave && !busy) onSave(form) }}>
+            {recovering ? 'Actualizando…' : saving ? 'Guardando…' : 'Guardar jornada'}
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -140,6 +171,12 @@ function ModalNuevoTurno({ trabajadores, mantenciones, saving, error, onSave, on
 
 export default function TurnosPage() {
   const navigate = useNavigate()
+  const { session } = useAuth()
+  const canSchedule = SCHEDULE_ROLES.has(session?.user?.role)
+  const savingRef = useRef(false)
+  const mountedRef = useRef(true)
+  const readVersionRef = useRef(0)
+  const recoveryRef = useRef(false)
   const [state, setState] = useState(null)
   const [moduleVersions, setModuleVersions] = useState({})
   const [loading, setLoading] = useState(true)
@@ -147,20 +184,84 @@ export default function TurnosPage() {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [recovering, setRecovering] = useState(false)
+  const [conflictBlocked, setConflictBlocked] = useState(false)
   const [filtMant, setFiltMant] = useState('')
   const [filtRegimen, setFiltRegimen] = useState('')
   const [filtTurno, setFiltTurno] = useState('')
   const [filtMina, setFiltMina] = useState('')
 
-  useEffect(() => {
-    api.get('/state')
+  const load = () => {
+    const readVersion = ++readVersionRef.current
+    setLoading(true)
+    setLoadError('')
+    return api.get('/state')
       .then(response => {
+        if (!mountedRef.current || readVersion !== readVersionRef.current) return
         setState(response?.state || response)
         setModuleVersions(response?.moduleVersions || {})
+        setConflictBlocked(false)
+        })
+      .catch(error => {
+        if (!mountedRef.current || readVersion !== readVersionRef.current) return
+        setLoadError('No fue posible cargar las personas y órdenes de servicio. Usa “Reintentar carga” antes de programar.')
+        // HTTP 5xx already publishes this event in api.js; include network failures.
+        if (!error.status || error.status < 500) window.dispatchEvent(new CustomEvent('nexo:load-failed', { detail: { status: 503 } }))
       })
-      .catch(error => console.error('No fue posible cargar turnos', error))
-      .finally(() => setLoading(false))
+      .finally(() => { if (mountedRef.current && readVersion === readVersionRef.current) setLoading(false) })
+  }
+  useEffect(() => {
+    mountedRef.current = true
+    load()
+    const onRetry = event => {
+      const response = event.detail?.result
+      const recoveredState = response?.state || response
+      // A global retry may succeed for another module without a usable Turnos version.
+      // Keep a blocked draft blocked until both the data and its exact version are valid.
+      if (!recoveredState || !Array.isArray(recoveredState.turnos) || !Number.isSafeInteger(response?.moduleVersions?.turnos) || response.moduleVersions.turnos < 0) return
+      // A global retry supersedes any slower page-level read.
+      readVersionRef.current += 1
+      setState(recoveredState)
+      setModuleVersions(response?.moduleVersions || {})
+      setLoading(false)
+      setLoadError('')
+      setConflictBlocked(false)
+      setSaveError(current => current === CONFLICT_BLOCKED_REASON
+        ? 'Las jornadas se actualizaron. Tu formulario se conserva. Revisa los datos y guarda nuevamente.'
+        : current)
+    }
+    window.addEventListener('nexo:state-retry-succeeded', onRetry)
+    return () => { mountedRef.current = false; readVersionRef.current++; window.removeEventListener('nexo:state-retry-succeeded', onRetry) }
   }, [])
+
+  const refreshConflict = async () => {
+    if (recoveryRef.current) return false
+    recoveryRef.current = true
+    setRecovering(true)
+    const readVersion = ++readVersionRef.current
+    try {
+      const response = await api.get('/state')
+      if (!mountedRef.current || readVersion !== readVersionRef.current) return false
+      if (!response?.state || !Number.isSafeInteger(response.moduleVersions?.turnos) || !Array.isArray(response.state.turnos)) throw new Error('Invalid refreshed shift state')
+      setState(response.state)
+      setModuleVersions(response.moduleVersions)
+      setConflictBlocked(false)
+      setLoadError('')
+      setSaveError('Las jornadas y su versión se actualizaron. Tu formulario se conserva. Revisa los datos y pulsa “Guardar jornada” para confirmar nuevamente; todavía no se ha registrado tu jornada.')
+      return true
+    } catch {
+      if (mountedRef.current && readVersion === readVersionRef.current) {
+        setConflictBlocked(true)
+        setSaveError(CONFLICT_BLOCKED_REASON)
+        setLoadError(CONFLICT_BLOCKED_REASON)
+      }
+      return false
+    } finally {
+      recoveryRef.current = false
+      if (mountedRef.current) setRecovering(false)
+    }
+  }
 
   const trabajadores = state?.trabajadores || []
   const trabajadoresProgramables = trabajadores.filter(trabajador => !isRestricted(trabajador))
@@ -168,6 +269,10 @@ export default function TurnosPage() {
   const minas = state?.minas || []
   const turnos = state?.turnos || []
   const asignaciones = state?.asignaciones || []
+  const programDisabledReason = !canSchedule ? PERMISSION_REASON : recovering ? RECOVERING_REASON : saving ? SAVING_REASON : conflictBlocked ? CONFLICT_BLOCKED_REASON : loadError || (!trabajadoresProgramables.length && !mantenciones.length
+    ? 'Necesitas una persona habilitada y una orden de servicio para programar un turno.'
+    : !trabajadoresProgramables.length ? 'Necesitas una persona habilitada para programar un turno.'
+      : !mantenciones.length ? 'Necesitas una orden de servicio para programar un turno.' : '')
 
   const cobertura = useMemo(() => {
     const activas = mantenciones.filter(m => m.estado !== 'cerrada')
@@ -185,7 +290,7 @@ export default function TurnosPage() {
   const jornadasFiltradas = useMemo(() => {
     let list = [...turnos]
     if (filtMant) list = list.filter(t => t.mantId === filtMant)
-    if (filtRegimen) list = list.filter(t => t.regimen === filtRegimen)
+    if (filtRegimen) list = list.filter(t => workerRegimenMatches(t.regimen, filtRegimen))
     if (filtTurno) list = list.filter(t => t.turno === filtTurno)
     if (filtMina) {
       const mantsCliente = mantenciones.filter(m => m.minaId === filtMina).map(m => m.id)
@@ -201,11 +306,18 @@ export default function TurnosPage() {
   const mantNombre = id => mantenciones.find(m => m.id === id)?.nombre || id
 
   const handleSave = async form => {
+    if (savingRef.current || recoveryRef.current || conflictBlocked) return
+    if (!canSchedule) { setSaveError(PERMISSION_REASON); return }
     const trabajador = trabajadores.find(item => String(item.id) === String(form.trabId))
-    if (isRestricted(trabajador)) {
-      window.alert('La persona no está habilitada y no puede programarse en un turno.')
+    if (!trabajador || !mantenciones.some(item => String(item.id) === String(form.mantId)) || !form.fecha) {
+      setSaveError('Completa la persona, la orden de servicio y la fecha antes de guardar la jornada.')
       return
     }
+    if (isRestricted(trabajador)) {
+      setSaveError('La persona no está habilitada y no puede programarse en un turno.')
+      return
+    }
+    savingRef.current = true
     setSaving(true)
     setSaveError('')
     try {
@@ -214,14 +326,18 @@ export default function TurnosPage() {
       const result = await api.put('/state/modules', {
         changes: { turnos: { version: Number(moduleVersions.turnos || 0), data: nuevosTurnos } },
         reason: 'Nueva jornada registrada',
-      })
+      }, { feedback: true })
       setState(current => ({ ...current, turnos: nuevosTurnos }))
       setModuleVersions(current => ({ ...current, ...result.moduleVersions }))
       setShowModal(false)
     } catch (error) {
       console.error('No fue posible guardar la jornada', error)
-      setSaveError(error.message || 'No fue posible guardar la jornada.')
+      if (error.code === 'MODULE_VERSION_CONFLICT') {
+        setConflictBlocked(true)
+        await refreshConflict()
+      } else setSaveError(error.message || 'No fue posible guardar la jornada.')
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -237,10 +353,11 @@ export default function TurnosPage() {
           <h1 className="nk-turnos-title">Turnos y asistencia</h1>
           <p className="nk-turnos-subtitle">Planifica cobertura, registra asistencia y controla horas hombre con foco en las personas.</p>
         </div>
-        <button className="nk-button nk-button-primary" type="button" onClick={() => { setSaveError(''); setShowModal(true) }} disabled={!trabajadoresProgramables.length || !mantenciones.length}>
+        <ActionButton disabledReason={programDisabledReason} className="nk-button nk-button-primary" type="button" onClick={() => { if (!programDisabledReason) { setSaveError(''); setShowModal(true) } }} disabled={Boolean(programDisabledReason)}>
           <IconPlus size={16} strokeWidth={2} /> Programar turno
-        </button>
+        </ActionButton>
       </header>
+      {loadError && <div className="nk-form-message" role="alert"><p id="turnos-load-error">{recovering ? RECOVERING_REASON : loadError}</p><button className="nk-button nk-button-secondary" type="button" onClick={() => showModal && conflictBlocked ? refreshConflict() : load()} disabled={recovering} title={recovering ? RECOVERING_REASON : undefined} aria-describedby={recovering ? 'turnos-load-error' : undefined}>Reintentar carga</button></div>}
 
       <div className="nk-tabs" role="tablist" aria-label="Vistas de turnos">
         <button className={`nk-tab ${tab === 'cobertura' ? 'active' : ''}`} type="button" role="tab" aria-selected={tab === 'cobertura'} onClick={() => setTab('cobertura')}>Cobertura diaria</button>
@@ -259,11 +376,11 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos</caption>
+                  <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
-                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><span className="nk-empty-description">No hay proyectos o servicios abiertos para calcular cobertura.</span></div></td></tr>
+                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><div className="nk-empty-description"><EmptyState title="Todavía no hay proyectos o servicios abiertos para calcular cobertura." /></div></div></td></tr>
                     ) : cobertura.map(({ m, asigs, present, pending, status }) => {
                       const mina = minas.find(current => current.id === m.minaId)
                       return (
@@ -289,24 +406,24 @@ export default function TurnosPage() {
             <div className="nk-turnos-kpis">
               <KPI value={jornadasFiltradas.length} label="Jornadas" />
               <KPI value={presentes} label="Presentes" tone="ok" />
-              <KPI value={hhTotal} label="HH reales" tone="warn" />
+              <KPI value={hhTotal} label="Horas-persona reales" tone="warn" />
               <KPI value={ausentes} label="Ausencias / excepciones" tone="error" />
             </div>
 
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
-              <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{REGIMENES.map(r => <option key={r} value={r}>{r}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{TURNOS.filter(t => t !== 'ambos').map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por cliente" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por proyecto o servicio" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por régimen" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por turno" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos — tabla 2</caption>
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">Horas-persona reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
-                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
+                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><div className="nk-empty-title"><EmptyState title="Todavía no hay jornadas registradas." /></div><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
                     ) : jornadasFiltradas.map(t => (
                       <tr key={t.id}>
                         <td>
@@ -324,8 +441,8 @@ export default function TurnosPage() {
                           })()}
                         </td>
                         <td>{mantNombre(t.mantId)}</td>
-                        <td className="nk-turnos-nowrap">{t.fecha || '—'}</td>
-                        <td><span className="nk-turnos-primary">{t.regimen || '—'}</span> <span className="nk-turnos-sub">· {t.turno || '—'}</span></td>
+                        <td className="nk-turnos-nowrap">{formatChileDate(t.fecha || '—')}</td>
+                        <td><span className="nk-turnos-primary">{workerRegimenLabel(t.regimen) || '—'}</span> <span className="nk-turnos-sub">· {turnoLabel(t.turno)}</span></td>
                         <td>{t.ingreso || '—'}</td><td>{t.salida || '—'}</td><td className="nk-turnos-hh">{t.hh || 0}</td><td><AsistenciaBadge value={t.asistencia} /></td>
                       </tr>
                     ))}
@@ -337,7 +454,7 @@ export default function TurnosPage() {
         )}
       </div>
 
-      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} saving={saving} error={saveError} onSave={handleSave} onClose={() => { setSaveError(''); setShowModal(false) }} />}
+      {showModal && <ModalNuevoTurno trabajadores={trabajadoresProgramables} mantenciones={mantenciones} canSchedule={canSchedule} saving={saving} recovering={recovering} conflictBlocked={conflictBlocked} error={saveError} onSave={handleSave} onRefresh={refreshConflict} onClose={() => { if (!savingRef.current && !recoveryRef.current) { setSaveError(''); setShowModal(false) } }} />}
     </div>
   )
 }

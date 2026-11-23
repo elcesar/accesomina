@@ -36,7 +36,7 @@ export default function SolutionsSection() {
     <section id="capacidades" className="nk-public-section">
       <div>
         <p className="nk-eyebrow">Control centralizado</p>
-        <h2>Todo lo que necesita un servicio para operar con respaldo.</h2>
+        <h1>Todo lo que necesita un servicio para operar con respaldo.</h1>
         <p className="nk-lead">
           Desde la relación con el cliente hasta la ejecución, el cumplimiento y los resultados: todas las áreas trabajan con una visión común.
         </p>

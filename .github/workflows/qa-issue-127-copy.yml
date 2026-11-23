@@ -1,0 +1,41 @@
+name: Portal clear language QA #127
+
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/services/ui-labels.js'
+      - 'nexo-v2/src/components/layout/Header.jsx'
+      - 'nexo-v2/src/pages/BitacoraCambiosPage.jsx'
+      - 'nexo-v2/src/pages/CentroOperativoPage.jsx'
+      - 'nexo-v2/src/pages/TurnosPage.jsx'
+      - 'nexo-v2/src/pages/ConfiguracionPage.jsx'
+      - 'nexo-v2/e2e/qa-issue-127-clear-language.spec.js'
+      - '.github/workflows/qa-issue-127-copy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm run build
+      - run: pnpm exec playwright test e2e/qa-issue-127-clear-language.spec.js --workers=2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portal-copy-127
+          path: nexo-v2/playwright-report
+          retention-days: 7
