@@ -122,8 +122,8 @@ export default function BodegasPage() {
           <div><h2>Distribución física</h2><p>Cada bodega mantiene su saldo y puede subdividirse en ubicaciones internas.</p></div>
         </div>
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-warehouses-table">
-            <thead><tr><th>Bodega</th><th>Tipo</th><th>Ubicación</th><th>Responsable</th><th>Ubicaciones internas</th><th>Existencias</th></tr></thead>
+          <table className="nk-table nk-warehouses-table"><caption className="nk-visually-hidden">Bodegas</caption>
+            <thead><tr><th scope="col">Bodega</th><th scope="col">Tipo</th><th scope="col">Ubicación</th><th scope="col">Responsable</th><th scope="col">Ubicaciones internas</th><th scope="col">Existencias</th></tr></thead>
             <tbody>{loading ? <tr><td colSpan="6">Cargando bodegas…</td></tr> : filtered.length ? filtered.map(warehouse => {
               const names = locationNames(warehouse.id)
               return <tr key={warehouse.id}>
