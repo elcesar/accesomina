@@ -71,6 +71,7 @@ test('la configuración explica los términos técnicos', async ({ page }) => {
 test('el centro operativo utiliza nombres completos', async ({ page }) => {
   await page.goto('/app/operaciones')
   await expect(page.locator('.nk-app-main')).toBeVisible()
+  await expect(page.locator('.nk-app-main')).toContainText('Órdenes de servicio listas para ejecutar')
   const copy = await page.locator('.nk-app-main').innerText()
   expect(copy).toContain('Órdenes de servicio listas para ejecutar')
   expect(copy).toContain('Acciones correctivas y preventivas abiertas')
