@@ -12,9 +12,9 @@ La columna **Acción** es vinculante: sustituir únicamente los rótulos marcado
 | --- | --- | --- | --- |
 | 82 | Reportes y datos | Reportes e información | Menú lateral |
 | 83 | Importar datos masivos | Importar información masiva | Importación |
-| 69 (estados) | Restringido | No habilitado | Dotación por proyecto, cuando indica una inhabilitación |
+| 69 (criterio de estados) | Restringido (estado operativo) | No habilitado | Dotación por proyecto; revisión editorial coherente con D-029 |
 | 80–95 (criterio) | Datos, en mensajes generales | Información, según contexto | Mensajes de formulario |
-| 114 (excepción de contexto) | Datos para gestionar la entrega de protección personal | Información para gestionar la entrega de protección personal | Ficha de persona |
+| 80–95 (criterio de información) | Datos para gestionar la entrega de protección personal | Información para gestionar la entrega de protección personal | Ficha de persona |
 
 ### Términos expresamente conservados
 
