@@ -175,7 +175,7 @@ export default function IncidentesPage() {
       {error && <div className="nk-incidents-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15}/></button></div>}
 
       <section className="nk-card nk-incidents-filters">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar evento, acción o responsable..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar evento, acción o responsable..." value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar evento, acción o responsable..."/></label>
         <select aria-label="Filtrar por os" className="nk-select" value={orderFilter} onChange={e => setOrderFilter(e.target.value)}><option value="">Todas las OS</option>{orders.map(order => <option key={order.id} value={order.id}>{order.codigo || order.nombre || order.name || order.id}</option>)}</select>
         <select aria-label="Filtrar por tipos" className="nk-select" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}><option value="">Todos los tipos</option>{Object.entries(TYPE_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
         <select aria-label="Filtrar por estados" className="nk-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="">Todos los estados</option>{Object.entries(STATUS_LABELS).map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
