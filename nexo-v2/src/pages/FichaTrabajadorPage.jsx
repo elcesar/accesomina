@@ -331,7 +331,7 @@ function EppTab({ worker, saving, onChange, onSave, deliveries }) {
   const epp = normalizeWorkerEpp(worker.epp)
   const rows = deliveries.filter(d => d.workerId === worker.id).sort((a, b) => String(b.deliveredAt).localeCompare(String(a.deliveredAt)))
   return <>
-    <CardSection title="Tallas y medidas" subtitle="Datos para gestionar la entrega de protección personal."><div className="nk-person-grid">{PPE_SIZE_FIELDS.map(field => {
+    <CardSection title="Tallas y medidas" subtitle="Información para gestionar la entrega de protección personal."><div className="nk-person-grid">{PPE_SIZE_FIELDS.map(field => {
       const value = epp[field.key] ?? ''
       const isHistorical = value && !field.sizes.includes(value)
       return <Field key={field.key} label={field.label}><select aria-label="Seleccionar talla — Ficha Trabajador" className="nk-select" value={value} disabled={field.fixed} onChange={event => onChange('epp', updateWorkerEpp(worker.epp, field.key, event.target.value))}>
