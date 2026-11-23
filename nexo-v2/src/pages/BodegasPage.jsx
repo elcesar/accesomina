@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useState } from 'react'
@@ -133,7 +134,7 @@ export default function BodegasPage() {
                 <td><strong>{locationCount(warehouse.id)}</strong><small>{names.length ? names.slice(0, 2).join(' · ') : 'Sin ubicaciones internas'}</small></td>
                 <td><strong>{stockForWarehouse(warehouse.id)}</strong><small>unidades</small></td>
               </tr>
-            }) : <tr><td colSpan="6" className="nk-warehouses-empty">Crea una bodega para comenzar a distribuir existencias.</td></tr>}</tbody>
+            }) : <tr><td colSpan="6" className="nk-warehouses-empty"><EmptyState objectLabel="bodegas registradas" description="Usa la acción para crear una bodega y comenzar a distribuir existencias." /></td></tr>}</tbody>
           </table>
         </div>
       </section>
