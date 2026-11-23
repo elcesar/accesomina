@@ -7,24 +7,8 @@ import { setOperationalTimeZone } from '../services/calendar-date.js'
 import { EmailInput } from '../components/ui/EmailInput.jsx'
 import { validateEmail } from '../services/email-validation.js'
 import { roleCanReadModule, userCanReadModule } from '../../../shared/role-access.js'
+import { ASSIGNABLE_MODULES } from '../../../shared/access-modules.js'
 import '../styles/configuracion.css'
-
-const MODULE_OPTIONS = [
-  ['trabajadores', 'Personas'],
-  ['minas', 'Clientes'],
-  ['turnos', 'Turnos y asistencia'],
-  ['epp', 'Protección personal / EPP'],
-  ['mantenciones', 'Órdenes de servicio'],
-  ['contratos', 'Contratos y firmas'],
-  ['hoteleria', 'Alojamientos y estadías'],
-  ['llamados', 'Comunicaciones y convocatorias'],
-  ['vehiculos', 'Flota y equipos móviles'],
-  ['subcontratos', 'Terceros y subcontratos'],
-  ['credenciales', 'Credenciales de acceso'],
-  ['incidentes', 'Incidentes y no conformidades'],
-  ['auditoria', 'Auditoría'],
-  ['reportes', 'Reportes'],
-]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }
 const normalizeTheme = value => value === 'dark' ? 'dark' : 'light'
@@ -242,25 +226,25 @@ export default function ConfiguracionPage() {
         </section>
 
         <section className="nk-module-card nk-config-card">
-          <header><div><h2>Módulos habilitados</h2><p>Configuración declarativa de los módulos disponibles para esta empresa.</p></div></header>
+          <header><div><h2>Módulos disponibles para la empresa</h2><p>Define el techo de módulos contratados y disponibles en este sitio privado.</p></div></header>
           <div className="nk-config-modules">
-            {MODULE_OPTIONS.map(([key, label]) => {
+            {ASSIGNABLE_MODULES.map(({ key, label }) => {
               const enabled = settings.modules?.[key] !== false
               return <label className="nk-config-module" key={key}><input type="checkbox" checked={enabled} onChange={() => toggleModule(key)} /><span className="nk-config-module-check">{enabled && <IconCheck size={14}/>}</span><span>{label}</span></label>
             })}
           </div>
-          <p className="nk-config-note">Estos valores se guardan por empresa. La visibilidad efectiva también depende de los permisos del usuario.</p>
+          <p className="nk-config-note">Estos valores se guardan por empresa. Ninguna cuenta ordinaria puede acceder a un módulo deshabilitado, aunque su rol o permiso individual lo permita.</p>
         </section>
       </div>
 
       <section className="nk-module-card nk-config-card nk-config-user-views">
-        <header><div><h2><IconUsers size={18}/> Vistas por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora de esta empresa.</p></div></header>
+        <header><div><h2><IconUsers size={18}/> Accesos por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora, dentro de lo disponible para la empresa y de su rol.</p></div></header>
         <div className="nk-config-user-access">
           <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={isBusy || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
           {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><ActionButton disabledReason={actionDisabledReason('user-views')} className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={isBusy}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</ActionButton></div>}
         </div>
         {selectedUser ? <div className="nk-config-modules nk-config-user-module-list">
-          {MODULE_OPTIONS.map(([key, label]) => {
+          {ASSIGNABLE_MODULES.map(({ key, label }) => {
             const enabledForCompany = settings.modules?.[key] !== false
             const enabledForRole = roleCanReadModule(selectedUser.role, key)
             const enabledForUser = userCanSee(key)
