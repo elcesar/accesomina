@@ -1,5 +1,5 @@
 import { separateServiceEnabled, separateServiceForModule, separateServiceForEntity } from './subscription-entitlements.js';
-import { isAdministrator, userCanReadModule } from '../shared/role-access.js';
+import { isAdministrator, moduleAccessKey, userCanReadModule } from '../shared/role-access.js';
 
 const ENTITY_MODULES = new Map([
   ['worker', 'trabajadores'], ['person', 'trabajadores'], ['persona', 'trabajadores'],
@@ -18,10 +18,23 @@ export function moduleForEntityType(entityType) {
   return ENTITY_MODULES.get(String(entityType || '').trim().toLowerCase()) || null
 }
 
+// The company setting is a hard boundary for every ordinary account.  Nexo Klar
+// administrators retain an explicit support exception; their actions are still
+// recorded by the routes that mutate tenant data.
+function companyModuleIsEnabled(auth, moduleKey) {
+  if (auth?.role === 'domian_admin') return true
+  const rawKey = String(moduleKey || '').trim()
+  const key = moduleAccessKey(rawKey)
+  const modules = auth?.tenantModules || {}
+  return Boolean(key) && modules?.[rawKey] !== false && modules?.[key] !== false
+}
+
 export function canAccessModule(auth, moduleKey) {
-  const service=separateServiceForModule(moduleKey);
+  const key = moduleAccessKey(moduleKey)
+  if (!companyModuleIsEnabled(auth, key)) return false
+  const service=separateServiceForModule(key);
   if(auth?.subscriptionManaged&&service&&!separateServiceEnabled(auth.subscriptionServices,service))return false;
-  return Boolean(moduleKey) && userCanReadModule({ role: auth?.role, modules: auth?.permissions?.modules }, moduleKey)
+  return userCanReadModule({ role: auth?.role, modules: auth?.permissions?.modules }, key)
 }
 
 export function assertModuleAccess(auth, moduleKey) {
@@ -30,12 +43,13 @@ export function assertModuleAccess(auth, moduleKey) {
 }
 
 // Generic file/document endpoints receive an entity type, not a module key.
-// Unknown types are denied to non-administrators rather than silently bypassing
-// module permissions. Administrators retain their explicit full-tenant access.
+// A known type always follows its module policy. Unknown types remain available
+// only to administrators, because they cannot safely be assigned to a module.
 export function canAccessEntityType(auth, entityType) {
   const service=separateServiceForEntity(entityType);
   if(service)return canAccessModule(auth,service==='oportunidades'?'prospectos':'libroObra');
-  return isAdministrator(auth?.role) || canAccessModule(auth, moduleForEntityType(entityType))
+  const moduleKey=moduleForEntityType(entityType);
+  return moduleKey ? canAccessModule(auth,moduleKey) : isAdministrator(auth?.role)
 }
 
 export function assertEntityTypeAccess(auth, entityType) {
