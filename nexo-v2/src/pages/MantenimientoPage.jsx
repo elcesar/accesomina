@@ -191,7 +191,7 @@ export default function MantenimientoPage() {
       {error && <div className="nk-maint-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
       <section className="nk-card nk-maint-filters">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar activo, código, responsable o tipo..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar activo, código, responsable o tipo..." value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar activo, código, responsable o tipo..."/></label>
         <select aria-label="Filtrar por estados" className="nk-select" value={status} onChange={e => setStatus(e.target.value)}>
           <option value="">Todos los estados</option><option>Programado</option><option>Próximo</option><option>Vencido</option><option>Sin programación</option>
         </select>
@@ -225,7 +225,7 @@ export default function MantenimientoPage() {
           <label><span>Tipo *</span><select className="nk-select" value={planForm.type} onChange={e => setPlanForm({ ...planForm, type: e.target.value })}><option>Preventivo</option><option>Inspección</option><option>Calibración</option><option>Certificación</option></select></label>
           <label><span>Frecuencia (días)</span><input className="nk-input" type="number" min="1" value={planForm.frequencyDays} onChange={e => setPlanForm({ ...planForm, frequencyDays: e.target.value })}/></label>
           <label><span>Próxima ejecución *</span><input className="nk-input" type="date" value={planForm.nextDue} onChange={e => setPlanForm({ ...planForm, nextDue: e.target.value })}/></label>
-          <label><span>Responsable</span><input className="nk-input" value={planForm.owner} onChange={e => setPlanForm({ ...planForm, owner: e.target.value })} placeholder="Persona o cargo responsable"/></label>
+          <label><span>Responsable</span><input aria-label="Persona o cargo responsable" className="nk-input" value={planForm.owner} onChange={e => setPlanForm({ ...planForm, owner: e.target.value })} placeholder="Persona o cargo responsable"/></label>
           <label className="wide"><span>Checklist o instrucciones</span><textarea className="nk-input" value={planForm.checklist} onChange={e => setPlanForm({ ...planForm, checklist: e.target.value })} placeholder="Inspecciones, lubricación, certificados, fotografías..."/></label>
         </div>
         <div className="nk-maint-editor-actions"><button className="nk-button nk-button-secondary" onClick={() => setEditor('')}>Cancelar</button><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary" onClick={savePlan} disabled={saving}>{saving ? 'Guardando…' : 'Guardar plan'}</ActionButton></div>
