@@ -192,7 +192,7 @@ export default function MantenimientoPage() {
 
       <section className="nk-card nk-maint-filters">
         <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar activo, código, responsable o tipo..."/></label>
-        <select className="nk-select" value={status} onChange={e => setStatus(e.target.value)}>
+        <select aria-label="Filtrar por estados" className="nk-select" value={status} onChange={e => setStatus(e.target.value)}>
           <option value="">Todos los estados</option><option>Programado</option><option>Próximo</option><option>Vencido</option><option>Sin programación</option>
         </select>
       </section>
