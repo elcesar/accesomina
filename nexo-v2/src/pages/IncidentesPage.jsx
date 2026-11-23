@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { includesSearch } from '../services/search.js'
@@ -200,7 +201,7 @@ export default function IncidentesPage() {
               <td><span className={`nk-badge ${statusClass(item.estado)}`}>{STATUS_LABELS[item.estado] || item.estado || 'Abierto'}</span></td>
               <td><button className="nk-button nk-button-secondary nk-button-sm" type="button" onClick={() => openIncident(item)}>Abrir seguimiento</button></td>
             </tr>
-          }) : <tr><td colSpan="6" className="nk-incidents-empty">Sin eventos registrados.</td></tr>}</tbody>
+          }) : <tr><td colSpan="6" className="nk-incidents-empty"><EmptyState objectLabel="eventos registrados" /></td></tr>}</tbody>
         </table></div>
       </section>
 

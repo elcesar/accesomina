@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconKey, IconLock, IconPlus, IconRefresh, IconShieldCheck, IconUserCheck, IconUsers, IconX } from '@tabler/icons-react'
@@ -244,7 +245,7 @@ export default function UsuariosPermisosPage() {
                     </td>
                   </tr>
                 )
-              }) : <tr><td colSpan="6">No hay usuarios registrados.</td></tr>}
+              }) : <tr><td colSpan="6"><EmptyState title="Todavía no hay usuarios registrados." /></td></tr>}
             </tbody>
           </table>
         </div>

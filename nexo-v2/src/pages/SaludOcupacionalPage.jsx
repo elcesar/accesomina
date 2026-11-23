@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { includesSearch } from '../services/search.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -439,7 +440,7 @@ export default function SaludOcupacionalPage() {
         ) : filtered.length === 0 ? (
           <div className="nk-empty nk-compliance-empty">
             <IconHeartRateMonitor size={30} />
-            <p className="nk-empty-title">Sin registros para mostrar</p>
+            <div className="nk-empty-title"><EmptyState title="Todavía no hay registros." /></div>
           </div>
         ) : (
           <div className="nk-table-wrapper">
