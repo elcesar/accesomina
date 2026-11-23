@@ -5,8 +5,8 @@ import {PGlite} from '@electric-sql/pglite';
 import {pool,withTenant} from '../db.js';
 import {activateFreeSubscription,activateInitialSubscription,assertSubscriptionOperational,assertSubscriptionWorkerCapacity,calendarMonthsAfter,countSubscriptionWorkers,
  createSubscriptionRequest,executeSubscriptionRequest,getSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
- processDueSubscriptionRequests,recommendSubscription,refreshSubscriptionLifecycle,resolvePackageComposition,saveSubscriptionCatalogVersion,
- transitionSubscriptionRequest,withSubscriptionAdmin} from '../subscriptions.js';
+ processDueSubscriptionRequests,reactivateSubscriptionAfterPayment,recommendSubscription,refreshSubscriptionLifecycle,resolvePackageComposition,saveSubscriptionCatalogVersion,
+ suspendSubscriptionForNonpayment,transitionSubscriptionRequest,withSubscriptionAdmin} from '../subscriptions.js';
 
 const TENANT='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',GLOBAL='33333333-3333-4333-8333-333333333333';
 const ADMIN='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',OPERATOR='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',SUPER='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -47,6 +47,8 @@ async function schedule(row,{effectiveAt=NOW,docs,immediateChangeTerms}={}){
  return transition(row.id,{action:'schedule',effectiveAt:effectiveAt.toISOString(),documents:docs||await documents(),...(immediateChangeTerms?{immediateChangeTerms}:{})});
 }
 async function paid(code='LA_UNION',packages=[]){const row=await request({planCode:code,packages});await schedule(row);await transition(row.id,{action:'execute'});return tx(c=>getSubscriptionSummary(c,TENANT,{now:NOW}));}
+async function suspendForNonpayment(input={},now=NOW,userId=SUPER){return tx(client=>suspendSubscriptionForNonpayment(client,{tenantId:TENANT,userId,input:{reason:'Factura vencida de prueba',billingReference:'FAC-QA-001',effectiveAt:now.toISOString(),idempotencyKey:`nonpayment-qa-${++sequence}`,...input},now}));}
+async function reactivateForNonpayment(holdId,input={},now=NOW,userId=ADMIN){return tx(client=>reactivateSubscriptionAfterPayment(client,{tenantId:TENANT,holdId,userId,input:{reason:'Pago QA confirmado',regularizationReference:'PAGO-QA-001',idempotencyKey:`reactivate-qa-${++sequence}`,...input},now}));}
 
 test('seeds exactly five confirmed plans and three independently priced capacity packages',async()=>{
  const c=await getSubscriptionCatalog(db);assert.deepEqual(c.plans.map(p=>p.code),['FREE','LA_UNION','PURRANQUE','FRUTILLAR','PUERTO_OCTAY']);
@@ -177,13 +179,47 @@ test('scheduled execution recovers a failure without partial contract, capacity 
  assert.equal((await db.query('SELECT count(*)::int n FROM subscription_contracts')).rows[0].n,0);assert.equal((await db.query('SELECT status FROM subscription_requests WHERE id=$1',[r.id])).rows[0].status,'SCHEDULED');
  const result=await processDueSubscriptionRequests(TENANT,{now:NOW});assert.equal(result.executed,1);assert.equal(result.failed,0);
 });
+test('nonpayment holds block operations, preserve records, conceal references from the company summary and are fully audited',async()=>{
+ const original=await paid();await setWorkers(3);
+ const hold=await suspendForNonpayment();
+ const company=await tx(c=>getSubscriptionSummary(c,TENANT,{now:NOW}));
+ assert.equal(company.contract.status,'SUSPENDED_NONPAYMENT');assert.equal(company.canOperate,false);assert.equal(company.nonpaymentHold.status,'SUSPENDED_NONPAYMENT');
+ assert.equal(company.nonpaymentHold.billingReference,undefined);assert.equal(company.capacity.used,3);
+ await assert.rejects(()=>tx(c=>assertSubscriptionWorkerCapacity(c,TENANT,workers(3),workers(3),{now:NOW})),{code:'SUBSCRIPTION_NONPAYMENT_SUSPENDED'});
+ const administration=await tx(c=>getSubscriptionSummary(c,TENANT,{now:NOW,includeEnforcementDetails:true}));
+ assert.equal(administration.nonpaymentHold.billingReference,'FAC-QA-001');assert.equal(administration.nonpaymentHold.reason,'Factura vencida de prueba');
+ await assert.rejects(()=>reactivateForNonpayment(hold.id,{},NOW,SUPER),{code:'SUBSCRIPTION_REACTIVATION_SEPARATION_REQUIRED'});
+ const restored=await reactivateForNonpayment(hold.id);
+ assert.equal(restored.status,'REACTIVATED');
+ const after=await tx(c=>getSubscriptionSummary(c,TENANT,{now:NOW,includeEnforcementDetails:true}));
+ assert.equal(after.canOperate,true);assert.equal(after.contract.status,'ACTIVE');assert.equal(after.contract.endsAt,original.contract.endsAt);
+ assert.equal(after.nonpaymentHold,null);assert.equal(after.nonpaymentHolds[0].billingReference,'FAC-QA-001');assert.equal(after.nonpaymentHolds[0].regularizationReference,'PAGO-QA-001');
+ const audit=(await db.query("SELECT action,new_value FROM audit_log WHERE tenant_id=$1 AND action IN ('subscription.nonpayment.suspended','subscription.nonpayment.reactivated') ORDER BY created_at",[TENANT])).rows;
+ assert.equal(audit.length,2);assert.ok(audit.every(row=>row.new_value.referenceFingerprint&&row.new_value.billingReference===undefined&&row.new_value.regularizationReference===undefined));
+});
+test('future nonpayment holds do not block before their effective date and repeat calls are idempotent',async()=>{
+ await paid();const future=new Date(NOW.getTime()+86400000),input={effectiveAt:future.toISOString(),idempotencyKey:'scheduled-nonpayment-qa'};
+ const one=await suspendForNonpayment(input),two=await suspendForNonpayment(input);
+ assert.equal(one.id,two.id);assert.equal(one.status,'SCHEDULED_NONPAYMENT');
+ assert.equal((await tx(c=>getSubscriptionSummary(c,TENANT,{now:NOW}))).canOperate,true);
+ const afterEffective=await tx(c=>getSubscriptionSummary(c,TENANT,{now:future}));
+ assert.equal(afterEffective.contract.status,'SUSPENDED_NONPAYMENT');assert.equal(afterEffective.canOperate,false);
+ await assert.rejects(()=>suspendForNonpayment({...input,billingReference:'FAC-QA-OTRA'}),{code:'SUBSCRIPTION_IDEMPOTENCY_CONFLICT'});
+});
+test('reactivation never extends an expired period and instead requires renewal',async()=>{
+ const paidSummary=await paid(),hold=await suspendForNonpayment();
+ const expiredAt=new Date(paidSummary.contract.graceEndsAt);
+ await assert.rejects(()=>reactivateForNonpayment(hold.id,{},expiredAt),{code:'SUBSCRIPTION_REACTIVATION_RENEWAL_REQUIRED'});
+ const row=(await db.query('SELECT released_at FROM subscription_nonpayment_holds WHERE id=$1',[hold.id])).rows[0];
+ assert.equal(row.released_at,null);
+});
 test('security suspension stays independent and prevents activation or scheduled renewal',async()=>{
  const r=await request();await schedule(r);await db.query("UPDATE tenants SET status='suspended' WHERE id=$1",[TENANT]);
  await assert.rejects(()=>transition(r.id,{action:'execute'}),{code:'SUBSCRIPTION_COMPANY_DISABLED'});
  assert.equal((await db.query('SELECT status FROM tenants WHERE id=$1',[TENANT])).rows[0].status,'suspended');
 });
 test('forced RLS hides every tenant subscription and denies cross-tenant writes for a non-owner database role',async()=>{
- await paid();await db.exec('CREATE ROLE qa_subscription_reader; GRANT USAGE ON SCHEMA public TO qa_subscription_reader; GRANT SELECT,INSERT,UPDATE ON subscription_contracts,subscription_periods,subscription_requests,subscription_contract_packages,subscription_free_benefits,subscription_notifications,subscription_commercial_requests TO qa_subscription_reader;');
+ await paid();await db.exec('CREATE ROLE qa_subscription_reader; GRANT USAGE ON SCHEMA public TO qa_subscription_reader; GRANT SELECT,INSERT,UPDATE ON subscription_contracts,subscription_periods,subscription_requests,subscription_contract_packages,subscription_free_benefits,subscription_notifications,subscription_commercial_requests,subscription_nonpayment_holds TO qa_subscription_reader;');
  await db.exec('BEGIN; SET LOCAL ROLE qa_subscription_reader');
  try{await db.query("SELECT set_config('app.current_tenant_id',$1,true)",[OTHER]);assert.equal((await db.query('SELECT * FROM subscription_contracts')).rows.length,0);assert.equal((await db.query("UPDATE subscription_contracts SET snapshot='{}' WHERE tenant_id=$1 RETURNING id",[TENANT])).rows.length,0);
   await assert.rejects(()=>db.query('INSERT INTO subscription_free_benefits(company_fingerprint,tenant_id,started_at,expires_at) VALUES($1,$2,now(),now()+interval \'6 months\')',['foreign-qa-attempt',TENANT]),/row-level security/);}

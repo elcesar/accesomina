@@ -37,7 +37,8 @@
 .nk-plan-total { padding: .8rem 1rem; background: var(--surf-2); border-radius: var(--nk-radius-control, 8px); margin-block: 1rem; }
 .nk-subscription-error { color: var(--state-error); background: var(--state-error-bg); }
 .nk-subscription-status { display: inline-flex; align-items: center; border-radius: var(--nk-radius-control, 8px); padding: .3rem .6rem; background: var(--pri-light); color: var(--pri); font-size: var(--nk-text-base); font-weight: 600; }
-.nk-subscription-status-suspended, .nk-subscription-status-expired { color: var(--state-error); background: var(--state-error-bg); }
+.nk-subscription-status-suspended, .nk-subscription-status-suspended_nonpayment, .nk-subscription-status-expired { color: var(--state-error); background: var(--state-error-bg); }
+.nk-subscription-status-scheduled_nonpayment { color: var(--state-warn-ink); background: var(--state-warn-bg); }
 .nk-subscription-status-grace_period { color: var(--state-warn-ink); background: var(--state-warn-bg); }
 .nk-subscription-status-active { color: var(--state-ok); background: var(--state-ok-bg); }
 .nk-subscription-card { margin-bottom: 1.25rem; padding: 1.25rem; }
