@@ -222,7 +222,7 @@ export default function TercerosSubcontratosPage() {
       {error && <div className="nk-third-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
 
       <section className="nk-third-filters nk-card" aria-label="Filtros de terceros">
-        <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Razón social, RUT o servicio" /></label>
+        <label className="nk-search"><IconSearch size={16} /><input aria-label="Razón social, RUT o servicio" value={query} onChange={event => setQuery(event.target.value)} placeholder="Razón social, RUT o servicio" /></label>
         <select aria-label="Filtrar por contratos" className="nk-select" value={contractFilter} onChange={event => setContractFilter(event.target.value)}>
           <option value="">Todos los contratos</option>
           {contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}
