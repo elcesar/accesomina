@@ -27,8 +27,8 @@ const expiring = new Set(['por_vencer'])
 // Pendiente, en seguimiento, cerrado, revisado, histórico y similares son FLUJOS, no evidencias.
 export function complianceStatus({ outcome, expiresOn, warnDays = 30, hasEvidence = true, today } = {}) {
   const code = normalize(outcome)
-  if (!hasEvidence || !code || code === 'sin_informacion') return COMPLIANCE_STATES.none
   if (invalid.has(code)) return COMPLIANCE_STATES.error
+  if (!hasEvidence || !code || code === 'sin_informacion') return COMPLIANCE_STATES.none
   if (expiring.has(code)) return COMPLIANCE_STATES.warn
   if (!valid.has(code)) return COMPLIANCE_STATES.none
   const days = expiresOn ? calendarDaysUntil(expiresOn, today) : null
