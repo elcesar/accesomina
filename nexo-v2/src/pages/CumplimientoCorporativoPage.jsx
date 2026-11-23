@@ -214,7 +214,7 @@ export default function CumplimientoCorporativoPage() {
       {error && <div className="nk-compliance-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
 
       <section className="nk-card nk-compliance-filters" aria-label="Filtros de documentación corporativa">
-        <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
+        <label className="nk-search"><IconSearch size={16} /><input aria-label="Buscar documento..." value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar documento..." /></label>
         <select aria-label="Filtrar por áreas" className="nk-select" value={areaFilter} onChange={event => setAreaFilter(event.target.value)}><option value="">Todas las áreas</option>{Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
         <select aria-label="Filtrar por estados" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}><option value="">Todos los estados</option><option value="ok">Cargado y vigente</option><option value="faltante">Faltante</option><option value="vencido">Vencido / crítico</option></select>
       </section>
