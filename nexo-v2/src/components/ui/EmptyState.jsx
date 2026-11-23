@@ -23,7 +23,7 @@ export default function EmptyState({
   return (
     <div className="nk-empty-state" role="status">
       <IconInbox size={28} aria-hidden="true" />
-      <strong>{heading}</strong>
+      <h3>{heading}</h3>
       <p>{detail}</p>
       {onAction && actionLabel && (
         <button type="button" className="nk-button nk-button-secondary"
