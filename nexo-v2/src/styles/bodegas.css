@@ -25,7 +25,7 @@
 .nk-warehouses-editor-head h2{margin:0;font-size:1.05rem;color:var(--ink)}
 .nk-warehouses-editor-head p{margin:.2rem 0 0;color:var(--mut);font-size:var(--text-sm)}
 .nk-warehouses-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
-.nk-warehouses-form label{display:flex;flex-direction:column;gap:5px;min-width:0}.nk-warehouses-form label>span{font-size:.76rem;font-weight:700;color:var(--mut)}
+.nk-warehouses-form label{display:flex;flex-direction:column;gap:5px;min-width:0}.nk-warehouses-form label>span{font-size:var(--nk-text-base);font-weight:700;color:var(--mut)}
 .nk-warehouses-editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:var(--space-4);padding-top:var(--space-3);border-top:1px solid var(--line)}
 @media(max-width:980px){.nk-warehouses-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.nk-warehouses-table{min-width:860px}}
 @media(max-width:720px){.nk-warehouses-page{padding-left:var(--space-4);padding-right:var(--space-4)}.nk-warehouses-kpis,.nk-warehouses-form{grid-template-columns:1fr}}
