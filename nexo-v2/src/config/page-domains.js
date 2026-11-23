@@ -21,7 +21,7 @@ const PAGE_DOMAINS = [
     prefixes: ['/app/subcontratos', '/app/convenios', '/app/personal-contratista', '/app/habilitaciones-contratistas', '/app/evaluacion-desempeno'],
   },
   {
-    label: 'Cumplimiento y Calidad',
+    label: 'Cumplimiento y calidad',
     prefixes: ['/app/acreditacion-empresa', '/app/habilitacion-cliente', '/app/acreditacion-mandante', '/app/incidentes', '/app/auditoria'],
   },
   {
@@ -45,14 +45,22 @@ const PAGE_DOMAINS = [
     ],
   },
   {
+    label: 'Reportes e información',
+    prefixes: ['/app/reportes', '/app/transferencia'],
+  },
+  {
     label: 'Gestión y Administración',
-    prefixes: ['/app/reportes', '/app/transferencia', '/app/usuarios', '/app/bitacora', '/app/privacidad', '/app/configuracion', '/app/mi-plan', '/app/administracion-planes'],
+    prefixes: ['/app/usuarios', '/app/bitacora', '/app/privacidad', '/app/configuracion', '/app/mi-plan'],
+  },
+  {
+    label: 'Administración Nexo Klar',
+    prefixes: ['/app/administracion-planes', '/app/administracion-clientes'],
   },
 ]
 
 export function pageDomain(pathname) {
   const match = PAGE_DOMAINS.find(domain =>
-    domain.exact?.includes(pathname) || domain.prefixes?.some(prefix => pathname.startsWith(prefix))
+    domain.exact?.includes(pathname) || domain.prefixes?.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
   )
   return match?.label || ''
 }
