@@ -327,7 +327,7 @@ export default function ImportarExportarPage() {
                   {!truncated && (outcome === 'not-persisted' ? ' No se guardó ningún registro.' : ' Corrige el archivo antes de volver a intentarlo.')}
                 </p>
                 <div className="nk-import-report-table">
-                  <table className="nk-table">
+                  <table className="nk-table"><caption className="nk-visually-hidden">Importación y exportación</caption>
                     <caption>Errores encontrados en el archivo cargado</caption>
                     <thead>
                       <tr>
