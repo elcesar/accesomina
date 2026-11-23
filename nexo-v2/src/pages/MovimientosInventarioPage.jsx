@@ -198,8 +198,8 @@ export default function MovimientosInventarioPage() {
 
     <section className="nk-card nk-mov-filters">
       <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona, OS o referencia..."/></label>
-      <select className="nk-select" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">Todos los movimientos</option><option value="entrega">Entrega</option><option value="devolucion">Devolución</option><option value="reposicion">Reposición</option><option value="traslado">Traslado</option><option value="perdida">Pérdida</option><option value="dano">Daño / desgaste</option><option value="ajuste">Ajuste</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
-      <select className="nk-select" value={warehouseFilter} onChange={event => setWarehouseFilter(event.target.value)}><option value="">Todas las bodegas</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+      <select aria-label="Filtrar por movimientos" className="nk-select" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">Todos los movimientos</option><option value="entrega">Entrega</option><option value="devolucion">Devolución</option><option value="reposicion">Reposición</option><option value="traslado">Traslado</option><option value="perdida">Pérdida</option><option value="dano">Daño / desgaste</option><option value="ajuste">Ajuste</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select>
+      <select aria-label="Filtrar por bodegas" className="nk-select" value={warehouseFilter} onChange={event => setWarehouseFilter(event.target.value)}><option value="">Todas las bodegas</option>{warehouses.map(warehouse => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
       <input className="nk-input" type="date" value={dateFilter} onChange={event => setDateFilter(event.target.value)}/>
     </section>
 
