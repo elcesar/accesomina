@@ -1,0 +1,4 @@
+.nk-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .65rem; padding: 2rem 1rem; text-align: center; color: var(--nk-text-muted, #64748b); }
+.nk-empty-state strong { color: var(--nk-text, #1e293b); font-size: 1rem; font-weight: 600; }
+.nk-empty-state p { margin: 0; max-width: 36rem; }
+.nk-empty-state .nk-button { margin-top: .5rem; }
