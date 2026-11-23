@@ -90,10 +90,10 @@ test('Programar jornada: labels asociados y nombre accesible de filtros', async 
   }
 })
 
-test('Centro Operativo: formularios de Libro diario y CAPA tienen nombres accesibles', async ({ page }) => {
+test('Centro Operativo: formularios de Libro diario y acciones correctivas tienen nombres accesibles', async ({ page }) => {
   await page.goto('/app/operaciones')
   await expect(page.locator('.nk-app-main')).toBeVisible()
-  for (const tab of ['Libro diario', 'CAPA']) {
+  for (const tab of ['Libro diario', 'Acciones correctivas y preventivas']) {
     await page.getByRole('tab', { name: tab }).click()
     const result = await audit(page)
     expect(result.fields, tab).toEqual([])
