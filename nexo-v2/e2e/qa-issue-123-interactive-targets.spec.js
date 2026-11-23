@@ -87,3 +87,24 @@ test('teclado: navegación por tab y foco visible', async ({ page }) => {
   expect(focused.visible).toBeTruthy()
   expect(['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA']).toContain(focused.tag)
 })
+
+test('navegación lateral conserva targets de 44px', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto('/app/reportes')
+  await expect(page.locator('.nk-sidebar')).toBeVisible()
+  const small = await page.locator('.nk-sidebar').evaluate(root => [...root.querySelectorAll('.nk-side-link,.nk-side-group-title')]
+    .filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden')
+    .map(el => ({ label: el.textContent.trim().slice(0,50), height: el.getBoundingClientRect().height }))
+    .filter(item => item.height < 43.5))
+  expect(small).toEqual([])
+})
+
+test('checkbox de configuración usa la etiqueta como target de 44px', async ({ page }) => {
+  await page.goto('/app/configuracion')
+  await expect(page.locator('.nk-app-main')).toBeVisible()
+  const small = await page.locator('.nk-app-main').evaluate(root => [...root.querySelectorAll('label:has(input[type="checkbox"])')]
+    .filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden')
+    .map(el => ({ label: el.textContent.trim().slice(0,50), height: el.getBoundingClientRect().height }))
+    .filter(item => item.height < 43.5))
+  expect(small).toEqual([])
+})
