@@ -114,13 +114,13 @@ function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, reco
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
+            <select aria-label="Selecciona una persona — Turnos" className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
               <option value="">Selecciona una persona</option>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
+            <select aria-label="Selecciona una orden de servicio — Turnos" className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
               <option value="">Selecciona una orden de servicio</option>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
