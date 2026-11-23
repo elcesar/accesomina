@@ -109,14 +109,14 @@ export default function BitacoraCambiosPage() {
         </header>
 
         <div className="nk-audit-table-wrap">
-          <table className="nk-audit-table">
+          <table className="nk-audit-table"><caption className="nk-visually-hidden">Bitácora de cambios</caption>
             <thead>
               <tr>
-                <th>Fecha y hora</th>
-                <th>Usuario</th>
-                <th>Evento</th>
-                <th>Entidad</th>
-                <th>Detalle</th>
+                <th scope="col">Fecha y hora</th>
+                <th scope="col">Usuario</th>
+                <th scope="col">Evento</th>
+                <th scope="col">Entidad</th>
+                <th scope="col">Detalle</th>
               </tr>
             </thead>
             <tbody>
