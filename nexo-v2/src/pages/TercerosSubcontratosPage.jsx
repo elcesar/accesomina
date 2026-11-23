@@ -223,11 +223,11 @@ export default function TercerosSubcontratosPage() {
 
       <section className="nk-third-filters nk-card" aria-label="Filtros de terceros">
         <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Razón social, RUT o servicio" /></label>
-        <select className="nk-select" value={contractFilter} onChange={event => setContractFilter(event.target.value)}>
+        <select aria-label="Filtrar por contratos" className="nk-select" value={contractFilter} onChange={event => setContractFilter(event.target.value)}>
           <option value="">Todos los contratos</option>
           {contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}
         </select>
-        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+        <select aria-label="Filtrar por estados" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
           <option value="">Todos los estados</option>
           <option value="vigente">Vigente</option>
           <option value="observado">Observado</option>
