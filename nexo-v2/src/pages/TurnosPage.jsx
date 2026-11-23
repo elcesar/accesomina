@@ -114,13 +114,13 @@ function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, reco
 
         <div className="nk-dialog-body nk-turnos-modal-grid">
           <Field label="Persona" wide>
-            <select className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
+            <select aria-label="Selecciona una persona — Turnos" className="nk-select" value={form.trabId} disabled={busy || !canSchedule} onChange={e => set('trabId', e.target.value)}>
               <option value="">Selecciona una persona</option>
               {trabajadores.map(t => <option key={t.id} value={t.id}>{t.nombre} · {t.especialidad || 'Sin especialidad'}</option>)}
             </select>
           </Field>
           <Field label="Proyecto / servicio" wide>
-            <select className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
+            <select aria-label="Selecciona una orden de servicio — Turnos" className="nk-select" value={form.mantId} disabled={busy || !canSchedule} onChange={e => set('mantId', e.target.value)}>
               <option value="">Selecciona una orden de servicio</option>
               {mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
@@ -376,8 +376,8 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos</caption>
+                  <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
                       <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><div className="nk-empty-description"><EmptyState title="Todavía no hay proyectos o servicios abiertos para calcular cobertura." /></div></div></td></tr>
@@ -411,16 +411,16 @@ export default function TurnosPage() {
             </div>
 
             <div className="nk-turnos-filters" aria-label="Filtros de jornadas">
-              <select className="nk-select" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
-              <select className="nk-select" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
-              <select className="nk-select" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por cliente" value={filtMina} onChange={e => setFiltMina(e.target.value)}><option value="">Todos los clientes</option>{minas.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por proyecto o servicio" value={filtMant} onChange={e => setFiltMant(e.target.value)}><option value="">Todos los proyectos</option>{mantenciones.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por régimen" value={filtRegimen} onChange={e => setFiltRegimen(e.target.value)}><option value="">Todos los regímenes</option>{WORKER_REGIMENS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
+              <select className="nk-select" aria-label="Filtrar jornadas por turno" value={filtTurno} onChange={e => setFiltTurno(e.target.value)}><option value="">Todos los turnos</option>{WORKER_ASSIGNMENT_SHIFTS.filter(item => item.value !== 'ambos').map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select>
             </div>
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos — tabla 2</caption>
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
                       <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><div className="nk-empty-title"><EmptyState title="Todavía no hay jornadas registradas." /></div><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>

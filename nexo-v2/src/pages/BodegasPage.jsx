@@ -107,7 +107,7 @@ export default function BodegasPage() {
       {error && <div className="nk-warehouses-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
       <section className="nk-card nk-warehouses-toolbar">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar bodega, ubicación o responsable..." value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar bodega, ubicación o responsable..."/></label>
       </section>
 
       <section className="nk-warehouses-kpis">
@@ -122,8 +122,8 @@ export default function BodegasPage() {
           <div><h2>Distribución física</h2><p>Cada bodega mantiene su saldo y puede subdividirse en ubicaciones internas.</p></div>
         </div>
         <div className="nk-table-wrapper">
-          <table className="nk-table nk-warehouses-table">
-            <thead><tr><th>Bodega</th><th>Tipo</th><th>Ubicación</th><th>Responsable</th><th>Ubicaciones internas</th><th>Existencias</th></tr></thead>
+          <table className="nk-table nk-warehouses-table"><caption className="nk-visually-hidden">Bodegas</caption>
+            <thead><tr><th scope="col">Bodega</th><th scope="col">Tipo</th><th scope="col">Ubicación</th><th scope="col">Responsable</th><th scope="col">Ubicaciones internas</th><th scope="col">Existencias</th></tr></thead>
             <tbody>{loading ? <tr><td colSpan="6">Cargando bodegas…</td></tr> : filtered.length ? filtered.map(warehouse => {
               const names = locationNames(warehouse.id)
               return <tr key={warehouse.id}>
@@ -148,8 +148,8 @@ export default function BodegasPage() {
             <label><span>Tipo</span><select className="nk-select" value={form.type || 'Central'} onChange={e => setForm({...form,type:e.target.value})}><option>Central</option><option>Móvil</option><option>Terreno</option><option>Sucursal</option><option>General</option></select></label>
             <label><span>Ubicación</span><input className="nk-input" value={form.zone || ''} onChange={e => setForm({...form,zone:e.target.value})}/></label>
           </> : <>
-            <label><span>Código</span><input className="nk-input" value={form.code || ''} onChange={e => setForm({...form,code:e.target.value})} placeholder="Ej. PAS-01"/></label>
-            <label><span>Sector / posición</span><input className="nk-input" value={form.zone || ''} onChange={e => setForm({...form,zone:e.target.value})} placeholder="Pasillo, estante, patio, casillero…"/></label>
+            <label><span>Código</span><input aria-label="Ej. PAS-01" className="nk-input" value={form.code || ''} onChange={e => setForm({...form,code:e.target.value})} placeholder="Ej. PAS-01"/></label>
+            <label><span>Sector / posición</span><input aria-label="Pasillo, estante, patio, casillero…" className="nk-input" value={form.zone || ''} onChange={e => setForm({...form,zone:e.target.value})} placeholder="Pasillo, estante, patio, casillero…"/></label>
           </>}
           <label><span>Responsable</span><input className="nk-input" value={form.responsible || ''} onChange={e => setForm({...form,responsible:e.target.value})}/></label>
         </div>

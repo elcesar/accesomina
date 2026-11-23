@@ -209,8 +209,8 @@ export default function UsuariosPermisosPage() {
         </header>
 
         <div className="nk-table-wrapper nk-users-table-wrap">
-          <table className="nk-table nk-users-table">
-            <thead><tr><th>Persona</th><th>Correo de acceso</th><th>Permiso</th><th>Estado</th><th>Invitación</th><th>Acciones</th></tr></thead>
+          <table className="nk-table nk-users-table"><caption className="nk-visually-hidden">Usuarios y permisos</caption>
+            <thead><tr><th scope="col">Persona</th><th scope="col">Correo de acceso</th><th scope="col">Permiso</th><th scope="col">Estado</th><th scope="col">Invitación</th><th scope="col">Acciones</th></tr></thead>
             <tbody>
               {loading ? <tr><td colSpan="6">Cargando usuarios…</td></tr> : users.length ? users.map(user => {
                 const self = user.id === session?.user?.id

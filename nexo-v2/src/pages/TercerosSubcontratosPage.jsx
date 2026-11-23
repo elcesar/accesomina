@@ -222,12 +222,12 @@ export default function TercerosSubcontratosPage() {
       {error && <div className="nk-third-feedback error"><span>{error}</span><button className="nk-icon-button" type="button" onClick={() => setError('')}><IconX size={15} /></button></div>}
 
       <section className="nk-third-filters nk-card" aria-label="Filtros de terceros">
-        <label className="nk-search"><IconSearch size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Razón social, RUT o servicio" /></label>
-        <select className="nk-select" value={contractFilter} onChange={event => setContractFilter(event.target.value)}>
+        <label className="nk-search"><IconSearch size={16} /><input aria-label="Razón social, RUT o servicio" value={query} onChange={event => setQuery(event.target.value)} placeholder="Razón social, RUT o servicio" /></label>
+        <select aria-label="Filtrar por contratos" className="nk-select" value={contractFilter} onChange={event => setContractFilter(event.target.value)}>
           <option value="">Todos los contratos</option>
           {contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}
         </select>
-        <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+        <select aria-label="Filtrar por estados" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
           <option value="">Todos los estados</option>
           <option value="vigente">Vigente</option>
           <option value="observado">Observado</option>
@@ -249,8 +249,8 @@ export default function TercerosSubcontratosPage() {
           <div className="nk-empty nk-third-empty"><IconBuildingFactory2 size={30} /><div className="nk-empty-title"><EmptyState title="Todavía no hay terceros." /></div><p className="nk-empty-description">Ajusta los filtros o registra una empresa colaboradora.</p></div>
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
-              <thead><tr><th>Empresa</th><th>Contrato</th><th>Servicio</th><th>Responsable</th><th>Vencimientos</th><th>Dotación</th><th>Estado</th><th /></tr></thead>
+            <table className="nk-table"><caption className="nk-visually-hidden">Terceros y subcontratos</caption>
+              <thead><tr><th scope="col">Empresa</th><th scope="col">Contrato</th><th scope="col">Servicio</th><th scope="col">Responsable</th><th scope="col">Vencimientos</th><th scope="col">Dotación</th><th scope="col">Estado</th><th scope="col" /></tr></thead>
               <tbody>{filtered.map(item => (
                 <tr key={item.id}>
                   <td><button className="nk-third-link nk-third-company" type="button" onClick={() => openDetail(item.id)} aria-label={`Abrir ficha de ${item.razon || item.nombre || 'empresa colaboradora'}`}><strong>{item.razon || item.nombre}</strong><span>{item.rut || 'Sin RUT'}</span></button></td>
@@ -283,23 +283,23 @@ export default function TercerosSubcontratosPage() {
           </div>
 
           <div className="nk-third-form">
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Razón social</label><input className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">RUT</label><RutInput value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Estado</label><select className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
-            <div className="nk-field"><label className="nk-label">Contrato asociado</label><select className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
-            <div className="nk-field"><label className="nk-label">Dotación</label><input className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Servicios</label><input className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Responsable</label><input className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
-            <div className="nk-field nk-third-span-2"><label className="nk-label">Contacto</label><input className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label" htmlFor="nk-tercerossubcontratos-1">Razón social</label><input id="nk-tercerossubcontratos-1" className="nk-input" value={form.razon} onChange={e => setForm(current => ({ ...current, razon: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-2">RUT</label><RutInput id="nk-tercerossubcontratos-2" value={form.rut} onChange={value => setForm(current => ({ ...current, rut: value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-3">Estado</label><select id="nk-tercerossubcontratos-3" className="nk-select" value={form.estado} onChange={e => setForm(current => ({ ...current, estado: e.target.value }))}><option value="vigente">Vigente</option><option value="observado">Observado</option><option value="bloqueado">No habilitado</option></select></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-4">Contrato asociado</label><select id="nk-tercerossubcontratos-4" className="nk-select" value={form.contratoId} onChange={e => setForm(current => ({ ...current, contratoId: e.target.value }))}><option value="">Sin contrato</option>{contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.numero || contract.codigo || contract.nombre}</option>)}</select></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-5">Dotación</label><input id="nk-tercerossubcontratos-5" className="nk-input" type="number" min="0" value={form.personal} onChange={e => setForm(current => ({ ...current, personal: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label" htmlFor="nk-tercerossubcontratos-6">Servicios</label><input id="nk-tercerossubcontratos-6" className="nk-input" value={form.servicios} onChange={e => setForm(current => ({ ...current, servicios: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label" htmlFor="nk-tercerossubcontratos-7">Responsable</label><input id="nk-tercerossubcontratos-7" className="nk-input" value={form.responsable} onChange={e => setForm(current => ({ ...current, responsable: e.target.value }))} /></div>
+            <div className="nk-field nk-third-span-2"><label className="nk-label" htmlFor="nk-tercerossubcontratos-8">Contacto</label><input id="nk-tercerossubcontratos-8" className="nk-input" value={form.contacto} onChange={e => setForm(current => ({ ...current, contacto: e.target.value }))} /></div>
           </div>
 
           <div className="nk-third-section-title"><h3>Control laboral y previsional</h3><p>Fechas de vigencia utilizadas para detectar alertas operacionales.</p></div>
           <div className="nk-third-form nk-third-compliance-grid">
-            <div className="nk-field"><label className="nk-label">F30</label><input className="nk-input" type="date" value={form.f30} onChange={e => setForm(current => ({ ...current, f30: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">F30-1</label><input className="nk-input" type="date" value={form.f301} onChange={e => setForm(current => ({ ...current, f301: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Cotizaciones</label><input className="nk-input" type="date" value={form.cotizaciones} onChange={e => setForm(current => ({ ...current, cotizaciones: e.target.value }))} /></div>
-            <div className="nk-field"><label className="nk-label">Seguro</label><input className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
-            <div className="nk-field nk-third-wide"><label className="nk-label">Observaciones</label><textarea className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-9">F30</label><input id="nk-tercerossubcontratos-9" className="nk-input" type="date" value={form.f30} onChange={e => setForm(current => ({ ...current, f30: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-10">F30-1</label><input id="nk-tercerossubcontratos-10" className="nk-input" type="date" value={form.f301} onChange={e => setForm(current => ({ ...current, f301: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-11">Cotizaciones</label><input id="nk-tercerossubcontratos-11" className="nk-input" type="date" value={form.cotizaciones} onChange={e => setForm(current => ({ ...current, cotizaciones: e.target.value }))} /></div>
+            <div className="nk-field"><label className="nk-label" htmlFor="nk-tercerossubcontratos-12">Seguro</label><input id="nk-tercerossubcontratos-12" className="nk-input" type="date" value={form.seguro} onChange={e => setForm(current => ({ ...current, seguro: e.target.value }))} /></div>
+            <div className="nk-field nk-third-wide"><label className="nk-label" htmlFor="nk-tercerossubcontratos-13">Observaciones</label><textarea id="nk-tercerossubcontratos-13" className="nk-textarea" rows="3" value={form.observaciones} onChange={e => setForm(current => ({ ...current, observaciones: e.target.value }))} /></div>
           </div>
 
         </section>

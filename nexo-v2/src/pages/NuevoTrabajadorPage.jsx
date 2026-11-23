@@ -1,7 +1,7 @@
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { localDate } from '../services/calendar-date.js'
-import { cloneElement, useEffect, useMemo, useRef, useState } from 'react'
+import { cloneElement, useId, useEffect, useMemo, useRef, useState } from 'react'
 import { useBlocker, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconArrowRight, IconCheck, IconLoader2,
@@ -94,20 +94,20 @@ function validationError(message, suggestion) {
 }
 
 function Field({ label, required, hint, error, fieldId, children, full = false, reserveRutError = false }) {
-  const errorId = error && fieldId ? `${fieldId}-error` : undefined
-  const feedbackId = reserveRutError && fieldId ? `${fieldId}-feedback` : errorId
-  const control = fieldId
-    ? cloneElement(children, {
-        id: fieldId,
+  const generatedId = useId()
+  const resolvedId = fieldId || generatedId
+  const errorId = error && resolvedId ? `${resolvedId}-error` : undefined
+  const feedbackId = reserveRutError && resolvedId ? `${resolvedId}-feedback` : errorId
+  const control = children.type === 'label' ? children : cloneElement(children, {
+        id: resolvedId,
         'aria-invalid': error ? true : undefined,
         'aria-describedby': feedbackId,
         ...(children.type === BirthDateInput ? { error, showError: !error } : {}),
       })
-    : children
 
   return (
     <div className={`nk-field ${full ? 'nk-person-field-full' : ''} ${reserveRutError ? 'nk-person-field-rut' : ''}`} data-state={error ? 'error' : undefined}>
-      <label className="nk-label" htmlFor={fieldId}>
+      <label className="nk-label" htmlFor={resolvedId}>
         {label}{required && <span className="nk-person-field-required"> *</span>}
       </label>
       {control}
