@@ -189,8 +189,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
         <div className="nk-dialog-body">
           <div className="nk-compliance-dialog-grid">
             <div className="nk-field nk-compliance-dialog-wide">
-              <label className="nk-label">Persona</label>
-              <select
+              <label className="nk-label" htmlFor="nk-saludocupacional-1">Persona</label>
+              <select id="nk-saludocupacional-1"
                 className="nk-select"
                 required
                 value={form.workerId}
@@ -204,8 +204,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
             </div>
 
             <div className="nk-field nk-compliance-dialog-wide">
-              <label className="nk-label">Protocolo / seguimiento</label>
-              <input className="nk-input" required value={form.protocolo} onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))} placeholder="Ej.: Vigilancia por exposición a ruido" />
+              <label className="nk-label" htmlFor="nk-saludocupacional-2">Protocolo / seguimiento</label>
+              <input id="nk-saludocupacional-2" className="nk-input" required value={form.protocolo} onChange={event => setForm(current => ({ ...current, protocolo: event.target.value }))} placeholder="Ej.: Vigilancia por exposición a ruido" />
             </div>
 
             <div className="nk-field">
@@ -236,8 +236,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
               <input id="health-expiry" className="nk-input" type="date" value={form.vence} min={form.evaluatedOn || undefined} onChange={event => setForm(current => ({ ...current, vence: event.target.value }))} />
             </div>
             <div className="nk-field">
-              <label className="nk-label">Riesgo / exposición</label>
-              <input
+              <label className="nk-label" htmlFor="nk-saludocupacional-3">Riesgo / exposición</label>
+              <input id="nk-saludocupacional-3"
                 className="nk-input"
                 value={form.riesgo}
                 onChange={event => setForm(current => ({ ...current, riesgo: event.target.value }))}
@@ -245,8 +245,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
             </div>
 
             <div className="nk-field">
-              <label className="nk-label">Etapa del proceso</label>
-              <select
+              <label className="nk-label" htmlFor="nk-saludocupacional-4">Etapa del proceso</label>
+              <select id="nk-saludocupacional-4"
                 className="nk-select"
                 value={form.estado}
                 onChange={event => setForm(current => ({ ...current, estado: event.target.value }))}
@@ -270,8 +270,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
               <small className="nk-field-help">El estado del proceso no acredita el cumplimiento. Selecciona el resultado según la evidencia.</small>
             </div>
             <div className="nk-field">
-              <label className="nk-label">Responsable</label>
-              <input
+              <label className="nk-label" htmlFor="nk-saludocupacional-5">Responsable</label>
+              <input id="nk-saludocupacional-5"
                 className="nk-input"
                 value={form.responsable}
                 onChange={event => setForm(current => ({ ...current, responsable: event.target.value }))}
@@ -279,8 +279,8 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
             </div>
 
             <div className="nk-field">
-              <label className="nk-label">Observaciones</label>
-              <input
+              <label className="nk-label" htmlFor="nk-saludocupacional-6">Observaciones</label>
+              <input id="nk-saludocupacional-6"
                 className="nk-input"
                 value={form.notes}
                 onChange={event => setForm(current => ({ ...current, notes: event.target.value }))}
@@ -440,8 +440,8 @@ export default function SaludOcupacionalPage() {
             <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar persona, protocolo o riesgo" />
           </label>
           <div className="nk-field">
-            <label className="nk-label">Estado</label>
-            <select className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
+            <label className="nk-label" htmlFor="nk-saludocupacional-7">Estado</label>
+            <select id="nk-saludocupacional-7" className="nk-select" value={statusFilter} onChange={event => setStatusFilter(event.target.value)}>
               <option value="todos">Todos</option>
               {COMPLIANCE_FILTERS.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}
             </select>
