@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { calendarDaysUntil } from '../services/calendar-date.js'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -338,7 +339,7 @@ export default function TrabajadoresPage() {
         <header className="nk-module-header">
           <div>
             <h1>Personas</h1>
-            <p>No se mostró un estado vacío porque no hay una lista válida que conservar.</p>
+            <div><EmptyState title="No se mostró un estado vacío porque no hay una lista válida que conservar." /></div>
           </div>
         </header>
         <p role="alert">{unavailable} Reintenta cuando el servicio esté disponible.</p>
@@ -480,10 +481,10 @@ export default function TrabajadoresPage() {
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
                       {personas.length === 0 ? <>
-                        <p className="nk-empty-title">Aún no hay personas registradas</p>
+                        <div className="nk-empty-title"><EmptyState title="Todavía no hay personas registradas." /></div>
                         <p className="nk-empty-description">Usa + Persona en el encabezado para crear la primera.</p>
                       </> : activeFilters > 0 ? <>
-                        <p className="nk-empty-title">No encontramos personas que coincidan con tu búsqueda o los filtros seleccionados</p>
+                        <div className="nk-empty-title"><EmptyState title="No hay resultados para estos criterios." filtered description="Ajusta la búsqueda o limpia los filtros para ver más resultados." /></div>
                         <p className="nk-empty-description">Ajusta los filtros o límpialos para ver más resultados.</p>
                       </> : <>
                         <p className="nk-empty-title">No hay personas en {TAB_LABELS[tab]}</p>
