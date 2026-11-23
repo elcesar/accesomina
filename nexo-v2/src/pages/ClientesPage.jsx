@@ -19,7 +19,7 @@ import { useConfirmation } from '../services/useConfirmation.js'
 import '../styles/clientes.css'
 
 const CLIENT_ERRORS={
- INCOMPLETE_CLIENT:{title:'Faltan datos obligatorios',message:'No es posible guardar el cliente porque falta información requerida.',suggestion:'Revisa el nombre o razón social del cliente y vuelve a intentar.'},
+ INCOMPLETE_CLIENT:{title:'Falta información obligatoria',message:'No es posible guardar el cliente porque falta información requerida.',suggestion:'Revisa el nombre o razón social del cliente y vuelve a intentar.'},
  INVALID_CLIENT_RUT:{title:'RUT no válido',message:'El RUT ingresado no corresponde a un RUT chileno válido.',suggestion:'Revisa los números y especialmente el dígito verificador.'},
  DUPLICATE_CLIENT_RUT:{title:'RUT ya registrado',message:'Ya existe un cliente registrado con este RUT en esta cuenta.',suggestion:'Busca el cliente existente antes de crear un nuevo registro.'},
  DUPLICATE_CLIENT:{title:'Cliente ya registrado',message:'Ya existe un cliente con el mismo nombre y organización relacionada.',suggestion:'Busca el cliente existente antes de crear un nuevo registro.'},
