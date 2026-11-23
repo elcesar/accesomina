@@ -100,3 +100,39 @@ test('Centro Operativo: formularios de Libro diario y acciones correctivas tiene
     expect(result.tables, tab).toEqual([])
   }
 })
+
+test('Categorías de inventario: el editor conserva los nombres visibles de sus campos', async ({ page }) => {
+  const scenarios = [
+    {
+      path: '/app/maquinaria',
+      action: 'Agregar maquinaria',
+      labels: ['Nombre', 'Código / serie', 'Tipo', 'Stock', 'Stock mínimo', 'Próximo mantenimiento'],
+    },
+    {
+      path: '/app/equipos-instrumentos',
+      action: 'Agregar equipo',
+      labels: ['Nombre', 'Código / serie', 'Tipo', 'Stock', 'Stock mínimo', 'Próxima calibración', 'Custodio', 'Certificado / referencia'],
+    },
+    {
+      path: '/app/epp-inventario',
+      action: 'Agregar EPP',
+      labels: ['Nombre', 'Código / serie', 'Tipo', 'Stock', 'Stock mínimo', 'Talla', 'Vida útil (meses)', 'Fecha de vencimiento'],
+    },
+  ]
+
+  for (const { path, action, labels } of scenarios) {
+    await page.goto(path)
+    await expect(page.locator('.nk-app-main')).toBeVisible()
+    await page.getByRole('button', { name: action, exact: true }).click()
+
+    const editor = page.locator('.nk-invcat-editor')
+    await expect(editor).toBeVisible()
+    await expect(editor.locator('input[aria-label^="Buscar "]')).toHaveCount(0)
+
+    for (const label of labels) {
+      const control = editor.getByLabel(label, { exact: true })
+      await expect(control).toHaveCount(1)
+      await expect(control).toHaveAccessibleName(label)
+    }
+  }
+})
