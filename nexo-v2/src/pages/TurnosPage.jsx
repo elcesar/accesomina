@@ -423,7 +423,7 @@ export default function TurnosPage() {
                   <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
-                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><span className="nk-empty-title">Sin jornadas registradas</span><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
+                      <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><div className="nk-empty-title"><EmptyState title="Todavía no hay jornadas registradas." /></div><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
                     ) : jornadasFiltradas.map(t => (
                       <tr key={t.id}>
                         <td>
