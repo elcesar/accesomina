@@ -462,16 +462,16 @@ export default function SaludOcupacionalPage() {
           </div>
         ) : (
           <div className="nk-table-wrapper">
-            <table className="nk-table">
+            <table className="nk-table"><caption className="nk-visually-hidden">Salud ocupacional</caption>
               <thead>
                 <tr>
-                  <th>Persona</th>
-                  <th>Protocolo</th>
-                  <th>Riesgo / exposición</th>
-                  <th>Responsable</th>
-                  <th>Estado de cumplimiento</th>
-                  <th>Etapa del proceso</th>
-                  <th>Evidencia</th>
+                  <th scope="col">Persona</th>
+                  <th scope="col">Protocolo</th>
+                  <th scope="col">Riesgo / exposición</th>
+                  <th scope="col">Responsable</th>
+                  <th scope="col">Estado de cumplimiento</th>
+                  <th scope="col">Etapa del proceso</th>
+                  <th scope="col">Evidencia</th>
                 </tr>
               </thead>
               <tbody>
