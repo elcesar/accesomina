@@ -189,7 +189,7 @@ export default function UsuariosPermisosPage() {
       <header className="nk-module-header">
         <div>
           <h1>Usuarios y permisos</h1>
-          <p>{session?.tenant?.name || 'Empresa'} · información separada de otros clientes</p>
+          <p>{session?.tenant?.name || 'Empresa'} · información separada por empresa</p>
         </div>
         {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setCreateError(''); setNameError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
       </header>
