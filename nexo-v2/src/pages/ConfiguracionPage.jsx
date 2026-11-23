@@ -18,12 +18,12 @@ const MODULE_OPTIONS = [
   ['contratos', 'Contratos y firmas'],
   ['hoteleria', 'Alojamientos y estadías'],
   ['llamados', 'Comunicaciones y convocatorias'],
-  ['vehiculos', 'Vehículos, activos y equipos'],
+  ['vehiculos', 'Flota y equipos móviles'],
   ['subcontratos', 'Terceros y subcontratos'],
-  ['credenciales', 'Credenciales'],
+  ['credenciales', 'Credenciales de acceso'],
   ['incidentes', 'Incidentes y no conformidades'],
   ['auditoria', 'Auditoría'],
-  ['reportes', 'Reportes y analítica'],
+  ['reportes', 'Reportes'],
 ]
 
 const emptyIntegration = { enabled: false, publicConfig: {}, secret: {}, configured: false }
