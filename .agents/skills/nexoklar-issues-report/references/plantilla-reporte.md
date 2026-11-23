@@ -1,50 +1,61 @@
-# NEXO KLAR — Reporte de issues
+# NEXO KLAR — Reporte de issues {{alcance}}
 
 **Corte:** {{fecha-hora}} (America/Santiago)  
 **Repositorio:** [elcesar/accesomina](https://github.com/elcesar/accesomina)  
-**Alcance y cobertura:** {{alcance-paginacion-limitaciones}}
+**Cobertura:** {{paginas-consultadas}} páginas, {{issues-incluidos}} issues; PRs excluidos. {{limitaciones}}
 
 ## Resumen ejecutivo
 
-| Métrica | Total |
+| Métrica | Cantidad |
 |---|---:|
-| Issues incluidos | {{total}} |
-| Abiertos | {{abiertos}} |
-| Cerrados | {{cerrados}} |
-| Bloqueantes de lanzamiento | {{bloqueantes}} |
-| P0 / P1 / P2 / P3 / Sin clasificar | {{distribucion}} |
-| Abiertos por subestado | {{distribucion-subestados}} |
+| Issues {{alcance}} | {{total}} |
+| Listos para probar (canónico) | {{listos}} |
+| Pendiente de validación QA (etiqueta antigua) | {{pendientes-antiguos}} |
+| Otros estados QA | {{otros-estados}} |
+| Sin estado QA | {{sin-estado}} |
+| Bloqueantes explícitos | {{bloqueantes}} |
+
+## Matriz de severidad y estado QA
+
+| Severidad | Listo para probar | Pendiente QA (antiguo) | Otros | Sin estado QA | Total |
+|---|---:|---:|---:|---:|---:|
+| P0 · Crítica | {{p0-listo}} | {{p0-pendiente}} | {{p0-otros}} | {{p0-sin}} | {{p0-total}} |
+| P1 · Alta | {{p1-listo}} | {{p1-pendiente}} | {{p1-otros}} | {{p1-sin}} | {{p1-total}} |
+| P2 · Media | {{p2-listo}} | {{p2-pendiente}} | {{p2-otros}} | {{p2-sin}} | {{p2-total}} |
+| P3 · Baja | {{p3-listo}} | {{p3-pendiente}} | {{p3-otros}} | {{p3-sin}} | {{p3-total}} |
+| Sin severidad | {{sx-listo}} | {{sx-pendiente}} | {{sx-otros}} | {{sx-sin}} | {{sx-total}} |
+| **Total** | **{{listos}}** | **{{pendientes-antiguos}}** | **{{otros-estados}}** | **{{sin-estado}}** | **{{total}}** |
 
 ## P0 · Crítica
-
-| Issue | Autor | Creación | Estado GitHub | Subestado | Módulo | Fecha último estado | PR asociados y estado | Resumen / comentarios relevantes | Issues asociados y estado |
-|---|---|---|---|---|---|---|---|---|---|
-| [#{{id}}](https://github.com/elcesar/accesomina/issues/{{id}}) | [@{{autor-login}}]({{autor-url}}) | {{creacion}} | {{abierto-o-cerrado}} {{bloqueante}} | {{subestado-o-guion}} | {{modulo}} | {{ultima-transicion-o-no-verificable}} | [#{{pr}}](https://github.com/elcesar/accesomina/pull/{{pr}}) · {{estado-pr}} | {{problema-solucion-qa-comentarios}} | [#{{asociado}}](https://github.com/elcesar/accesomina/issues/{{asociado}}) · {{estado-github-y-subestado-y-relacion}} |
+**Listo para probar:** {{lista-de-ids-enlazados}}  
+**Otros estados / sin estado:** {{lista-de-ids-enlazados}}
 
 ## P1 · Alta
-
-{{misma-tabla}}
+{{mismo-formato}}
 
 ## P2 · Media
-
-{{misma-tabla}}
+{{mismo-formato}}
 
 ## P3 · Baja
+{{mismo-formato}}
 
-{{misma-tabla}}
+## Sin severidad
+{{mismo-formato}}
 
-## Sin severidad verificable
-
-{{misma-tabla}}
-
-## Leyenda
-- Estado GitHub: **Cerrado** o **Abierto**.
-- Subestados de **Abierto**, ordenados: QA aprobado, pendiente de cierre → Listo para probar → En pruebas / QA fallido → En revisión / PR abierto → En desarrollo → Pendiente / por hacer → Sin subestado verificable.
-- El subestado de **Cerrado** es **—**.
-- Bloqueante es independiente de estado y severidad.
-- Autor es el creador original del issue, no el asignado ni quien comentó.
-- Un PR fusionado no demuestra despliegue ni aprobación QA.
+## Bloqueos y próximos pasos
+{{resumen-basado-en-evidencia-verificada-con-links}}
 
 ## Metodología y limitaciones
+- Sólo issues del alcance solicitado; no PRs como filas.
+- El estado GitHub y estado QA son campos distintos.
+- «Listo para probar» no es QA aprobado, despliegue, ni retiro de bloqueo.
+- {{discrepancias-y-cobertura}}
 
-{{fuentes-fechas-transicion-autor-paginacion-discrepancias-y-relaciones}}
+---
+
+# Plantilla opcional: modo detallado
+Repetir por severidad:
+
+| Issue | Autor | Creación | Estado GitHub | Estado QA | Módulo | Último cambio de estado | PR y estado | Resumen / QA / siguiente paso | Issues relacionados |
+|---|---|---|---|---|---|---|---|---|---|
+| [#{{id}}](https://github.com/elcesar/accesomina/issues/{{id}}) | [@{{autor}}]({{autor-url}}) | {{creacion-chile}} | {{abierto-o-cerrado}} | {{estado-qa}} | {{modulo}} | {{fecha-transicion-o-no-verificable}} | [#{{pr}}](https://github.com/elcesar/accesomina/pull/{{pr}}) · {{estado-real}} | {{resumen-evidencia-pendiente}} | [#{{rel}}](https://github.com/elcesar/accesomina/issues/{{rel}}) · {{relacion-y-estado}} |
