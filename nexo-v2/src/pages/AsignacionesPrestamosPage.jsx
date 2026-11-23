@@ -190,7 +190,7 @@ export default function AsignacionesPrestamosPage() {
       {error && <div className="nk-assign-feedback"><span>{error}</span><button className="nk-button nk-button-quiet nk-button-sm" onClick={() => setError('')}>Cerrar</button></div>}
 
       <section className="nk-card nk-assign-filters">
-        <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona u orden..."/></label>
+        <label className="nk-search"><IconSearch size={16}/><input aria-label="Buscar recurso, persona u orden..." value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona u orden..."/></label>
         <select aria-label="Filtrar por personas" className="nk-select" value={personFilter} onChange={event => setPersonFilter(event.target.value)}><option value="">Todas las personas</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{workerLabel(worker)}</option>)}</select>
         <select aria-label="Filtrar por devoluciones" className="nk-select" value={dueFilter} onChange={event => setDueFilter(event.target.value)}><option value="">Todas las devoluciones</option><option value="vigente">Dentro de plazo</option><option value="vencido">Vencidas</option><option value="sin-fecha">Sin fecha</option></select>
       </section>
