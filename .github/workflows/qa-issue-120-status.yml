@@ -6,6 +6,7 @@ on:
       - 'nexo-v2/src/services/semantic-status.js'
       - 'nexo-v2/src/components/ui/StatusBadge.jsx'
       - 'nexo-v2/src/pages/HabilitacionClientePage.jsx'
+      - 'nexo-v2/src/pages/OrdenesServicioPage.jsx'
       - 'nexo-v2/src/pages/SaludOcupacionalPage.jsx'
       - 'nexo-v2/src/pages/HabilitacionesCumplimientoPage.jsx'
       - 'nexo-v2/src/pages/ExamenesPage.jsx'
