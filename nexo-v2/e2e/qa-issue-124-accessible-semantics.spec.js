@@ -63,13 +63,14 @@ test('cobertura de rutas relevantes para hallazgo #124', () => {
 batches.forEach((batch, index) => {
   test(`etiquetas y semántica de tablas · lote ${index + 1}`, async ({ page }) => {
     test.setTimeout(180_000)
+    const findings = []
     for (const path of batch) {
       await page.goto(path, { waitUntil: 'domcontentloaded' })
       await expect(page.locator('.nk-app-main'), path).toBeVisible({ timeout: 10_000 })
       const result = await audit(page)
-      expect(result.tables, `${path} tiene tablas sin caption/scope`).toEqual([])
-      expect(result.fields, `${path} tiene campos visibles sin nombre accesible`).toEqual([])
+      if (result.tables.length || result.fields.length) findings.push({ path, ...result })
     }
+    expect(findings, 'Hallazgos de accesibilidad por ruta').toEqual([])
   })
 })
 
