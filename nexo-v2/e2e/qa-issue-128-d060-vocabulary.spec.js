@@ -47,3 +47,19 @@ test('D-060 fila 105: Falta dotación mantiene su navegación al módulo corresp
   expect(operations).toContain("'Falta dotación':")
   expect(operations).not.toContain('Falta personal')
 })
+
+test('D-060: los mensajes transversales solicitan información, sin reemplazar términos legales', () => {
+  for (const name of [
+    'FichaTrabajadorPage', 'SaludOcupacionalPage', 'ClientesPage',
+    'AlojamientosPage', 'TercerosSubcontratosPage',
+    'HabilitacionesCumplimientoPage', 'ActivosInventarioPage',
+    'GestionPersonalProyectoPage',
+  ]) {
+    const component = source(`pages/${name}.jsx`)
+    expect(component, name).not.toContain('Completa los datos obligatorios')
+  }
+  const users = source('pages/UsuariosPermisosPage.jsx')
+  expect(users).toContain('información separada por empresa')
+  expect(users).not.toContain('datos independientes')
+  expect(source('pages/PrivacidadDatosPage.jsx')).toContain('Privacidad y datos')
+})
