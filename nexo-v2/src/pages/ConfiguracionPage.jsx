@@ -247,27 +247,27 @@ export default function ConfiguracionPage() {
         <header><div><h2>Integraciones privadas</h2><p>Las claves se cifran y nunca se muestran nuevamente.</p></div></header>
         <div className="nk-config-integration-grid">
           <article className="nk-config-integration">
-            <div className="nk-config-integration-title"><h3>Correo SMTP</h3><span className={integrations.smtp.configured ? 'ready' : ''}>{integrations.smtp.configured ? 'Configurado' : 'Pendiente'}</span></div>
-            <label className="nk-config-field"><span>Servidor SMTP</span><input className="nk-input" placeholder="smtp.empresa.cl" value={integrations.smtp.publicConfig.host || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'host', e.target.value)} /></label>
+            <div className="nk-config-integration-title"><h3>Correo electrónico (protocolo SMTP)</h3><span className={integrations.smtp.configured ? 'ready' : ''}>{integrations.smtp.configured ? 'Configurado' : 'Pendiente'}</span></div>
+            <label className="nk-config-field"><span>Servidor de correo saliente (SMTP)</span><input className="nk-input" placeholder="smtp.empresa.cl" value={integrations.smtp.publicConfig.host || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'host', e.target.value)} /></label>
             <label className="nk-config-field"><span>Correo remitente</span><EmailInput id="smtp-from" name="smtp-from" placeholder="acceso@empresa.cl" value={integrations.smtp.publicConfig.from || ''} onChange={value => updateIntegration('smtp', 'publicConfig', 'from', value)} validationRequested={smtpValidationRequested} /></label>
-            <label className="nk-config-field"><span>Usuario SMTP</span><input className="nk-input" value={integrations.smtp.publicConfig.user || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'user', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Clave SMTP nueva</span><input className="nk-input" type="password" value={integrations.smtp.secret.password || ''} onChange={e => updateIntegration('smtp', 'secret', 'password', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Usuario del servidor de correo</span><input className="nk-input" value={integrations.smtp.publicConfig.user || ''} onChange={e => updateIntegration('smtp', 'publicConfig', 'user', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Nueva contraseña del servidor de correo</span><input className="nk-input" type="password" value={integrations.smtp.secret.password || ''} onChange={e => updateIntegration('smtp', 'secret', 'password', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.smtp.enabled} onChange={e => setIntegrations(v => ({ ...v, smtp: { ...v.smtp, enabled: e.target.checked } }))} /> Integración activa</label>
             <ActionButton disabledReason={actionDisabledReason('smtp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('smtp')}>{saving === 'smtp' ? 'Guardando…' : 'Guardar correo'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
             <div className="nk-config-integration-title"><h3>WhatsApp</h3><span className={integrations.whatsapp.configured ? 'ready' : ''}>{integrations.whatsapp.configured ? 'Configurado' : 'Pendiente'}</span></div>
-            <label className="nk-config-field"><span>Phone Number ID</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Token WhatsApp nuevo</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Identificador del número de WhatsApp</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Nueva clave de acceso de WhatsApp (token)</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.whatsapp.enabled} onChange={e => setIntegrations(v => ({ ...v, whatsapp: { ...v.whatsapp, enabled: e.target.checked } }))} /> Integración activa</label>
             <ActionButton disabledReason={actionDisabledReason('whatsapp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
           </article>
 
           <article className="nk-config-integration">
             <div className="nk-config-integration-title"><h3>Firma electrónica</h3><span className={integrations.signature.configured ? 'ready' : ''}>{integrations.signature.configured ? 'Configurado' : 'Pendiente'}</span></div>
-            <label className="nk-config-field"><span>URL proveedor firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
-            <label className="nk-config-field"><span>Token firma nuevo</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Dirección web del proveedor de firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Nueva clave de acceso para firma electrónica (token)</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.signature.enabled} onChange={e => setIntegrations(v => ({ ...v, signature: { ...v.signature, enabled: e.target.checked } }))} /> Integración activa</label>
             <ActionButton disabledReason={actionDisabledReason('signature')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
           </article>

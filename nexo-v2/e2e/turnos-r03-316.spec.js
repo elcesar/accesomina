@@ -174,7 +174,7 @@ test('actualiza el conflicto, conserva el borrador y no reenvía automáticament
 
   await page.getByLabel('Fecha', { exact: true }).fill('2026-11-05')
   await page.getByLabel('Ingreso', { exact: true }).fill('09:30')
-  await page.getByLabel('HH reales', { exact: true }).fill('10.5')
+  await page.getByLabel('Horas-persona reales', { exact: true }).fill('10.5')
   fixture.conflictNextWrite = true
 
   await page.getByRole('button', { name: 'Guardar jornada', exact: true }).click()
@@ -183,7 +183,7 @@ test('actualiza el conflicto, conserva el borrador y no reenvía automáticament
   await expect(dialog.getByRole('alert')).toContainText('Tu formulario se conserva')
   await expect(page.getByLabel('Fecha', { exact: true })).toHaveValue('2026-11-05')
   await expect(page.getByLabel('Ingreso', { exact: true })).toHaveValue('09:30')
-  await expect(page.getByLabel('HH reales', { exact: true })).toHaveValue('10.5')
+  await expect(page.getByLabel('Horas-persona reales', { exact: true })).toHaveValue('10.5')
   expect(fixture.writes).toHaveLength(1)
   expect(fixture.turnos).toHaveLength(1)
   expect(await page.evaluate(() => window.qaTurnosMutationCount)).toBe(0)
@@ -203,7 +203,7 @@ test('bloquea el reenvío si falla la recarga del conflicto y permite recuperarl
   await openModal(page)
 
   await page.getByLabel('Fecha', { exact: true }).fill('2026-11-07')
-  await page.getByLabel('HH reales', { exact: true }).fill('9.5')
+  await page.getByLabel('Horas-persona reales', { exact: true }).fill('9.5')
   fixture.conflictNextWrite = true
   fixture.failRefreshAfterConflict = true
 
@@ -215,14 +215,14 @@ test('bloquea el reenvío si falla la recarga del conflicto y permite recuperarl
   await expect(save).toBeDisabled()
   await expect(save).toHaveAccessibleDescription(/Actualiza los datos antes de volver a guardar/)
   await expect(page.getByLabel('Fecha', { exact: true })).toHaveValue('2026-11-07')
-  await expect(page.getByLabel('HH reales', { exact: true })).toHaveValue('9.5')
+  await expect(page.getByLabel('Horas-persona reales', { exact: true })).toHaveValue('9.5')
   expect(fixture.writes).toHaveLength(1)
 
   fixture.failReads = false
   await dialog.getByRole('button', { name: 'Actualizar jornadas', exact: true }).click()
   await expect(save).toBeEnabled()
   await expect(page.getByLabel('Fecha', { exact: true })).toHaveValue('2026-11-07')
-  await expect(page.getByLabel('HH reales', { exact: true })).toHaveValue('9.5')
+  await expect(page.getByLabel('Horas-persona reales', { exact: true })).toHaveValue('9.5')
 
   await save.click()
   await expect(dialog).toHaveCount(0)

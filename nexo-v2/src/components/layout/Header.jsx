@@ -12,12 +12,9 @@ import {
   IconDotsVertical,
 } from '@tabler/icons-react'
 import { useAuth } from '../../services/auth.jsx'
+import { roleLabel } from '../../services/ui-labels.js'
 import { useModuleAccess } from '../../services/module-access.jsx'
 import '../../styles/layout/header.css'
-
-const roleLabel = value => String(value || 'usuario')
-  .replaceAll('_', ' ')
-  .replace(/\b\w/g, letter => letter.toUpperCase())
 
 const activeModuleForPath = pathname => {
   if (pathname.startsWith('/app/trabajadores')) return 'trabajadores'

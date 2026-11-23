@@ -149,7 +149,7 @@ function ModalNuevoTurno({ trabajadores, mantenciones, canSchedule, saving, reco
           <Field label="Salida">
             <input className="nk-input" type="time" value={form.salida} disabled={busy || !canSchedule} onChange={e => set('salida', e.target.value)} />
           </Field>
-          <Field label="HH reales" wide>
+          <Field label="Horas-persona reales" wide>
             <input className="nk-input nk-turnos-modal-hh" type="number" min="0" step="0.5" value={form.hh} disabled={busy || !canSchedule} onChange={e => set('hh', e.target.value)} />
           </Field>
         </div>
@@ -406,7 +406,7 @@ export default function TurnosPage() {
             <div className="nk-turnos-kpis">
               <KPI value={jornadasFiltradas.length} label="Jornadas" />
               <KPI value={presentes} label="Presentes" tone="ok" />
-              <KPI value={hhTotal} label="HH reales" tone="warn" />
+              <KPI value={hhTotal} label="Horas-persona reales" tone="warn" />
               <KPI value={ausentes} label="Ausencias / excepciones" tone="error" />
             </div>
 
@@ -420,7 +420,7 @@ export default function TurnosPage() {
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
                 <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos — tabla 2</caption>
-                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">Horas-persona reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
                       <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><div className="nk-empty-title"><EmptyState title="Todavía no hay jornadas registradas." /></div><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
