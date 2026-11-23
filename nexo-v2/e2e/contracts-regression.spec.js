@@ -84,8 +84,8 @@ for (const width of [375, 1440]) {
       await page.getByLabel('Buscar contratos', { exact: true }).fill('jose')
       await expect(page.getByRole('button', { name: 'Abrir contrato Servicios eléctricos QA' })).toBeVisible()
       await page.getByLabel('Buscar contratos', { exact: true }).fill('sin-coincidencias-qa')
-      await expect(page.getByRole('heading', { name: 'No encontramos contratos', exact: true })).toBeVisible()
-      await expect(page.getByRole('heading', { name: 'Aún no hay contratos registrados', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('heading', { name: 'No encontramos resultados con esos criterios.', exact: true })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Todavía no hay contratos registrados.', exact: true })).toHaveCount(0)
       await page.getByRole('button', { name: 'Limpiar búsqueda y filtros' }).click()
       await page.getByLabel('Cliente vinculado').selectOption('client-north')
       await expect(page.getByRole('table').getByRole('row')).toHaveCount(3)
@@ -151,10 +151,10 @@ for (const width of [375, 1440]) {
 test('catálogo vacío dirige al alta global y no se confunde con filtros', async ({ page }) => {
   await mockContracts(page, { contracts: [] })
   await page.goto('/app/contratos')
-  await expect(page.getByRole('heading', { name: 'Aún no hay contratos registrados' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Todavía no hay contratos registrados.' })).toBeVisible()
   await expect(page.getByText('Para registrar el primero, utiliza “+ Contrato” en la cabecera.')).toBeVisible()
   await expect(page.getByRole('button', { name: '+ Contrato', exact: true })).toHaveCount(1)
-  await expect(page.getByRole('heading', { name: 'No encontramos contratos', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'No encontramos resultados con esos criterios.', exact: true })).toHaveCount(0)
 })
 
 test('carga, error y reintento no anuncian falsamente un catálogo vacío', async ({ page }) => {
@@ -162,7 +162,7 @@ test('carga, error y reintento no anuncian falsamente un catálogo vacío', asyn
   await page.goto('/app/contratos')
   await expect(page.getByText('Cargando contratos…', { exact: true })).toBeVisible()
   await expect(page.getByRole('alert').filter({ hasText: 'No fue posible cargar los contratos' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Aún no hay contratos registrados' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Todavía no hay contratos registrados.' })).toHaveCount(0)
   const failedReads = fixture.reads
   fixture.failReads = false
   await page.getByRole('button', { name: 'Reintentar carga' }).click()
@@ -193,7 +193,7 @@ test('ruta de contrato inexistente es recuperable, incluso con catálogo vacío'
   await page.goto('/app/contratos/no-existe')
   await expect(page.getByRole('heading', { name: 'Contrato no disponible' })).toBeVisible()
   await page.getByRole('button', { name: 'Volver a Contratos', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Aún no hay contratos registrados' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Todavía no hay contratos registrados.' })).toBeVisible()
 })
 
 test('errores al guardar conservan cambios y permiten un nuevo intento', async ({ page }) => {
