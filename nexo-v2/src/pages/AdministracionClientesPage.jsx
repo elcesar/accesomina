@@ -196,7 +196,7 @@ export default function AdministracionClientesPage() {
         {cleanupsLoading ? <p role="status">Cargando limpiezas pendientes…</p> : cleanups.length ? <ul className="nk-admin-cleanup-list">{cleanups.map(cleanup => <li key={cleanup.erasureId}>
           <div><strong>Referencia de eliminación</strong><code>{cleanup.erasureId}</code><p>{pendingDescription(cleanup.filesPending)}</p><small>{ERASURE_REASONS[cleanup.reasonCode] || 'Motivo registrado'} · {cleanup.deletedAt ? dateTime(cleanup.deletedAt) : 'Fecha por confirmar'}</small>{cleanup.lastError && <p>El último intento no pudo completar la limpieza de archivos.</p>}</div>
           <ActionButton className="nk-button nk-button-secondary" disabled={Boolean(retryingCleanup) || loading || Boolean(erasing)} disabledReason="Espera mientras se actualiza o reintenta la limpieza." onClick={() => retryCleanup(cleanup)}>{retryingCleanup === cleanup.erasureId ? 'Reintentando…' : 'Reintentar limpieza'}</ActionButton>
-        </li>)}</ul> : !cleanupError && <div><EmptyState title="Todavía no hay limpiezas de archivos pendientes." /></div>}
+        </li>)}</ul> : !cleanupError && <div><EmptyState title="No hay limpiezas de archivos pendientes." /></div>}
       </div>
     </section>
     <section className="nk-module-card nk-admin-clients-card"><header className="nk-admin-clients-card-head"><div><h2>Empresas usuarias</h2><p>El detalle de cada cuenta mantiene separado su control comercial, acceso y soporte.</p></div></header><div className="nk-table-wrapper nk-admin-clients-table-wrap"><table className="nk-table nk-admin-clients-table"><thead><tr><th>Empresa</th><th>Plan y adopción</th><th>Administrador</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
