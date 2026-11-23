@@ -96,6 +96,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
     protocolo: '',
     riesgo: '',
     estado: 'seguimiento',
+    resultadoCumplimiento: 'sin_informacion',
     scope: 'global',
     minaId: '',
     evaluatedOn: operationalDayString(),
@@ -143,6 +144,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
         protocolo: form.protocolo.trim(),
         riesgo: form.riesgo.trim(),
         estado: form.estado,
+        resultadoCumplimiento: form.resultadoCumplimiento,
         responsable: form.responsable.trim(),
         notes: form.notes.trim(),
         scope: form.scope,
@@ -243,7 +245,7 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
             </div>
 
             <div className="nk-field">
-              <label className="nk-label">Estado</label>
+              <label className="nk-label">Etapa del proceso</label>
               <select
                 className="nk-select"
                 value={form.estado}
@@ -255,6 +257,18 @@ function HealthDialog({ workers, clients, onClose, onSaved }) {
               </select>
             </div>
 
+            <div className="nk-field">
+              <label className="nk-label" htmlFor="health-compliance-result">Estado de cumplimiento</label>
+              <select id="health-compliance-result" className="nk-select"
+                value={form.resultadoCumplimiento}
+                onChange={event => setForm(current => ({ ...current, resultadoCumplimiento: event.target.value }))}>
+                <option value="sin_informacion">Sin información</option>
+                <option value="vigente">Vigente</option>
+                <option value="por_vencer">Por vencer</option>
+                <option value="no_habilitado">No habilitado</option>
+              </select>
+              <small className="nk-field-help">El estado del proceso no acredita el cumplimiento. Selecciona el resultado según la evidencia.</small>
+            </div>
             <div className="nk-field">
               <label className="nk-label">Responsable</label>
               <input
