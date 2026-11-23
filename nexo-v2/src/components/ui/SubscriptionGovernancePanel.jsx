@@ -118,7 +118,7 @@ export default function SubscriptionGovernancePanel({ access, onAccessChanged })
     {loading && <p role="status">Cargando permisos y políticas…</p>}
     {canOperators && <section>
       <h3>Perfiles delegados</h3>
-      <p>Comercial revisa, aprueba y programa solicitudes y sus documentos. Operaciones ejecuta solicitudes autorizadas y gestiona contrataciones independientes. Ninguno puede modificar precios.</p>
+      <p>Los perfiles delegados son solo de consulta: pueden revisar el estado e historial, pero no asignar, validar, aprobar, documentar, programar, ejecutar ni modificar planes, cupos o licencias. Estas acciones se reservan al Administrador de Nexo Klar.</p>
       <form onSubmit={prepareOperator} className="nk-form-grid" noValidate>
         <label htmlFor="subscription-operator-user">Usuario existente
           <select id="subscription-operator-user" value={operator.userId} onChange={event => setOperator({ ...operator, userId: event.target.value })} disabled={loading || saving}>

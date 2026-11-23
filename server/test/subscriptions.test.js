@@ -211,3 +211,33 @@ test('managed tenant erasure preserves the single-use benefit while cascading co
  const benefits=(await db.query('SELECT tenant_id FROM subscription_free_benefits')).rows;
  assert.equal(benefits.length,1);assert.equal(benefits[0].tenant_id,null);
 });
+
+test('a pending paid initial request activates the tenant only after the authorized commercial workflow executes',async()=>{
+ const pendingTenant='44444444-4444-4444-8444-444444444444',pendingAdmin='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+ await db.query("INSERT INTO tenants(id,tenant_code,company_name,rut,admin_email,status,subscription_managed) VALUES($1,'pending-paid-qa','Empresa Pendiente QA','77.777.777-7','pending@example.test','pending',true)",[pendingTenant]);
+ await db.query("INSERT INTO app_users(id,tenant_id,email,full_name,role) VALUES($1,$2,'pending@example.test','Admin Pendiente QA','client_admin')",[pendingAdmin,pendingTenant]);
+ await db.query("INSERT INTO tenant_module_state(tenant_id,module_key,data) VALUES($1,'trabajadores','[]')",[pendingTenant]);
+ const catalog=await getSubscriptionCatalog(db),plan=catalog.plans.find(item=>item.code==='LA_UNION');
+ const created=await withTenant(pendingTenant,client=>createSubscriptionRequest(client,{tenantId:pendingTenant,userId:pendingAdmin,asAdmin:true,input:{
+  type:'INITIAL',planCode:'LA_UNION',versionId:plan.versionId,packages:[],reason:'Alta inicial pagada QA',idempotencyKey:'pending-initial-qa'
+ },now:NOW}));
+ assert.equal(created.status,'REQUESTED');
+ assert.equal((await db.query('SELECT status,subscription_managed FROM tenants WHERE id=$1',[pendingTenant])).rows[0].status,'pending');
+ assert.equal((await db.query('SELECT count(*)::int n FROM subscription_contracts WHERE tenant_id=$1',[pendingTenant])).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::int n FROM subscription_free_benefits WHERE tenant_id=$1',[pendingTenant])).rows[0].n,0);
+ const docs={};
+ for(const name of ['quote','purchaseOrder','invoice']){
+  const file=(await db.query("INSERT INTO file_objects(tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status) VALUES($1,$2,'subscription_document','pending-initial','qa.pdf','application/pdf',5,'local',$3,'qa','clean') RETURNING id",[pendingTenant,pendingAdmin,`qa/pending/${name}`])).rows[0];
+  docs[name]={number:`PENDING-${name}`,fileId:file.id,netAmount:1000,issuedAt:'2026-08-31',status:name==='quote'?'ACCEPTED':'ISSUED',responsible:'Responsable QA',observations:'Documento QA',...(name==='quote'?{acceptedAt:NOW.toISOString()}: {})};
+ }
+ const act=input=>withTenant(pendingTenant,client=>transitionSubscriptionRequest(client,{tenantId:pendingTenant,requestId:created.id,userId:SUPER,input:{reason:'Decisión independiente QA',...input},now:NOW}));
+ await act({action:'review'});
+ await act({action:'approve'});
+ await act({action:'schedule',effectiveAt:NOW.toISOString(),documents:docs});
+ const executed=await act({action:'execute'});
+ assert.equal(executed.tenantActivated,true);
+ assert.equal((await db.query('SELECT status FROM tenants WHERE id=$1',[pendingTenant])).rows[0].status,'active');
+ assert.equal((await db.query('SELECT count(*)::int n FROM subscription_contracts WHERE tenant_id=$1 AND is_current',[pendingTenant])).rows[0].n,1);
+ assert.equal((await db.query('SELECT count(*)::int n FROM subscription_free_benefits WHERE tenant_id=$1',[pendingTenant])).rows[0].n,0);
+ assert.equal((await db.query("SELECT count(*)::int n FROM audit_log WHERE tenant_id=$1 AND action='tenant.activated_by_initial_subscription'",[pendingTenant])).rows[0].n,1);
+});

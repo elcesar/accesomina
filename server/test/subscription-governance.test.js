@@ -58,8 +58,8 @@ async function grant(key,profile) { return api(`${operatorsPath}/${ids[key]}`,{m
 
 test('access is based on active global database identity and dedicated profiles, never generic roles or JSON',async()=>{
  const superAccess=await api('/subscriptions/admin/access');assert.equal(superAccess.body.profile,'SUPER_ADMIN');assert.ok(superAccess.body.capabilities.includes('catalog.manage'));
- const commercial=await api('/subscriptions/admin/access',{account:'commercial'});assert.equal(commercial.body.profile,'COMMERCIAL');assert.ok(commercial.body.capabilities.includes('requests.approve'));assert.ok(!commercial.body.capabilities.includes('requests.execute'));
- const operations=await api('/subscriptions/admin/access',{account:'operations'});assert.equal(operations.body.profile,'OPERATIONS');assert.ok(operations.body.capabilities.includes('requests.execute'));assert.ok(!operations.body.capabilities.includes('requests.approve'));
+ const commercial=await api('/subscriptions/admin/access',{account:'commercial'});assert.equal(commercial.body.profile,'COMMERCIAL');assert.deepEqual(commercial.body.capabilities,['read']);
+ const operations=await api('/subscriptions/admin/access',{account:'operations'});assert.equal(operations.body.profile,'OPERATIONS');assert.deepEqual(operations.body.capabilities,['read']);
  for(const account of ['unassigned','inactive','client','forgedSuper'])assert.equal((await api('/subscriptions/admin/access',{account})).status,403,account);
  accounts.super.role='consulta';try{assert.equal((await api('/subscriptions/admin/access')).body.profile,'SUPER_ADMIN');}finally{accounts.super.role='domian_admin';}
  // A real role revoked after authentication is authoritative on the next call.
@@ -67,17 +67,19 @@ test('access is based on active global database identity and dedicated profiles,
  try{assert.equal((await api('/subscriptions/admin/access')).status,403);}finally{await db.query("UPDATE app_users SET role='domian_admin' WHERE id=$1",[ids.super]);}
 });
 
-test('real subscription routes separate commercial approval, operations execution and catalogue publication',async()=>{
+test('real subscription routes reserve commercial mutations for the Nexo Klar administrator',async()=>{
  for(const account of ['commercial','operations'])assert.equal((await api('/subscriptions/admin/companies',{account})).status,200);
  assert.equal((await api('/subscriptions/admin/catalog',{account:'commercial',method:'POST',body:{}})).status,403);
  assert.equal((await api('/subscriptions/admin/catalog',{account:'operations',method:'POST',body:{}})).status,403);
  const requestPath=`/subscriptions/admin/companies/${ids.company}/requests/${randomUUID()}`;
  assert.equal((await api(requestPath,{account:'commercial',method:'PATCH',body:{action:'execute',reason}})).status,403);
  assert.equal((await api(requestPath,{account:'operations',method:'PATCH',body:{action:'approve',reason}})).status,403);
- assert.equal((await api(requestPath,{account:'commercial',method:'PATCH',body:{action:'approve',reason}})).status,404);
- assert.equal((await api(requestPath,{account:'operations',method:'PATCH',body:{action:'execute',reason}})).status,404);
+ assert.equal((await api(requestPath,{account:'commercial',method:'PATCH',body:{action:'approve',reason}})).status,403);
+ assert.equal((await api(requestPath,{account:'operations',method:'PATCH',body:{action:'execute',reason}})).status,403);
  assert.equal((await api(`/subscriptions/admin/companies/${ids.company}/services`,{account:'commercial',method:'PATCH',body:{services:{},reason}})).status,403);
- assert.equal((await api(`/subscriptions/admin/companies/${ids.company}/services`,{account:'operations',method:'PATCH',body:{services:{libroObra:{enabled:true}},reason}})).status,400);
+ assert.equal((await api(`/subscriptions/admin/companies/${ids.company}/services`,{account:'operations',method:'PATCH',body:{services:{libroObra:{enabled:true}},reason}})).status,403);
+ assert.equal((await api(`/subscriptions/admin/companies/${ids.company}/requests`,{account:'commercial',method:'POST',body:{type:'UPGRADE',planCode:'LA_UNION',reason,idempotencyKey:'delegated-create-qa'}})).status,403);
+ assert.equal((await api(`/subscriptions/admin/commercial-requests/${randomUUID()}`,{account:'commercial',method:'PATCH',body:{status:'UNDER_REVIEW',reason}})).status,403);
  assert.equal((await api(policiesPath,{account:'commercial'})).status,200);
  assert.equal((await api(operatorsPath,{account:'commercial'})).status,403);
  assert.equal((await api(policiesPath,{account:'operations',method:'POST',body:{}})).status,403);
@@ -166,17 +168,18 @@ async function download(account,tenantId,fileId) {
  const response=await fetch(`${base}/subscriptions/admin/companies/${tenantId}/documents/${fileId}`,{headers:{'x-qa-account':account},signal:AbortSignal.timeout(15000)});
  return{status:response.status,body:await response.text()};
 }
-test('real multipart document routes narrowly permit delegated commercial read/write without changing general role or tenant scope',async()=>{
+test('delegated profiles retain commercial document reading but only Nexo Klar administration can write',async()=>{
  for(const role of ['consulta','rrhh']) {
   await db.query('UPDATE app_users SET role=$2 WHERE id=$1',[ids.commercial,role]);accounts.commercial.role=role;
-  const uploaded=await upload('commercial',ids.company,{bytes:`QA ${role}`});assert.equal(uploaded.status,201);
+  assert.equal((await upload('commercial',ids.company,{bytes:`QA ${role}`})).status,403);
+  const uploaded=await upload('super',ids.company,{bytes:`QA ${role}`});assert.equal(uploaded.status,201);
   const row=(await db.query('SELECT * FROM file_objects WHERE id=$1',[uploaded.body.id])).rows[0];
   assert.equal(row.tenant_id,ids.company);assert.equal(row.entity_type,'subscription_document');assert.match(row.storage_key,/\/objects\/commercial\//);
   assert.equal((await download('commercial',ids.company,row.id)).body,`%PDF-1.4\nQA ${role}`);
   assert.equal((await download('operations',ids.company,row.id)).status,200);
   assert.equal((await download('commercial',ids.foreign,row.id)).status,404);
   assert.equal((await upload('operations',ids.company)).status,403);
-  assert.equal((await upload('commercial',ids.company,{type:'worker_document'})).status,400);
+  assert.equal((await upload('commercial',ids.company,{type:'worker_document'})).status,403);
   // Unknown entity types remain denied to ordinary non-admin file roles.
   // The JSON field cannot manufacture the route's internal Symbol.
   assert.equal((await upload('commercial',ids.company,{general:true,forged:true})).status,403);
@@ -186,8 +189,8 @@ test('real multipart document routes narrowly permit delegated commercial read/w
  await db.query(`INSERT INTO file_objects(id,tenant_id,uploaded_by,entity_type,entity_id,original_name,content_type,byte_size,storage_provider,storage_key,sha256,malware_status)
   VALUES($1,$2,$3,'worker_document','qa-worker','qa.pdf','application/pdf',$4,'local',$5,$6,'clean')`,[fileId,ids.company,ids.client,buffer.length,`tenants/${ids.company}/objects/${sha}`,sha]);
  assert.equal((await download('commercial',ids.company,fileId)).status,404);
- const sameBytes=await upload('commercial',ids.company,{bytes:'QA operational'});assert.equal(sameBytes.status,201);assert.notEqual(sameBytes.body.id,fileId);
- assert.equal((await upload('commercial',ids.global)).status,404);
+ const sameBytes=await upload('super',ids.company,{bytes:'QA operational'});assert.equal(sameBytes.status,201);assert.notEqual(sameBytes.body.id,fileId);
+ assert.equal((await upload('commercial',ids.global)).status,403);
  const existing=sameBytes.body.id;await grant('commercial',null);
  assert.equal((await upload('commercial',ids.company)).status,403);assert.equal((await download('commercial',ids.company,existing)).status,403);
  await db.query("UPDATE app_users SET role='consulta' WHERE id=$1",[ids.commercial]);accounts.commercial.role='consulta';await grant('commercial','COMMERCIAL');
