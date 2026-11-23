@@ -168,7 +168,7 @@ export default function LibroObraPage() {
       {notice && <p className="nk-book-message">{notice}</p>}
 
       <section className="nk-book-filters" aria-label="Filtros del Libro de obra">
-        <label className="nk-book-search"><IconSearch size={15}/><input value={filters.q} onChange={event => updateFilter('q', event.target.value)} placeholder="Buscar folio, asunto o contenido..." /></label>
+        <label className="nk-book-search"><IconSearch size={15}/><input aria-label="Buscar folio, asunto o contenido..." value={filters.q} onChange={event => updateFilter('q', event.target.value)} placeholder="Buscar folio, asunto o contenido..." /></label>
         <select aria-label="Filtrar por clientes" value={filters.mine} onChange={event => updateFilter('mine', event.target.value)}><option value="">Todos los clientes</option>{clients.map(row => <option value={row.id} key={row.id}>{row.nombre || row.razon || row.name || row.id}</option>)}</select>
         <select aria-label="Filtrar por órdenes" value={filters.project} onChange={event => updateFilter('project', event.target.value)}><option value="">Todas las órdenes</option>{orders.map(row => <option value={row.id} key={row.id}>{row.nombre || row.title || row.codigo || row.id}</option>)}</select>
         <select aria-label="Filtrar por estados" value={filters.status} onChange={event => updateFilter('status', event.target.value)}><option value="">Todos los estados</option><option value="borrador">Borrador</option><option value="pendiente_firma">Pendiente de firma</option><option value="firmado">Firmado</option><option value="cerrado">Cerrado</option></select>
