@@ -191,8 +191,8 @@ export default function AsignacionesPrestamosPage() {
 
       <section className="nk-card nk-assign-filters">
         <label className="nk-search"><IconSearch size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar recurso, persona u orden..."/></label>
-        <select className="nk-select" value={personFilter} onChange={event => setPersonFilter(event.target.value)}><option value="">Todas las personas</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{workerLabel(worker)}</option>)}</select>
-        <select className="nk-select" value={dueFilter} onChange={event => setDueFilter(event.target.value)}><option value="">Todas las devoluciones</option><option value="vigente">Dentro de plazo</option><option value="vencido">Vencidas</option><option value="sin-fecha">Sin fecha</option></select>
+        <select aria-label="Filtrar por personas" className="nk-select" value={personFilter} onChange={event => setPersonFilter(event.target.value)}><option value="">Todas las personas</option>{workers.map(worker => <option key={worker.id} value={worker.id}>{workerLabel(worker)}</option>)}</select>
+        <select aria-label="Filtrar por devoluciones" className="nk-select" value={dueFilter} onChange={event => setDueFilter(event.target.value)}><option value="">Todas las devoluciones</option><option value="vigente">Dentro de plazo</option><option value="vencido">Vencidas</option><option value="sin-fecha">Sin fecha</option></select>
       </section>
 
       <section className="nk-assign-kpis"><article><strong>{summary.active}</strong><span>Préstamos activos</span></article><article><strong>{summary.units}</strong><span>Unidades asignadas</span></article><article><strong>{summary.overdue}</strong><span>Devoluciones vencidas</span></article><article><strong>{summary.returned}</strong><span>Devoluciones registradas</span></article></section>
