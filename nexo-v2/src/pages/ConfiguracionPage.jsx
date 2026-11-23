@@ -38,9 +38,11 @@ export default function ConfiguracionPage() {
   const [saving, setSaving] = useState('')
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
+  const [logoPreview, setLogoPreview] = useState('')
+  useEffect(() => () => { if (logoPreview) URL.revokeObjectURL(logoPreview) }, [logoPreview])
   const [smtpValidationRequested, setSmtpValidationRequested] = useState(false)
   const [settings, setSettings] = useState({
-    branding: { displayName: '', theme: 'light', logoUrl: '' },
+    branding: { displayName: '', theme: 'light', logoUrl: '', logoFileId: '', primaryColor: '#2A2A8C' },
     modules: {},
     alerts: { warningDays: 30, criticalDays: 7 },
     catalogs: { specialties: [], operationalTimeZone: 'America/Santiago' },
@@ -75,6 +77,8 @@ export default function ConfiguracionPage() {
           displayName: current.branding?.displayName || '',
           theme: normalizeTheme(current.branding?.theme),
           logoUrl: current.branding?.logoUrl || '',
+          logoFileId: current.branding?.logoFileId || '',
+          primaryColor: current.branding?.primaryColor || '#2A2A8C',
         },
         modules: current.modules || {},
         alerts: {
@@ -104,6 +108,26 @@ export default function ConfiguracionPage() {
   }
 
   useEffect(() => { load() }, [])
+
+  const uploadLogo = async event => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!['image/png','image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024 || file.size === 0) {
+      showMessage('error','Selecciona un logo PNG o JPG de hasta 2 MB.')
+      return
+    }
+    setSaving('logo')
+    clearMessage()
+    try {
+      const result=await api.upload('/files',file,{entityType:'company_branding',entityId:'logo'})
+      setSettings(current=>({...current,branding:{...current.branding,logoFileId:result.id,logoUrl:''}}))
+      setLogoPreview(URL.createObjectURL(file))
+      showMessage('success','Logo cargado. Guarda la configuración para aplicarlo.')
+    } catch(error) {
+      showMessage('error',error.message || 'No fue posible cargar el logo.')
+    } finally { setSaving('') }
+  }
 
   const saveSettings = async () => {
     if (Number(settings.alerts.criticalDays) > Number(settings.alerts.warningDays)) {
@@ -153,7 +177,7 @@ export default function ConfiguracionPage() {
   const setBranding = (key, value) => {
     setSettings(current => {
       const branding = { ...current.branding, [key]: key === 'theme' ? normalizeTheme(value) : value }
-      if (key === 'theme') applyTenantBranding(branding)
+      if (key === 'theme' || key === 'primaryColor') applyTenantBranding(branding)
       return { ...current, branding }
     })
   }
@@ -208,7 +232,9 @@ export default function ConfiguracionPage() {
           <div className="nk-config-form-grid">
             <label className="nk-config-field full"><span>Nombre visible</span><input className="nk-input" value={settings.branding.displayName} onChange={e => setBranding('displayName', e.target.value)} /></label>
             <label className="nk-config-field"><span>Apariencia</span><select className="nk-input" value={settings.branding.theme} onChange={e => setBranding('theme', e.target.value)}><option value="light">Fondo claro</option><option value="dark">Fondo oscuro</option></select></label>
-            <label className="nk-config-field full"><span>Logo (URL HTTPS)</span><input className="nk-input" placeholder="https://..." value={settings.branding.logoUrl} onChange={e => setBranding('logoUrl', e.target.value)} /></label>
+            <label className="nk-config-field"><span>Color principal</span><input className="nk-input" type="color" value={settings.branding.primaryColor} onChange={e => setBranding('primaryColor',e.target.value)} /></label>
+            <label className="nk-config-field full"><span>Logo de la empresa (PNG o JPG, hasta 2 MB)</span><input className="nk-input" type="file" accept="image/png,image/jpeg" disabled={isBusy} onChange={uploadLogo} /></label>
+            {(logoPreview || settings.branding.logoFileId) && <img alt="Vista previa del logo de la empresa" src={logoPreview || `/api/settings/logo?v=${encodeURIComponent(settings.branding.logoFileId)}`} style={{maxWidth:180,maxHeight:80,objectFit:'contain'}} />}
             <label className="nk-config-field"><span>Alerta preventiva (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.warningDays} onChange={e => setAlert('warningDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Alerta crítica (días)</span><input className="nk-input" type="number" min="1" max="365" value={settings.alerts.criticalDays} onChange={e => setAlert('criticalDays', e.target.value)} /></label>
             <label className="nk-config-field"><span>Zona horaria operacional</span><input className="nk-input" value={settings.catalogs?.operationalTimeZone || 'America/Santiago'} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, operationalTimeZone: e.target.value } }))} placeholder="America/Santiago" /></label><label className="nk-config-field full"><span>Especialidades disponibles</span><textarea className="nk-input nk-config-textarea" value={specialtiesText} onChange={e => setSettings(current => ({ ...current, catalogs: { ...current.catalogs, specialties: lineList(e.target.value) } }))} placeholder="Una especialidad por línea" /></label>
@@ -257,19 +283,19 @@ export default function ConfiguracionPage() {
           </article>
 
           <article className="nk-config-integration">
-            <div className="nk-config-integration-title"><h3>WhatsApp</h3><span className={integrations.whatsapp.configured ? 'ready' : ''}>{integrations.whatsapp.configured ? 'Configurado' : 'Pendiente'}</span></div>
+            <div className="nk-config-integration-title"><h3>WhatsApp</h3><span>Próximamente</span></div><p role="status">Esta integración aún no está disponible.</p><fieldset disabled className="nk-config-inactive">
             <label className="nk-config-field"><span>Identificador del número de WhatsApp</span><input className="nk-input" value={integrations.whatsapp.publicConfig.phoneNumberId || ''} onChange={e => updateIntegration('whatsapp', 'publicConfig', 'phoneNumberId', e.target.value)} /></label>
             <label className="nk-config-field"><span>Nueva clave de acceso de WhatsApp (token)</span><input className="nk-input" type="password" value={integrations.whatsapp.secret.token || ''} onChange={e => updateIntegration('whatsapp', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.whatsapp.enabled} onChange={e => setIntegrations(v => ({ ...v, whatsapp: { ...v.whatsapp, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason={actionDisabledReason('whatsapp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton>
+            <ActionButton disabledReason={actionDisabledReason('whatsapp')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('whatsapp')}>{saving === 'whatsapp' ? 'Guardando…' : 'Guardar WhatsApp'}</ActionButton></fieldset>
           </article>
 
           <article className="nk-config-integration">
-            <div className="nk-config-integration-title"><h3>Firma electrónica</h3><span className={integrations.signature.configured ? 'ready' : ''}>{integrations.signature.configured ? 'Configurado' : 'Pendiente'}</span></div>
+            <div className="nk-config-integration-title"><h3>Firma electrónica</h3><span>Próximamente</span></div><p role="status">Esta integración aún no está disponible.</p><fieldset disabled className="nk-config-inactive">
             <label className="nk-config-field"><span>Dirección web del proveedor de firma</span><input className="nk-input" placeholder="https://..." value={integrations.signature.publicConfig.url || ''} onChange={e => updateIntegration('signature', 'publicConfig', 'url', e.target.value)} /></label>
             <label className="nk-config-field"><span>Nueva clave de acceso para firma electrónica (token)</span><input className="nk-input" type="password" value={integrations.signature.secret.token || ''} onChange={e => updateIntegration('signature', 'secret', 'token', e.target.value)} /></label>
             <label className="nk-config-toggle"><input type="checkbox" checked={integrations.signature.enabled} onChange={e => setIntegrations(v => ({ ...v, signature: { ...v.signature, enabled: e.target.checked } }))} /> Integración activa</label>
-            <ActionButton disabledReason={actionDisabledReason('signature')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton>
+            <ActionButton disabledReason={actionDisabledReason('signature')} className="nk-button nk-button-secondary" disabled={isBusy} onClick={() => saveIntegration('signature')}>{saving === 'signature' ? 'Guardando…' : 'Guardar firma'}</ActionButton></fieldset>
           </article>
         </div>
       </section>
