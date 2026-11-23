@@ -152,7 +152,7 @@ test('catálogo vacío dirige al alta global y no se confunde con filtros', asyn
   await mockContracts(page, { contracts: [] })
   await page.goto('/app/contratos')
   await expect(page.getByRole('heading', { name: 'Todavía no hay contratos registrados.' })).toBeVisible()
-  await expect(page.getByText('Para registrar el primero, utiliza “+ Contrato” en la cabecera.')).toBeVisible()
+  await expect(page.getByText('Usa + Contrato en el encabezado para registrar el primero.')).toBeVisible()
   await expect(page.getByRole('button', { name: '+ Contrato', exact: true })).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'No encontramos resultados con esos criterios.', exact: true })).toHaveCount(0)
 })
