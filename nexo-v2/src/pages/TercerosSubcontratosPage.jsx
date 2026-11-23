@@ -279,7 +279,7 @@ export default function TercerosSubcontratosPage() {
         <section className="nk-card nk-third-detail">
           <div className="nk-third-detail-head">
             <div><button className="nk-third-back" type="button" onClick={closeDetail}><IconArrowLeft size={16} />Volver a terceros y subcontratos</button><p className="nk-third-eyebrow">{creating ? 'Nuevo tercero' : 'Ficha del tercero'}</p><h2>{creating ? 'Registrar tercero' : form.razon || 'Empresa colaboradora'}</h2></div>
-            <div className="nk-actions"><ActionButton disabledReason="Completa los datos obligatorios y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</ActionButton></div>
+            <div className="nk-actions"><ActionButton disabledReason="Completa la información obligatoria y revisa las selecciones de este formulario para continuar." className="nk-button nk-button-primary" type="button" disabled={saving || !form.razon.trim() || !form.rut.trim()} onClick={save}>{saving ? 'Guardando…' : creating ? 'Registrar tercero' : 'Guardar cambios'}</ActionButton></div>
           </div>
 
           <div className="nk-third-form">
