@@ -339,7 +339,7 @@ export default function TrabajadoresPage() {
         <header className="nk-module-header">
           <div>
             <h1>Personas</h1>
-            <div><EmptyState title="No se mostró un estado vacío porque no hay una lista válida que conservar." /></div>
+            <p>La lista de personas no está disponible temporalmente.</p>
           </div>
         </header>
         <p role="alert">{unavailable} Reintenta cuando el servicio esté disponible.</p>
@@ -481,14 +481,14 @@ export default function TrabajadoresPage() {
                     <div className="nk-empty">
                       <IconUsers className="nk-people-empty-icon" size={32} strokeWidth={1.3} />
                       {personas.length === 0 ? <>
-                        <div className="nk-empty-title"><EmptyState title="Todavía no hay personas registradas." /></div>
-                        <p className="nk-empty-description">Usa + Persona en el encabezado para crear la primera.</p>
+                        <EmptyState objectLabel="personas registradas" description="Usa + Persona en el encabezado para crear la primera." />
+                        
                       </> : activeFilters > 0 ? <>
-                        <div className="nk-empty-title"><EmptyState title="No hay resultados para estos criterios." filtered description="Ajusta la búsqueda o limpia los filtros para ver más resultados." /></div>
-                        <p className="nk-empty-description">Ajusta los filtros o límpialos para ver más resultados.</p>
+                        <EmptyState filtered onAction={clearFilters} actionLabel="Limpiar filtros" />
+                        
                       </> : <>
-                        <p className="nk-empty-title">No hay personas en {TAB_LABELS[tab]}</p>
-                        <p className="nk-empty-description">Cambia de vista para revisar las personas registradas en otros segmentos.</p>
+                        <EmptyState title={`Todavía no hay personas en ${TAB_LABELS[tab]}.`} description="Cambia de vista para revisar personas registradas en otros segmentos." />
+                        
                       </>}
                     </div>
                   </td>
