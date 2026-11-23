@@ -376,8 +376,8 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos</caption>
+                  <thead><tr><th scope="col">Proyecto / servicio</th><th scope="col">Cliente</th><th scope="col">Asignados</th><th scope="col">Presentes hoy</th><th scope="col">Brecha</th><th scope="col">Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
                       <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><div className="nk-empty-description"><EmptyState title="Todavía no hay proyectos o servicios abiertos para calcular cobertura." /></div></div></td></tr>
@@ -419,8 +419,8 @@ export default function TurnosPage() {
 
             <div className="nk-card nk-turnos-table-card">
               <div className="nk-table-wrapper">
-                <table className="nk-table">
-                  <thead><tr><th>Persona</th><th>Proyecto / servicio</th><th>Fecha</th><th>Régimen · turno</th><th>Ingreso</th><th>Salida</th><th>HH reales</th><th>Asistencia</th></tr></thead>
+                <table className="nk-table"><caption className="nk-visually-hidden">Jornadas y turnos — tabla 2</caption>
+                  <thead><tr><th scope="col">Persona</th><th scope="col">Proyecto / servicio</th><th scope="col">Fecha</th><th scope="col">Régimen · turno</th><th scope="col">Ingreso</th><th scope="col">Salida</th><th scope="col">HH reales</th><th scope="col">Asistencia</th></tr></thead>
                   <tbody>
                     {jornadasFiltradas.length === 0 ? (
                       <tr><td colSpan={8} className="nk-turnos-empty-cell"><div className="nk-empty nk-turnos-empty"><IconClock size={28} /><div className="nk-empty-title"><EmptyState title="Todavía no hay jornadas registradas." /></div><span className="nk-empty-description">Programa una jornada para comenzar el registro de asistencia.</span></div></td></tr>
