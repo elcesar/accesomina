@@ -18,3 +18,7 @@
 .nk-config-toggle{display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--ink)}
 @media(max-width:1050px){.nk-config-grid,.nk-config-integration-grid{grid-template-columns:1fr}.nk-config-integration{border-right:0;border-bottom:1px solid var(--line)}.nk-config-integration:last-child{border-bottom:0}.nk-config-user-access{align-items:stretch;flex-direction:column}.nk-config-user-access-actions{justify-content:space-between}}
 @media(max-width:620px){.nk-config-form-grid,.nk-config-modules{grid-template-columns:1fr}.nk-config-field.full{grid-column:auto}.nk-config-header-actions{width:100%}.nk-config-header-actions .nk-button{flex:1}}
+
+.nk-config-inactive{opacity:.65;border:0;margin:0;padding:0;min-width:0;display:grid;gap:var(--space-3)}
+.nk-config-inactive :disabled{cursor:not-allowed}
+.nk-config-coming-soon{font-size:var(--text-sm);color:var(--mut);margin:0}
