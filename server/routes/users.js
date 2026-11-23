@@ -5,8 +5,47 @@ import { allowRoles } from '../middleware.js';
 import { hashPassword, normalizeEmail, randomToken, validatePassword } from '../security.js';
 import { sanitizeJson, userSchema } from '../validation.js';
 import { createUserInvitation, invitationSummary, sendAndRecordUserInvitation } from '../user-invitations.js';
+import { ASSIGNABLE_MODULE_KEYS, emptyAssignableModulePermissions } from '../../shared/access-modules.js';
+import { roleCanReadModule } from '../../shared/role-access.js';
 
 export const usersRouter = Router();
+
+function moduleAccessError(code, message) {
+  return Object.assign(new Error(message), { status: 400, code });
+}
+
+function companyAllowsModule(companyModules, key) {
+  return companyModules?.[key] !== false;
+}
+
+function normalizeUserModulePermissions(role, permissions, companyModules, { requireSelection = false, inheritMissing = false } = {}) {
+  if (role === 'client_admin') return { modules: {} };
+  const source = permissions?.modules;
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    if (requireSelection) throw moduleAccessError('MODULE_SELECTION_REQUIRED', 'Selecciona al menos un módulo para esta cuenta.');
+    return { modules: emptyAssignableModulePermissions() };
+  }
+  for (const [key, enabled] of Object.entries(source)) {
+    if (enabled !== true) continue;
+    if (!ASSIGNABLE_MODULE_KEYS.has(key)) throw moduleAccessError('UNKNOWN_MODULE', 'El acceso solicitado incluye un módulo no reconocido.');
+    if (!companyAllowsModule(companyModules, key)) throw moduleAccessError('MODULE_NOT_AVAILABLE_FOR_COMPANY', 'El módulo solicitado no está disponible para esta empresa.');
+    if (!roleCanReadModule(role, key)) throw moduleAccessError('MODULE_NOT_ALLOWED_FOR_ROLE', 'El módulo solicitado no corresponde al rol de esta cuenta.');
+  }
+  const modules = emptyAssignableModulePermissions();
+  for (const key of ASSIGNABLE_MODULE_KEYS) {
+    const selected = inheritMissing ? source[key] !== false : source[key] === true;
+    modules[key] = selected && companyAllowsModule(companyModules, key) && roleCanReadModule(role, key);
+  }
+  if (requireSelection && !Object.values(modules).some(Boolean)) {
+    throw moduleAccessError('MODULE_SELECTION_REQUIRED', 'Selecciona al menos un módulo para esta cuenta.');
+  }
+  return { modules };
+}
+
+async function companyModulesFor(client, tenantId) {
+  const result = await client.query('SELECT modules FROM tenant_settings WHERE tenant_id=$1', [tenantId]);
+  return result.rows[0]?.modules || {};
+}
 usersRouter.get('/', allowRoles('domian_admin','client_admin'), async (req, res) => {
   const result = await withTenant(req.auth.tenantId, client => client.query(`SELECT u.id,u.email,u.full_name,u.role,u.permissions,u.active,u.must_change_password,u.mfa_enabled,u.mfa_enrolled_at,u.last_login_at,u.created_at,
     i.status AS invitation_status,i.expires_at AS invitation_expires_at,i.last_sent_at AS invitation_last_sent_at,i.failure_code AS invitation_failure_code
@@ -18,9 +57,11 @@ usersRouter.post('/', allowRoles('domian_admin','client_admin'), async (req, res
   if (body.password && !validatePassword(body.password)) return res.status(400).json({ error: 'WEAK_PASSWORD' });
   // Existing API clients may still provide a password. New UI accounts establish
   // their own password through the invitation; no temporary secret is returned.
-  const credentials = body.password ? await hashPassword(body.password) : null, email = normalizeEmail(body.email), permissions = body.role === 'client_admin' ? { modules: {} } : (body.permissions || { modules: {} });
+  const credentials = body.password ? await hashPassword(body.password) : null, email = normalizeEmail(body.email);
   let created;
   try { created = await withTenant(req.auth.tenantId, async client => {
+    const companyModules = await companyModulesFor(client, req.auth.tenantId);
+    const permissions = normalizeUserModulePermissions(body.role, body.permissions, companyModules, { requireSelection: body.role !== 'client_admin' });
     const result = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt,must_change_password,permissions)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb) RETURNING id,email,full_name,role,permissions,active,created_at`, [req.auth.tenantId,email,body.fullName,body.role,credentials?.hash || null,credentials?.salt || null,!body.password,JSON.stringify(permissions)]);
     await appendAudit(client, { tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:result.rows[0].id,action:'user.created',newValue:{email,role:body.role} });
@@ -59,7 +100,16 @@ usersRouter.patch('/:id', allowRoles('domian_admin','client_admin'), async (req,
     const removingAdmin=before.rows[0].active&&before.rows[0].role==='client_admin'&&(active===false||(role&&role!=='client_admin'));
     if(removingAdmin){const admins=await client.query("SELECT count(*)::int AS count FROM app_users WHERE tenant_id=$1 AND active=true AND role='client_admin'",[req.auth.tenantId]);if(admins.rows[0].count<=1)throw Object.assign(new Error('The company must keep at least one active administrator'),{status:409,code:'LAST_ADMIN_REQUIRED'});}
     const nextRole=role||before.rows[0].role;
-    const nextPermissions=nextRole==='client_admin'?{modules:{}}:permissions?sanitizeJson(permissions):null;
+    const companyModules = await companyModulesFor(client, req.auth.tenantId);
+    let nextPermissions = null;
+    if (nextRole === 'client_admin') nextPermissions = { modules: {} };
+    else if (permissions) nextPermissions = normalizeUserModulePermissions(nextRole, sanitizeJson(permissions), companyModules);
+    else if (role && role !== before.rows[0].role) {
+      const previousPermissions = before.rows[0].role === 'client_admin'
+        ? { modules: emptyAssignableModulePermissions() }
+        : before.rows[0].permissions;
+      nextPermissions = normalizeUserModulePermissions(nextRole, previousPermissions, companyModules, { inheritMissing: true });
+    }
     const result = await client.query('UPDATE app_users SET role=COALESCE($3,role),active=COALESCE($4,active),permissions=COALESCE($5::jsonb,permissions),updated_at=now() WHERE id=$1 AND tenant_id=$2 RETURNING id,email,full_name,role,permissions,active', [req.params.id,req.auth.tenantId,role,typeof active==='boolean'?active:null,nextPermissions?JSON.stringify(nextPermissions):null]);
     await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.params.id,action:'user.updated',oldValue:before.rows[0],newValue:result.rows[0]});return result.rows[0];
   });
