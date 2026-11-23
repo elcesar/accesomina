@@ -1,0 +1,45 @@
+name: D-068 configuration QA #133
+
+on:
+  pull_request:
+    paths:
+      - 'server/branding.js'
+      - 'server/routes/settings.js'
+      - 'server/test/branding-issue-133.test.js'
+      - 'nexo-v2/src/pages/ConfiguracionPage.jsx'
+      - 'nexo-v2/src/services/api.js'
+      - 'nexo-v2/src/services/theme.js'
+      - 'nexo-v2/src/components/layout/Header.jsx'
+      - 'nexo-v2/src/styles/configuracion.css'
+      - 'nexo-v2/e2e/qa-issue-133-d068-commercial.spec.js'
+      - '.github/workflows/qa-issue-133-d068.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  d068:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - name: Install server dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run branding/backend tests
+        env:
+          DATABASE_URL: postgres://qa:qa@localhost:5432/nexoklar_qa
+        run: node --test server/test/branding-issue-133.test.js
+      - name: Install UI dependencies
+        working-directory: nexo-v2
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build UI
+        working-directory: nexo-v2
+        run: pnpm run build
+      - name: D-068 regressions
+        working-directory: nexo-v2
+        run: pnpm exec playwright test e2e/qa-issue-133-d068-commercial.spec.js --workers=1

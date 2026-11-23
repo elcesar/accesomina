@@ -128,7 +128,11 @@ test('Integraciones y vistas por persona muestran feedback local correcto en éx
   await expect(localFeedback(page)).toContainText('Integración de correo guardada.')
   await expect(globalFeedback(page)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Guardar WhatsApp', exact: true }).click()
+  // D-068: WhatsApp y firma de contratos no admiten cambios ni llamadas a la API.
+  await expect(page.getByRole('button', { name: 'Guardar WhatsApp', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Guardar firma', exact: true })).toBeDisabled()
+  // La vía editable SMTP mantiene su feedback local en caso de error.
+  await page.getByRole('button', { name: 'Guardar correo', exact: true }).click()
   await expect(localFeedback(page)).toHaveAttribute('role', 'alert')
   await expect(localFeedback(page)).toContainText('Ocurrió un problema')
   await expect(localFeedback(page)).not.toContainText('Integración de correo guardada.')
@@ -147,7 +151,8 @@ test('Integraciones y vistas por persona muestran feedback local correcto en éx
   await expect(localFeedback(page)).not.toContainText('Vistas guardadas para Consulta QA.')
   await expect(globalFeedback(page)).toHaveCount(0)
 
-  expect(api.calls.filter(call => call.path.startsWith('/api/settings/integrations/'))).toHaveLength(2)
+  expect(api.calls.filter(call => call.path === '/api/settings/integrations/smtp')).toHaveLength(2)
+  expect(api.calls.filter(call => ['/api/settings/integrations/whatsapp', '/api/settings/integrations/signature'].includes(call.path))).toHaveLength(0)
   expect(api.calls.filter(call => call.path === `/api/users/${user.id}`)).toHaveLength(2)
 })
 

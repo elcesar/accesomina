@@ -68,10 +68,28 @@ export function applyTenantBranding(branding = {}) {
   const shell = document.querySelector('.nk-app-shell')
   clearLegacyShellBranding(shell)
 
+  if (shell) {
+    if (/^#[0-9a-f]{6}$/i.test(branding.primaryColor || '')) {
+      shell.style.setProperty('--nk-primary', branding.primaryColor)
+      shell.style.setProperty('--pri', branding.primaryColor)
+      shell.style.setProperty('--nk-on-primary', accessibleBrandText(branding.primaryColor))
+    } else {
+      shell.style.removeProperty('--nk-primary')
+      shell.style.removeProperty('--nk-on-primary')
+    }
+  }
+
   const themePreference = normalizeTheme(branding.theme)
   applyResolvedTheme(themePreference, shell)
 
   if (themePreference === 'sistema') {
     watchSystemTheme(shell)
   }
+}
+
+export function accessibleBrandText(hex) {
+  const channels = hex.slice(1).match(/../g).map(channel => parseInt(channel, 16) / 255)
+  const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+  const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+  return (1.05 / (luminance + 0.05)) >= ((luminance + 0.05) / 0.05) ? '#FFFFFF' : '#000000'
 }

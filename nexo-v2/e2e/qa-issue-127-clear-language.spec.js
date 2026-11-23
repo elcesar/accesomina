@@ -61,7 +61,9 @@ test('la bitácora traduce los códigos sin cambiar los eventos almacenados', as
 
 test('la configuración explica los términos técnicos', async ({ page }) => {
   await page.goto('/app/configuracion')
-  await expect(page.locator('.nk-app-main')).toBeVisible()
+  // La carcasa puede aparecer antes de que termine la carga del plan y Configuración.
+  await expect(page.getByRole('heading', { name: 'Configuración de la empresa' })).toBeVisible()
+  await expect(page.getByText('Identificador del número de WhatsApp')).toBeVisible()
   const copy = await page.locator('.nk-app-main').innerText()
   expect(copy).not.toContain('Phone Number ID')
   expect(copy).toContain('Identificador del número de WhatsApp')
