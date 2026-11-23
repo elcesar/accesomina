@@ -1,3 +1,4 @@
+import EmptyState from '../components/ui/EmptyState.jsx'
 import { ActionButton } from '../components/ui/ActionButton.jsx'
 import { formatChileDate } from '../services/chile-format.js'
 import { localDate } from '../services/calendar-date.js'
@@ -379,7 +380,7 @@ export default function TurnosPage() {
                   <thead><tr><th>Proyecto / servicio</th><th>Cliente</th><th>Asignados</th><th>Presentes hoy</th><th>Brecha</th><th>Estado</th></tr></thead>
                   <tbody>
                     {cobertura.length === 0 ? (
-                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><span className="nk-empty-description">No hay proyectos o servicios abiertos para calcular cobertura.</span></div></td></tr>
+                      <tr><td colSpan={6} className="nk-turnos-empty-cell"><div className="nk-empty"><span className="nk-empty-title">Sin servicios activos</span><div className="nk-empty-description"><EmptyState title="Todavía no hay proyectos o servicios abiertos para calcular cobertura." /></div></div></td></tr>
                     ) : cobertura.map(({ m, asigs, present, pending, status }) => {
                       const mina = minas.find(current => current.id === m.minaId)
                       return (
