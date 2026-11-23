@@ -230,7 +230,7 @@ export default function ImportarExportarPage() {
 
       {message && <p className={`nk-form-message nk-transfer-feedback ${messageKind ? `is-${messageKind}` : ''}`} role={messageKind === 'error' ? 'alert' : 'status'} aria-live="polite">{message}</p>}
       {outcome === 'not-persisted' && <p className="nk-transfer-outcome" role="status">No se guardó ningún registro: corrige el archivo y vuelve a validarlo.</p>}
-      {outcome === 'rejected' && <p className="nk-transfer-outcome" role="status">La solicitud fue rechazada. Revisa los datos mostrados antes de volver a intentarlo.</p>}
+      {outcome === 'rejected' && <p className="nk-transfer-outcome" role="status">La solicitud fue rechazada. Revisa la información mostrada antes de volver a intentarlo.</p>}
       {outcome === 'unknown' && <p className="nk-transfer-outcome" role="status">No se pudo confirmar si la importación se completó. Revisa los registros antes de volver a intentarlo para evitar duplicados.</p>}
       {summary?.managed && summary.capacity && <p>{summary.capacity.used} de {summary.capacity.total} trabajadores registrados; {summary.capacity.available} cupos disponibles.</p>}
       {importBlocked && <p role="status">{blockedReason}</p>}
@@ -267,7 +267,7 @@ export default function ImportarExportarPage() {
           <header className="nk-transfer-panel-head">
             <span className="nk-transfer-panel-icon teal"><IconDatabaseImport size={20}/></span>
             <div>
-              <h2>Importar datos masivos</h2>
+              <h2>Importar información masiva</h2>
               <p>Carga información usando las plantillas oficiales y reglas de validación del sistema.</p>
             </div>
           </header>
