@@ -244,7 +244,7 @@ export default function ConfiguracionPage() {
       </div>
 
       <section className="nk-module-card nk-config-card nk-config-user-views">
-        <header><div><h2><IconUsers size={18}/> Accesos por persona</h2><p>El administrador define qué módulos puede consultar cada cuenta no administradora, dentro de lo disponible para la empresa y de su rol.</p></div></header>
+        <header><div><h2><IconUsers size={18}/> Accesos por persona</h2><p>El administrador define qué módulos puede usar cada cuenta no administradora, dentro de lo disponible para la empresa y de su rol.</p></div></header>
         <div className="nk-config-user-access">
           <label className="nk-config-field"><span>Persona con acceso</span><select className="nk-input" value={selectedUserId} onChange={event => setSelectedUserId(event.target.value)} disabled={isBusy || !selectableUsers.length}><option value="">{selectableUsers.length ? 'Seleccionar persona' : 'No hay usuarios no administradores activos'}</option>{selectableUsers.map(user => <option value={user.id} key={user.id}>{user.full_name} · {user.email}</option>)}</select></label>
           {selectedUser && <div className="nk-config-user-access-actions"><span>{selectedUser.role === 'consulta' ? 'Solo lectura' : 'Acceso según su rol'}</span><ActionButton disabledReason={actionDisabledReason('user-views')} className="nk-button nk-button-primary" type="button" onClick={saveUserViews} disabled={isBusy}><IconDeviceFloppy size={16}/>{saving === 'user-views' ? 'Guardando…' : 'Guardar vistas'}</ActionButton></div>}
