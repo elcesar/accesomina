@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { pageDomain, PAGE_DOMAINS } from '../src/config/page-domains.js'
 
 const source = path => readFileSync(new URL(`../src/${path}`, import.meta.url), 'utf8')
+const sharedSource = path => readFileSync(new URL(`../../shared/${path}`, import.meta.url), 'utf8')
 
 test('NK-R01-056: los tres antetítulos observados por QA coinciden con sus grupos', () => {
   expect(pageDomain('/app/epp-inventario')).toBe('Activos, Equipos e Inventario')
@@ -30,19 +31,21 @@ test('los grupos declarados tienen nombres idénticos a los que aparecen en el m
 
 test('configuración conserva los identificadores y adopta los nombres del menú', () => {
   const config = source('pages/ConfiguracionPage.jsx')
+  const modules = sharedSource('access-modules.js')
   const sidebar = source('components/layout/Sidebar.jsx')
   const options = [
     ['vehiculos', 'Flota y equipos móviles'],
     ['credenciales', 'Credenciales de acceso'],
     ['reportes', 'Reportes'],
   ]
+  expect(config).toContain("import { ASSIGNABLE_MODULES }")
   for (const [id, label] of options) {
-    expect(config).toContain(`['${id}', '${label}']`)
+    expect(modules).toContain(`key: '${id}', label: '${label}'`)
     expect(sidebar).toContain(`label: '${label}'`)
   }
-  expect(config).not.toContain('Vehículos, activos y equipos')
-  expect(config).not.toContain("['credenciales', 'Credenciales']")
-  expect(config).not.toContain("['reportes', 'Reportes y analítica']")
+  expect(modules).not.toContain('Vehículos, activos y equipos')
+  expect(modules).not.toContain("['credenciales', 'Credenciales']")
+  expect(modules).not.toContain("['reportes', 'Reportes y analítica']")
 })
 
 test('los encabezados de módulo también coinciden con el menú', () => {
