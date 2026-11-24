@@ -18,7 +18,7 @@ function companyAllowsModule(companyModules, key) {
   return companyModules?.[key] !== false;
 }
 
-function normalizeUserModulePermissions(role, permissions, companyModules, { requireSelection = false, inheritMissing = false } = {}) {
+function normalizeUserModulePermissions(role, permissions, companyModules, { requireSelection = false, inheritMissing = false, previousRole = '' } = {}) {
   if (role === 'client_admin') return { modules: {} };
   const source = permissions?.modules;
   if (!source || typeof source !== 'object' || Array.isArray(source)) {
@@ -33,7 +33,12 @@ function normalizeUserModulePermissions(role, permissions, companyModules, { req
   }
   const modules = emptyAssignableModulePermissions();
   for (const key of ASSIGNABLE_MODULE_KEYS) {
-    const selected = inheritMissing ? source[key] !== false : source[key] === true;
+    // Legacy sparse matrices use omission as an inherited grant. When a role
+    // changes, preserve only what the previous role could already use; never
+    // turn a broader destination role into an implicit new assignment.
+    const selected = inheritMissing
+      ? source[key] !== false && roleCanReadModule(previousRole, key)
+      : source[key] === true;
     modules[key] = selected && companyAllowsModule(companyModules, key) && roleCanReadModule(role, key);
   }
   if (requireSelection && !Object.values(modules).some(Boolean)) {
@@ -64,7 +69,7 @@ usersRouter.post('/', allowRoles('domian_admin','client_admin'), async (req, res
     const permissions = normalizeUserModulePermissions(body.role, body.permissions, companyModules, { requireSelection: body.role !== 'client_admin' });
     const result = await client.query(`INSERT INTO app_users (tenant_id,email,full_name,role,password_hash,password_salt,must_change_password,permissions)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb) RETURNING id,email,full_name,role,permissions,active,created_at`, [req.auth.tenantId,email,body.fullName,body.role,credentials?.hash || null,credentials?.salt || null,!body.password,JSON.stringify(permissions)]);
-    await appendAudit(client, { tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:result.rows[0].id,action:'user.created',newValue:{email,role:body.role} });
+    await appendAudit(client, { tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:result.rows[0].id,action:'user.created',newValue:{email,role:body.role,modules:Object.keys(permissions.modules || {}).filter(key => permissions.modules[key] === true)} });
     const invitation = await createUserInvitation(client,{tenantId:req.auth.tenantId,userId:result.rows[0].id,requestedBy:req.auth.userId});
     return {user:result.rows[0],invitation};
   }); } catch(error) {
@@ -108,7 +113,7 @@ usersRouter.patch('/:id', allowRoles('domian_admin','client_admin'), async (req,
       const previousPermissions = before.rows[0].role === 'client_admin'
         ? { modules: emptyAssignableModulePermissions() }
         : before.rows[0].permissions;
-      nextPermissions = normalizeUserModulePermissions(nextRole, previousPermissions, companyModules, { inheritMissing: true });
+      nextPermissions = normalizeUserModulePermissions(nextRole, previousPermissions, companyModules, { inheritMissing: true, previousRole: before.rows[0].role });
     }
     const result = await client.query('UPDATE app_users SET role=COALESCE($3,role),active=COALESCE($4,active),permissions=COALESCE($5::jsonb,permissions),updated_at=now() WHERE id=$1 AND tenant_id=$2 RETURNING id,email,full_name,role,permissions,active', [req.params.id,req.auth.tenantId,role,typeof active==='boolean'?active:null,nextPermissions?JSON.stringify(nextPermissions):null]);
     await appendAudit(client,{tenantId:req.auth.tenantId,userId:req.auth.userId,entityType:'user',entityId:req.params.id,action:'user.updated',oldValue:before.rows[0],newValue:result.rows[0]});return result.rows[0];
