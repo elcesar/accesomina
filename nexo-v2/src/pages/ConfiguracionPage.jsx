@@ -185,7 +185,13 @@ export default function ConfiguracionPage() {
     clearMessage()
     try {
       const current = users.find(user => user.id === selectedUser.id) || selectedUser
-      const updated = await api.patch(`/users/${current.id}`, { permissions: current.permissions || { modules: {} } }, { feedback: false })
+      const modules = Object.fromEntries(ASSIGNABLE_MODULES.map(({ key }) => [
+        key,
+        settings.modules?.[key] !== false
+          && roleCanReadModule(current.role, key)
+          && userCanReadModule({ role: current.role, modules: current.permissions?.modules || {} }, key),
+      ]))
+      const updated = await api.patch(`/users/${current.id}`, { permissions: { ...(current.permissions || {}), modules } }, { feedback: false })
       setUsers(all => all.map(user => user.id === updated.id ? { ...user, ...updated } : user))
       showMessage('success', `Vistas guardadas para ${updated.full_name}. Tendrá efecto en su próximo acceso.`)
     } catch (error) {
