@@ -247,7 +247,7 @@ export default function UsuariosPermisosPage() {
           <h1>Usuarios y permisos</h1>
           <p>{session?.tenant?.name || 'Empresa'} · información separada por empresa</p>
         </div>
-        {admin && <button className="nk-button nk-button-primary" disabled={Boolean(busy)} onClick={() => { setDraft(createDraft()); setCreateError(''); setNameError(''); setEmailError(''); setModuleError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
+        {admin && <button className="nk-button nk-button-primary" disabled={loading || Boolean(busy)} onClick={() => { setDraft(createDraft()); setCreateError(''); setNameError(''); setEmailError(''); setModuleError(''); setCreateNeedsRefresh(false); setShowCreate(true) }}><IconPlus size={16}/> Dar acceso</button>}
       </header>
 
       {message && <p className="nk-form-message" role={messageTone}>{message}</p>}
