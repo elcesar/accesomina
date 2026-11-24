@@ -1,8 +1,17 @@
 .nk-plans-section, .nk-subscription-page, .nk-subscription-admin { min-width: 0; }
 .nk-plans-section { display: grid; gap: 2.5rem; }
-/* PlansSection renders its header directly, unlike the other public sections
-   whose direct div child receives the shared content constraint. */
-.nk-plans-section > .nk-plans-hero {
+/* PlansSection renders direct children, unlike the other public sections
+   whose direct div child receives the shared content constraint. Keep every
+   commercial block inside the public content gutter when publication is approved. */
+.nk-plans-section > .nk-plans-hero,
+.nk-plans-section > .nk-plan-grid,
+.nk-plans-section > .nk-plan-comparison,
+.nk-plans-section > .nk-plan-recommender,
+.nk-plans-section > .nk-plan-request,
+.nk-plans-section > .nk-plan-faq,
+.nk-plans-section > [role='status'],
+.nk-plans-section > .nk-subscription-error,
+.nk-plans-section > .nk-button {
   width: min(calc(100% - (2 * var(--nk-page-padding))), var(--nk-content-max-width));
   margin-inline: auto;
 }
