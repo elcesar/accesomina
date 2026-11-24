@@ -85,6 +85,18 @@ test('company module settings and patch requests cannot grant unavailable module
   await assert.rejects(() => route(usersRouter,'/:id','patch',{params:{id:created.body.user.id},body:{permissions:selectedModules({trabajadores:true})}}), { code:'MODULE_NOT_AVAILABLE_FOR_COMPANY' });
 });
 
+test('changing role preserves only access already effective for the previous role', async () => {
+  const created = await create({
+    email: 'cambio-rol@example.test',
+    role: 'prevencion',
+    permissions: selectedModules({ trabajadores: true, vehiculos: true }),
+  });
+  const updated = await route(usersRouter,'/:id','patch',{params:{id:created.body.user.id},body:{role:'consulta'}});
+  assert.equal(updated.statusCode,200);
+  assert.deepEqual(updated.body.permissions,selectedModules({trabajadores:true,vehiculos:true}));
+  assert.equal(updated.body.permissions.modules.subcontratos,false);
+});
+
 test('an optional API password remains usable and never suppresses welcome delivery',async()=>{
   const res=await create({password:PASSWORD}),user=await readUser(res.body.user.id);
   assert.equal(await verifyPassword(PASSWORD,user.password_salt,user.password_hash),true);
