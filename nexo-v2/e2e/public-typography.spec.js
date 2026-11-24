@@ -119,12 +119,13 @@ test('el menú móvil conserva la sección activa y se desplaza dentro de una pa
       scrollHeight: element.scrollHeight,
       bottom: rect.bottom,
       overflowY: style.overflowY,
+      viewportHeight: window.innerHeight,
     }
   })
   expect(['auto', 'scroll']).toContain(metrics.overflowY)
-  expect(metrics.clientHeight).toBeLessThanOrEqual(375)
+  expect(metrics.clientHeight).toBeLessThanOrEqual(metrics.viewportHeight)
   expect(metrics.scrollHeight).toBeGreaterThanOrEqual(metrics.clientHeight)
-  expect(metrics.bottom).toBeLessThanOrEqual(376)
+  expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight + 1)
 })
 
 test('las grillas de soluciones e industrias cierran filas equilibradas en escritorio', async ({ page }) => {
