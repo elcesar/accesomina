@@ -325,7 +325,7 @@ export default function UsuariosPermisosPage() {
               ) : (
                 <fieldset id="create-user-module-access" className="nk-user-module-access" tabIndex="-1" disabled={busy === 'create'} aria-describedby={moduleError ? 'create-user-module-access-error' : undefined}>
                   <legend>Accesos iniciales</legend>
-                  <p>Selecciona los módulos que esta persona podrá consultar según su rol.</p>
+                  <p>Selecciona los módulos que esta persona podrá usar según su rol.</p>
                   <div className="nk-user-module-grid">
                     {ASSIGNABLE_MODULES.map(({ key, label }) => {
                       const enabledForCompany = companyModules?.[key] !== false
