@@ -39,6 +39,13 @@ test('un cliente puede iniciar sesión y llegar al panel de control', async ({ p
   await page.getByRole('button', { name: 'Ingresar' }).click(); await expect(page).toHaveURL(/\/app$/); await expect(page.getByRole('heading', { name: 'Estado de la operación' })).toBeVisible()
 })
 
+test('el acceso no expone versiones ni commits técnicos a visitantes', async ({ page }) => {
+  await mockApi(page, { signedIn: false })
+  await page.goto('/login')
+  await expect(page.locator('.nk-login-build-version')).toHaveCount(0)
+  await expect(page.locator('.nk-login-content')).not.toContainText(/Frontend v|Backend v/)
+})
+
 test('un Client Admin puede crear un cliente desde la ficha comercial', async ({ page }) => {
   await mockApi(page); await page.goto('/app/clientes/nuevo'); const fields = page.locator('.nk-client-form-grid')
   await fields.locator('input').nth(0).fill('Minera Automatizada QA'); await fields.locator('input').nth(1).fill('Mandante QA'); await fields.locator('input').nth(2).fill('76.345.678-5')
