@@ -89,6 +89,22 @@ test('Inicio y Producto muestran la ilustración demostrativa con la identidad o
   }
 })
 
+test('Inicio jerarquiza las notas que acompañan la imagen de producto', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 975 })
+  await page.goto('/')
+
+  const notes = page.locator('.nk-hero-product-notes article')
+  await expect(notes).toHaveCount(3)
+  for (const note of await notes.all()) {
+    const metrics = await note.evaluate(element => {
+      const style = getComputedStyle(element)
+      return { borderStyle: style.borderTopStyle, padding: parseFloat(style.paddingTop) }
+    })
+    expect(metrics.borderStyle).toBe('solid')
+    expect(metrics.padding).toBeGreaterThan(0)
+  }
+})
+
 test('invalid registration reports all fields and makes invitation errors actionable', async ({ page }) => {
   await page.goto('/crear-empresa')
   await page.getByRole('button', { name: 'Crear sitio privado vacío' }).click()
