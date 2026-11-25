@@ -1,0 +1,27 @@
+name: "MESA-04 Personas #144 QA"
+on:
+  pull_request:
+    paths:
+      - 'nexo-v2/src/pages/NuevoTrabajadorPage.jsx'
+      - 'nexo-v2/src/pages/FichaTrabajadorPage.jsx'
+      - 'nexo-v2/test/mesa-04-persona-fields.test.js'
+      - '.github/workflows/mesa-04-personas-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mesa-04-personas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: nexo-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.11.0 --activate
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: node --test test/mesa-04-persona-fields.test.js
+      - run: pnpm run build

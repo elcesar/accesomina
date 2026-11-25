@@ -210,8 +210,8 @@ function StepVinculacion({ data, onChange, mantenciones, errors }) {
       <Field label="Cargo contractual" required hint="Puesto indicado en el contrato de trabajo." fieldId="worker-role" error={errors.cargo}>
         <FInput value={data.cargo} onChange={e => onChange('cargo', e.target.value)} placeholder="Ej.: Mecánico mantenedor" />
       </Field>
-      <Field label="Área o función" hint="Responsabilidad general opcional dentro de la empresa.">
-        <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Operaciones, Administración, Ventas o Tecnología" />
+      <Field label="Rol operacional" hint="Función o responsabilidad opcional desempeñada en la operación.">
+        <FInput value={data.rol} onChange={e => onChange('rol', e.target.value)} placeholder="Ej.: Supervisor de mantenimiento" />
       </Field>
       <Field label="Especialidad" required hint="Categoría usada para dotación, requisitos y cobertura por especialidad." full fieldId="worker-specialty" error={errors.especialidad}>
         <FSelect value={data.especialidad} onChange={e => onChange('especialidad', e.target.value)}>
@@ -260,7 +260,7 @@ function StepResumen({ data, mantenciones }) {
   const rows = [
     ['Nombre', data.nombre], ['RUT', data.rut], ['Fecha de nacimiento', formatChileDate(data.nacimiento)], ['Teléfono', formatChilePhone(data.tel)], ['Correo', data.email],
     ['Región', data.region], ['Comuna', data.ciudad], ['Tipo de persona', tipoLabel], ['Turno / jornada', data.regimen],
-    ['Cargo contractual', data.cargo], ['Área o función', data.rol], ['Especialidad', data.especialidad],
+    ['Cargo contractual', data.cargo], ['Rol operacional', data.rol], ['Especialidad', data.especialidad],
     ['Proyecto / servicio inicial', mantLabel], ['AFP', data.afp], ['Previsión de salud', data.salud],
     ['Casco', data.eppCasco], ['Camisa de trabajo', data.eppCamisa], ['Pantalón de trabajo', data.eppPantalon], ['Calzado de seguridad', data.eppCalzado],
     ['Guante', data.eppGuante], ['Arnés', data.eppArnes], ['Fit Test', data.eppFitTest ? 'Aprobado' : 'No aprobado'],
