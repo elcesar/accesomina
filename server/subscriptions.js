@@ -39,9 +39,11 @@ async function readWorkers(client,tenantId) {
  return Array.isArray(state?.state?.trabajadores)?state.state.trabajadores:[];
 }
 
-export function subscriptionStatus(contract,now=new Date()) {
+export function subscriptionStatus(contract,now=new Date(),nonpaymentHold=null) {
  const at=new Date(now).getTime();
  if(at<new Date(contract.starts_at??contract.startsAt).getTime())return 'SUSPENDED';
+ const effectiveAt=nonpaymentHold?.effective_at??nonpaymentHold?.effectiveAt;
+ if(nonpaymentHold&&!nonpaymentHold.released_at&&!nonpaymentHold.releasedAt&&effectiveAt&&at>=new Date(effectiveAt).getTime())return 'SUSPENDED_NONPAYMENT';
  if(at<new Date(contract.ends_at??contract.endsAt).getTime())return 'ACTIVE';
  if((contract.plan_code??contract.planCode)!=='FREE'&&at<new Date(contract.grace_ends_at??contract.graceEndsAt).getTime())return 'GRACE_PERIOD';
  return 'SUSPENDED';
@@ -164,9 +166,27 @@ export function recommendSubscription(catalog,{workers,freeEligible=true,existin
 async function currentContract(client,tenantId) {
  return (await client.query('SELECT * FROM subscription_contracts WHERE tenant_id=$1 AND is_current',[tenantId])).rows[0]||null;
 }
+async function nonpaymentHoldForContract(client,tenantId,subscriptionId,{lock=false}={}) {
+ if(!subscriptionId)return null;
+ return (await client.query(`SELECT * FROM subscription_nonpayment_holds
+  WHERE tenant_id=$1 AND subscription_id=$2 AND released_at IS NULL
+  ORDER BY created_at DESC LIMIT 1${lock?' FOR UPDATE':''}`,[tenantId,subscriptionId])).rows[0]||null;
+}
+async function nonpaymentHoldHistory(client,tenantId,subscriptionId) {
+ if(!subscriptionId)return [];
+ return (await client.query(`SELECT * FROM subscription_nonpayment_holds
+  WHERE tenant_id=$1 AND subscription_id=$2 ORDER BY created_at DESC LIMIT 50`,[tenantId,subscriptionId])).rows;
+}
+function nonpaymentHoldView(row,{includeDetails=false,now=new Date()}={}) {
+ if(!row)return null;
+ const effectiveAt=iso(row.effective_at),scheduled=!row.released_at&&new Date(effectiveAt).getTime()>new Date(now).getTime();
+ const view={id:row.id,status:row.released_at?'REACTIVATED':scheduled?'SCHEDULED_NONPAYMENT':'SUSPENDED_NONPAYMENT',effectiveAt,createdAt:iso(row.created_at),releasedAt:iso(row.released_at)};
+ if(includeDetails)Object.assign(view,{reason:row.reason,billingReference:row.billing_reference,createdBy:row.created_by,releasedBy:row.released_by||null,reactivationReason:row.reactivation_reason||null,regularizationReference:row.regularization_reference||null});
+ return view;
+}
 function safeAuditValue(value) {
  if(!value||typeof value!=='object')return null;
- const fields=['code','name','version','planCode','status','contractId','reason','effectiveAt','startsAt','endsAt','type','requiresPaidActivation','workerLimit','workersQuantity','monthlyPrice','totalCapacity','trialMonths','active','displayOrder','workersAtRequest','description','ctaText','publicVisible','recommended','priceVisibility','taxRate','graceDays','warningPercent','criticalPercent','repeatable','stackable','maxQuantity'];
+ const fields=['code','name','version','planCode','status','contractId','reason','effectiveAt','startsAt','endsAt','type','requiresPaidActivation','workerLimit','workersQuantity','monthlyPrice','totalCapacity','trialMonths','active','displayOrder','workersAtRequest','description','ctaText','publicVisible','recommended','priceVisibility','taxRate','graceDays','warningPercent','criticalPercent','repeatable','stackable','maxQuantity','referenceFingerprint'];
  const result=Object.fromEntries(fields.filter(k=>['string','number','boolean'].includes(typeof value[k])||value[k]===null).map(k=>[k,value[k]]));
  for(const field of ['publicFeatures','allowedUpgradeTargets'])if(Array.isArray(value[field]))result[field]=value[field].filter(v=>typeof v==='string');
  return result;
@@ -195,38 +215,91 @@ export async function getSubscriptionAuditPage(client,tenantId,{cursor,limit=200
  const page=rows.slice(0,Number(limit)),last=page.at(-1);
  return {events:page.map(row=>({id:row.id,action:row.action,entityType:row.entity_type,entityId:row.entity_id,createdAt:iso(row.created_at),actorId:row.user_id,actorName:row.actor_name||'Sistema',requestedBy:row.requested_by||null,requesterName:row.requester_name||null,contractCreatedBy:row.contract_created_by||null,reason:row.new_value?.reason||row.old_value?.reason||'',oldValue:safeAuditValue(row.old_value),newValue:safeAuditValue(row.new_value)})),nextCursor:rows.length>Number(limit)?Buffer.from(JSON.stringify({at:last.cursor_created_at,id:last.id})).toString('base64url'):null};
 }
-export async function getSubscriptionSummary(client,tenantId,{now=new Date(),includeAudit=false}={}) {
+export async function getSubscriptionSummary(client,tenantId,{now=new Date(),includeAudit=false,includeEnforcementDetails=false}={}) {
  const tenant=(await client.query('SELECT id,subscription_managed,subscription_services,status,rut FROM tenants WHERE id=$1',[tenantId])).rows[0];
  if(!tenant)fail('SUBSCRIPTION_COMPANY_NOT_FOUND','No encontramos la empresa.',404);
  const history=includeAudit?await getSubscriptionAuditPage(client,tenantId):{events:[],nextCursor:null};
  const auditFields={audit:history.events,auditNextCursor:history.nextCursor};
- if(!tenant.subscription_managed)return {legacy:true,managed:false,canOperate:true,freeEligible:false,contract:null,capacity:null,packages:[],requests:[],...auditFields,daysInGraceRemaining:0,graceDaysUsed:0,separateServices:tenant.subscription_services||{}};
+ if(!tenant.subscription_managed)return {legacy:true,managed:false,canOperate:true,freeEligible:false,contract:null,capacity:null,packages:[],nonpaymentHold:null,...auditFields,daysInGraceRemaining:0,graceDaysUsed:0,separateServices:tenant.subscription_services||{}};
  const [contract,records,requestResult]=await Promise.all([currentContract(client,tenantId),readWorkers(client,tenantId),client.query('SELECT * FROM subscription_requests WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 100',[tenantId])]);
  const used=countSubscriptionWorkers(records),at=new Date(now).getTime();
- if(!contract)return {legacy:false,managed:true,canOperate:false,freeEligible:false,contract:null,capacity:{base:0,additional:0,total:0,used,available:0,overCapacity:used},packages:[],requests:requestResult.rows.map(requestView),...auditFields,daysInGraceRemaining:0,graceDaysUsed:0,separateServices:tenant.subscription_services||{}};
- const status=subscriptionStatus(contract,now);
+ if(!contract)return {legacy:false,managed:true,canOperate:false,freeEligible:false,contract:null,capacity:{base:0,additional:0,total:0,used,available:0,overCapacity:used},packages:[],requests:requestResult.rows.map(requestView),nonpaymentHold:null,...auditFields,daysInGraceRemaining:0,graceDaysUsed:0,separateServices:tenant.subscription_services||{}};
+ const hold=await nonpaymentHoldForContract(client,tenantId,contract.id);
+ const holdHistory=includeEnforcementDetails?await nonpaymentHoldHistory(client,tenantId,contract.id):[];
+ const temporalStatus=subscriptionStatus(contract,now),status=subscriptionStatus(contract,now,hold);
  const packages=(await client.query('SELECT * FROM subscription_contract_packages WHERE tenant_id=$1 AND subscription_id=$2 ORDER BY code',[tenantId,contract.id])).rows.map(row=>({...row.snapshot,quantity:row.quantity,startsAt:iso(row.starts_at),endsAt:iso(row.ends_at)}));
  // Coterminal packages remain effective during the principal's expressly granted grace.
- const effectivePackages=packages.filter(p=>at>=new Date(p.startsAt).getTime()&&(at<new Date(p.endsAt).getTime()||status==='GRACE_PERIOD'));
+ const effectivePackages=packages.filter(p=>at>=new Date(p.startsAt).getTime()&&(at<new Date(p.endsAt).getTime()||temporalStatus==='GRACE_PERIOD'));
  const additional=effectivePackages.reduce((s,p)=>s+p.workersQuantity*p.quantity,0),base=contract.snapshot.plan.workerLimit,total=base+additional;
  const dayStats=(await client.query(`SELECT greatest(0,($2::timestamptz AT TIME ZONE $4)::date-($3::timestamptz AT TIME ZONE $4)::date)::integer AS remaining,
   greatest(0,($3::timestamptz AT TIME ZONE $4)::date-($1::timestamptz AT TIME ZONE $4)::date)::integer AS used,
   (($2::timestamptz AT TIME ZONE $4)::date-($1::timestamptz AT TIME ZONE $4)::date)::integer AS total,
   greatest(0,($5::timestamptz AT TIME ZONE $4)::date-($3::timestamptz AT TIME ZONE $4)::date)::integer AS grace_remaining,
   greatest(0,least(($3::timestamptz AT TIME ZONE $4)::date,($5::timestamptz AT TIME ZONE $4)::date)-($2::timestamptz AT TIME ZONE $4)::date)::integer AS grace_used`,[iso(contract.starts_at),iso(contract.ends_at),iso(now),contract.timezone,iso(contract.grace_ends_at)])).rows[0];
- return {legacy:false,managed:true,canOperate:tenant.status==='active'&&status!=='SUSPENDED',freeEligible:false,
-  contract:{id:contract.id,periodId:contract.current_period_id,planCode:contract.plan_code,planName:contract.snapshot.plan.name,status,
+ const nonpaymentHold=nonpaymentHoldView(hold,{includeDetails:includeEnforcementDetails,now});
+ return {legacy:false,managed:true,canOperate:tenant.status==='active'&&['ACTIVE','GRACE_PERIOD'].includes(status),freeEligible:false,
+  contract:{id:contract.id,periodId:contract.current_period_id,planCode:contract.plan_code,planName:contract.snapshot.plan.name,status,temporalStatus,
    startsAt:iso(contract.starts_at),endsAt:iso(contract.ends_at),graceEndsAt:iso(contract.grace_ends_at),timezone:contract.timezone,
    monthlyNetPrice:contract.snapshot.monthlyNetPrice,workerLimit:base,currency:contract.snapshot.currency,taxRate:contract.snapshot.taxRate,snapshot:contract.snapshot},
   capacity:{base,additional,total,used,available:Math.max(0,total-used),overCapacity:Math.max(0,used-total),warningPercent:contract.snapshot.warningPercent??80,criticalPercent:contract.snapshot.criticalPercent??90},packages,
   daysRemaining:dayStats.remaining,daysUsed:Math.min(dayStats.used,dayStats.total),totalTrialDays:dayStats.total,
-  daysInGraceRemaining:status==='GRACE_PERIOD'?dayStats.grace_remaining:0,graceDaysUsed:contract.plan_code==='FREE'?0:dayStats.grace_used,
-  requests:requestResult.rows.map(requestView),...auditFields,separateServices:tenant.subscription_services||{}};
+  daysInGraceRemaining:temporalStatus==='GRACE_PERIOD'?dayStats.grace_remaining:0,graceDaysUsed:contract.plan_code==='FREE'?0:dayStats.grace_used,
+  requests:requestResult.rows.map(requestView),nonpaymentHold,nonpaymentHolds:includeEnforcementDetails?holdHistory.map(row=>nonpaymentHoldView(row,{includeDetails:true,now})):[],...auditFields,separateServices:tenant.subscription_services||{}};
+}
+
+export async function suspendSubscriptionForNonpayment(client,{tenantId,userId,input,now=new Date()}) {
+ const tenant=await lockSubscriptionTenant(client,tenantId);
+ if(tenant.is_domian_admin)fail('SUBSCRIPTION_PLATFORM_PROTECTED','La administración global no recibe una suspensión comercial.',409);
+ const idempotencyKey=key(input.idempotencyKey),reason=text(input.reason),billingReference=text(input.billingReference);
+ if(reason.length<3||reason.length>2000)fail('SUBSCRIPTION_NONPAYMENT_REASON_REQUIRED','Indica el motivo de la suspensión por no pago.',400);
+ if(billingReference.length<3||billingReference.length>500)fail('SUBSCRIPTION_NONPAYMENT_REFERENCE_REQUIRED','Indica la referencia de cobranza o factura.',400);
+ const effectiveAt=input.effectiveAt?new Date(input.effectiveAt):new Date(now);
+ if(!validDate(effectiveAt))fail('SUBSCRIPTION_NONPAYMENT_EFFECTIVE_INVALID','Indica una fecha efectiva válida.',400);
+ const hash=payloadHash({reason,billingReference,effectiveAt:iso(effectiveAt)});
+ const previous=(await client.query('SELECT * FROM subscription_nonpayment_holds WHERE tenant_id=$1 AND suspension_idempotency_key=$2',[tenantId,idempotencyKey])).rows[0];
+ if(previous){if(previous.suspension_payload_hash!==hash)fail('SUBSCRIPTION_IDEMPOTENCY_CONFLICT','La clave ya corresponde a otra suspensión.');return nonpaymentHoldView(previous,{includeDetails:true,now});}
+ const contract=await currentContract(client,tenantId);
+ if(!contract)fail('SUBSCRIPTION_NO_CONTRACT','La empresa no tiene un contrato que suspender.',409);
+ if(contract.plan_code==='FREE')fail('SUBSCRIPTION_NONPAYMENT_PAID_ONLY','La suspensión por no pago corresponde a contratos pagados.',409);
+ const temporalStatus=subscriptionStatus(contract,now);
+ if(temporalStatus==='SUSPENDED')fail('SUBSCRIPTION_REACTIVATION_RENEWAL_REQUIRED','El período ya terminó. Gestiona una renovación en lugar de suspenderlo.',409);
+ if(effectiveAt.getTime()>=new Date(contract.grace_ends_at).getTime())fail('SUBSCRIPTION_NONPAYMENT_EFFECTIVE_INVALID','La fecha efectiva debe estar dentro del período vigente o su gracia.',400);
+ const current=await nonpaymentHoldForContract(client,tenantId,contract.id,{lock:true});
+ if(current)fail('SUBSCRIPTION_NONPAYMENT_ALREADY_HELD','Esta suscripción ya tiene una suspensión comercial vigente o programada.',409);
+ const hold=(await client.query(`INSERT INTO subscription_nonpayment_holds(tenant_id,subscription_id,reason,billing_reference,effective_at,created_by,suspension_idempotency_key,suspension_payload_hash)
+  VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,[tenantId,contract.id,reason,billingReference,iso(effectiveAt),userId,idempotencyKey,hash])).rows[0];
+ const scheduled=effectiveAt.getTime()>new Date(now).getTime();
+ await audit(client,tenantId,userId,scheduled?'subscription.nonpayment.scheduled':'subscription.nonpayment.suspended',hold.id,
+  {contractId:contract.id,status:temporalStatus},{contractId:contract.id,status:scheduled?'SCHEDULED_NONPAYMENT':'SUSPENDED_NONPAYMENT',reason,effectiveAt:iso(effectiveAt),referenceFingerprint:sha256(billingReference).slice(0,12)});
+ return nonpaymentHoldView(hold,{includeDetails:true,now});
+}
+
+export async function reactivateSubscriptionAfterPayment(client,{tenantId,holdId,userId,input,now=new Date()}) {
+ await lockSubscriptionTenant(client,tenantId);
+ const idempotencyKey=key(input.idempotencyKey),reason=text(input.reason),regularizationReference=text(input.regularizationReference);
+ if(reason.length<3||reason.length>2000)fail('SUBSCRIPTION_REACTIVATION_REASON_REQUIRED','Indica el motivo de la reactivación.',400);
+ if(regularizationReference.length<3||regularizationReference.length>500)fail('SUBSCRIPTION_REACTIVATION_REFERENCE_REQUIRED','Indica la referencia de pago o regularización.',400);
+ const hash=payloadHash({reason,regularizationReference});
+ const hold=(await client.query('SELECT * FROM subscription_nonpayment_holds WHERE tenant_id=$1 AND id=$2 FOR UPDATE',[tenantId,holdId])).rows[0];
+ if(!hold)fail('SUBSCRIPTION_NONPAYMENT_NOT_FOUND','No encontramos la suspensión comercial.',404);
+ if(hold.released_at){if(hold.reactivation_idempotency_key===idempotencyKey&&hold.reactivation_payload_hash===hash)return nonpaymentHoldView(hold,{includeDetails:true,now});fail('SUBSCRIPTION_NONPAYMENT_NOT_ACTIVE','La suspensión ya fue resuelta.',409);}
+ if(hold.created_by===userId)fail('SUBSCRIPTION_REACTIVATION_SEPARATION_REQUIRED','La reactivación debe ser registrada por una persona distinta de quien suspendió.',403);
+ const contract=await currentContract(client,tenantId);
+ if(!contract||contract.id!==hold.subscription_id||subscriptionStatus(contract,now)==='SUSPENDED')fail('SUBSCRIPTION_REACTIVATION_RENEWAL_REQUIRED','El período ya terminó. Gestiona una renovación antes de reactivar.',409);
+ const released=(await client.query(`UPDATE subscription_nonpayment_holds SET released_at=$3,released_by=$4,reactivation_reason=$5,regularization_reference=$6,reactivation_idempotency_key=$7,reactivation_payload_hash=$8,updated_at=$3
+  WHERE tenant_id=$1 AND id=$2 RETURNING *`,[tenantId,holdId,iso(now),userId,reason,regularizationReference,idempotencyKey,hash])).rows[0];
+ const cancelled=new Date(hold.effective_at).getTime()>new Date(now).getTime();
+ await audit(client,tenantId,userId,cancelled?'subscription.nonpayment.cancelled':'subscription.nonpayment.reactivated',hold.id,
+  {contractId:contract.id,status:cancelled?'SCHEDULED_NONPAYMENT':'SUSPENDED_NONPAYMENT'},{contractId:contract.id,status:subscriptionStatus(contract,now),reason,effectiveAt:iso(hold.effective_at),referenceFingerprint:sha256(regularizationReference).slice(0,12)});
+ return nonpaymentHoldView(released,{includeDetails:true,now});
 }
 
 export async function assertSubscriptionOperational(client,tenantId,{now=new Date()}={}) {
  const summary=await getSubscriptionSummary(client,tenantId,{now});
- if(summary.managed&&!summary.canOperate)fail('SUBSCRIPTION_SUSPENDED','Tu suscripción no permite operar. Tu información se conserva; solicita la activación o renovación.',403,{status:summary.contract?.status||'NO_CONTRACT',planCode:summary.contract?.planCode||null});
+ if(summary.managed&&!summary.canOperate){
+  const nonpayment=summary.contract?.status==='SUSPENDED_NONPAYMENT';
+  fail(nonpayment?'SUBSCRIPTION_NONPAYMENT_SUSPENDED':'SUBSCRIPTION_SUSPENDED',nonpayment?'La suscripción está suspendida por regularización comercial. Tu información se conserva; solicita la reactivación a Nexo Klar.':'Tu suscripción no permite operar. Tu información se conserva; solicita la activación o renovación.',403,{status:summary.contract?.status||'NO_CONTRACT',planCode:summary.contract?.planCode||null});
+ }
  return summary;
 }
 export async function assertSubscriptionWorkerCapacity(client,tenantId,previousWorkers,nextWorkers,{now=new Date()}={}) {
@@ -302,6 +375,10 @@ export async function createSubscriptionRequest(client,{tenantId,userId,input,as
  if(old){if(old.payload_hash!==hash)fail('SUBSCRIPTION_IDEMPOTENCY_CONFLICT','La clave ya corresponde a otra solicitud.');return requestView(old);}
  let type=text(input.type).toUpperCase();
  if(!['INITIAL','UPGRADE','DOWNGRADE','RENEWAL','PACKAGES'].includes(type))fail('SUBSCRIPTION_REQUEST_TYPE','El tipo de solicitud no es válido.',400);
+ if(type==='INITIAL'){
+  const existingInitial=(await client.query("SELECT id,status FROM subscription_requests WHERE tenant_id=$1 AND type='INITIAL' AND status NOT IN ('EXECUTED','REJECTED','CANCELLED') ORDER BY created_at DESC LIMIT 1",[tenantId])).rows[0];
+  if(existingInitial)fail('SUBSCRIPTION_INITIAL_EXISTS','La empresa ya tiene una contratación inicial en curso. Completa o cancela esa tramitación antes de iniciar otra.',409,{requestId:existingInitial.id,status:existingInitial.status});
+ }
  const current=await currentContract(client,tenantId);
  if(!current){if(type==='UPGRADE')type='INITIAL';if(type!=='INITIAL')fail('SUBSCRIPTION_NO_CONTRACT','Primero solicita la activación de un plan.',409);}
  if(current&&type==='INITIAL')fail('SUBSCRIPTION_ALREADY_ASSIGNED','La empresa ya tiene una suscripción.');
@@ -376,7 +453,8 @@ export async function executeSubscriptionRequest(client,{tenantId,requestId,user
  if(!['SCHEDULED','EXECUTION_FAILED'].includes(request.status))fail('SUBSCRIPTION_REQUEST_STATE','La solicitud no está aprobada y programada.');
  if(new Date(request.effective_at)>new Date(now))fail('SUBSCRIPTION_NOT_DUE','Todavía no se cumple la fecha acordada.');
  const tenant=(await client.query('SELECT status FROM tenants WHERE id=$1',[tenantId])).rows[0];
- if(tenant.status!=='active')fail('SUBSCRIPTION_COMPANY_DISABLED','La empresa mantiene un bloqueo administrativo independiente.',403);
+ const activatesPendingInitial=tenant?.status==='pending'&&request.type==='INITIAL'&&request.source_contract_id===null;
+ if(tenant?.status!=='active'&&!activatesPendingInitial)fail('SUBSCRIPTION_COMPANY_DISABLED','La empresa mantiene un bloqueo administrativo independiente.',403);
  const current=await currentContract(client,tenantId);
  if((current?.id||null)!==request.source_contract_id)fail('SUBSCRIPTION_SOURCE_CHANGED','La suscripción cambió después de revisar la solicitud. Requiere nueva revisión.');
  await validateDocuments(client,tenantId,request.documents,now);
@@ -385,9 +463,14 @@ export async function executeSubscriptionRequest(client,{tenantId,requestId,user
  const start=new Date(request.effective_at);
  const contract=await createContract(client,{tenantId,userId:userId||request.approved_by,offer:request.proposal,start,now,
   anchorDay:request.type==='RENEWAL'?current?.anchor_day:undefined});
+ if(activatesPendingInitial){
+  const activated=(await client.query("UPDATE tenants SET status='active',updated_at=now() WHERE id=$1 AND status='pending' RETURNING id,status",[tenantId])).rows[0];
+  if(!activated)fail('SUBSCRIPTION_COMPANY_DISABLED','No fue posible habilitar la empresa tras ejecutar la contratación inicial.',409);
+  await appendAudit(client,{tenantId,userId:userId||request.approved_by,entityType:'tenant',entityId:tenantId,action:'tenant.activated_by_initial_subscription',oldValue:{status:'pending'},newValue:{status:'active',contractId:contract.id,requestId}});
+ }
  const result=(await client.query("UPDATE subscription_requests SET status='EXECUTED',executed_at=$3,result_contract_id=$4,last_error=NULL,updated_at=now() WHERE tenant_id=$1 AND id=$2 RETURNING *",[tenantId,requestId,iso(now),contract.id])).rows[0];
  await audit(client,tenantId,userId||request.approved_by,request.type==='RENEWAL'?'subscription.renewed':'subscription.changed',requestId,current?{contractId:current.id}:null,{contractId:contract.id,proposal:request.proposal,reason});
- return requestView(result);
+ return {...requestView(result),tenantActivated:activatesPendingInitial};
 }
 
 export async function transitionSubscriptionRequest(client,{tenantId,requestId,userId,input,now=new Date()}) {

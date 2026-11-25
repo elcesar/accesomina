@@ -1,4 +1,4 @@
-export const subscriptionStates = { ACTIVE: 'Activa', GRACE_PERIOD: 'Período de gracia', SUSPENDED: 'Suspendida', PENDING: 'Pendiente de activación', EXPIRED: 'Vencida' }
+export const subscriptionStates = { ACTIVE: 'Activa', GRACE_PERIOD: 'Período de gracia', SUSPENDED: 'Suspendida', SUSPENDED_NONPAYMENT: 'Suspendida por regularización comercial', SCHEDULED_NONPAYMENT: 'Suspensión comercial programada', REACTIVATED: 'Reactivada', PENDING: 'Pendiente de activación', EXPIRED: 'Vencida' }
 export const requestStates = { NEW: 'Nueva', REQUESTED: 'Solicitada', UNDER_REVIEW: 'En revisión', APPROVED: 'Aprobada', SCHEDULED: 'Programada', EXECUTED: 'Ejecutada', REJECTED: 'Rechazada', CANCELLED: 'Cancelada', EXPIRED: 'Vencida', EXECUTION_FAILED: 'Requiere reintento' }
 export const requestTypes = { INITIAL: 'Contratación inicial', UPGRADE: 'Mejora de plan', DOWNGRADE: 'Reducción de plan', RENEWAL: 'Renovación', PACKAGES: 'Capacidad adicional' }
 export const requestPlanCode = request => request.planCode || request.proposal?.plan?.code || request.requestedPlanCode || ''
@@ -25,6 +25,18 @@ export function errorMessage(error) {
     SUBSCRIPTION_CAPACITY_EXCEEDED: 'La capacidad solicitada es menor que la dotación actual. Ajusta la solicitud y vuelve a intentarlo.',
     CAPACITY_EXCEEDED: 'La dotación supera la capacidad solicitada. Revisa el plan y los paquetes.',
     SUBSCRIPTION_SUSPENDED: 'El período de tu plan terminó. Gestiona su renovación desde Mi plan.',
+    SUBSCRIPTION_NONPAYMENT_SUSPENDED: 'La suscripción está suspendida por regularización comercial. La información se conserva; solicita reactivación a Nexo Klar.',
+    SUBSCRIPTION_NONPAYMENT_REASON_REQUIRED: 'Registra un motivo de suspensión por no pago.',
+    SUBSCRIPTION_NONPAYMENT_REFERENCE_REQUIRED: 'Registra una referencia de cobranza o factura.',
+    SUBSCRIPTION_NONPAYMENT_EFFECTIVE_INVALID: 'La fecha efectiva debe estar dentro del período vigente o su gracia.',
+    SUBSCRIPTION_NONPAYMENT_ALREADY_HELD: 'La suscripción ya tiene una suspensión comercial vigente o programada.',
+    SUBSCRIPTION_NONPAYMENT_NOT_ACTIVE: 'La suspensión comercial ya fue resuelta.',
+    SUBSCRIPTION_NONPAYMENT_NOT_FOUND: 'No encontramos la suspensión comercial solicitada.',
+    SUBSCRIPTION_NONPAYMENT_PAID_ONLY: 'La suspensión por no pago corresponde a contratos pagados.',
+    SUBSCRIPTION_REACTIVATION_REASON_REQUIRED: 'Registra el motivo de la reactivación.',
+    SUBSCRIPTION_REACTIVATION_REFERENCE_REQUIRED: 'Registra la referencia de pago o regularización.',
+    SUBSCRIPTION_REACTIVATION_SEPARATION_REQUIRED: 'La reactivación debe ser registrada por otra persona autorizada.',
+    SUBSCRIPTION_REACTIVATION_RENEWAL_REQUIRED: 'El período ya terminó; gestiona una renovación antes de reactivar.',
     INVALID_SUBSCRIPTION_TRANSITION: 'El estado de la solicitud cambió. Actualiza y revisa las acciones disponibles.',
     SUBSCRIPTION_REQUEST_CONFLICT: 'La solicitud cambió mientras la revisabas. Actualiza los datos antes de continuar.',
     COMMERCIAL_DOCUMENTS_REQUIRED: 'Adjunta cotización aceptada, orden de compra y factura antes de programar o ejecutar.',

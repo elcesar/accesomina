@@ -1,12 +1,21 @@
 import { withTenant } from './db.js';
 
-const commercial = ['read','commercial','requests.create','requests.review','requests.approve','requests.reject','requests.schedule','requests.cancel','requests.documents'];
-const operations = ['read','operations','requests.execute','services.manage'];
+const readOnly = Object.freeze(['read']);
+const globalAdministration = Object.freeze([
+ 'read','catalog','governance','catalog.manage','operators.manage','policies.manage',
+ 'commercial','requests.create','requests.review','requests.approve','requests.reject',
+ 'requests.schedule','requests.cancel','requests.documents','requests.execute','services.manage',
+ 'suspensions.suspend','suspensions.reactivate'
+]);
+
+// Commercial and operations profiles are deliberately view-only. Contract, plan,
+// service and non-payment decisions stay with the Nexo Klar global administrator.
 export const SUBSCRIPTION_ADMIN_CAPABILITIES = Object.freeze({
- SUPER_ADMIN: Object.freeze([...new Set(['read','catalog','governance','catalog.manage','operators.manage','policies.manage',...commercial,...operations])]),
- COMMERCIAL: Object.freeze(commercial), OPERATIONS: Object.freeze(operations)
+ SUPER_ADMIN: globalAdministration,
+ COMMERCIAL: readOnly,
+ OPERATIONS: readOnly
 });
-function denied() { return Object.assign(new Error('No tienes autorización para administrar suscripciones.'),{status:403,code:'SUBSCRIPTION_PERMISSION_DENIED'}); }
+function denied() { return Object.assign(new Error('Sólo el Administrador de Nexo Klar puede realizar esta acción de suscripción.'),{status:403,code:'SUBSCRIPTION_PERMISSION_DENIED'}); }
 
 export async function resolveSubscriptionAccess(client,{tenantId,userId}) {
  if(!tenantId||!userId)throw denied();

@@ -19,6 +19,26 @@ const ERASURE_REASONS = { solicitud_cliente: 'Solicitud del cliente', cuenta_pru
 const pendingFiles = value => Number.isInteger(value) && value >= 0 ? value : null
 const cleanupComplete = result => result?.cleanupPending === false && pendingFiles(result.filesPending) === 0
 const pendingDescription = count => pendingFiles(count) === null ? 'Cantidad de archivos por confirmar' : `${number(count)} ${count === 1 ? 'archivo pendiente' : 'archivos pendientes'}`
+const tenantCreationRequestKey = () => `tenant-create:${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
+const emptyNewCompany = { companyName: '', rut: '', phone: '', adminName: '', email: '', planCode: 'FREE', packageQuantities: {} }
+const currentPublishedPlans = catalog => {
+  const newest = new Map()
+  for (const plan of catalog?.plans || []) {
+    if (plan.state !== 'PUBLISHED' || plan.active === false) continue
+    const previous = newest.get(plan.code)
+    if (!previous || Number(plan.version || 0) > Number(previous.version || 0)) newest.set(plan.code, plan)
+  }
+  return [...newest.values()].sort((left, right) => Number(left.displayOrder || 0) - Number(right.displayOrder || 0))
+}
+const currentPublishedPackages = catalog => {
+  const newest = new Map()
+  for (const item of catalog?.packages || []) {
+    if (item.state !== 'PUBLISHED' || item.active === false) continue
+    const previous = newest.get(item.code)
+    if (!previous || Number(item.version || 0) > Number(previous.version || 0)) newest.set(item.code, item)
+  }
+  return [...newest.values()].sort((left, right) => Number(left.displayOrder || 0) - Number(right.displayOrder || 0))
+}
 
 function controlForm(data) {
   const profile = data.profile || {}; const defaults = data.planDefaults?.[profile.plan_code || 'esencial'] || {}
@@ -43,8 +63,10 @@ export default function AdministracionClientesPage() {
   const [tenantToErase, setTenantToErase] = useState(null); const [erasureConfirmation, setErasureConfirmation] = useState(''); const [erasureReason, setErasureReason] = useState(''); const [erasing, setErasing] = useState('')
   const [cleanups, setCleanups] = useState([]); const [cleanupsLoading, setCleanupsLoading] = useState(true); const [cleanupError, setCleanupError] = useState(''); const [cleanupMessage, setCleanupMessage] = useState('')
   const [tenantLoadError, setTenantLoadError] = useState(''); const [retryingCleanup, setRetryingCleanup] = useState('')
+  const [subscriptionCatalog, setSubscriptionCatalog] = useState(null); const [newCompany, setNewCompany] = useState(emptyNewCompany)
+  const [creatingCompany, setCreatingCompany] = useState(false); const [newCompanyError, setNewCompanyError] = useState(''); const [createdCompany, setCreatedCompany] = useState(null)
   const [erasureError, setErasureError] = useState(''); const [erasureUncertain, setErasureUncertain] = useState(false); const [erasureFieldError, setErasureFieldError] = useState(false)
-  const erasureRunning = useRef(false); const cleanupRunning = useRef(false); const loadSequence = useRef(0); const erasureDialogRef = useRef(null); const erasureConfirmationRef = useRef(null); const cleanupHeadingRef = useRef(null)
+  const erasureRunning = useRef(false); const cleanupRunning = useRef(false); const loadSequence = useRef(0); const tenantCreationRequest = useRef(null); const erasureDialogRef = useRef(null); const erasureConfirmationRef = useRef(null); const cleanupHeadingRef = useRef(null)
   const isNexoAdmin = session?.user?.role === 'domian_admin'
 
   const load = async ({ preserveMessage = false } = {}) => {
@@ -52,13 +74,15 @@ export default function AdministracionClientesPage() {
     const sequence = ++loadSequence.current
     setLoading(true); setCleanupsLoading(true); setTenantLoadError(''); setCleanupError('')
     if (!preserveMessage) { setMessage(''); setCleanupMessage('') }
-    const [tenantResult, cleanupResult] = await Promise.allSettled([api.get('/tenants'), api.get('/tenants/erasure-cleanups')])
-    const snapshot = { tenants: tenantResult.status === 'fulfilled' && Array.isArray(tenantResult.value) ? tenantResult.value : null, cleanups: cleanupResult.status === 'fulfilled' && Array.isArray(cleanupResult.value) ? cleanupResult.value : null }
+    const [tenantResult, cleanupResult, catalogResult] = await Promise.allSettled([api.get('/tenants'), api.get('/tenants/erasure-cleanups'), api.get('/subscriptions/admin/catalog')])
+    const snapshot = { tenants: tenantResult.status === 'fulfilled' && Array.isArray(tenantResult.value) ? tenantResult.value : null, cleanups: cleanupResult.status === 'fulfilled' && Array.isArray(cleanupResult.value) ? cleanupResult.value : null, catalog: catalogResult.status === 'fulfilled' ? catalogResult.value : null }
     if (sequence === loadSequence.current) {
       if (snapshot.tenants) setTenants(snapshot.tenants)
       else setTenantLoadError('No fue posible actualizar las empresas. Reintenta la actualización para confirmar su estado.')
       if (snapshot.cleanups) setCleanups(snapshot.cleanups)
       else setCleanupError('No fue posible actualizar las limpiezas pendientes. El último listado puede estar desactualizado. Reintenta la actualización.')
+      if (snapshot.catalog) setSubscriptionCatalog(snapshot.catalog)
+      else setNewCompanyError('No fue posible cargar el catálogo vigente. Reintenta antes de crear una empresa.')
       setLoading(false); setCleanupsLoading(false)
     }
     return snapshot
@@ -80,6 +104,49 @@ export default function AdministracionClientesPage() {
     return () => { document.removeEventListener('keydown', keydown); if (opener?.isConnected) opener.focus(); else cleanupHeadingRef.current?.focus() }
   }, [tenantToErase])
   const setValue = (key, value) => setForm(current => ({ ...current, [key]: value }))
+  const setNewCompanyValue = (key, value) => setNewCompany(current => ({ ...current, [key]: value }))
+  const createCompany = event => {
+    event.preventDefault(); if (creatingCompany) return
+    const plans = currentPublishedPlans(subscriptionCatalog), selectedPlan = plans.find(plan => plan.code === newCompany.planCode)
+    if (!selectedPlan) { setNewCompanyError('Selecciona un plan vigente antes de crear la empresa.'); return }
+    const selectedPackages = []
+    if (selectedPlan.code === 'PUERTO_OCTAY') for (const item of currentPublishedPackages(subscriptionCatalog)) {
+      const raw = newCompany.packageQuantities?.[item.code]
+      if (raw === undefined || raw === '') continue
+      const quantity = Number(raw)
+      if (!Number.isInteger(quantity) || quantity < 0 || quantity > Number(item.maxQuantity || 0)) { setNewCompanyError('Revisa las cantidades de paquetes seleccionadas.'); return }
+      if (quantity > 0) selectedPackages.push({ code: item.code, quantity, versionId: item.versionId })
+    }
+    if (newCompany.companyName.trim().length < 3 || newCompany.adminName.trim().length < 3 || !/^\S+@\S+\.\S+$/.test(newCompany.email.trim())) {
+      setNewCompanyError('Completa la empresa, el administrador y un correo válido.'); return
+    }
+    const paid = selectedPlan.code !== 'FREE'
+    const preparedPayload = {
+      companyName: newCompany.companyName.trim(), rut: newCompany.rut.trim(), phone: newCompany.phone.trim(),
+      adminName: newCompany.adminName.trim(), email: newCompany.email.trim(),
+      initialPlan: paid ? { planCode: selectedPlan.code, versionId: selectedPlan.versionId, packages: selectedPackages } : { planCode: 'FREE' }
+    }
+    confirmation.ask({
+      title: paid ? 'Crear empresa pendiente de contratación' : 'Crear empresa Free',
+      description: paid ? 'Se creará la empresa con ' + selectedPlan.name + '. Quedará pendiente: no tendrá acceso ni recibirá invitación hasta que la contratación sea revisada, documentada, programada y ejecutada.' : 'Se creará la empresa con Free durante 6 meses. Al terminar se mostrará la credencial temporal sólo para que la entregues por un canal seguro.',
+      confirmLabel: paid ? 'Crear empresa pendiente' : 'Crear empresa Free',
+      onConfirm: async () => {
+        setCreatingCompany(true); setNewCompanyError(''); setCreatedCompany(null); setMessage('')
+        const payload = { ...preparedPayload, idempotencyKey: tenantCreationRequest.current || (tenantCreationRequest.current = tenantCreationRequestKey()) }
+        try {
+          const result = await api.post('/tenants', payload, { feedback: false })
+          setCreatedCompany(result); setNewCompany(emptyNewCompany); tenantCreationRequest.current = null
+          if (result?.idempotentReplay) {
+            setMessage(result.accessRecoveryRequired
+              ? 'La empresa ya se había creado en un intento anterior. Por seguridad no se vuelve a mostrar la credencial temporal: usa Restablecer acceso si debes entregarle un nuevo acceso al administrador.'
+              : 'La empresa ya se había creado en un intento anterior. Recuperamos su resultado sin duplicar la contratación inicial.')
+          } else setMessage(paid ? 'Empresa creada como pendiente. La contratación inicial quedó registrada para revisión comercial, cotización, documentos, programación y ejecución.' : 'Empresa Free creada y disponible para iniciar su configuración.')
+          await load({ preserveMessage: true })
+        } catch (error) { setNewCompanyError(error.message || 'No fue posible crear la empresa. Ningún acceso ni contratación fue activado.') }
+        finally { setCreatingCompany(false) }
+      }
+    })
+  }
 
   const changeStatus = async (tenant, status) => {
     const action = status === 'active' ? 'activar' : 'suspender'
@@ -184,10 +251,30 @@ export default function AdministracionClientesPage() {
 
   if (!isNexoAdmin) return <section className="nk-module-page nk-admin-clients-page"><header className="nk-module-header"><div><h1>Administración de clientes</h1><p>Este módulo está disponible únicamente para Administración Nexo Klar.</p></div></header></section>
   const visible = tenants.filter(tenant => !tenant.is_domian_admin)
+  const selectablePlans = currentPublishedPlans(subscriptionCatalog)
+  const selectablePackages = currentPublishedPackages(subscriptionCatalog)
+  const selectedInitialPlan = selectablePlans.find(plan => plan.code === newCompany.planCode)
   return <section className="nk-module-page nk-admin-clients-page">
     <header className="nk-module-header"><div><h1>Administración de clientes</h1><p>Gestiona cuentas, planes, adopción, soporte y continuidad de cada empresa.</p></div><ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary" onClick={() => load()} disabled={loading || Boolean(erasing) || Boolean(retryingCleanup)}><IconRefresh size={16} />{loading ? 'Actualizando…' : 'Actualizar'}</ActionButton></header>
     {message && <p className="nk-form-message" role="status">{message}</p>}
     {tenantLoadError && <p className="nk-field-error" role="alert">{tenantLoadError}</p>}
+    <section className="nk-module-card nk-admin-clients-card" aria-labelledby="new-company-title">
+      <header className="nk-admin-clients-card-head"><div><h2 id="new-company-title">Crear empresa y seleccionar plan inicial</h2><p>Free queda disponible para configurar. Un plan pagado crea una contratación inicial pendiente: no habilita acceso ni envía una invitación hasta que Comercial y Operaciones la revisen, documenten, programen y ejecuten.</p></div></header>
+      <form className="nk-admin-control-form" onSubmit={createCompany}>
+        <div className="nk-form-grid">
+          <label><span>Razón social</span><input className="nk-input" value={newCompany.companyName} onChange={event => setNewCompanyValue('companyName', event.target.value)} autoComplete="organization" disabled={creatingCompany} required /></label>
+          <label><span>RUT de empresa</span><input className="nk-input" value={newCompany.rut} onChange={event => setNewCompanyValue('rut', event.target.value)} autoComplete="off" disabled={creatingCompany} required /></label>
+          <label><span>Nombre del administrador</span><input className="nk-input" value={newCompany.adminName} onChange={event => setNewCompanyValue('adminName', event.target.value)} autoComplete="name" disabled={creatingCompany} required /></label>
+          <label><span>Correo del administrador</span><input className="nk-input" type="email" value={newCompany.email} onChange={event => setNewCompanyValue('email', event.target.value)} autoComplete="email" disabled={creatingCompany} required /></label>
+          <label><span>Teléfono</span><input className="nk-input" value={newCompany.phone} onChange={event => setNewCompanyValue('phone', event.target.value)} autoComplete="tel" disabled={creatingCompany} required /></label>
+          <label><span>Plan inicial</span><select className="nk-input" value={newCompany.planCode} onChange={event => setNewCompany(current => ({ ...current, planCode: event.target.value, packageQuantities: {} }))} disabled={creatingCompany || !selectablePlans.length} required>{selectablePlans.map(plan => <option key={plan.versionId} value={plan.code}>{plan.name} · {plan.code === 'FREE' ? '6 meses sin costo' : 'contratación comercial'}</option>)}</select></label>{selectedInitialPlan?.code === 'PUERTO_OCTAY' && selectablePackages.map(item => <label key={item.versionId}><span>{item.name} (opcional, máximo {item.maxQuantity})</span><input className="nk-input" type="number" min="0" max={item.maxQuantity} step="1" placeholder="0" value={newCompany.packageQuantities?.[item.code] ?? ''} onChange={event => setNewCompany(current => ({ ...current, packageQuantities: { ...current.packageQuantities, [item.code]: event.target.value } }))} disabled={creatingCompany} /></label>)}
+        </div>
+        {selectedInitialPlan && <p className="nk-form-message" role="status">{selectedInitialPlan.code === 'FREE' ? 'Se aplicará Free desde el catálogo vigente. Podrás entregar las credenciales de configuración al finalizar.' : 'Se usará la versión vigente de ' + selectedInitialPlan.name + '. El servidor fijará precio, cupos y condiciones; este formulario no los puede modificar.'}</p>}
+        {newCompanyError && <p className="nk-field-error" role="alert">{newCompanyError}</p>}
+        <footer className="nk-dialog-footer"><ActionButton className="nk-button nk-button-primary" type="submit" disabled={creatingCompany || !subscriptionCatalog || !selectablePlans.length} disabledReason={!subscriptionCatalog ? 'Espera a que cargue el catálogo vigente.' : 'Espera mientras se crea la empresa.'}>{creatingCompany ? 'Creando empresa…' : 'Crear empresa'}</ActionButton></footer>
+      </form>
+      {createdCompany && <section className="nk-admin-cleanups-body" aria-live="polite"><strong>{createdCompany.tenant?.company_name || 'Empresa'} registrada.</strong>{createdCompany.initialPlan?.planCode === 'FREE' && createdCompany.temporaryPassword && <p>Contraseña temporal del administrador: <code>{createdCompany.temporaryPassword}</code>. Entrégala por un canal seguro; deberá cambiarse en el primer ingreso.</p>}{createdCompany.initialPlan?.planCode !== 'FREE' && <><p>La cuenta continúa pendiente y no se notificó al administrador. Completa primero la contratación inicial.</p><Link className="nk-button nk-button-secondary" to={'/app/administracion-planes?empresa=' + createdCompany.tenant?.id}>Abrir contratación inicial</Link></>}</section>}
+    </section>
     <section className="nk-module-card nk-admin-clients-card nk-admin-cleanups" aria-labelledby="tenant-erasure-cleanups-title">
       <header className="nk-admin-clients-card-head"><div><h2 ref={cleanupHeadingRef} tabIndex={-1} id="tenant-erasure-cleanups-title">Limpiezas de archivos pendientes</h2><p>Las cuentas y sus datos ya fueron eliminados. Estas referencias permiten completar la eliminación de archivos, incluso después de volver a ingresar.</p></div></header>
       <div className="nk-admin-cleanups-body">
@@ -200,7 +287,7 @@ export default function AdministracionClientesPage() {
       </div>
     </section>
     <section className="nk-module-card nk-admin-clients-card"><header className="nk-admin-clients-card-head"><div><h2>Empresas usuarias</h2><p>El detalle de cada cuenta mantiene separado su control comercial, acceso y soporte.</p></div></header><div className="nk-table-wrapper nk-admin-clients-table-wrap"><table className="nk-table nk-admin-clients-table"><caption className="nk-visually-hidden">Administración de clientes</caption><thead><tr><th scope="col">Empresa</th><th scope="col">Plan y adopción</th><th scope="col">Administrador</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead><tbody>
-      {loading ? <tr><td colSpan="5">Cargando empresas…</td></tr> : visible.length ? visible.map(tenant => <tr key={tenant.id}><td><strong>{tenant.company_name}</strong><small>{tenant.rut || 'Sin RUT registrado'}</small></td><td><strong>{tenant.subscription_managed ? 'Suscripción parametrizada' : tenant.plan_code || 'Condiciones actuales'}</strong><small>Paso {tenant.onboarding_step || 1}/7 · {tenant.active_users || 0} usuarios activos</small></td><td>{tenant.admin_email || '—'}<small>{tenant.active_sessions || 0} sesiones activas</small></td><td><span className={`nk-admin-clients-status ${tenant.status || ''}`}>{STATUS[tenant.status] || tenant.status || 'Sin estado'}</span></td><td><div className="nk-admin-clients-actions"><button className="nk-button nk-button-secondary nk-button-sm" onClick={() => openControl(tenant)}><IconSettings size={14} />Gestionar</button>{['pending', 'suspended'].includes(tenant.status) && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary nk-button-sm" disabled={changing === tenant.id} onClick={() => confirmation.ask({title:'Activar cuenta',description:`Se activará la cuenta de ${tenant.company_name}. El servidor puede notificar al administrador por correo.`,confirmLabel:'Activar cuenta',onConfirm:()=>changeStatus(tenant,'active')})}>{changing === tenant.id ? 'Activando…' : 'Activar'}</ActionButton>}{tenant.status === 'active' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={changing === tenant.id} onClick={() => confirmation.ask({title:'Suspender cuenta',description:`Se suspenderá la cuenta de ${tenant.company_name} y se bloqueará su acceso.`,confirmLabel:'Suspender cuenta',variant:'danger',onConfirm:()=>changeStatus(tenant,'suspended')})}>{changing === tenant.id ? 'Suspendiendo…' : 'Suspender'}</ActionButton>}{tenant.status === 'suspended' && <button className="nk-button nk-button-danger nk-button-sm" onClick={() => openErasure(tenant)}>Eliminar datos</button>}{tenant.status !== 'deleted' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={resetting === tenant.id} onClick={() => confirmation.ask({title:'Restablecer acceso del administrador',description:`Se restablecerá el acceso del administrador de ${tenant.company_name}. Las sesiones activas se cerrarán.`,confirmLabel:'Restablecer acceso',variant:'danger',onConfirm:()=>resetAdminAccess(tenant)})}><IconKey size={14} />{resetting === tenant.id ? 'Restableciendo…' : 'Restablecer acceso'}</ActionButton>}{tenant.status !== 'deleted' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-danger nk-button-sm" disabled={deleting === tenant.id} onClick={() => confirmation.ask({title:'Eliminar cuenta de cliente',description:`Se eliminará la cuenta de ${tenant.company_name} y se bloquearán sus accesos.`,confirmLabel:'Eliminar cuenta',variant:'danger',onConfirm:()=>deleteTenant(tenant)})}>{deleting === tenant.id ? 'Eliminando…' : 'Eliminar'}</ActionButton>}</div></td></tr>) : <tr><td colSpan="5" className="nk-admin-clients-empty"><EmptyState title="Todavía no hay empresas usuarias registradas." /></td></tr>}
+      {loading ? <tr><td colSpan="5">Cargando empresas…</td></tr> : visible.length ? visible.map(tenant => <tr key={tenant.id}><td><strong>{tenant.company_name}</strong><small>{tenant.rut || 'Sin RUT registrado'}</small></td><td><strong>{tenant.subscription_managed ? 'Suscripción parametrizada' : tenant.plan_code || 'Condiciones actuales'}</strong><small>Paso {tenant.onboarding_step || 1}/7 · {tenant.active_users || 0} usuarios activos</small></td><td>{tenant.admin_email || '—'}<small>{tenant.active_sessions || 0} sesiones activas</small></td><td><span className={`nk-admin-clients-status ${tenant.status || ''}`}>{STATUS[tenant.status] || tenant.status || 'Sin estado'}</span></td><td><div className="nk-admin-clients-actions"><button className="nk-button nk-button-secondary nk-button-sm" onClick={() => openControl(tenant)}><IconSettings size={14} />Gestionar</button>{tenant.initialSubscriptionStatus && tenant.initialSubscriptionStatus !== 'EXECUTED' ? <Link className="nk-button nk-button-secondary nk-button-sm" to={'/app/administracion-planes?empresa=' + tenant.id}>Continuar contratación</Link> : <>{['pending', 'suspended'].includes(tenant.status) && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-primary nk-button-sm" disabled={changing === tenant.id} onClick={() => confirmation.ask({title:'Activar cuenta',description:`Se activará la cuenta de ${tenant.company_name}. El servidor puede notificar al administrador por correo.`,confirmLabel:'Activar cuenta',onConfirm:()=>changeStatus(tenant,'active')})}>{changing === tenant.id ? 'Activando…' : 'Activar'}</ActionButton>}</>}{tenant.status === 'active' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={changing === tenant.id} onClick={() => confirmation.ask({title:'Suspender cuenta',description:`Se suspenderá la cuenta de ${tenant.company_name} y se bloqueará su acceso.`,confirmLabel:'Suspender cuenta',variant:'danger',onConfirm:()=>changeStatus(tenant,'suspended')})}>{changing === tenant.id ? 'Suspendiendo…' : 'Suspender'}</ActionButton>}{tenant.status === 'suspended' && <button className="nk-button nk-button-danger nk-button-sm" onClick={() => openErasure(tenant)}>Eliminar datos</button>}{tenant.status !== 'deleted' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-secondary nk-button-sm" disabled={resetting === tenant.id} onClick={() => confirmation.ask({title:'Restablecer acceso del administrador',description:`Se restablecerá el acceso del administrador de ${tenant.company_name}. Las sesiones activas se cerrarán.`,confirmLabel:'Restablecer acceso',variant:'danger',onConfirm:()=>resetAdminAccess(tenant)})}><IconKey size={14} />{resetting === tenant.id ? 'Restableciendo…' : 'Restablecer acceso'}</ActionButton>}{tenant.status !== 'deleted' && <ActionButton disabledReason="Espera mientras se completa la operación en curso." className="nk-button nk-button-danger nk-button-sm" disabled={deleting === tenant.id} onClick={() => confirmation.ask({title:'Eliminar cuenta de cliente',description:`Se eliminará la cuenta de ${tenant.company_name} y se bloquearán sus accesos.`,confirmLabel:'Eliminar cuenta',variant:'danger',onConfirm:()=>deleteTenant(tenant)})}>{deleting === tenant.id ? 'Eliminando…' : 'Eliminar'}</ActionButton>}</div></td></tr>) : <tr><td colSpan="5" className="nk-admin-clients-empty">No hay empresas usuarias registradas.</td></tr>}
     </tbody></table></div></section>
     {tenantToErase && <div className="nk-dialog-backdrop" role="presentation"><section ref={erasureDialogRef} className="nk-dialog nk-admin-erasure-dialog" role="dialog" aria-modal="true" aria-labelledby="tenant-erasure-title" aria-busy={Boolean(erasing)}><form className="nk-admin-erasure-form" onSubmit={eraseTenant}>
       <header><h2 id="tenant-erasure-title">Eliminar cuenta y datos definitivamente</h2><p>Se eliminarán usuarios, registros, archivos, configuraciones e integraciones de {tenantToErase.company_name}. Esta acción no se puede deshacer. Si quedan archivos pendientes, podrás continuar su limpieza desde esta pantalla.</p></header>

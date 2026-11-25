@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 const allCapabilities = ['read', 'catalog.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage', 'operators.manage', 'policies.manage']
-const profileCapabilities = { SUPER_ADMIN: allCapabilities, COMMERCIAL: allCapabilities.filter(value => value === 'read' || value.startsWith('requests.') && value !== 'requests.execute'), OPERATIONS: ['read', 'requests.execute', 'services.manage'] }
+const profileCapabilities = { SUPER_ADMIN: allCapabilities, COMMERCIAL: ['read'], OPERATIONS: ['read'] }
 const catalogFixture = () => ({
   plans: [['FREE', 'Free', 15, 0], ['LA_UNION', 'La Unión', 60, 1000], ['PURRANQUE', 'Purranque', 180, 2000], ['FRUTILLAR', 'Frutillar', 360, 3000], ['PUERTO_OCTAY', 'Puerto Octay', 720, 4000]].map(([code, name, workerLimit, monthlyPrice], index) => ({ code, name, workerLimit, monthlyPrice, versionId: `${code}-1`, isFree: code === 'FREE', trialMonths: code === 'FREE' ? 6 : 0, currency: 'CLP', taxRate: .19, state: 'PUBLISHED', active: true, publicVisible: true, displayOrder: index + 10, description: `Descripción vigente de ${name}`, publicFeatures: [`Beneficio configurado ${name}`], ctaText: code === 'FREE' ? 'Comenzar gratis' : `Solicitar ${name}`, allowedUpgradeTargets: [['LA_UNION'], ['PURRANQUE'], ['FRUTILLAR'], ['PUERTO_OCTAY'], []][index], graceDays: code === 'FREE' ? 0 : 30, warningPercent: 80, criticalPercent: 90 })),
   packages: [100, 200, 500].map((quantity, index) => ({ code: `EXTRA_${quantity}`, name: `Paquete ${quantity}`, workersQuantity: quantity, monthlyPrice: [50000, 100000, 300000][index], versionId: `EXTRA_${quantity}-1`, state: 'PUBLISHED', active: true, displayOrder: index, currency: 'CLP', taxRate: .19, repeatable: false, stackable: true, maxQuantity: 1 })),
@@ -162,12 +162,13 @@ for (const width of [375, 1440]) test.skip(`comparación pública suspendida has
   await openEditor(page, 'Purranque'); await expect(page.getByLabel('Beneficios públicos', { exact: true })).toBeVisible(); await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
 
-for (const profile of ['COMMERCIAL', 'OPERATIONS']) test(`perfil${profile} sólo ofrece acciones autorizadas`, async ({ page }) => {
-  const summary = summaryFixture(); summary.requests = [{ id: 'qa-request', type: 'UPGRADE', planCode: 'FRUTILLAR', status: profile === 'OPERATIONS' ? 'SCHEDULED' : 'REQUESTED', documents: {}, proposal: { plan: catalogFixture().plans[3] }, workersAtRequest: 12 }]
+for (const profile of ['COMMERCIAL', 'OPERATIONS']) test(`perfil ${profile} conserva sólo lectura comercial`, async ({ page }) => {
+  const summary = summaryFixture(); summary.requests = [{ id: 'qa-request', type: 'UPGRADE', planCode: 'FRUTILLAR', status: 'REQUESTED', documents: {}, proposal: { plan: catalogFixture().plans[3] }, workersAtRequest: 12 }]
   const state = await fixture(page, { role: 'rrhh', profile, summary }); await page.goto('/app/administracion-planes?empresa=company-qa')
-  await expect(page.getByRole('heading', { name: 'Empresa QA', exact: true })).toBeVisible(); const action = page.getByLabel('Acción autorizada'); await expect(action).toHaveValue(profile === 'COMMERCIAL' ? 'review' : 'execute')
-  await expect(action.locator(`option[value=${profile === 'COMMERCIAL' ? 'execute' : 'review'}]`)).toHaveCount(0); await expect(page.getByText('Crear solicitud de contratación o cambio', { exact: true })).toHaveCount(profile === 'COMMERCIAL' ? 1 : 0)
-  await expect(page.getByText('Contrataciones independientes', { exact: true })).toHaveCount(profile === 'OPERATIONS' ? 1 : 0)
+  await expect(page.getByRole('heading', { name: 'Empresa QA', exact: true })).toBeVisible()
+  await expect(page.getByLabel('Acción autorizada')).toHaveCount(0)
+  await expect(page.getByText('Crear solicitud de contratación o cambio', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Contrataciones independientes', { exact: true })).toHaveCount(0)
   await page.goto('/app/administracion-planes?vista=catalogo'); const edit = page.getByRole('button', { name: 'Editar Purranque', exact: true }); await expect(edit).toBeDisabled(); await edit.evaluate(button => { button.disabled = false; button.click() })
   await expect(page.getByLabel('Precio mensual neto CLP', { exact: true })).toHaveCount(0); expect(state.calls.filter(item => item.path.endsWith('/catalog') && item.method === 'POST')).toHaveLength(0)
 })
