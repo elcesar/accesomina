@@ -6,7 +6,7 @@ async function fixture(page, { profile = 'SUPER_ADMIN', capped = false, policies
     { userId: 'self', name: 'Responsable QA', email: 'responsable@ejemplo.test', role: 'domian_admin', active: true, profile: null },
     { userId: 'delegated', name: 'Persona QA', email: 'persona@ejemplo.test', role: 'consulta', active: true, profile: null },
   ], policies: capped ? Array.from({ length: 200 }, (_, index) => ({ id: `cancel-${203 - index}`, kind: 'CANCELLATION', version: 203 - index, status: 'DRAFT', noticeDays: null, retentionDays: null, reference: '', reason: 'Versión histórica QA' })) : [], latestVersions: { CANCELLATION: capped ? 203 : 0, RETENTION: capped ? 7 : 0 } }
-  const capabilities = profile === 'SUPER_ADMIN' ? allCapabilities : ['read', 'commercial', 'requests.review', 'requests.approve', 'requests.documents']
+  const capabilities = profile === 'SUPER_ADMIN' ? allCapabilities : ['read']
   await page.route('**/api/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method()
     const payload = request.postData() && request.headers()['content-type']?.includes('application/json') ? request.postDataJSON() : null

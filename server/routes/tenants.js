@@ -1,11 +1,12 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { pool, query, withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
 import { allowRoles } from '../middleware.js';
-import { hashPassword, isValidRut, normalizeEmail, normalizeRut, randomToken } from '../security.js';
+import { hashPassword, isValidRut, normalizeEmail, normalizeRut, randomToken, sha256 } from '../security.js';
 import { tenantErasureService } from '../tenant-erasure-service.js';
 import { deliverAccountApproval } from '../account-approval-email.js';
-import { activateInitialSubscription, lockSubscriptionTenant } from '../subscriptions.js';
+import { activateInitialSubscription, createSubscriptionRequest, lockSubscriptionTenant } from '../subscriptions.js';
 
 export const tenantsRouter=Router();
 tenantsRouter.use(allowRoles('domian_admin'));
@@ -15,13 +16,113 @@ const text=value=>String(value??'').trim();
 const date=value=>value?String(value).slice(0,10):null;
 const safeStatus=['al_dia','por_vencer','vencido','cortesia'];
 const safeLifecycle=['activo','cortesia','suspension_programada','solo_lectura','baja_programada','cerrado'];
+const initialPackageSchema=z.object({code:z.enum(['EXTRA_100','EXTRA_200','EXTRA_500']),quantity:z.number().int().min(1).max(1000),versionId:z.string().uuid()}).strict();
+const initialPlanSchema=z.object({planCode:z.enum(['FREE','LA_UNION','PURRANQUE','FRUTILLAR','PUERTO_OCTAY']).default('FREE'),versionId:z.string().uuid().optional(),packages:z.array(initialPackageSchema).max(3).default([])}).strict();
+const tenantInputError=(code,message,status=400)=>Object.assign(new Error(message),{code,status});
+const tenantCreationIdempotencyKey=value=>text(value);
+const validTenantCreationIdempotencyKey=value=>/^[A-Za-z0-9][A-Za-z0-9._:-]{7,191}$/.test(value);
+const canonicalInitialPlan=plan=>({
+ planCode:plan.planCode,
+ versionId:plan.versionId||null,
+ packages:[...(plan.packages||[])].map(item=>({code:item.code,quantity:item.quantity,versionId:item.versionId})).sort((left,right)=>
+  `${left.code}:${left.versionId}:${left.quantity}`.localeCompare(`${right.code}:${right.versionId}:${right.quantity}`))
+});
+const tenantCreationPayloadHash=({companyName,rut,adminName,email,phone,initialPlan})=>sha256(JSON.stringify({
+ companyName,rut:normalizeRut(rut),adminName,email,phone,initialPlan:canonicalInitialPlan(initialPlan)
+}));
+function initialPlanSelection(value){
+ let plan;
+ try{plan=initialPlanSchema.parse(value===undefined?{planCode:'FREE'}:value);}catch{throw tenantInputError('INITIAL_PLAN_INVALID','Revisa el plan inicial seleccionado.');}
+ if(plan.planCode==='FREE'){
+  if(plan.versionId||plan.packages.length)throw tenantInputError('INITIAL_PLAN_INVALID','Free no admite versión ni paquetes durante el alta.');
+  return {planCode:'FREE',packages:[]};
+ }
+ if(!plan.versionId)throw tenantInputError('INITIAL_PLAN_VERSION_REQUIRED','Selecciona una versión vigente del plan pagado.');
+ return plan;
+}
 
 async function tenantOr404(id,res){const row=(await query('SELECT id,company_name,rut,admin_email,phone,status,is_domian_admin,subscription_managed,created_at,updated_at FROM tenants WHERE id=$1',[id])).rows[0];if(!row){res.status(404).json({error:'TENANT_NOT_FOUND'});return null;}return row;}
 function controlPayload(body={}){const planCode=text(body.planCode||'esencial'),defaults=plans[planCode];if(!defaults)return null;return {planCode,monthlyPriceClp:Math.max(0,Number(body.monthlyPriceClp)||0),setupPriceClp:Math.max(0,Number(body.setupPriceClp)||0),includedUsers:Math.max(1,Number(body.includedUsers)||defaults.users),includedWorkers:Math.max(0,Number(body.includedWorkers)||defaults.workers),storageLimitMb:Math.max(0,Number(body.storageLimitMb)||defaults.storage),enabledModules:Array.isArray(body.enabledModules)?body.enabledModules.slice(0,100):[],paymentStatus:text(body.paymentStatus||'cortesia'),renewalDate:date(body.renewalDate),discountPercent:Math.max(0,Math.min(100,Number(body.discountPercent)||0)),billingContact:text(body.billingContact).slice(0,200),accountOwner:text(body.accountOwner).slice(0,200),lifecycleStatus:text(body.lifecycleStatus||'activo'),suspensionReason:text(body.suspensionReason).slice(0,1000),graceUntil:date(body.graceUntil),readOnlyUntil:date(body.readOnlyUntil),offboardingAt:date(body.offboardingAt),onboardingStep:Math.max(1,Math.min(7,Number(body.onboardingStep)||1)),onboardingCompleted:body.onboardingCompleted===true,notes:text(body.notes).slice(0,5000)};}
 
-tenantsRouter.get('/',async(req,res)=>{const tenants=(await query('SELECT id,company_name,rut,admin_email,phone,status,is_domian_admin,subscription_managed,created_at,updated_at FROM tenants ORDER BY is_domian_admin DESC,created_at DESC')).rows;const rows=await Promise.all(tenants.map(async tenant=>{const data=await withTenant(tenant.id,async client=>{const [profile,users,sessions,tickets]=await Promise.all([client.query('SELECT plan_code,payment_status,renewal_date,lifecycle_status,onboarding_step,onboarding_completed FROM tenant_commercial_profiles WHERE tenant_id=$1',[tenant.id]),client.query('SELECT count(*)::int AS active_users FROM app_users WHERE tenant_id=$1 AND active',[tenant.id]),client.query("SELECT count(*)::int AS active_sessions,max(last_seen_at) AS last_access_at FROM user_sessions WHERE tenant_id=$1 AND revoked_at IS NULL AND expires_at>now()",[tenant.id]),client.query("SELECT count(*)::int AS open_tickets FROM tenant_support_tickets WHERE tenant_id=$1 AND status NOT IN ('resuelto','cerrado')",[tenant.id])]);return {...(profile.rows[0]||{}),...users.rows[0],...sessions.rows[0],...tickets.rows[0]};});return {...tenant,...data};}));res.json(rows);});
+tenantsRouter.get('/',async(req,res)=>{const tenants=(await query('SELECT id,company_name,rut,admin_email,phone,status,is_domian_admin,subscription_managed,created_at,updated_at FROM tenants ORDER BY is_domian_admin DESC,created_at DESC')).rows;const rows=await Promise.all(tenants.map(async tenant=>{const data=await withTenant(tenant.id,async client=>{const [profile,users,sessions,tickets,initial]=await Promise.all([client.query('SELECT plan_code,payment_status,renewal_date,lifecycle_status,onboarding_step,onboarding_completed FROM tenant_commercial_profiles WHERE tenant_id=$1',[tenant.id]),client.query('SELECT count(*)::int AS active_users FROM app_users WHERE tenant_id=$1 AND active',[tenant.id]),client.query("SELECT count(*)::int AS active_sessions,max(last_seen_at) AS last_access_at FROM user_sessions WHERE tenant_id=$1 AND revoked_at IS NULL AND expires_at>now()",[tenant.id]),client.query("SELECT count(*)::int AS open_tickets FROM tenant_support_tickets WHERE tenant_id=$1 AND status NOT IN ('resuelto','cerrado')",[tenant.id]),client.query("SELECT status FROM subscription_requests WHERE tenant_id=$1 AND type='INITIAL' ORDER BY created_at DESC LIMIT 1",[tenant.id])]);return {...(profile.rows[0]||{}),...users.rows[0],...sessions.rows[0],...tickets.rows[0],initialSubscriptionStatus:initial.rows[0]?.status||null};});return {...tenant,...data};}));res.json(rows);});
 
-tenantsRouter.post('/',async(req,res)=>{const companyName=text(req.body.companyName),rut=text(req.body.rut),adminName=text(req.body.adminName),email=normalizeEmail(req.body.email),phone=text(req.body.phone);if(companyName.length<3||adminName.length<3||!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({error:'INVALID_TENANT_DATA'});if(!isValidRut(rut))return res.status(400).json({error:'INVALID_COMPANY_RUT'});const temporary=`${randomToken(12)}Aa1`,credentials=await hashPassword(temporary),client=await pool.connect();try{await client.query('BEGIN');const tenant=(await client.query(`INSERT INTO tenants(tenant_code,company_name,rut,admin_email,phone,status) VALUES($1,$2,$3,$4,$5,'active') RETURNING id,company_name,rut,status`,[normalizeRut(rut),companyName,rut,email,phone])).rows[0];await client.query("SELECT set_config('app.current_tenant_id',$1,true)",[tenant.id]);const user=(await client.query(`INSERT INTO app_users(tenant_id,email,full_name,role,password_hash,password_salt,must_change_password) VALUES($1,$2,$3,'client_admin',$4,$5,true) RETURNING id,email,full_name,role`,[tenant.id,email,adminName,credentials.hash,credentials.salt])).rows[0];const state={empresa:{nombre:companyName,rut,representante:adminName,email,tel:phone},minas:[],contratos:[],mantenciones:[],hoteles:[],firmas:[],callouts:[],trabajadores:[],asignaciones:[],hotelAsig:[],waGroups:[],contractTemplates:[],tenantUsers:[]};await client.query('INSERT INTO tenant_state(tenant_id,state,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify(state),user.id]);await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) AS e",[tenant.id,JSON.stringify(state),user.id]);await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:companyName,theme:'light',accent:'#e4006e'}),user.id]);await activateInitialSubscription(client,{tenantId:tenant.id,userId:req.auth.userId});await client.query("INSERT INTO tenant_commercial_profiles(tenant_id,plan_code,onboarding_step,onboarding_completed) VALUES($1,'esencial',1,false)",[tenant.id]);await appendAudit(client,{tenantId:tenant.id,userId:req.auth.userId,entityType:'tenant',entityId:tenant.id,action:'tenant.created_by_domian_admin',newValue:{companyName,rut,adminEmail:email,mfaRequired:true}});await client.query('COMMIT');res.status(201).json({tenant,user,temporaryPassword:temporary,mustChangePassword:true,mfaEnrollmentRequired:true});}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}});
+tenantsRouter.post('/',async(req,res)=>{
+ const companyName=text(req.body?.companyName),rut=text(req.body?.rut),adminName=text(req.body?.adminName),email=normalizeEmail(req.body?.email),phone=text(req.body?.phone);
+ let initialPlan;
+ try{initialPlan=initialPlanSelection(req.body?.initialPlan);}catch(error){return res.status(error.status||400).json({error:error.code||'INITIAL_PLAN_INVALID',message:error.message});}
+ if(companyName.length<3||adminName.length<3||!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({error:'INVALID_TENANT_DATA'});
+ if(!isValidRut(rut))return res.status(400).json({error:'INVALID_COMPANY_RUT'});
+ const rawIdempotencyKey=req.get('Idempotency-Key')??req.body?.idempotencyKey;
+ const idempotencyKey=tenantCreationIdempotencyKey(rawIdempotencyKey);
+ if(rawIdempotencyKey!==undefined&&rawIdempotencyKey!==null&&!validTenantCreationIdempotencyKey(idempotencyKey))return res.status(400).json({error:'TENANT_CREATION_IDEMPOTENCY_KEY_INVALID',message:'La clave de reintento debe tener entre 8 y 192 caracteres seguros.'});
+ const payloadHash=idempotencyKey?tenantCreationPayloadHash({companyName,rut,adminName,email,phone,initialPlan}):null;
+ const free=initialPlan.planCode==='FREE',client=await pool.connect();
+ let transactionOpen=false;
+ try{
+  await client.query('BEGIN');transactionOpen=true;
+  // The record is scoped to the authenticated platform administrator. This both
+  // prevents duplicate companies on a lost response and avoids exposing a prior
+  // response to another administrator.
+  if(idempotencyKey){
+   await client.query("SELECT set_config('app.current_tenant_id',$1,true)",[req.auth.tenantId]);
+   const claimed=await client.query(`INSERT INTO tenant_creation_idempotency(actor_tenant_id,actor_user_id,idempotency_key,payload_hash)
+     VALUES($1,$2,$3,$4) ON CONFLICT(actor_user_id,idempotency_key) DO NOTHING RETURNING actor_user_id`,[req.auth.tenantId,req.auth.userId,idempotencyKey,payloadHash]);
+   if(!claimed.rows.length){
+    const existing=(await client.query('SELECT payload_hash,response FROM tenant_creation_idempotency WHERE actor_user_id=$1 AND idempotency_key=$2 FOR UPDATE',[req.auth.userId,idempotencyKey])).rows[0];
+    if(!existing)throw tenantInputError('TENANT_CREATION_IDEMPOTENCY_UNAVAILABLE','No se pudo recuperar el resultado del alta. Reintenta.',409);
+    if(existing.payload_hash!==payloadHash){
+     await client.query('ROLLBACK');transactionOpen=false;
+     return res.status(409).json({error:'TENANT_CREATION_IDEMPOTENCY_CONFLICT',message:'La clave de reintento ya corresponde a otra alta. Genera una nueva solicitud antes de cambiar los datos.'});
+    }
+    if(!existing.response){
+     await client.query('ROLLBACK');transactionOpen=false;
+     return res.status(409).json({error:'TENANT_CREATION_IDEMPOTENCY_IN_PROGRESS',message:'El alta con esta clave aún se está completando. Espera unos segundos y reintenta.'});
+    }
+    await client.query('COMMIT');transactionOpen=false;
+    const response=typeof existing.response==='string'?JSON.parse(existing.response):existing.response;
+    return res.status(200).json({...response,idempotentReplay:true,accessRecoveryRequired:response.initialPlan?.planCode==='FREE'});
+   }
+  }
+  const temporary=free?`${randomToken(12)}Aa1`:null,credentials=free?await hashPassword(temporary):null;
+  const tenant=(await client.query(`INSERT INTO tenants(tenant_code,company_name,rut,admin_email,phone,status,subscription_managed)
+    VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,company_name,rut,status,subscription_managed`,[normalizeRut(rut),companyName,rut,email,phone,free?'active':'pending',!free])).rows[0];
+  await client.query("SELECT set_config('app.current_tenant_id',$1,true)",[tenant.id]);
+  const user=(await client.query(`INSERT INTO app_users(tenant_id,email,full_name,role,password_hash,password_salt,must_change_password)
+    VALUES($1,$2,$3,'client_admin',$4,$5,$6) RETURNING id,email,full_name,role`,[tenant.id,email,adminName,credentials?.hash||null,credentials?.salt||null,free])).rows[0];
+  const state={empresa:{nombre:companyName,rut,representante:adminName,email,tel:phone},minas:[],contratos:[],mantenciones:[],hoteles:[],firmas:[],callouts:[],trabajadores:[],asignaciones:[],hotelAsig:[],waGroups:[],contractTemplates:[],tenantUsers:[]};
+  await client.query('INSERT INTO tenant_state(tenant_id,state,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify(state),user.id]);
+  await client.query("INSERT INTO tenant_module_state(tenant_id,module_key,data,updated_by) SELECT $1,e.key,e.value,$3 FROM jsonb_each($2::jsonb) AS e",[tenant.id,JSON.stringify(state),user.id]);
+  await client.query('INSERT INTO tenant_settings(tenant_id,branding,updated_by) VALUES($1,$2::jsonb,$3)',[tenant.id,JSON.stringify({displayName:companyName,theme:'light',accent:'#e4006e'}),user.id]);
+  let subscriptionRequest=null;
+  if(free)await activateInitialSubscription(client,{tenantId:tenant.id,userId:req.auth.userId});
+  else subscriptionRequest=await createSubscriptionRequest(client,{tenantId:tenant.id,userId:req.auth.userId,asAdmin:true,input:{
+   type:'INITIAL',planCode:initialPlan.planCode,versionId:initialPlan.versionId,packages:initialPlan.packages,
+   reason:'Alta inicial seleccionada por Administración Nexo Klar.',idempotencyKey:`tenant-initial:${tenant.id}`
+  }});
+  await client.query("INSERT INTO tenant_commercial_profiles(tenant_id,plan_code,onboarding_step,onboarding_completed) VALUES($1,$2,1,false)",[tenant.id,free?'esencial':initialPlan.planCode]);
+  await appendAudit(client,{tenantId:tenant.id,userId:req.auth.userId,entityType:'tenant',entityId:tenant.id,action:'tenant.created_by_domian_admin',newValue:{
+   companyName,rut,adminEmail:email,mfaRequired:true,initialPlanCode:initialPlan.planCode,
+   initialPlanVersionId:initialPlan.versionId||null,subscriptionRequestId:subscriptionRequest?.id||null,
+   accountStatus:tenant.status
+  }});
+  const replayResponse={tenant,user,mustChangePassword:free,mfaEnrollmentRequired:true,
+   initialPlan:{planCode:initialPlan.planCode,status:free?'ACTIVE':'REQUESTED',request:subscriptionRequest}};
+  if(idempotencyKey){
+   // The response intentionally excludes the Free temporary password. A retry can
+   // prove the tenant exists without persisting or replaying a credential.
+   await client.query("SELECT set_config('app.subscription_admin','true',true)");
+   await client.query(`UPDATE tenant_creation_idempotency
+     SET response=$3::jsonb,completed_at=now()
+     WHERE actor_user_id=$1 AND idempotency_key=$2`,[req.auth.userId,idempotencyKey,JSON.stringify(replayResponse)]);
+  }
+  await client.query('COMMIT');transactionOpen=false;
+  return res.status(201).json({...replayResponse,...(free?{temporaryPassword:temporary}:{}),idempotentReplay:false});
+ }catch(error){
+  if(transactionOpen){await client.query('ROLLBACK');transactionOpen=false;}
+  if(error?.code==='23505')return res.status(409).json({error:'TENANT_ALREADY_EXISTS',message:'Ya existe una empresa con ese RUT.'});
+  throw error;
+ }finally{client.release();}
+});
 
 tenantsRouter.patch('/:id',async(req,res)=>{
   const status=req.body.status;
@@ -32,8 +133,14 @@ tenantsRouter.patch('/:id',async(req,res)=>{
   const {tenant:result,approved}=await withTenant(req.params.id,async client=>{
     const locked=await lockSubscriptionTenant(client,req.params.id);
     if(locked.is_domian_admin&&status!=='active')throw Object.assign(new Error('La cuenta global está protegida.'),{status:409,code:'DOMIAN_ACCOUNT_PROTECTED'});
-    const result=(await client.query('UPDATE tenants SET status=$2,updated_at=now() WHERE id=$1 RETURNING id,company_name,rut,admin_email,status,is_domian_admin,subscription_managed,updated_at',[req.params.id,status])).rows[0];
     const approved=status==='active'&&locked.status==='pending';
+    // A paid initial request must complete its independently reviewed commercial
+    // workflow. Generic account activation must never consume Free or bypass it.
+    if(approved&&locked.subscription_managed){
+      const initialRequest=(await client.query("SELECT id,status FROM subscription_requests WHERE tenant_id=$1 AND type='INITIAL' ORDER BY created_at DESC LIMIT 1",[req.params.id])).rows[0];
+      if(initialRequest&&initialRequest.status!=='EXECUTED')throw tenantInputError('SUBSCRIPTION_INITIAL_PENDING','La empresa tiene una contratación inicial sin ejecutar. No se puede activar ni consumir Free hasta resolverla explícitamente desde Planes y suscripciones.',409);
+    }
+    const result=(await client.query('UPDATE tenants SET status=$2,updated_at=now() WHERE id=$1 RETURNING id,company_name,rut,admin_email,status,is_domian_admin,subscription_managed,updated_at',[req.params.id,status])).rows[0];
     // The benefit begins at first valid approval, not while registration waits.
     if(approved&&locked.subscription_managed)await activateInitialSubscription(client,{tenantId:req.params.id,userId:req.auth.userId});
     await appendAudit(client,{tenantId:req.params.id,userId:req.auth.userId,entityType:'tenant',entityId:req.params.id,action:`tenant.${status}`,oldValue:locked,newValue:result});

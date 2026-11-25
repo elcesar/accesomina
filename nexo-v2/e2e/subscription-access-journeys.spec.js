@@ -8,7 +8,7 @@ async function mockPortal(page, { suspended = true, role = 'client_admin', profi
     const json = (body, status = 200) => route.fulfill({ status, json: body })
     if (path === '/api/auth/me') return json({ user: { id: 'user-qa', name: 'Persona QA', role, subscriptionAdminEligible: Boolean(profile) || role === 'domian_admin', permissions: { modules: {} } }, tenant: { id: 'tenant-qa', name: 'Empresa ficticia QA' }, csrfToken: 'qa-csrf' })
     if (path === '/api/settings') return json({ settings: { modules: {}, branding: { theme: 'light' } } })
-    if (path === '/api/subscriptions/admin/access') return profile ? json({ profile, capabilities: ['read', profile === 'COMMERCIAL' ? 'commercial' : 'operations'] }) : json({ error: 'SUBSCRIPTION_PERMISSION_DENIED' }, 403)
+    if (path === '/api/subscriptions/admin/access') return profile ? json({ profile, capabilities: ['read'] }) : json({ error: 'SUBSCRIPTION_PERMISSION_DENIED' }, 403)
     if (path === '/api/subscription') return failSummary ? json({ error: 'SERVICE_UNAVAILABLE' }, 503) : json({ legacy: false, managed: true, canOperate: !suspended, contract: { planCode: 'FREE', planName: 'Free', status: suspended ? 'SUSPENDED' : 'ACTIVE', endsAt: '2026-11-01T12:00:00Z', monthlyNetPrice: 0 }, capacity: { used: 8, total: 15, available: 7 }, separateServices: { oportunidades: { enabled: independent } }, requests: [] })
     if (path === '/api/privacy') return json({ activities: [], requests: [], consents: [], incidents: [] })
     if (path === '/api/audit') return json([])

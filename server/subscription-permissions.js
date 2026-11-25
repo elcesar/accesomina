@@ -1,10 +1,13 @@
 import { withTenant } from './db.js';
 
-const commercial = ['read','commercial','requests.create','requests.review','requests.approve','requests.reject','requests.schedule','requests.cancel','requests.documents'];
-const operations = ['read','operations','requests.execute','services.manage'];
+// Los perfiles delegados pueden consultar información comercial, pero no pueden
+// asignar, validar, aprobar, documentar, programar, ejecutar ni cambiar planes.
+const readOnly = Object.freeze(['read']);
+const commercial = ['commercial','requests.create','requests.review','requests.approve','requests.reject','requests.schedule','requests.cancel','requests.documents'];
+const operations = ['operations','requests.execute','services.manage'];
 export const SUBSCRIPTION_ADMIN_CAPABILITIES = Object.freeze({
  SUPER_ADMIN: Object.freeze([...new Set(['read','catalog','governance','catalog.manage','operators.manage','policies.manage',...commercial,...operations])]),
- COMMERCIAL: Object.freeze(commercial), OPERATIONS: Object.freeze(operations)
+ COMMERCIAL: readOnly, OPERATIONS: readOnly
 });
 function denied() { return Object.assign(new Error('No tienes autorización para administrar suscripciones.'),{status:403,code:'SUBSCRIPTION_PERMISSION_DENIED'}); }
 

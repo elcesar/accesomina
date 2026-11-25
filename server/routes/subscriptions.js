@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { query, withTenant } from '../db.js';
 import { appendAudit } from '../audit.js';
+import { createUserInvitation, sendAndRecordUserInvitation } from '../user-invitations.js';
 import { isValidRut, isValidChilePhone, normalizeEmail, normalizeRut, sha256 } from '../security.js';
 import { filesRouter, subscriptionDocumentsContext } from './files.js';
 import { listSubscriptionNotifications } from '../subscription-notifications.js';
@@ -128,7 +129,20 @@ subscriptionRouter.patch('/subscriptions/admin/companies/:id/requests/:requestId
  const document=z.object({number:z.string().trim().max(100),fileId:id.optional(),url:z.string().max(200).optional(),acceptedAt:z.string().max(80).optional(),validUntil:z.string().max(80).optional(),netAmount:z.number().int().min(0).max(1000000000000).optional(),issuedAt:z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),status:z.enum(['DRAFT','ISSUED','ACCEPTED','PAID','CANCELLED']).optional(),responsible:z.string().trim().min(2).max(160).optional(),observations:z.string().trim().max(2000).optional()}).strict();
  const input=z.object({action:z.enum(['review','approve','reject','schedule','execute','cancel','documents']),reason:z.string().trim().min(3).max(2000),effectiveAt:z.string().max(80).optional(),
   documents:z.object({quote:document.optional(),purchaseOrder:document.optional(),invoice:document.optional()}).strict().optional(),immediateChangeTerms:z.string().max(2000).optional(),idempotencyKey:z.string().max(160).optional()}).strict().parse(req.body);
- res.json(await withSubscriptionAdmin(client=>transitionSubscriptionRequest(client,{tenantId,requestId,userId:req.auth.userId,input}),tenantId));
+ const {result,pendingInvitation}=await withSubscriptionAdmin(async client=>{
+  const result=await transitionSubscriptionRequest(client,{tenantId,requestId,userId:req.auth.userId,input});
+  if(!result.tenantActivated)return {result,pendingInvitation:null};
+  const admin=(await client.query("SELECT t.company_name,t.rut,u.id,u.email,u.full_name FROM tenants t JOIN app_users u ON u.tenant_id=t.id WHERE t.id=$1 AND u.role='client_admin' AND u.active ORDER BY u.created_at LIMIT 1 FOR UPDATE",[tenantId])).rows[0];
+  if(!admin)return {result,pendingInvitation:null};
+  const invitation=await createUserInvitation(client,{tenantId,userId:admin.id,requestedBy:req.auth.userId});
+  return {result,pendingInvitation:{admin,invitation}};
+ },tenantId);
+ let invitation=null;
+ if(pendingInvitation){
+  const deliver=req.app?.locals?.deliverUserInvitation;
+  invitation=await sendAndRecordUserInvitation({tenantId,user:pendingInvitation.admin,invitation:pendingInvitation.invitation,companyName:pendingInvitation.admin.company_name,companyRut:pendingInvitation.admin.rut,requestedBy:req.auth.userId,requestId,...(deliver?{deliver}: {})});
+ }
+ res.json({...result,...(invitation?{invitation}: {})});
 }));
 subscriptionRouter.patch('/subscriptions/admin/companies/:id/services',requireSubscriptionCapability('services.manage'),wrap(async(req,res)=>{
  const tenantId=id.parse(req.params.id),service=z.object({enabled:z.boolean(),endsAt:z.string().datetime().nullable().optional(),reference:z.string().trim().max(500).default('')}).strict().refine(value=>!value.enabled||value.reference.length>=3,{message:'Una licencia habilitada necesita la referencia de contratación.'});
