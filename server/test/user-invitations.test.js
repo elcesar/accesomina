@@ -10,6 +10,7 @@ import {invitationsRouter} from '../routes/invitations.js';
 import {authRouter} from '../routes/auth.js';
 import {randomToken,sha256,verifyPassword} from '../security.js';
 import {INVITATION_TTL_MS,acceptUserInvitation,createUserInvitation,deliverUserInvitation,invitationInput,logInvitationEvent,sendAndRecordUserInvitation,verifyUserInvitation} from '../user-invitations.js';
+import { emptyAssignableModulePermissions } from '../../shared/access-modules.js';
 
 const TENANT='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',ADMIN='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const PASSWORD='QaPassword2026!';
@@ -18,6 +19,7 @@ let db,messages,delivery,queue=Promise.resolve();
 before(async()=>{
   db=new PGlite();
   await db.exec(`CREATE TABLE tenants(id uuid PRIMARY KEY,company_name text,rut text,status text);
+    CREATE TABLE tenant_settings(tenant_id uuid PRIMARY KEY,modules jsonb NOT NULL DEFAULT '{}'::jsonb);
     CREATE TABLE app_users(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid REFERENCES tenants(id),email text,full_name text,role text,
       password_hash text,password_salt text,must_change_password boolean DEFAULT false,permissions jsonb,active boolean DEFAULT true,
       mfa_enabled boolean DEFAULT false,mfa_enrolled_at timestamptz,last_login_at timestamptz,failed_login_count int DEFAULT 0,locked_until timestamptz,
@@ -40,8 +42,9 @@ after(async()=>{mock.restoreAll();await db?.close();});
 beforeEach(async()=>{
   messages=[];delivery=async message=>({accepted:[message.to]});
   Object.assign(config.smtp,SMTP);
-  await db.exec('TRUNCATE user_invitations,app_users,tenants,audit_log,password_reset_tokens,user_sessions CASCADE');
+  await db.exec('TRUNCATE user_invitations,app_users,tenant_settings,tenants,audit_log,password_reset_tokens,user_sessions CASCADE');
   await db.query("INSERT INTO tenants VALUES($1,'Empresa ficticia QA','13.848.379-7','active'),($2,'Otra empresa QA','13.848.379-7','active')",[TENANT,OTHER]);
+  await db.query("INSERT INTO tenant_settings(tenant_id,modules) VALUES($1,'{}'::jsonb),($2,'{}'::jsonb)",[TENANT,OTHER]);
   await db.query("INSERT INTO app_users(id,tenant_id,email,full_name,role,permissions) VALUES($1,$2,'admin@example.test','Administrador ficticio','client_admin','{}')",[ADMIN,TENANT]);
 });
 function response(){return{statusCode:200,status(code){this.statusCode=code;return this;},json(body){this.body=body;return this;},end(){return this;}};}
@@ -52,7 +55,8 @@ async function route(router,path,method,{body={},params={},auth={}}={}){
   if(router===usersRouter){let allowed=false;found.stack[0].handle(req,res,()=>{allowed=true;});if(!allowed)return res;}
   await found.stack.at(-1).handle(req,res);return res;
 }
-async function create(extra={}){return route(usersRouter,'/','post',{body:{fullName:'Persona ficticia QA',email:'invite@example.test',role:'consulta',permissions:{modules:{trabajadores:false}},...extra}});}
+const selectedModules = (modules = {}) => ({ modules: { ...emptyAssignableModulePermissions(), ...modules } });
+async function create(extra={}){return route(usersRouter,'/','post',{body:{fullName:'Persona ficticia QA',email:'invite@example.test',role:'consulta',permissions:selectedModules({trabajadores:true}),...extra}});}
 const readInvitation=async userId=>(await db.query('SELECT * FROM user_invitations WHERE user_id=$1',[userId])).rows[0];
 const readUser=async userId=>(await db.query('SELECT * FROM app_users WHERE id=$1',[userId])).rows[0];
 function link(index=messages.length-1){const url=messages[index].text.match(/https?:\/\/\S*aceptar-invitacion\?\S+/)[0];const parsed=new URL(url);return{tenant:parsed.searchParams.get('tenant'),token:parsed.searchParams.get('token')};}
@@ -61,12 +65,36 @@ test('creation sends company-scoped welcome and only persists a hash with 24-hou
   const started=Date.now(),res=await create(),user=await readUser(res.body.user.id),invite=await readInvitation(user.id),input=link();
   assert.equal(res.statusCode,201);assert.equal(res.body.invitation.status,'sent');assert.equal(res.body.temporaryPassword,undefined);
   assert.equal(user.password_hash,null);assert.equal(user.must_change_password,true);assert.equal(user.role,'consulta');
-  assert.deepEqual(user.permissions,{modules:{trabajadores:false}});
+  assert.deepEqual(user.permissions,selectedModules({trabajadores:true}));
   assert.equal(invite.token_hash,sha256(input.token));assert.notEqual(invite.token_hash,input.token);
   assert.equal(input.tenant,TENANT);assert.ok(new Date(invite.expires_at).getTime()>=started+INVITATION_TTL_MS);
   assert.match(messages[0].text,/Empresa ficticia QA/);assert.match(messages[0].text,/13\.848\.379-7/);assert.match(messages[0].text,/24 horas/);
   const serialized=JSON.stringify(res.body)+JSON.stringify((await db.query('SELECT * FROM audit_log')).rows)+JSON.stringify(invite);
   assert.ok(!serialized.includes(input.token));assert.ok(!serialized.includes('aceptar-invitacion?'));
+});
+
+test('new non-administrators require an explicit compatible module selection', async () => {
+  await assert.rejects(() => route(usersRouter,'/','post',{body:{fullName:'Sin acceso QA',email:'sin-acceso@example.test',role:'consulta'}}), { code:'MODULE_SELECTION_REQUIRED' });
+  await assert.rejects(() => create({email:'rol-incompatible@example.test',role:'prevencion',permissions:selectedModules({subcontratos:true})}), { code:'MODULE_NOT_ALLOWED_FOR_ROLE' });
+});
+
+test('company module settings and patch requests cannot grant unavailable modules', async () => {
+  await db.query("UPDATE tenant_settings SET modules=$2::jsonb WHERE tenant_id=$1",[TENANT,JSON.stringify({trabajadores:false})]);
+  await assert.rejects(() => create({email:'no-disponible@example.test'}), { code:'MODULE_NOT_AVAILABLE_FOR_COMPANY' });
+  const created=await create({email:'permitido-antes@example.test',permissions:selectedModules({reportes:true})});
+  await assert.rejects(() => route(usersRouter,'/:id','patch',{params:{id:created.body.user.id},body:{permissions:selectedModules({trabajadores:true})}}), { code:'MODULE_NOT_AVAILABLE_FOR_COMPANY' });
+});
+
+test('changing role preserves only access already effective for the previous role', async () => {
+  const created = await create({
+    email: 'cambio-rol@example.test',
+    role: 'prevencion',
+    permissions: selectedModules({ trabajadores: true, vehiculos: true }),
+  });
+  const updated = await route(usersRouter,'/:id','patch',{params:{id:created.body.user.id},body:{role:'consulta'}});
+  assert.equal(updated.statusCode,200);
+  assert.deepEqual(updated.body.permissions,selectedModules({trabajadores:true,vehiculos:true}));
+  assert.equal(updated.body.permissions.modules.subcontratos,false);
 });
 
 test('an optional API password remains usable and never suppresses welcome delivery',async()=>{
@@ -121,7 +149,7 @@ test('acceptance establishes a personal password once without changing role, per
   await db.query('INSERT INTO user_sessions(tenant_id,user_id) VALUES($1,$2)',[TENANT,id]);
   const accepted=await route(invitationsRouter,'/accept','post',{body:{...input,newPassword:PASSWORD,confirmPassword:PASSWORD}});assert.equal(accepted.statusCode,204);
   const user=await readUser(id);assert.equal(await verifyPassword(PASSWORD,user.password_salt,user.password_hash),true);
-  assert.equal(user.must_change_password,false);assert.equal(user.mfa_enabled,false);assert.equal(user.role,'consulta');assert.deepEqual(user.permissions,{modules:{trabajadores:false}});
+  assert.equal(user.must_change_password,false);assert.equal(user.mfa_enabled,false);assert.equal(user.role,'consulta');assert.deepEqual(user.permissions,selectedModules({trabajadores:true}));
   assert.equal((await readInvitation(id)).status,'accepted');assert.ok((await db.query('SELECT used_at FROM password_reset_tokens')).rows[0].used_at);assert.ok((await db.query('SELECT revoked_at FROM user_sessions')).rows[0].revoked_at);
   await assert.rejects(()=>acceptUserInvitation({...input,newPassword:'AnotherPassword2026!'}),{code:'INVITATION_INVALID_OR_EXPIRED'});
   await assert.rejects(()=>route(usersRouter,'/:id/resend-invitation','post',{params:{id}}),{code:'INVITATION_ALREADY_ACCEPTED'});

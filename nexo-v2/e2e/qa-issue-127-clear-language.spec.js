@@ -61,8 +61,10 @@ test('la bitácora traduce los códigos sin cambiar los eventos almacenados', as
 
 test('la configuración explica los términos técnicos', async ({ page }) => {
   await page.goto('/app/configuracion')
-  await expect(page.locator('.nk-app-main')).toBeVisible()
-  const copy = await page.locator('.nk-app-main').innerText()
+  const main = page.locator('.nk-app-main')
+  await expect(main).toBeVisible()
+  await expect(main).toContainText('Correo electrónico (protocolo SMTP)')
+  const copy = await main.innerText()
   expect(copy).not.toContain('Phone Number ID')
   expect(copy).toContain('Identificador del número de WhatsApp')
   expect(copy).toContain('Correo electrónico (protocolo SMTP)')
