@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
       : path === '/api/settings'
         ? { settings: { modules: {}, branding: {}, alerts: { warningDays: 30, criticalDays: 7 }, catalogs: {} } }
         : path === '/api/users' ? [] : path === '/api/state' ? { state: {}, moduleVersions: {} } : {}
-    await route.fulfill({ status: request.headerValue('x-qa-fail') ? 503 : 200, json: body })
+    await route.fulfill({ status: request.headers()['x-qa-fail'] ? 503 : 200, json: body })
   })
 })
 
