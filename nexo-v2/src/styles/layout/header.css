@@ -78,14 +78,21 @@
   flex: 0 1 auto;
 }
 
-.nk-global-create {
-  width: auto;
-  min-width: 0;
-  flex: 0 1 auto;
-  white-space: nowrap;
+/* En escritorio cada acción toma sólo el ancho que requiere su contenido. */
+@media (min-width: 1024px) {
+  .nk-global-create,
+  .nk-global-logout {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 
+.nk-global-create,
 .nk-global-logout {
+  min-width: 0;
   white-space: nowrap;
 }
 

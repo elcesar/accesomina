@@ -6,10 +6,13 @@
 
 .nk-sidebar {
   width: var(--nk-sidebar-width);
+  min-width: 0;
+  max-width: 100%;
   height: 100vh;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  overflow-x: hidden;
   background: var(--nk-surface);
   border-right: var(--nk-stroke-thin) solid var(--nk-line);
 }
@@ -49,6 +52,8 @@
 
 .nk-sidebar-nav {
   flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: var(--nk-space-3) var(--nk-space-2);
   display: grid;
@@ -57,6 +62,8 @@
 }
 
 .nk-side-group {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
   gap: var(--nk-space-1);
   border: var(--nk-stroke-thin) solid var(--nk-line);
@@ -80,6 +87,7 @@
 
 .nk-side-group-title {
   width: 100%;
+  min-width: 0;
   min-height: var(--nk-row-comfortable);
   display: flex;
   align-items: center;
@@ -96,6 +104,12 @@
   transition:
     background-color var(--nk-motion-normal) var(--nk-motion-curve),
     color var(--nk-motion-normal) var(--nk-motion-curve);
+}
+
+.nk-side-group-title > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .nk-side-group-title:hover {
@@ -125,6 +139,7 @@
 }
 
 .nk-side-group-items {
+  min-width: 0;
   display: grid;
   gap: var(--nk-space-1);
   padding: var(--nk-space-1);
@@ -135,6 +150,8 @@
 
 .nk-side-link,
 .nk-sidebar-action {
+  min-width: 0;
+  max-width: 100%;
   min-height: var(--nk-control-min);
   display: flex;
   align-items: center;
@@ -168,14 +185,17 @@
 }
 
 .nk-side-link-label {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: var(--nk-leading-snug);
 }
 
 .nk-side-badge {
+  flex: 0 0 auto;
   min-width: var(--nk-space-5);
   height: var(--nk-space-5);
   display: inline-flex;
