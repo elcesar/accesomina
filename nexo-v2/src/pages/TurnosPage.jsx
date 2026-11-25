@@ -326,7 +326,7 @@ export default function TurnosPage() {
       const result = await api.put('/state/modules', {
         changes: { turnos: { version: Number(moduleVersions.turnos || 0), data: nuevosTurnos } },
         reason: 'Nueva jornada registrada',
-      }, { feedback: true })
+      }, { feedback: true, successMessage: 'Jornada guardada correctamente.' })
       setState(current => ({ ...current, turnos: nuevosTurnos }))
       setModuleVersions(current => ({ ...current, ...result.moduleVersions }))
       setShowModal(false)
