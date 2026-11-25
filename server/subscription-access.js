@@ -50,9 +50,10 @@ export function subscriptionAccess({ readSummary = tenantId => withTenant(tenant
       // File handlers know the actual entity only after parsing multipart data
       // or reading its tenant-scoped metadata. They enforce the deferred check.
       if(/^\/files(?:\/|$)/.test(path)&&services.length)return next();
+      const nonpayment = summary.contract?.status === 'SUSPENDED_NONPAYMENT';
       return res.status(403).json({
-        error: 'SUBSCRIPTION_SUSPENDED',
-        message: 'La suscripción está suspendida. Gestiona la renovación desde Mi plan.',
+        error: nonpayment ? 'SUBSCRIPTION_NONPAYMENT_SUSPENDED' : 'SUBSCRIPTION_SUSPENDED',
+        message: nonpayment ? 'La suscripción está suspendida por regularización comercial. La información se conserva; contacta a Nexo Klar para reactivarla.' : 'La suscripción está suspendida. Gestiona la renovación desde Mi plan.',
       });
     } catch (error) { next(error); }
   };

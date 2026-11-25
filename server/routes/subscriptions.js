@@ -9,8 +9,8 @@ import { filesRouter, subscriptionDocumentsContext } from './files.js';
 import { listSubscriptionNotifications } from '../subscription-notifications.js';
 import { requireSubscriptionAdmin,requireSubscriptionCapability } from '../subscription-permissions.js';
 import { createSubscriptionRequest,getSubscriptionAuditPage,getSubscriptionCatalog,getPublicSubscriptionCatalog,getSubscriptionSummary,lockSubscriptionTenant,
- publicSubscriptionRecommendation,recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
- transitionSubscriptionRequest,withSubscriptionAdmin } from '../subscriptions.js';
+ publicSubscriptionRecommendation,reactivateSubscriptionAfterPayment,recommendSubscription,requestView,resolvePackageComposition,saveSubscriptionCatalogVersion,subscriptionError,
+ suspendSubscriptionForNonpayment,transitionSubscriptionRequest,withSubscriptionAdmin } from '../subscriptions.js';
 
 export const publicPlansRouter=Router();
 export const subscriptionRouter=Router();
@@ -18,6 +18,8 @@ const id=z.string().uuid();
 const packages=z.array(z.object({code:z.enum(['EXTRA_100','EXTRA_200','EXTRA_500']),quantity:z.number().int().min(1).max(1000),versionId:id.optional()}).strict()).max(3);
 const requestSchema=z.object({type:z.enum(['INITIAL','UPGRADE','DOWNGRADE','RENEWAL','PACKAGES']),planCode:z.enum(['FREE','LA_UNION','PURRANQUE','FRUTILLAR','PUERTO_OCTAY']).optional(),
  packages:packages.optional(),versionId:id.optional(),reason:z.string().trim().min(3).max(2000),idempotencyKey:z.string().min(8).max(160)}).strict();
+const nonpaymentSuspendSchema=z.object({reason:z.string().trim().min(3).max(2000),billingReference:z.string().trim().min(3).max(500),effectiveAt:z.string().datetime().optional(),confirmation:z.literal('SUSPENDER'),idempotencyKey:z.string().min(8).max(160)}).strict();
+const nonpaymentReactivateSchema=z.object({reason:z.string().trim().min(3).max(2000),regularizationReference:z.string().trim().min(3).max(500),confirmation:z.literal('REACTIVAR'),idempotencyKey:z.string().min(8).max(160)}).strict();
 const fail=(code,message,status=400,details)=>{throw subscriptionError(code,message,status,details);};
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res)).catch(next);
 const ownAdmin=(req,res,next)=>['client_admin','domian_admin'].includes(req.auth?.role)?next():res.status(403).json({error:'SUBSCRIPTION_PERMISSION_DENIED',message:'Sólo el administrador puede gestionar solicitudes comerciales.'});
@@ -115,10 +117,22 @@ subscriptionRouter.get('/subscriptions/admin/companies',wrap(async(req,res)=>{
  res.json({companies:rows.map(row=>({id:row.id,name:row.company_name,companyName:row.company_name,rut:row.rut,status:row.status,managed:row.subscription_managed,separateServices:row.subscription_services}))});
 }));
 subscriptionRouter.get('/subscriptions/admin/companies/:id',wrap(async(req,res)=>{
- const tenantId=id.parse(req.params.id);res.json(await withSubscriptionAdmin(client=>getSubscriptionSummary(client,tenantId,{includeAudit:true}),tenantId));
+ const tenantId=id.parse(req.params.id);
+ const includeEnforcementDetails=['suspensions.suspend','suspensions.reactivate'].some(capability=>req.subscriptionAccess.capabilities.includes(capability));
+ res.json(await withSubscriptionAdmin(client=>getSubscriptionSummary(client,tenantId,{includeAudit:true,includeEnforcementDetails}),tenantId));
 }));
 subscriptionRouter.get('/subscriptions/admin/companies/:id/audit',wrap(async(req,res)=>{
  const tenantId=id.parse(req.params.id),input=auditPageQuery.parse(req.query);res.set('Cache-Control','private, no-store');res.json(await withSubscriptionAdmin(client=>getSubscriptionAuditPage(client,tenantId,input),tenantId));
+}));
+subscriptionRouter.post('/subscriptions/admin/companies/:id/nonpayment-suspensions',requireSubscriptionCapability('suspensions.suspend'),wrap(async(req,res)=>{
+ const tenantId=id.parse(req.params.id),input=nonpaymentSuspendSchema.parse(req.body);
+ const hold=await withSubscriptionAdmin(client=>suspendSubscriptionForNonpayment(client,{tenantId,userId:req.auth.userId,input}),tenantId);
+ res.status(201).json({hold});
+}));
+subscriptionRouter.post('/subscriptions/admin/companies/:id/nonpayment-suspensions/:holdId/reactivate',requireSubscriptionCapability('suspensions.reactivate'),wrap(async(req,res)=>{
+ const tenantId=id.parse(req.params.id),holdId=id.parse(req.params.holdId),input=nonpaymentReactivateSchema.parse(req.body);
+ const hold=await withSubscriptionAdmin(client=>reactivateSubscriptionAfterPayment(client,{tenantId,holdId,userId:req.auth.userId,input}),tenantId);
+ res.json({hold});
 }));
 subscriptionRouter.post('/subscriptions/admin/companies/:id/requests',requireSubscriptionCapability('requests.create'),wrap(async(req,res)=>{
  const tenantId=id.parse(req.params.id),input=requestSchema.parse(req.body);

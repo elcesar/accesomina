@@ -61,6 +61,17 @@ if(process.env.SUBSCRIPTIONS_FIXTURE_SERVER!=='1'){
  async function api(path,{account='admin',method='GET',body,ip}={}){const response=await fetch(`${fixture.base}/api${path}`,{method,headers:{'x-qa-account':account,'x-forwarded-for':ip||`192.0.2.${++apiSequence%250+1}`,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});return{status:response.status,body:await response.json()};}
  async function catalog(){return(await api('/subscription/catalog')).body;}
  async function publicInput(extra={}){const c=await catalog(),plan=c.plans.find(p=>p.code==='LA_UNION');return {companyName:'Empresa QA Publica',rut:'13.848.379-7',contactName:'Persona',contactLastName:'Ficticia',email:'public@example.test',phone:'+56912345678',workers:20,planCode:'LA_UNION',packages:[],versionId:plan.versionId,...(Number.isInteger(plan.monthlyPrice)?{displayedMonthlyNetPrice:plan.monthlyPrice}:{}),acceptedTerms:true,termsVersion:'2026-11-05',comments:'Sólo QA',idempotencyKey:`http-${crypto.randomUUID()}`,...extra};}
+ async function seedPaidContractForNonpayment(){
+  const plan=(await fixture.db.query("SELECT * FROM subscription_plan_versions WHERE code='LA_UNION' AND state='PUBLISHED' LIMIT 1")).rows[0];
+  const snapshot={plan:{code:plan.code,name:plan.name,workerLimit:plan.worker_limit},packages:[],totalCapacity:plan.worker_limit,monthlyNetPrice:Number(plan.monthly_price),currency:plan.currency,taxRate:Number(plan.tax_rate),timezone:'America/Santiago',graceDays:30,warningPercent:80,criticalPercent:90};
+  await fixture.db.query('UPDATE subscription_contracts SET is_current=false WHERE tenant_id=$1 AND is_current',[QA_IDS.tenant]);
+  const contract=(await fixture.db.query(`INSERT INTO subscription_contracts(tenant_id,plan_version_id,plan_code,snapshot,starts_at,ends_at,grace_ends_at,timezone,anchor_day,created_by)
+   VALUES($1,$2,'LA_UNION',$3::jsonb,now()-interval '1 day',now()+interval '29 days',now()+interval '59 days','America/Santiago',1,$4) RETURNING *`,[QA_IDS.tenant,plan.id,JSON.stringify(snapshot),QA_IDS.super])).rows[0];
+  const period=(await fixture.db.query(`INSERT INTO subscription_periods(tenant_id,subscription_id,snapshot,starts_at,ends_at,grace_ends_at)
+   VALUES($1,$2,$3::jsonb,$4,$5,$6) RETURNING id`,[QA_IDS.tenant,contract.id,JSON.stringify(snapshot),contract.starts_at,contract.ends_at,contract.grace_ends_at])).rows[0];
+  await fixture.db.query('UPDATE subscription_contracts SET current_period_id=$2 WHERE id=$1',[contract.id,period.id]);
+  return contract;
+ }
 
  test('HTTP hides unapproved public plans while keeping private catalogue available',async()=>{
   const publicPlans=await api('/plans');assert.equal(publicPlans.status,404);assert.equal(publicPlans.body.error,'PUBLIC_PLANS_NOT_AVAILABLE');
@@ -81,6 +92,22 @@ if(process.env.SUBSCRIPTIONS_FIXTURE_SERVER!=='1'){
   assert.equal((await api('/subscriptions/admin/companies')).status,403);
   assert.equal((await api('/subscriptions/admin/companies',{account:'global'})).status,200);
   fixture.accounts.admin.role='domian_admin';try{assert.equal((await api('/subscriptions/admin/companies')).status,403);}finally{fixture.accounts.admin.role='client_admin';}
+ });
+ test('HTTP keeps billing references out of client administration and exposes them only to global commercial administration',async()=>{
+  await seedPaidContractForNonpayment();
+  try{
+   const path=`/subscriptions/admin/companies/${QA_IDS.tenant}/nonpayment-suspensions`;
+   const input={reason:'Factura vencida de prueba',billingReference:'FAC-PRIVADA-QA-001',effectiveAt:new Date().toISOString(),confirmation:'SUSPENDER',idempotencyKey:'http-nonpayment-private-001'};
+   assert.equal((await api(path,{method:'POST',body:input})).status,403);
+   const suspended=await api(path,{account:'global',method:'POST',body:input});assert.equal(suspended.status,201);assert.equal(suspended.body.hold.billingReference,'FAC-PRIVADA-QA-001');
+   const company=await api('/subscription');assert.equal(company.status,200);assert.equal(company.body.contract.status,'SUSPENDED_NONPAYMENT');assert.equal(company.body.nonpaymentHold.billingReference,undefined);assert.equal(JSON.stringify(company.body).includes('FAC-PRIVADA-QA-001'),false);
+   const commercial=await api(`/subscriptions/admin/companies/${QA_IDS.tenant}`,{account:'global'});assert.equal(commercial.status,200);assert.equal(commercial.body.nonpaymentHold.billingReference,'FAC-PRIVADA-QA-001');assert.equal(commercial.body.nonpaymentHolds[0].billingReference,'FAC-PRIVADA-QA-001');
+  }finally{
+   // Keep the long-lived HTTP fixture identical for the independent following cases.
+   await fixture.db.query('DELETE FROM subscription_nonpayment_holds WHERE tenant_id=$1',[QA_IDS.tenant]);
+   await fixture.db.query('UPDATE subscription_contracts SET is_current=false WHERE tenant_id=$1',[QA_IDS.tenant]);
+   await fixture.db.query("UPDATE subscription_contracts SET is_current=true WHERE tenant_id=$1 AND plan_code='FREE'",[QA_IDS.tenant]);
+  }
  });
  test.skip('HTTP public forms validate RUT, email, phone, terms and published version before persisting a lead (public offers suspended by #341)',async()=>{
   const invalidRut=await api('/commercial-requests',{method:'POST',body:await publicInput({rut:'1-0'})});assert.equal(invalidRut.status,400);

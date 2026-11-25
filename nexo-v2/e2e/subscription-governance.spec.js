@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test'
 
-const allCapabilities = ['read', 'catalog.manage', 'operators.manage', 'policies.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage']
-async function fixture(page, { profile = 'SUPER_ADMIN', capped = false, policiesUnavailable = false } = {}) {
-  const state = { calls: [], policiesUnavailable, operators: [
+const allCapabilities = ['read', 'catalog.manage', 'operators.manage', 'policies.manage', 'requests.create', 'requests.review', 'requests.approve', 'requests.reject', 'requests.schedule', 'requests.cancel', 'requests.documents', 'requests.execute', 'services.manage', 'suspensions.suspend', 'suspensions.reactivate']
+const readOnlyCapabilities = ['read']
+async function fixture(page, { profile = 'SUPER_ADMIN', capped = false, policiesUnavailable = false, nonpayment = false, held = false } = {}) {
+  const detailedHold = nonpayment && held ? { id: 'hold-qa', status: 'SUSPENDED_NONPAYMENT', effectiveAt: '2026-11-21T12:00:00.000Z', createdAt: '2026-11-21T12:00:00.000Z', reason: 'Factura vencida QA', billingReference: 'FAC-PRIVADA-QA-001' } : null
+  const hold = profile === 'SUPER_ADMIN' ? detailedHold : detailedHold ? { id: detailedHold.id, status: detailedHold.status, effectiveAt: detailedHold.effectiveAt, createdAt: detailedHold.createdAt } : null
+  const state = { calls: [], policiesUnavailable, companies: nonpayment ? [{ id: 'company-qa', name: 'Empresa QA', rut: '13.848.379-7', managed: true }] : [], summary: nonpayment ? { legacy: false, managed: true, canOperate: !hold, contract: { id: 'contract-qa', planName: 'La Unión', status: hold ? hold.status : 'ACTIVE', monthlyNetPrice: 1000, currency: 'CLP', startsAt: '2026-11-01T12:00:00.000Z', endsAt: '2026-12-01T12:00:00.000Z', graceEndsAt: '2026-12-31T12:00:00.000Z' }, capacity: { base: 60, additional: 0, total: 60, used: 3, available: 57 }, requests: [], packages: [], separateServices: {}, nonpaymentHold: hold, nonpaymentHolds: hold ? [hold] : [] } : null, operators: [
     { userId: 'self', name: 'Responsable QA', email: 'responsable@ejemplo.test', role: 'domian_admin', active: true, profile: null },
     { userId: 'delegated', name: 'Persona QA', email: 'persona@ejemplo.test', role: 'consulta', active: true, profile: null },
   ], policies: capped ? Array.from({ length: 200 }, (_, index) => ({ id: `cancel-${203 - index}`, kind: 'CANCELLATION', version: 203 - index, status: 'DRAFT', noticeDays: null, retentionDays: null, reference: '', reason: 'Versión histórica QA' })) : [], latestVersions: { CANCELLATION: capped ? 203 : 0, RETENTION: capped ? 7 : 0 } }
-  const capabilities = profile === 'SUPER_ADMIN' ? allCapabilities : ['read']
+  const capabilities = profile === 'SUPER_ADMIN' ? allCapabilities : readOnlyCapabilities
   await page.route('**/api/**', async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method()
     const payload = request.postData() && request.headers()['content-type']?.includes('application/json') ? request.postDataJSON() : null
@@ -30,7 +33,18 @@ async function fixture(page, { profile = 'SUPER_ADMIN', capped = false, policies
       state.policies.unshift(policy)
       return json({ policy, automaticDeletion: false }, 201)
     }
-    if (path === '/api/subscriptions/admin/companies') return json({ companies: [] })
+    if (path === '/api/subscriptions/admin/companies') return json({ companies: state.companies })
+    if (path === '/api/subscriptions/admin/companies/company-qa' && method === 'GET') return json(state.summary || {})
+    if (path === '/api/subscriptions/admin/companies/company-qa/nonpayment-suspensions' && method === 'POST') {
+      const created = { id: 'hold-qa', status: 'SUSPENDED_NONPAYMENT', effectiveAt: payload.effectiveAt, createdAt: payload.effectiveAt, reason: payload.reason, billingReference: payload.billingReference }
+      state.summary = { ...state.summary, canOperate: false, contract: { ...state.summary.contract, status: 'SUSPENDED_NONPAYMENT' }, nonpaymentHold: created, nonpaymentHolds: [created] }
+      return json({ hold: created }, 201)
+    }
+    if (path === '/api/subscriptions/admin/companies/company-qa/nonpayment-suspensions/hold-qa/reactivate' && method === 'POST') {
+      const released = { ...(state.summary.nonpaymentHold || {}), status: 'REACTIVATED', releasedAt: '2026-11-21T13:00:00.000Z', reactivationReason: payload.reason, regularizationReference: payload.regularizationReference }
+      state.summary = { ...state.summary, canOperate: true, contract: { ...state.summary.contract, status: 'ACTIVE' }, nonpaymentHold: null, nonpaymentHolds: [released] }
+      return json({ hold: released })
+    }
     if (path === '/api/subscriptions/admin/requests') return json({ requests: [], commercialRequests: [] })
     if (path === '/api/subscriptions/admin/catalog') return json({ plans: [], packages: [] })
     return json({})
@@ -112,4 +126,37 @@ test('reintentar políticas después de503 recupera versiones y permite guardar 
   await expect(page.getByRole('status').filter({ hasText: 'Versión registrada' })).toBeVisible()
   const saved = state.calls.find(call => call.path === '/api/subscriptions/admin/policies' && call.method === 'POST')
   expect(saved.payload).toMatchObject({ kind: 'RETENTION', status: 'DRAFT', retentionDays: null, automaticDeletion: false, expectedVersion: 0, reason: 'Borrador QA conservado después del error.' })
+})
+
+
+test('suspensión por no pago exige confirmación y reactivación separada en la administración comercial', async ({ page }) => {
+  const state = await fixture(page, { nonpayment: true })
+  await page.goto('/app/administracion-planes?vista=empresas&empresa=company-qa')
+  await expect(page.getByRole('heading', { name: 'Empresa QA', exact: true })).toBeVisible()
+  await page.getByText('Suspensión por no pago', { exact: true }).click()
+  await page.getByLabel('Motivo de no pago *').fill('Factura vencida QA')
+  await page.getByLabel('Referencia de cobranza o factura *').fill('FAC-PRIVADA-QA-001')
+  await page.getByRole('button', { name: 'Suspender por no pago', exact: true }).click()
+  await expect(page.getByRole('alertdialog')).toContainText('Los datos, contratos y documentos se conservarán.')
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Registrar suspensión', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'suspensión comercial quedó registrada' })).toBeVisible()
+  const suspension = state.calls.find(call => call.path.endsWith('/nonpayment-suspensions') && call.method === 'POST')
+  expect(suspension.payload).toMatchObject({ reason: 'Factura vencida QA', billingReference: 'FAC-PRIVADA-QA-001', confirmation: 'SUSPENDER' })
+  await page.getByLabel('Motivo de reactivación *').fill('Pago confirmado QA')
+  await page.getByLabel('Referencia de pago o regularización *').fill('PAGO-QA-001')
+  await page.getByRole('button', { name: 'Reactivar suscripción', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('No se extenderá el contrato.')
+  await page.getByRole('dialog').getByRole('button', { name: 'Reactivar suscripción', exact: true }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'reactivada sin extender su período' })).toBeVisible()
+  const reactivation = state.calls.find(call => call.path.endsWith('/nonpayment-suspensions/hold-qa/reactivate') && call.method === 'POST')
+  expect(reactivation.payload).toMatchObject({ reason: 'Pago confirmado QA', regularizationReference: 'PAGO-QA-001', confirmation: 'REACTIVAR' })
+})
+
+test('Operaciones sólo consulta el estado de no pago y no las referencias comerciales', async ({ page }) => {
+  await fixture(page, { profile: 'OPERATIONS', nonpayment: true, held: true })
+  await page.goto('/app/administracion-planes?vista=empresas&empresa=company-qa')
+  await page.getByText('Suspensión por no pago', { exact: true }).click()
+  await expect(page.getByText('FAC-PRIVADA-QA-001', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Factura vencida QA', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Tu perfil sólo puede consultar el estado. La reactivación corresponde al Administrador de Nexo Klar.', { exact: true })).toBeVisible()
 })
