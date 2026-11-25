@@ -70,8 +70,10 @@
 
 .nk-login-brand-footer {
   margin: 0;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: var(--text-xs);
+  color: #FFFFFF;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  opacity: 1;
 }
 
 .nk-login-content {
@@ -235,7 +237,8 @@
   gap: var(--space-1);
   margin-top: var(--space-8);
   color: var(--sub);
-  font-size: var(--text-xs);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
 }
 
 .nk-login-footer p {
@@ -280,4 +283,3 @@
   }
 }
 
-.nk-login-brand-footer { color: #FFFFFF; opacity: 1; }
