@@ -167,6 +167,37 @@
   min-width: 0;
 }
 
+.nk-hero-product {
+  display: grid;
+  gap: var(--nk-space-5);
+}
+
+.nk-hero-product-notes {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--nk-space-3);
+  margin: 0;
+}
+
+.nk-hero-product-notes article {
+  display: grid;
+  gap: var(--nk-space-1);
+  padding: var(--nk-space-3);
+  border: var(--nk-stroke-thin) solid var(--nk-line);
+  border-radius: var(--nk-radius-md);
+  background: var(--nk-surface);
+}
+
+.nk-hero-product-notes b {
+  color: var(--nk-ink);
+  font: var(--nk-font-label);
+}
+
+.nk-hero-product-notes span {
+  color: var(--nk-ink-2);
+  font: var(--nk-font-body-sm);
+}
+
 /* =========================================================
    04. SHARED PUBLIC COMPOSITION
    ========================================================= */
@@ -438,6 +469,13 @@
 
 .nk-industries-grid article {
   min-height: calc((var(--nk-space-20) * 2) + var(--nk-space-2));
+}
+
+/* These collections have a fixed number of cards. Keep their last row balanced
+   without changing the grid rules used by sections with variable cardinality. */
+.nk-solutions-grid,
+.nk-industries-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .nk-industry-heading .nk-lead {
@@ -734,3 +772,17 @@
 .nk-public-site main { flex: 1; display: flex; flex-direction: column; }
 .nk-public-site main > .nk-public-section { flex: 1; display: grid; align-content: center; padding-block: clamp(32px, 5vh, 72px); }
 .nk-public-site { display: flex; flex-direction: column; min-height: 100dvh; }
+@media (max-width: 900px) {
+  .nk-solutions-grid,
+  .nk-industries-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .nk-hero-product-notes,
+  .nk-solutions-grid,
+  .nk-industries-grid {
+    grid-template-columns: 1fr;
+  }
+}

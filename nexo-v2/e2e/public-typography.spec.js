@@ -101,3 +101,40 @@ for (const width of [1440, 375]) {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })
 }
+
+test('el menú móvil conserva la sección activa y se desplaza dentro de una pantalla baja', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 375 })
+  await page.route('**/api/**', route => route.fulfill({ json: {} }))
+  await page.goto('/contacto')
+  await page.getByRole('button', { name: 'Abrir menú de secciones' }).click()
+
+  const menu = page.locator('.nk-public-mobile-menu')
+  const active = menu.locator('a[aria-current="page"]')
+  await expect(active).toHaveClass(/is-active/)
+  const metrics = await menu.evaluate(element => {
+    const rect = element.getBoundingClientRect()
+    const style = getComputedStyle(element)
+    return {
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      bottom: rect.bottom,
+      overflowY: style.overflowY,
+      viewportHeight: window.innerHeight,
+    }
+  })
+  expect(['auto', 'scroll']).toContain(metrics.overflowY)
+  expect(metrics.clientHeight).toBeLessThanOrEqual(metrics.viewportHeight)
+  expect(metrics.scrollHeight).toBeGreaterThanOrEqual(metrics.clientHeight)
+  expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight + 1)
+})
+
+test('las grillas de soluciones e industrias cierran filas equilibradas en escritorio', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 975 })
+  await page.route('**/api/**', route => route.fulfill({ json: {} }))
+
+  for (const [path, selector] of [['/soluciones', '.nk-solutions-grid'], ['/industrias', '.nk-industries-grid']]) {
+    await page.goto(path)
+    const columns = await page.locator(selector).evaluate(element => getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/).length)
+    expect(columns).toBe(3)
+  }
+})
