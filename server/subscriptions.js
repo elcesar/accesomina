@@ -375,6 +375,10 @@ export async function createSubscriptionRequest(client,{tenantId,userId,input,as
  if(old){if(old.payload_hash!==hash)fail('SUBSCRIPTION_IDEMPOTENCY_CONFLICT','La clave ya corresponde a otra solicitud.');return requestView(old);}
  let type=text(input.type).toUpperCase();
  if(!['INITIAL','UPGRADE','DOWNGRADE','RENEWAL','PACKAGES'].includes(type))fail('SUBSCRIPTION_REQUEST_TYPE','El tipo de solicitud no es válido.',400);
+ if(type==='INITIAL'){
+  const existingInitial=(await client.query("SELECT id,status FROM subscription_requests WHERE tenant_id=$1 AND type='INITIAL' AND status NOT IN ('EXECUTED','REJECTED','CANCELLED') ORDER BY created_at DESC LIMIT 1",[tenantId])).rows[0];
+  if(existingInitial)fail('SUBSCRIPTION_INITIAL_EXISTS','La empresa ya tiene una contratación inicial en curso. Completa o cancela esa tramitación antes de iniciar otra.',409,{requestId:existingInitial.id,status:existingInitial.status});
+ }
  const current=await currentContract(client,tenantId);
  if(!current){if(type==='UPGRADE')type='INITIAL';if(type!=='INITIAL')fail('SUBSCRIPTION_NO_CONTRACT','Primero solicita la activación de un plan.',409);}
  if(current&&type==='INITIAL')fail('SUBSCRIPTION_ALREADY_ASSIGNED','La empresa ya tiene una suscripción.');
@@ -449,7 +453,8 @@ export async function executeSubscriptionRequest(client,{tenantId,requestId,user
  if(!['SCHEDULED','EXECUTION_FAILED'].includes(request.status))fail('SUBSCRIPTION_REQUEST_STATE','La solicitud no está aprobada y programada.');
  if(new Date(request.effective_at)>new Date(now))fail('SUBSCRIPTION_NOT_DUE','Todavía no se cumple la fecha acordada.');
  const tenant=(await client.query('SELECT status FROM tenants WHERE id=$1',[tenantId])).rows[0];
- if(tenant.status!=='active')fail('SUBSCRIPTION_COMPANY_DISABLED','La empresa mantiene un bloqueo administrativo independiente.',403);
+ const activatesPendingInitial=tenant?.status==='pending'&&request.type==='INITIAL'&&request.source_contract_id===null;
+ if(tenant?.status!=='active'&&!activatesPendingInitial)fail('SUBSCRIPTION_COMPANY_DISABLED','La empresa mantiene un bloqueo administrativo independiente.',403);
  const current=await currentContract(client,tenantId);
  if((current?.id||null)!==request.source_contract_id)fail('SUBSCRIPTION_SOURCE_CHANGED','La suscripción cambió después de revisar la solicitud. Requiere nueva revisión.');
  await validateDocuments(client,tenantId,request.documents,now);
@@ -458,9 +463,14 @@ export async function executeSubscriptionRequest(client,{tenantId,requestId,user
  const start=new Date(request.effective_at);
  const contract=await createContract(client,{tenantId,userId:userId||request.approved_by,offer:request.proposal,start,now,
   anchorDay:request.type==='RENEWAL'?current?.anchor_day:undefined});
+ if(activatesPendingInitial){
+  const activated=(await client.query("UPDATE tenants SET status='active',updated_at=now() WHERE id=$1 AND status='pending' RETURNING id,status",[tenantId])).rows[0];
+  if(!activated)fail('SUBSCRIPTION_COMPANY_DISABLED','No fue posible habilitar la empresa tras ejecutar la contratación inicial.',409);
+  await appendAudit(client,{tenantId,userId:userId||request.approved_by,entityType:'tenant',entityId:tenantId,action:'tenant.activated_by_initial_subscription',oldValue:{status:'pending'},newValue:{status:'active',contractId:contract.id,requestId}});
+ }
  const result=(await client.query("UPDATE subscription_requests SET status='EXECUTED',executed_at=$3,result_contract_id=$4,last_error=NULL,updated_at=now() WHERE tenant_id=$1 AND id=$2 RETURNING *",[tenantId,requestId,iso(now),contract.id])).rows[0];
  await audit(client,tenantId,userId||request.approved_by,request.type==='RENEWAL'?'subscription.renewed':'subscription.changed',requestId,current?{contractId:current.id}:null,{contractId:contract.id,proposal:request.proposal,reason});
- return requestView(result);
+ return {...requestView(result),tenantActivated:activatesPendingInitial};
 }
 
 export async function transitionSubscriptionRequest(client,{tenantId,requestId,userId,input,now=new Date()}) {

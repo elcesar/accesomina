@@ -128,7 +128,12 @@ test('Integraciones y vistas por persona muestran feedback local correcto en éx
   await expect(localFeedback(page)).toContainText('Integración de correo guardada.')
   await expect(globalFeedback(page)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Guardar WhatsApp', exact: true }).click()
+  // D-068: las integraciones pendientes no permiten guardar ni editar.
+  await expect(page.getByRole('button', { name: 'Guardar WhatsApp', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Guardar firma', exact: true })).toBeDisabled()
+
+  // El flujo de error se valida con SMTP, que continúa disponible.
+  await page.getByRole('button', { name: 'Guardar correo', exact: true }).click()
   await expect(localFeedback(page)).toHaveAttribute('role', 'alert')
   await expect(localFeedback(page)).toContainText('Ocurrió un problema')
   await expect(localFeedback(page)).not.toContainText('Integración de correo guardada.')
