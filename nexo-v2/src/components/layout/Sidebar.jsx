@@ -236,7 +236,7 @@ export default function Sidebar({ mobileOpen = false, onClose = () => {} }) {
         <NavLink className="nk-sidebar-brand-link" to="/app" aria-label="Ir al Panel de control">
           <img src="/brand/NK-color-horizontal.svg" alt="Nexo Klar" />
         </NavLink>
-        <button className="nk-sidebar-mobile-close" type="button" onClick={onClose} aria-label="Cerrar menú"><IconX size={22} /></button>
+        {mobileOpen && <button className="nk-sidebar-mobile-close" type="button" onClick={onClose} aria-label="Cerrar menú"><IconX size={22} /></button>}
       </div>
 
       <nav ref={navRef} className="nk-sidebar-nav" aria-label="Navegación principal" onClick={event => { if (event.target.closest('a')) onClose() }}>
