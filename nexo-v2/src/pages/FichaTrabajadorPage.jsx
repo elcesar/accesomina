@@ -440,6 +440,8 @@ export default function FichaTrabajadorPage() {
     }
   }
   async function appendDocument(item, reason) {
+    setError(null)
+    setOk(null)
     try {
       const result = await api.post(`/state/workers/${encodeURIComponent(id)}/documents`, { item, reason })
       setWorker(current => ({ ...current, workerItems: [...(current.workerItems || []), result.item || item] }))
@@ -451,6 +453,8 @@ export default function FichaTrabajadorPage() {
     }
   }
   async function removeDocument(item) {
+    setError(null)
+    setOk(null)
     try {
       await api.delete(`/state/workers/${encodeURIComponent(id)}/documents/${encodeURIComponent(item.id)}`)
       setWorker(current => ({ ...current, workerItems: (current.workerItems || []).filter(document => document.id !== item.id) }))
@@ -561,7 +565,7 @@ export default function FichaTrabajadorPage() {
 
   return <div className="nk-person-page">
     <header className="nk-person-header"><div className="nk-person-header-top"><div className="nk-person-identity"><button className="nk-person-back" type="button" onClick={() => navigate('/app/trabajadores')}><IconArrowLeft size={15} strokeWidth={1.7} /> Personas</button><span className="nk-person-divider">/</span><div className="nk-person-avatar">{initials(worker.nombre)}</div><div><h1>{worker.nombre}</h1><p>{worker.rut} · {worker.cargo || worker.especialidad || 'Sin cargo'}</p></div></div><div className="nk-person-header-actions"><BadgeDisp value={availability} /><span className={`nk-badge nk-badge-${statusClass(pct)}`}>{pct}% habilitado</span>{worker.tel && <a className="nk-button nk-button-secondary" href={`https://wa.me/${worker.tel.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"><IconBrandWhatsapp size={15} /> WhatsApp</a>}</div></div><div className="nk-person-progress"><div className={`nk-person-progress-fill ${statusClass(pct)}`} style={{ width: `${pct}%` }} /></div><div className="nk-tabs nk-person-tabs">{TABS.map(({ key, label, icon: Icon }) => <button key={key} className={`nk-tab ${tab === key ? 'active' : ''}`} type="button" onClick={() => setTab(key)}><Icon size={14} strokeWidth={1.7} /> {label}</button>)}</div></header>
-    {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
+    {(error || ok) && <div className={`nk-person-feedback ${error ? 'error' : 'ok'}`} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>{error ? <IconAlertTriangle size={15} /> : <IconCheck size={15} />}<span>{error || ok}</span><button type="button" onClick={() => { setError(null); setOk(null) }} aria-label="Cerrar"><IconX size={14} /></button></div>}
     <main className="nk-person-content">
       {tab === 'datos' && <>
         <DataTab worker={worker} emailError={emailError} clientes={clientes} proyectos={proyectos} contratos={contratos} asignaciones={assignments} restrictions={restrictions} saving={saving} onChange={onChange} onSave={handleSave} onAsignar={handleAsignar} onRetirar={handleRetirar} isRestricted={isRestricted} onMakeFixed={handleMakeFixed} onMakeAvailable={handleMakeAvailable} onRestrict={() => setRestricting(true)} onLiftRestriction={handleLiftRestriction} />

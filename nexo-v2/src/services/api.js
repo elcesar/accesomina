@@ -188,7 +188,7 @@ async function parseError(res) {
 }
 
 async function request(path, options = {}) {
-  const { feedback, ...fetchOptions } = options
+  const { feedback, successMessage, ...fetchOptions } = options
   const headers = { 'Content-Type': 'application/json', ...fetchOptions.headers }
   if (csrfToken && !['GET', 'HEAD'].includes(options.method)) {
     headers['x-csrf-token'] = csrfToken
@@ -206,7 +206,7 @@ async function request(path, options = {}) {
   if(!res.ok)loadFailure(path,method,res.status)
   if (!res.ok) await parseError(res)
   const result = res.status===204 ? null : await res.json()
-  if(notify)publishEvent('nexo:mutation-completed',{message:method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.'})
+  if(notify)publishEvent('nexo:mutation-completed',{message:successMessage || (method==='DELETE'?'Registro eliminado correctamente.':'Información guardada correctamente.')})
   return result
 }
 
