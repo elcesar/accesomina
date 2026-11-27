@@ -1,58 +1,65 @@
 ---
 name: nexoklar-issues-report
-description: Genera informes Markdown auditables de todos los issues de NEXO KLAR, agrupados por severidad, con estado GitHub, subestado de issues abiertos, autor, fechas verificadas, módulo, PR e issues asociados y enlaces.
+description: Genera reportes auditables de issues de NEXO KLAR desde GitHub, por defecto sólo abiertos, agrupados por severidad y estado QA, con resumen ejecutivo, enlaces, PR y dependencias verificadas; admite detalle completo e histórico.
 ---
 
-# NEXO KLAR — Skill de reporte de issues
+# NEXO KLAR — Reporte de issues de GitHub
 
-## Ejecución
-Cuando el usuario pida un informe de issues, consultar GitHub del repositorio `elcesar/accesomina` mediante las herramientas conectadas; generar un archivo Markdown `reporte-issues-NEXOKLAR-AAAA-MM-DD.md` y entregarlo. Usar `references/plantilla-reporte.md`. No modificar issues ni PR al ejecutar un reporte, salvo instrucción expresa.
+## Cuándo se activa
+Ante solicitudes como «reporte de issues», «issues abiertos por severidad», «resumen por estado», «pendientes de QA», «issues críticos», «reporte actualizado» o «reporte detallado con PR». Consultar siempre GitHub en tiempo real; nunca reutilizar conteos de una conversación anterior.
 
-**Parámetros por defecto:** todos los issues abiertos y cerrados (sin convertir PR en filas de issue); corte en `America/Santiago`; idioma español; grupos por severidad P0, P1, P2, P3, sin clasificar. Informar cobertura parcial cuando corresponda.
+**Repositorio:** `elcesar/accesomina`. **Zona horaria:** `America/Santiago`. **Idioma:** español. **Salida:** Markdown, empleando `references/plantilla-reporte.md`. No modificar issues, etiquetas, PR ni estados al generar el reporte.
 
-## Recolección obligatoria
-1. Recuperar **todo** el universo de issues con paginación, `is:issue`, abiertos y cerrados. Nunca inferir completitud de una página de 100.
-2. Recoger ID, título, URL, `created_at`, `updated_at`, `closed_at`, **autor original del issue (`user.login`, URL real del perfil GitHub)**, estado nativo GitHub (`open`/`closed`), etiquetas, cuerpo y comentarios de QA relevantes. No confundir autor con asignado ni con quien comentó.
-3. Resolver severidad primero por etiquetas `P0/P1/P2/P3` o `sev:critico/alto/medio/bajo` y luego por declaraciones explícitas en QA/cuerpo. `bloquea-lanzamiento` es clasificación independiente; no convierte automáticamente un issue en P0.
-4. Separar **Estado GitHub** de **Subestado de trabajo**. El estado GitHub solo puede ser **Cerrado** o **Abierto**. Para los abiertos, establecer uno de los subestados de la siguiente sección a partir de etiquetas, cambios de estado, comentarios y evidencia fechada. Si no hay evidencia suficiente, usar **Sin subestado verificable**. **PR fusionado no equivale a QA aprobado, despliegue ni cierre**.
-5. Recuperar PR vinculados de forma explícita (Closes/Fixes/Refs, cuerpo, comentarios o enlaces confirmados). Verificar para cada PR `merged`, `open`, `draft` o `closed not merged`; enlazarlo. Nunca deducir merge desde un texto histórico.
-6. Recuperar issues asociados y comprobar su estado nativo y subestado cuando sea verificable. Clasificar el vínculo como dependencia explícita, defecto QA o mera referencia; no convertir referencias en bloqueos.
-7. La **Fecha último estado** debe corresponder a la transición verificable más reciente del **estado o subestado** (evento, etiqueta con historial o comentario explícito y fechado), no simplemente a `updated_at`. Cuando no se conoce, mostrar **No verificable**. Para cerrados, `closed_at` acredita la transición a Cerrado.
-8. Resumen de cada issue en 1–3 frases: falla/impacto, solución, último resultado QA y siguiente paso. Enlazar comentario fuente cuando aporte evidencia; no inventar pruebas ni fechas.
+### Parámetros y modos
+- **Alcance predeterminado: sólo issues abiertos** (`state=open` o búsqueda `is:issue is:open`), excluyendo PRs y cerrados. Si piden explícitamente «todos», «histórico» o «cerrados», ampliar el alcance solicitado.
+- **Modo resumen (predeterminado):** KPIs, matriz severidad × estado QA, distribución por severidad, IDs enlazados por estado y análisis breve de bloqueantes y siguientes acciones. Para una lista pequeña, incluir título abreviado de cada issue. Para «reporte completo», incluir todos los issues en una tabla por severidad.
+- **Modo detallado:** tabla por issue que añada autor original, creación, módulo, fecha verificable de último cambio de estado, PR relacionados con estado real, issues asociados y resumen/evidencia.
+- **Exportación:** si solicitan archivo, crear `reporte-issues-NEXOKLAR-AAAA-MM-DD.md` (y otro formato sólo si lo piden). Entregar enlace al artefacto realmente creado.
 
-## Estados y orden obligatorio
-Agrupar por severidad: **P0 · Crítica**, **P1 · Alta**, **P2 · Media**, **P3 · Baja**, **Sin severidad verificable**.
+## Fuente, completitud y normalización
+1. Obtener la **totalidad** del universo solicitado por la API GitHub usando paginación `per_page=100&page=N` hasta página vacía o último enlace `next`. Nunca asumir que una sola página es suficiente. Excluir elementos con campo `pull_request`, porque `/issues` incluye PRs.
+2. Leer de cada issue: `number`, `title`, `html_url`, `state`, `labels`, `user.login`, `created_at`, `updated_at`, `closed_at`, `body`, `comments`, `assignees`. El creador `user.login` **no es** el responsable `assignee`.
+3. Al solicitar sólo abiertos, filtrar estrictamente `state=open` después de consultar. No mezclar PRs ni cerrados; señalar truncamiento/errores de API y cobertura parcial.
+4. **Severidad:** `P0` crítica, `P1` alta, `P2` media, `P3` baja, `Sin severidad`. Normalizar etiquetas `sev:critico`, `sev:alto`, `sev:medio`, `sev:bajo` y expresiones explícitas `[P0]` … `[P3]` en el título. Si divergen etiqueta y título, aplicar la prioridad más exigente, advertir la discrepancia en metodología; nunca convertir automáticamente `bloquea-lanzamiento` en P0. En modo detallado, ampliar con evidencia explícita del cuerpo sólo cuando la prioridad no esté etiquetada. **No adivinar severidad** de solicitudes comerciales o de infraestructura sin clasificación.
+5. **Estado GitHub:** siempre `Abierto` o `Cerrado`, independiente del estado de QA. Para abiertos, determinar primero por etiquetas:
+   - `estado:listo-para-probar` → **Listo para probar** (etiqueta canónica).
+   - `estado:pendiente-validacion-qa` → **Pendiente de validación QA (etiqueta antigua)**; **no** computar automáticamente como Listo para probar a menos que el usuario haya ordenado expresamente normalizar y se haya confirmado el cambio en GitHub.
+   - Etiqueta antigua exacta `listo para probar` → **Listo para probar (etiqueta histórica)**; informar recomendación de normalización.
+   - Otras etiquetas `estado:*` → conservar nombre real y marcar subestado distinto; si faltan todas → **Sin estado QA**.
+   - No inferir «QA aprobado» de CI verde o PR fusionado. Si el último retest QA falló, exponer la contradicción con la etiqueta y vincular evidencia; no cambiar la etiqueta sin autorización.
+6. En el modo detallado o cuando se solicite explícitamente PRs: rastrear referencias verificadas `Closes/Fixes/Refs #N`, comentarios y enlaces. Consultar el PR realmente en GitHub y clasificarlo como **Abierto**, **Borrador**, **Fusionado** o **Cerrado sin fusionar**. No equiparar PR aprobado, fusionado, desplegado, probado y issue cerrado.
+7. Identificar `bloquea-lanzamiento` como dimensión independiente de severidad y QA. Una etiqueta **Listo para probar** no retira un bloqueo de producción, no autoriza despliegue ni implica prueba efectuada.
+8. Fechas en hora de Santiago `DD-MM-AAAA HH:mm`. `updated_at` = última actividad, **no** última transición de estado. Mostrar fecha de último estado sólo cuando se verifique un evento de transición o comentario fechado inequívoco; de lo contrario `No verificable`.
+9. Mantener el mismo issue una sola vez. Conciliar conteos: `total = sum(severidades) = sum(estados QA) = sum(celdas de matriz)`. Mostrar conteos y cobertura temporal comprobables, nunca porcentajes con denominador distinto al total filtrado.
 
-En cada grupo, ordenar primero por **Estado GitHub**, y dentro de los abiertos por **Subestado**:
+## Orden y presentación
+Severidades en orden **P0, P1, P2, P3, Sin severidad**. Dentro de cada severidad, **Listo para probar**, **Pendiente de validación QA (antiguo)**, otros subestados verificables y **Sin estado QA**; ordenar por número de issue descendente, a menos que el usuario pida otra ordenación.
 
-1. **Cerrado** — Estado GitHub `closed`; subestado `—`.
-2. **Abierto · QA aprobado, pendiente de cierre** — aprobación explícita y vigente de QA.
-3. **Abierto · Listo para probar** — etiqueta `estado:pendiente-validacion-qa` o decisión explícita de enviar a pruebas, como #212.
-4. **Abierto · En pruebas / QA fallido** — prueba en curso o último resultado fallido sin corrección posterior lista para probar.
-5. **Abierto · En revisión / PR abierto** — evidencia de revisión o PR correctivo abierto, sin subestado QA posterior.
-6. **Abierto · En desarrollo** — trabajo activo respaldado.
-7. **Abierto · Pendiente / por hacer** — tarea aún no iniciada según evidencia.
-8. **Abierto · Sin subestado verificable** — no suponer avance basándose solo en una referencia a un PR.
+### Reporte resumen por defecto
+- Encabezado con fecha/hora de corte y enlace al repositorio.
+- KPIs: total de abiertos, listos para probar, sin estado QA, etiquetas antiguas y bloqueantes explícitos.
+- Tabla de doble entrada: `Severidad | Listo para probar | Pendiente QA (antiguo) | Otros estados | Sin estado QA | Total`; ocultar columnas completamente vacías opcionalmente.
+- Detalle por severidad con enlaces a todos los IDs separados según su estado. Si el usuario solicita «resumen», no expandir 100 títulos innecesariamente; si pide «listado completo», mostrar títulos y enlaces.
+- Bloqueos/dependencias operacionales respaldados por issues, distinguiendo despliegue, SMTP, CloudFront, permisos y pruebas destructivas en QA cuando corresponda.
+- Nota de alcance y discrepancias de etiquetado.
+- Cada ID debe ser un vínculo real `https://github.com/elcesar/accesomina/issues/N`, no sólo texto sin enlace.
 
-Dentro del mismo subestado ordenar por fecha **verificada** de última transición (más reciente primero) y después por número de issue ascendente. Si la fecha falta, situarla después de las que sí tengan fecha.
+### Reporte detallado
+Por severidad, una fila por issue en:
+`Issue | Autor | Creación | Estado GitHub | Estado QA | Módulo | Último cambio de estado | PR asociados y estado | Resumen / QA / siguiente acción | Issues asociados y estado`.
+Escapar `|` en tablas; separar múltiples relaciones con `<br>`; URLs reales; autor original; fechas verificadas; resumen de 1–3 frases con hechos y pendientes. Priorizar observaciones QA más recientes y advertir cuando el cuerpo describe un PR «abierto» pero GitHub ya lo muestra fusionado.
 
-El atributo **Bloqueante / No bloqueante** se muestra adicionalmente, nunca reemplaza el estado ni subestado: p. ej. `Abierto · Listo para probar · Bloqueante`. Si existe contradicción entre comentarios y etiquetas, consignarla y explicar la fuente usada.
+## Control de calidad obligatorio
+- Verificar la paginación y exclusión de pull requests.
+- Reconciliar **todos** los totales, subtotales y números de issue.
+- No presentar **Sin estado QA** como **Sin desarrollo**.
+- No afirmar que un issue fue probado cuando sólo se cambió su etiqueta.
+- No atribuir un PR a un issue sin referencia comprobada; no atribuir el autor de un PR al creador del issue.
+- Distinguir la fecha de corte, `updated_at` y fecha de transición.
+- Informar si hay errores, cobertura parcial o etiquetas contradictorias.
+- No ejecutar cambios en GitHub ni generar issues/PR nuevos durante el reporte salvo petición explícita.
 
-## Tabla obligatoria por severidad
-`Issue | Autor | Creación | Estado GitHub | Subestado | Módulo | Fecha último estado | PR asociados y estado | Resumen / comentarios relevantes | Issues asociados y estado`.
-
-- **Autor**: enlazar `@login` a `https://github.com/login` si el usuario original y la URL son verificables. Si no hay autor visible, mostrar `No verificable`. No usar el asignado ni el autor de PR en su lugar.
-- **Estado GitHub**: exclusivamente `Cerrado` / `Abierto`; **Subestado**: usar la taxonomía anterior; para Cerrado mostrar `—`.
-- El ID de issue debe enlazar a GitHub, igual que IDs de PR e issues asociados. Enlazar módulo solo si se dispone de una URL real.
-- En las tablas Markdown, separar múltiples relaciones con `<br>` y escapar barras verticales.
-- Fechas `DD-MM-AAAA HH:mm` en hora de Santiago. No confundir última transición con última actividad.
-- Si falta evidencia, mostrar `No verificable` o `—` sin inventar.
-- El mismo issue aparece una sola vez; conciliar conteos de abiertos, cerrados, subestados y severidades.
-
-## Relaciones especiales de NEXO KLAR
-El issue #212 tiene PR originales #177, #189, #201 y #203. Los problemas surgidos en QA corresponden a #140 (PR #229) y #283 (PR #313). Los #277/#305/#307 son trabajos complementarios: **no** convertirlos en dependencias obligatorias del cierre de #212 sin constancia explícita.
-
-## Salida y control de calidad
-Crear archivo Markdown con título, corte, repositorio, alcance/cobertura, resumen de conteos, tablas agrupadas, leyenda de estados/subestados y metodología/limitaciones. Usar la plantilla.
-
-Antes de entregar comprobar: universo completo o limitación indicada; autor original de cada issue (no asignado); estado GitHub y subestado en columnas distintas y ordenados; fechas de creación y transición; estado de cada PR; vínculos con fuente; ausencia de falsas afirmaciones sobre QA/merge/deploy; conteos conciliados y ninguna referencia convertida en dependencia sin evidencia.
+## Ejemplos
+- «Resumen de issues abiertos por estado y severidad» → modo resumen, sólo abiertos, matriz y IDs enlazados.
+- «Reporte completo de issues abiertos incluyendo PRs y comentarios» → modo detallado, sólo abiertos.
+- «Reporte histórico de issues abiertos y cerrados» → modo detallado, universo abierto + cerrado; conservar columnas separadas de estado GitHub y QA.
